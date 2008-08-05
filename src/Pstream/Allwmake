@@ -1,0 +1,20 @@
+#!/bin/sh
+set -x
+
+wmake libso dummy
+
+case "$WM_MPLIB" in
+LAM | OPENMPI | MPI | MPICH | MPICH-GM | MPIGAMMA )
+   export WM_OPTIONS=${WM_OPTIONS}$WM_MPLIB
+   set +x
+   echo
+   echo "Note: ignore spurious warnings about missing mpicxx.h headers"
+   set -x
+   wmake libso mpi
+   ;;
+
+GAMMA)
+   wmake libso gamma
+   ;;
+esac
+

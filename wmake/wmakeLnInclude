@@ -1,0 +1,140 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+# =========                 |
+# \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+#  \\    /   O peration     |
+#   \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+#    \\/     M anipulation  |
+#-------------------------------------------------------------------------------
+# License
+#     This file is part of OpenFOAM.
+#
+#     OpenFOAM is free software; you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by the
+#     Free Software Foundation; either version 2 of the License, or (at your
+#     option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM; if not, write to the Free Software Foundation,
+#     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+#
+# Script
+#     wmakeLnInclude
+#
+# Description
+#     Link all the source files in the <dir> directory into <dir>/lnInclude
+#
+#     Usage: wmakeLnInclude [-f] <dir> [-lnOption]
+#
+#     The desired source files:
+#         *.C *.H *.h *.cpp *.cxx *.hpp *.hxx
+#
+#     Avoid
+#         *.c (C source)
+#         .#* (cvs recovered files)
+#------------------------------------------------------------------------------
+Script=${0##*/}
+
+usage() {
+   while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+   cat<<USAGE
+
+usage: $Script [-f] <dir> [-lnOption]
+
+    Link all the source files in the <dir> into <dir>/lnInclude
+    * Use '-f' to force an update when the lnInclude directory already exists.
+
+USAGE
+   exit 1
+}
+
+#------------------------------------------------------------------------------
+
+# simple option parsing
+unset forceUpdate
+unset findOpt
+
+# simple parse options
+while [ "$#" -gt 0 ]
+do
+   case "$1" in
+   -h | -help)   # provide immediate help
+      usage
+      ;;
+   -f)
+      shift
+      forceUpdate=1
+      ;;
+   -*)
+      usage "unknown option/argument: '$*'"
+      ;;
+   *)
+      break
+      ;;
+   esac
+done
+
+baseDir=$1
+incDir=$baseDir/lnInclude
+
+if [ $# -eq 1 ]
+then
+   lnOpt="-s"
+elif [ $# -eq 2 ]
+then
+   lnOpt="$2"
+else
+   usage "ERROR: wrong number of arguments"
+fi
+
+
+if [ ! -d $baseDir ]
+then
+   echo $Script: Base directory $baseDir does not exist, exiting.
+   exit 2
+fi
+
+if [ -d $incDir ]
+then
+   # could change force to remove lnInclude first
+   if [ ! "$forceUpdate" ]
+   then
+      # echo $Script: include directory $incDir already exists, exiting.
+      exit 0
+   fi
+else
+   mkdir $incDir
+fi
+
+if [ ! -d $incDir ]
+then
+   echo $Script: failed to create include directory $incDir
+   exit 0
+fi
+
+
+# Link include files
+# ~~~~~~~~~~~~~~~~~~
+echo $Script: linking include files to $incDir
+echo
+
+cd $incDir
+
+find .. $findOpt \
+    \( -name lnInclude -o -name -Make -o -name config \) -prune  \
+ -o \( -name '*.[CHh]' -o -name '*.[ch]xx' -o -name '*.[ch]pp' -o -name '*.type' \)  \
+ -a ! -name ".#*"     \
+ -exec ln $lnOpt {} . \;
+
+
+#
+# remove any broken links
+#
+find -L . -type l -exec rm \{\} \;
+
+#------------------------------------------------------------------------------
