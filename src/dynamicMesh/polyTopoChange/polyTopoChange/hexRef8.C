@@ -80,7 +80,7 @@ void Foam::hexRef8::reorder
 
         if (newI >= len)
         {
-            FatalErrorIn("hexRef8::reorder") << abort(FatalError);
+            FatalErrorIn("hexRef8::reorder(..)") << abort(FatalError);
         }
 
         if (newI >= 0)
