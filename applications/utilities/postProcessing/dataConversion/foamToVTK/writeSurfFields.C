@@ -100,7 +100,7 @@ void writeSurfFields
 
             const fvPatch& pp = mesh.boundary()[patchI];
 
-            if (isA<emptyFvPatchVectorField>(pf))
+            if (isA<emptyFvsPatchVectorField>(pf))
             {
                 // Note: loop over polypatch size, not fvpatch size.
                 forAll(pp.patch(), i)
