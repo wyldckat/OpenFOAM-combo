@@ -28,7 +28,7 @@ License
 #include "OFstream.H"
 #include "floatScalar.H"
 #include "writeFuns.H"
-#include "emptyFvPatchFields.H"
+#include "emptyFvsPatchFields.H"
 #include "fvsPatchFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
