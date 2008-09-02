@@ -533,7 +533,7 @@ Foam::labelList Foam::meshRefinement::getRefineCandidateFaces
     const labelList& refineCell
 ) const
 {
-    labelList testFaces(mesh_.nCells());
+    labelList testFaces(mesh_.nFaces());
 
     label nTest = 0;
 
@@ -1302,7 +1302,7 @@ Foam::autoPtr<Foam::mapDistributePolyMesh>
 
         if (debug)
         {
-            Pout<< "Writing " << msg
+            Pout<< "Writing balanced " << msg
                 << " mesh to time " << mesh_.time().timeName() << endl;
             write
             (
