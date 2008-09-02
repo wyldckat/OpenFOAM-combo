@@ -34,12 +34,6 @@ Description
 #include "scalar.H"
 
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-//- Not VSMALL - but smaller than SMALL
-const Foam::scalar Foam::triangleFuncs::NVSMALL = Foam::sqrt(Foam::VSMALL);
-
-
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 void Foam::triangleFuncs::setIntersection
@@ -107,6 +101,7 @@ bool Foam::triangleFuncs::intersectAxesBundle
     // Since direction is coordinate axis there is no need to do projection,
     // we can directly check u,v components for inclusion in triangle.
 
+    scalar localScale = max(max(magSqr(V10), magSqr(V20)), 1.0);
 
     // Get other components
     label i1 = (i0 + 1) % 3;
@@ -120,7 +115,11 @@ bool Foam::triangleFuncs::intersectAxesBundle
 
     scalar det = v2*u1 - u2*v1;
 
-    if (Foam::mag(det) < SMALL)
+    // Fix for  V0:(-31.71428 0 -15.10714)
+    //          V10:(-1.285715 8.99165e-16 -1.142858)
+    //          V20:(0 0 -1.678573)
+    //          i0:0
+    if (Foam::mag(det)/localScale < SMALL)
     {
         // Triangle parallel to dir
         return false;
@@ -137,7 +136,7 @@ bool Foam::triangleFuncs::intersectAxesBundle
         scalar beta = 0;
         bool inter = false;
 
-        if (Foam::mag(u1) < SMALL)
+        if (Foam::mag(u1)/localScale < SMALL)
         {
             beta = u0/u2;
             if ((beta >= 0) && (beta <= 1))
@@ -522,7 +521,7 @@ bool Foam::triangleFuncs::classify
 
     bool hit = false;
     
-    if (Foam::mag(u1) < NVSMALL)
+    if (Foam::mag(u1) < ROOTVSMALL)
     {
         beta = u0/u2;
 
