@@ -8,7 +8,7 @@
 FoamFile
 {
     version     2.0;
-    format      ascii;
+    `format'      ascii;
     class       dictionary;
     object      blockMeshDict;
 }
@@ -16,8 +16,7 @@ FoamFile
 // General macros to create 2D/extruded-2D meshes
 
 changecom(//)changequote([,])
-define(calc, [esyscmd(perl -e 'printf ($1)')])
-//define(calc, [esyscmd(echo $1 | bc | tr -d \\n)])
+define(calc, [esyscmd(perl -e 'print ($1)')])
 define(VCOUNT, 0)
 define(vlabel, [[// ]Vertex $1 = VCOUNT define($1, VCOUNT)define([VCOUNT], incr(VCOUNT))])
 define(pi, 3.14159265)
@@ -421,7 +420,7 @@ vertices
     vert(4, 7, Zt) vlabel(R7st)
 );
 
-blocks          
+blocks
 (
     // block0
     hex2D(r0, r1, rb1, rb0)
@@ -693,7 +692,7 @@ edges
     arc R7t R0t evert(4, 7, Zt)
 );
 
-patches         
+patches
 (
     wall rotor
     (
