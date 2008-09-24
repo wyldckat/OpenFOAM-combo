@@ -1059,6 +1059,8 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
         // Surfaces with zone information
         const wordList& faceZoneNames = surfaces.faceZoneNames();
 
+        scalarField minSnapDist(snapDist);
+
         forAll(zonedSurfaces, i)
         {
             label zoneSurfI = zonedSurfaces[i];
@@ -1075,31 +1077,34 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
                 )
             );
 
-            pointField zonePoints(zonePointIndices.size());
-            forAll(zonePointIndices, i)
-            {
-                zonePoints[i] = localPoints[zonePointIndices[i]];
-            }
-
             // Find nearest for points both on faceZone and pp.
             List<pointIndexHit> hitInfo;
             labelList hitSurface;
             surfaces.findNearest
             (
                 labelList(1, zoneSurfI),
-                zonePoints,
-                sqr(4*snapDist),
+                pointField(localPoints, zonePointIndices),
+                sqr(4*scalarField(minSnapDist, zonePointIndices)),
                 hitSurface,
                 hitInfo
             );
 
-            forAll(hitInfo, pointI)
+
+            forAll(hitInfo, i)
             {
-                if (hitInfo[pointI].hit())
+                label pointI = zonePointIndices[i]; 
+
+                if (hitInfo[i].hit())
                 {
                     patchDisp[pointI] =
-                        hitInfo[pointI].hitPoint()
+                        hitInfo[i].hitPoint()
                       - localPoints[pointI];
+
+                    minSnapDist[pointI] = min
+                    (
+                        minSnapDist[pointI],
+                        mag(patchDisp[pointI])
+                    );
                 }
                 else
                 {
@@ -1107,7 +1112,7 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
                         << "For point:" << pointI
                         << " coordinate:" << localPoints[pointI]
                         << " did not find any surface within:"
-                        << 4*snapDist[pointI]
+                        << 4*minSnapDist[pointI]
                         << " meter." << endl;
                 }
             }
@@ -1329,7 +1334,7 @@ void Foam::autoSnapDriver::doSnap
         );
         indirectPrimitivePatch& pp = ppPtr();
 
-        // Distance to attact to nearest feature on surface
+        // Distance to attract to nearest feature on surface
         const scalarField snapDist(calcSnapDistance(snapParams, pp));
 
 
