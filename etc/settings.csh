@@ -32,7 +32,7 @@
 #------------------------------------------------------------------------------
 
 alias _foamAddPath 'set path=(\!* $path) ; if ( ! -d \!* ) mkdir -p \!*'
-alias _foamAddLib 'setenv LD_LIBRARY_PATH \!*\:${LD_LIBRARY_PATH} ; if ( ! -d \!* ) mkdir -p \!*'
+alias _foamAddLib 'setenv LD_LIBRARY_PATH \!*\:${LD_LIBRARY_PATH} ; set xx=`echo $LD_LIBRARY_PATH | sed -e "s/:.*//"`; if ( ! -d  $xx ) mkdir -p $xx'
 
 
 #- Add the system-specific executables path to the path
@@ -105,13 +105,8 @@ case OpenFOAM:
 endsw
 
 if ($?WM_COMPILER_BIN) then
-    set path=($WM_COMPILER_BIN $path)
-
-    if ($?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH ${WM_COMPILER_LIB}:${LD_LIBRARY_PATH}
-    else
-        setenv LD_LIBRARY_PATH ${WM_COMPILER_LIB}
-    endif
+    _foamAddPath $WM_COMPILER_BIN
+    _foamAddLib $WM_COMPILER_LIB
 endif
 
 unset WM_COMPILER_BIN
