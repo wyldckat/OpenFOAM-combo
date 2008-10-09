@@ -33,22 +33,40 @@
 
 _foamAddPath()
 {
-    while [ $# -ge 1 ]
-    do
-        [ -d $1 ] || mkdir -p $1
-        export PATH=$1:$PATH
-        shift
-    done
+   if [ $# -eq 1 ]
+   then
+      oldIFS="$IFS"
+      IFS=':'    # split on ':'
+      set -- $1
+      IFS="$oldIFS"
+      unset oldIFS
+   fi
+
+   while [ $# -ge 1 ]
+   do
+      [ -d $1 ] || mkdir -p $1
+      export PATH=$1:$PATH
+      shift
+   done
 }
 
 _foamAddLib()
 {
-    while [ $# -ge 1 ]
-    do
-        [ -d $1 ] || mkdir -p $1
-        export LD_LIBRARY_PATH=$1:$LD_LIBRARY_PATH
-        shift
-    done
+   if [ $# -eq 1 ]
+   then
+      oldIFS="$IFS"
+      IFS=':'    # split on ':'
+      set -- $1
+      IFS="$oldIFS"
+      unset oldIFS
+   fi
+
+   while [ $# -ge 1 ]
+   do
+      [ -d $1 ] || mkdir -p $1
+      export LD_LIBRARY_PATH=$1:$LD_LIBRARY_PATH
+      shift
+   done
 }
 
 
@@ -123,8 +141,8 @@ OpenFOAM)
 esac
 
 if [ -d "$WM_COMPILER_BIN" ]; then
-    export PATH=$WM_COMPILER_BIN:$PATH
-    export LD_LIBRARY_PATH=$WM_COMPILER_LIB:$LD_LIBRARY_PATH
+    _foamAddPath $WM_COMPILER_BIN
+    _foamAddLib  $WM_COMPILER_LIB
 fi
 
 unset WM_COMPILER_BIN WM_COMPILER_LIB
