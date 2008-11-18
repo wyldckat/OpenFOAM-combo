@@ -9,6 +9,8 @@
     //- fvc::div(muf*(fvc::interpolate(dev(fvc::grad(U))) & mesh.Sf()))
     );
 
+    UEqn.relax();
+
     if (momentumPredictor)
     {
         solve
