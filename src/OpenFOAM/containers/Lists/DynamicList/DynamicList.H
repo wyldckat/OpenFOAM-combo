@@ -87,6 +87,11 @@ class DynamicList
 
 public:
 
+    // Related types
+
+        //- Declare friendship with the List class
+        friend class List<T>;
+
     // Constructors
 
         //- Construct null
@@ -105,6 +110,9 @@ public:
     // Member Functions
 
         // Access
+
+            //- Size of the underlying storage.
+            inline label allocSize() const;
 
             //- Size of the active part of the list.
             //  Direct over-ride of list size member function

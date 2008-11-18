@@ -422,6 +422,24 @@ void List<T>::transfer(List<T>& a)
 
 
 template<class T>
+template<unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
+void List<T>::transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>& a)
+{
+    // shrink the allocated space to the number of elements used
+    a.shrink();
+
+    if (this->size_) delete[] this->v_;
+
+    this->size_ = a.size_;
+    this->v_ = a.v_;
+
+    a.size_ = 0;
+    a.v_ = 0;
+    a.nextFree_ = 0;
+}
+
+
+template<class T>
 void sort(List<T>& a)
 {
     std::sort(a.begin(), a.end());
