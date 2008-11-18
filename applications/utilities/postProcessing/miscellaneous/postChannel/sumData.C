@@ -22,47 +22,28 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Description
-    Specialisation of FieldField\<T\> for symmTensor.
-
 \*---------------------------------------------------------------------------*/
 
-#include "symmTensorFieldField.H"
+#include "sumData.H"
 
-#define TEMPLATE template<template<class> class Field>
-#include "FieldFieldFunctionsM.C"
+// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
+Foam::Ostream& Foam::operator<<
+(
+    Foam::Ostream& os,
+    const Foam::sumData& wDist
+)
 {
-
-// * * * * * * * * * * * * * * * global operators  * * * * * * * * * * * * * //
-
-UNARY_FUNCTION(symmTensor, vector, sqr)
-
-UNARY_FUNCTION(scalar, symmTensor, tr)
-UNARY_FUNCTION(sphericalTensor, symmTensor, sph)
-UNARY_FUNCTION(symmTensor, symmTensor, symm)
-UNARY_FUNCTION(symmTensor, symmTensor, twoSymm)
-UNARY_FUNCTION(symmTensor, symmTensor, dev)
-UNARY_FUNCTION(symmTensor, symmTensor, dev2)
-UNARY_FUNCTION(scalar, symmTensor, det)
-UNARY_FUNCTION(symmTensor, symmTensor, cof)
-UNARY_FUNCTION(symmTensor, symmTensor, inv)
+    return os
+        << wDist.oldFace_ << token::SPACE
+        << wDist.sum_ << token::SPACE << wDist.count_;
+}
 
 
-// * * * * * * * * * * * * * * * global operators  * * * * * * * * * * * * * //
+Foam::Istream& Foam::operator>>(Foam::Istream& is, Foam::sumData& wDist)
+{
+    return is >> wDist.oldFace_ >> wDist.sum_ >> wDist.count_;
+}
 
-UNARY_OPERATOR(vector, symmTensor, *, hdual)
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#include "undefFieldFunctionsM.H"
 
 // ************************************************************************* //

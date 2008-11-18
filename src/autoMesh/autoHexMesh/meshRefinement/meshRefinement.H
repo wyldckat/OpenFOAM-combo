@@ -66,7 +66,6 @@ class shellSurfaces;
 class removeCells;
 class featureEdgeMesh;
 class fvMeshDistribute;
-class searchableSurface;
 class regionSplit;
 
 /*---------------------------------------------------------------------------*\
@@ -349,7 +348,7 @@ private:
             void findCellZoneGeometric
             (
                 const labelList& closedNamedSurfaces,
-                const labelList& namedSurfaceIndex,
+                labelList& namedSurfaceIndex,
                 const labelList& surfaceToCellZone,
                 labelList& cellToZone
             ) const;

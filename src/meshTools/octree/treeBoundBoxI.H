@@ -24,9 +24,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
 #include "treeBoundBox.H"
-#include "point.H"
 #include "Random.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -439,7 +437,15 @@ inline treeBoundBox treeBoundBox::extend(Random& rndGen, const scalar s) const
 {
     treeBoundBox bb(*this);
 
-    const vector span(bb.max() - bb.min());
+    vector span(bb.max() - bb.min());
+
+    // Make 3D
+    scalar magSpan = Foam::mag(span);
+
+    for (direction dir = 0; dir < vector::nComponents; dir++)
+    {
+        span[dir] = Foam::max(s*magSpan, span[dir]);
+    }
 
     bb.min() -= cmptMultiply(s*rndGen.vector01(), span);
     bb.max() += cmptMultiply(s*rndGen.vector01(), span);
