@@ -95,7 +95,7 @@ timeVaryingMappedFixedValueFvPatchField
 {
     if (debug)
     {
-        Pout<< "timeVarying<appedFixedValue"
+        Pout<< "timeVaryingMappedFixedValue"
             << " : construct from mappedFixedValue and mapper" << endl;
     }
 }
@@ -207,8 +207,11 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::autoMap
 )
 {
     fixedValueFvPatchField<Type>::autoMap(m);
-    startSampledValues_.autoMap(m);
-    endSampledValues_.autoMap(m);
+    if (startSampledValues_.size() > 0)
+    {
+        startSampledValues_.autoMap(m);
+        endSampledValues_.autoMap(m);
+    }
 }
 
 
