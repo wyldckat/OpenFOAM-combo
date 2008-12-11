@@ -1572,16 +1572,16 @@ void Foam::meshRefinement::findCellZoneTopo
         {
             break;
         }
+
+	// Synchronise regionToCellZone.
+	// Note:
+	// - region numbers are identical on all processors
+	// - keepRegion is identical ,,
+	// - cellZones are identical ,,
+	Pstream::listCombineGather(regionToCellZone, maxEqOp<label>());
+	Pstream::listCombineScatter(regionToCellZone);
+
     }
-
-
-    // Synchronise regionToCellZone.
-    // Note:
-    // - region numbers are identical on all processors
-    // - keepRegion is identical ,,
-    // - cellZones are identical ,,
-    Pstream::listCombineGather(regionToCellZone, maxEqOp<label>());
-    Pstream::listCombineScatter(regionToCellZone);
 
 
     forAll(regionToCellZone, regionI)
