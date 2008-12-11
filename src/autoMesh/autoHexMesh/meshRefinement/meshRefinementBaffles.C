@@ -1573,14 +1573,13 @@ void Foam::meshRefinement::findCellZoneTopo
             break;
         }
 
-	// Synchronise regionToCellZone.
-	// Note:
-	// - region numbers are identical on all processors
-	// - keepRegion is identical ,,
-	// - cellZones are identical ,,
-	Pstream::listCombineGather(regionToCellZone, maxEqOp<label>());
-	Pstream::listCombineScatter(regionToCellZone);
-
+        // Synchronise regionToCellZone.
+        // Note:
+        // - region numbers are identical on all processors
+        // - keepRegion is identical ,,
+        // - cellZones are identical ,,
+        Pstream::listCombineGather(regionToCellZone, maxEqOp<label>());
+        Pstream::listCombineScatter(regionToCellZone);
     }
 
 
@@ -2454,36 +2453,6 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::meshRefinement::zonify
             cellToZone
         );
     }
-
-    //{
-    //    Pout<< "** finding out blocked faces." << endl;
-    //
-    //    cellSet zonedCellsGeom(mesh_, "zonedCellsGeom", 100);
-    //    forAll(cellToZone, cellI)
-    //    {
-    //        if (cellToZone[cellI] >= 0)
-    //        {
-    //            zonedCellsGeom.insert(cellI);
-    //        }
-    //    }
-    //    Pout<< "Writing zoned cells to " << zonedCellsGeom.objectPath()
-    //        << endl;
-    //    zonedCellsGeom.write();
-    //
-    //
-    //    faceSet zonedFaces(mesh_, "zonedFaces", 100);
-    //    forAll(namedSurfaceIndex, faceI)
-    //    {
-    //        label surfI = namedSurfaceIndex[faceI];
-    //
-    //        if (surfI != -1)
-    //        {
-    //            zonedFaces.insert(faceI);
-    //        }
-    //    }
-    //    Pout<< "Writing zoned faces to " << zonedFaces.objectPath() << endl;
-    //    zonedFaces.write();
-    //}
 
     // Set using walking
     // ~~~~~~~~~~~~~~~~~
