@@ -79,10 +79,12 @@ Type Foam::Table<Type>::value(const scalar x) const
     }
 
     // Linear interpolation to find value
-    return
+    return Type
+    (
         (x - table_[i].first())/(table_[i+1].first() - table_[i].first())
       * (table_[i+1].second() - table_[i].second())
-      + table_[i].second();
+      + table_[i].second()
+    );
 }
 
 
