@@ -65,7 +65,7 @@ dictionaryReplacement
             }
             bottomAir_to_leftSolid
             {
-                type            solidWallTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName leftSolid;
                 neighbourPatchName leftSolid_to_bottomAir;
                 neighbourFieldName T;
@@ -75,7 +75,7 @@ dictionaryReplacement
             }
             bottomAir_to_heater
             {
-                type            solidWallTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName heater;
                 neighbourPatchName heater_to_bottomAir;
                 neighbourFieldName T;
@@ -84,7 +84,7 @@ dictionaryReplacement
             }
             bottomAir_to_rightSolid
             {
-                type            solidWallTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName rightSolid;
                 neighbourPatchName rightSolid_to_bottomAir;
                 neighbourFieldName T;
@@ -262,49 +262,49 @@ dictionaryReplacement
 
     p
     {
-        internalField   uniform 1000000;
+        internalField   uniform 100000;
         boundaryField
         {
             minX
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             maxX
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             minY
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             minZ
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             maxZ
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
 
             bottomAir_to_leftSolid
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             bottomAir_to_heater
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
             bottomAir_to_rightSolid
             {
                 type            calculated;
-                value           uniform 1000000;
+                value           uniform 100000;
             }
         }
     }
