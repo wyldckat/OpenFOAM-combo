@@ -40,7 +40,7 @@ dictionaryReplacement
 
             heater_to_bottomAir
             {
-                type            solidWallHeatFluxTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName bottomAir;
                 neighbourPatchName bottomAir_to_heater;
                 neighbourFieldName T;
@@ -50,7 +50,7 @@ dictionaryReplacement
             }
             heater_to_leftSolid
             {
-                type            solidWallHeatFluxTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName leftSolid;
                 neighbourPatchName leftSolid_to_heater;
                 neighbourFieldName T;
@@ -59,7 +59,7 @@ dictionaryReplacement
             }
             heater_to_rightSolid
             {
-                type            solidWallHeatFluxTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName rightSolid;
                 neighbourPatchName rightSolid_to_heater;
                 neighbourFieldName T;
@@ -68,7 +68,7 @@ dictionaryReplacement
             }
             heater_to_topAir
             {
-                type            solidWallHeatFluxTemperatureCoupled;
+                type            solidWallMixedTemperatureCoupled;
                 neighbourRegionName topAir;
                 neighbourPatchName topAir_to_heater;
                 neighbourFieldName T;
