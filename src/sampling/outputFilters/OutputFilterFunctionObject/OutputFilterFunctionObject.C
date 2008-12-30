@@ -79,6 +79,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::start()
             (
                 new IOOutputFilter<OutputFilter>
                 (
+                    name_,
                     time_.lookupObject<objectRegistry>(regionName_),
                     dictName_
                 )
