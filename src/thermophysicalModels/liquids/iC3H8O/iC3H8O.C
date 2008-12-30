@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2005 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,14 +22,27 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-\*---------------------------------------------------------------------------*/
+Description
 
-#include "word.H"
-#include "debug.H"
+-------------------------------------------------------------------------------
+*/
+
+#include "iC3H8O.H"
+#include "addToRunTimeSelectionTable.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace Foam
+{
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-const char* const Foam::word::typeName = "word";
-int Foam::word::debug(Foam::debug::debugSwitch(word::typeName, 0));
+defineTypeNameAndDebug(iC3H8O, 0);
+addToRunTimeSelectionTable(liquid, iC3H8O,);
+addToRunTimeSelectionTable(liquid, iC3H8O, Istream);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 // ************************************************************************* //
