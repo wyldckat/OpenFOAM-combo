@@ -90,6 +90,9 @@ class refinementSurfaces
         //- From global region number to refinement level
         labelList maxLevel_;
 
+        //- From global region number to perpendicular angle
+        scalarField perpendicularAngle_;
+
         //- Per surface refinement level adapted for shells.
         PtrList<triSurfaceLabelField> minLevelFields_;
 
@@ -176,6 +179,12 @@ public:
             const labelList& maxLevel() const
             {
                 return maxLevel_;
+            }
+
+            //- From global region number to perpendicular angle
+            const scalarField& perpendicularAngle() const
+            {
+                return perpendicularAngle_;
             }
 
 

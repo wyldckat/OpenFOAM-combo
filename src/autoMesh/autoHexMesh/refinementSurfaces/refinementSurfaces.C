@@ -59,8 +59,10 @@ Foam::refinementSurfaces::refinementSurfaces
 {
     labelList globalMinLevel(surfaceDicts.size(), 0);
     labelList globalMaxLevel(surfaceDicts.size(), 0);
+    scalarField globalAngle(surfaceDicts.size(), -GREAT);
     List<Map<label> > regionMinLevel(surfaceDicts.size());
     List<Map<label> > regionMaxLevel(surfaceDicts.size());
+    List<Map<scalar> > regionAngle(surfaceDicts.size());
 
     //wordList globalPatchType(surfaceDicts.size());
     //List<HashTable<word> > regionPatchType(surfaceDicts.size());
@@ -84,6 +86,12 @@ Foam::refinementSurfaces::refinementSurfaces
             dict.lookup("faceZone") >> faceZoneNames_[surfI];
             dict.lookup("cellZone") >> cellZoneNames_[surfI];
             dict.lookup("zoneInside") >> zoneInside_[surfI];
+        }
+
+        // Global perpendicular angle
+        if (dict.found("perpendicularAngle"))
+        {
+            globalAngle[surfI] = readScalar(dict.lookup("perpendicularAngle"));
         }
 
         //// Global patch name per surface
@@ -136,6 +144,15 @@ Foam::refinementSurfaces::refinementSurfaces
                         << exit(FatalError);
                 }
                 regionMaxLevel[surfI].insert(regionI, max);
+
+                if (regionDict.found("perpendicularAngle"))
+                {
+                    regionAngle[surfI].insert
+                    (
+                        regionI,
+                        readScalar(regionDict.lookup("perpendicularAngle"))
+                    );
+                }
             }
         }
     }
@@ -176,6 +193,8 @@ Foam::refinementSurfaces::refinementSurfaces
     minLevel_ = 0;
     maxLevel_.setSize(nRegions);
     maxLevel_ = 0;
+    perpendicularAngle_.setSize(nRegions);
+    perpendicularAngle_ = -GREAT;
     //patchName_.setSize(nRegions);
     //patchType_.setSize(nRegions);
 
@@ -188,6 +207,7 @@ Foam::refinementSurfaces::refinementSurfaces
         {
             minLevel_[regionOffset_[surfI] + i] = globalMinLevel[surfI];
             maxLevel_[regionOffset_[surfI] + i] = globalMaxLevel[surfI];
+            perpendicularAngle_[regionOffset_[surfI] + i] = globalAngle[surfI];
         }
 
         // Overwrite with region specific information
@@ -197,6 +217,7 @@ Foam::refinementSurfaces::refinementSurfaces
 
             minLevel_[globalRegionI] = iter();
             maxLevel_[globalRegionI] = regionMaxLevel[surfI][iter.key()];
+            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
 
             // Check validity
             if
@@ -246,8 +267,10 @@ Foam::refinementSurfaces::refinementSurfaces
 {
     labelList globalMinLevel(surfacesDict.size(), 0);
     labelList globalMaxLevel(surfacesDict.size(), 0);
+    scalarField globalAngle(surfacesDict.size(), -GREAT);
     List<Map<label> > regionMinLevel(surfacesDict.size());
     List<Map<label> > regionMaxLevel(surfacesDict.size());
+    List<Map<scalar> > regionAngle(surfacesDict.size());
 
     label surfI = 0;
     forAllConstIter(dictionary, surfacesDict, iter)
@@ -278,6 +301,12 @@ Foam::refinementSurfaces::refinementSurfaces
             dict.lookup("faceZone") >> faceZoneNames_[surfI];
             dict.lookup("cellZone") >> cellZoneNames_[surfI];
             dict.lookup("zoneInside") >> zoneInside_[surfI];
+        }
+
+        // Global perpendicular angle
+        if (dict.found("perpendicularAngle"))
+        {
+            globalAngle[surfI] = readScalar(dict.lookup("perpendicularAngle"));
         }
 
         if (dict.found("regions"))
@@ -312,6 +341,15 @@ Foam::refinementSurfaces::refinementSurfaces
 
                     regionMinLevel[surfI].insert(regionI, refLevel[0]);
                     regionMaxLevel[surfI].insert(regionI, refLevel[1]);
+
+                    if (regionDict.found("perpendicularAngle"))
+                    {
+                        regionAngle[surfI].insert
+                        (
+                            regionI,
+                            readScalar(regionDict.lookup("perpendicularAngle"))
+                        );
+                    }
                 }
             }
         }
@@ -332,6 +370,8 @@ Foam::refinementSurfaces::refinementSurfaces
     minLevel_ = 0;
     maxLevel_.setSize(nRegions);
     maxLevel_ = 0;
+    perpendicularAngle_.setSize(nRegions);
+    perpendicularAngle_ = -GREAT;
 
 
     forAll(globalMinLevel, surfI)
@@ -343,6 +383,7 @@ Foam::refinementSurfaces::refinementSurfaces
         {
             minLevel_[regionOffset_[surfI] + i] = globalMinLevel[surfI];
             maxLevel_[regionOffset_[surfI] + i] = globalMaxLevel[surfI];
+            perpendicularAngle_[regionOffset_[surfI] + i] = globalAngle[surfI];
         }
 
         // Overwrite with region specific information
@@ -352,6 +393,7 @@ Foam::refinementSurfaces::refinementSurfaces
 
             minLevel_[globalRegionI] = iter();
             maxLevel_[globalRegionI] = regionMaxLevel[surfI][iter.key()];
+            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
 
             // Check validity
             if

@@ -36,6 +36,7 @@ SourceFiles
     meshRefinement.C
     meshRefinementBaffles.C
     meshRefinementMerge.C
+    meshRefinementProblemCells.C
     meshRefinementRefine.C
 
 \*---------------------------------------------------------------------------*/
@@ -51,6 +52,7 @@ SourceFiles
 #include "indirectPrimitivePatch.H"
 #include "pointFieldsFwd.H"
 #include "Tuple2.H"
+#include "pointIndexHit.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -285,6 +287,7 @@ private:
                 label& nRefine
             ) const;
 
+
         // Baffle handling
 
             //- Determine patches for baffles
@@ -316,6 +319,8 @@ private:
                 polyTopoChange& meshMod
             ) const;
 
+        // Problem cell handling
+
             //- Helper function to mark face as being on 'boundary'. Used by
             //  markFacesOnProblemCells
             void markBoundaryFace
@@ -326,10 +331,28 @@ private:
                 boolList& isBoundaryPoint
             ) const;
 
+            void findNearest
+            (
+                const labelList& meshFaces,
+                List<pointIndexHit>& nearestInfo,
+                labelList& nearestSurface,
+                labelList& nearestRegion,
+                vectorField& nearestNormal
+            ) const;
+
+            Map<label> findEdgeConnectedProblemCells
+            (
+                const scalarField& perpendicularAngle,
+                const labelList&
+            ) const;
+
             //- Returns list with for every internal face -1 or the patch
-            //  they should be baffled into.
+            //  they should be baffled into. If removeEdgeConnectedCells is set
+            //  removes cells based on perpendicularAngle.
             labelList markFacesOnProblemCells
             (
+                const bool removeEdgeConnectedCells,
+                const scalarField& perpendicularAngle,
                 const labelList& globalToPatch
             ) const;
 
@@ -550,6 +573,8 @@ public:
             void baffleAndSplitMesh
             (
                 const bool handleSnapProblems,
+                const bool removeEdgeConnectedCells,
+                const scalarField& perpendicularAngle,
                 const bool mergeFreeStanding,
                 Time& runTime,
                 const labelList& globalToPatch,
