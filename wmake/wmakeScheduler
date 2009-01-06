@@ -186,25 +186,17 @@ do
                     # Set colour
                     colour="${colourList[$colourIndex]}"
 
-                    if [ "$host" = "$HOST" ]
-                    then
+                    if [ "$host" = "$HOST" ]; then
                         eval $* 2>&1 | colourPipe "$colour"
-                    elif [ -n "$JOB_ID" ]
-                    then
-                        qrsh -inherit -v PWD $host "$rcmd"
                     else
                         ssh $host "$sourceFoam 2>/dev/null; cd $PWD && $rcmd" 2>&1 | colourPipe "$colour"
                     fi
                     retval=$?
                 else
-                    if [ "$host" = "$HOST" ]
-                    then
-                        eval $*
-                    elif [ -n "$JOB_ID" ]
-                    then
-                        qrsh -inherit -v PWD $host "$rcmd"
+                    if [ "$host" = "$HOST" ]; then
+                        eval $* 2>&1
                     else
-                        ssh $host "$sourceFoam 2>/dev/null; cd $PWD && $rcmd"
+                        ssh $host "$sourceFoam 2>/dev/null; cd $PWD && $rcmd" 2>&1
                     fi
                     retval=$?
                 fi

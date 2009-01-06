@@ -350,126 +350,69 @@ void triSurface::checkEdges(const bool verbose)
 // Check normals and orientation
 boolList triSurface::checkOrientation(const bool verbose)
 {
-    const edgeList& es = edges();
-    const labelListList& faceEs = faceEdges();
-
-    // Check edge normals, face normals, point normals.
-    forAll(faceEs, facei)
-    {
-        const labelList& edgeLabels = faceEs[facei];
-
-        if (edgeLabels.size() != 3)
-        {
-            FatalErrorIn("triSurface::checkOrientation(bool)")
-                << "triangle " << (*this)[facei]
-                << " does not have 3 edges. Edges:" << edgeLabels
-                << exit(FatalError);
-        }
-
-        bool valid = true;
-        forAll(edgeLabels, i)
-        {
-            if (edgeLabels[i] < 0 || edgeLabels[i] >= nEdges())
-            {
-                WarningIn
-                (
-                    "triSurface::checkOrientation(bool)"
-                )   << "edge number " << edgeLabels[i] << " on face " << facei
-                    << " out of range"
-                    << "\nThis usually means that the input surface has "
-                    << "edges with more than 2 triangles connected.\n"
-                    << endl;
-                valid = false;
-            }
-        }
-        if (! valid)
-        {
-            continue;
-        }
-
-
-        //
-        //- Compute normal from triangle points.
-        //
-
-        const labelledTri& tri = (*this)[facei];
-        const point pa(points()[tri[0]]);
-        const point pb(points()[tri[1]]);
-        const point pc(points()[tri[2]]);
-
-        const vector pointNormal((pc - pb) ^ (pa - pb));
-        if ((pointNormal & faceNormals()[facei]) < 0)
-        {
-            FatalErrorIn("triSurface::checkOrientation(bool)")
-                << "Normal calculated from points not consistent with"
-                " faceNormal" << endl
-                << "triangle:" << tri << endl
-                << "points:" << pa << ' ' << pb << ' ' << pc << endl
-                << "pointNormal:" << pointNormal << endl
-                << "faceNormal:" << faceNormals()[facei]
-                << exit(FatalError);
-        }
-    }
-
-
     const labelListList& eFaces = edgeFaces();
     
     // Storage for holding status of edge. True if normal flips across this
     // edge
     boolList borderEdge(nEdges(), false);
 
-    forAll(es, edgei)
+    forAll(eFaces, edgeI)
     {
-        const labelList& neighbours = eFaces[edgei];
+        const labelList& neighbours = eFaces[edgeI];
 
         if (neighbours.size() == 2)
         {
             // Two triangles, A and B. Check if edge orientation is
             // anticlockwise on both.
-            const labelList& fEdgesA = faceEdges()[neighbours[0]];
 
-            // Get next edge after edgei
-            label nextEdgeA = fEdgesA.fcIndex(findIndex(fEdgesA, edgei));
+            const labelledTri& triA = operator[](neighbours[0]);
+            const labelledTri& triB = operator[](neighbours[1]);
 
-            const labelList& fEdgesB = faceEdges()[neighbours[1]];
+            // Get first shared point
+            label sharedA = -1;
+            label sharedB = -1;
+            forAll(triA, i)
+            {
+                sharedB = findIndex(triB, triA[i]);
+                if (sharedB != -1)
+                {
+                    sharedA = i;
+                    break;
+                }
+            }
 
-            label nextEdgeB = fEdgesB.fcIndex(findIndex(fEdgesB, edgei));
-
-            // Now check if nextEdgeA and nextEdgeB have any common points
             if
             (
-                (es[nextEdgeA].start() == es[nextEdgeB].start())
-             || (es[nextEdgeA].start() == es[nextEdgeB].end())
-             || (es[nextEdgeA].end() == es[nextEdgeB].start())
-             || (es[nextEdgeA].end() == es[nextEdgeB].end())
+                sharedA == -1
+             || sharedB == -1
+             || triA[sharedA] != triB[sharedB]
             )
             {
-                borderEdge[edgei] = true;
+                FatalErrorIn("triSurface::checkOrientation(bool)")
+                    << "Problem triA:" << triA << " triB:" << triB
+                    << abort(FatalError);
+            }
+
+            // Check if next point along A equals previous point along B
+            // or vise versa.
+            label nextA = triA[triA.fcIndex(sharedA)];
+            label prevA = triA[triA.rcIndex(sharedA)];
+
+            label nextB = triB[triB.fcIndex(sharedB)];
+            label prevB = triB[triB.rcIndex(sharedB)];
+
+            if (nextA != prevB && prevA != nextB)
+            {
+                borderEdge[edgeI] = true;
                 if (verbose)
                 {
                     WarningIn("triSurface::checkOrientation(bool)")
                         << "Triangle orientation incorrect." << endl
                         << "edge neighbours:" << neighbours << endl
-                        << "triangle " << neighbours[0] << " has edges "
-                        << fEdgesA << endl
-                        << "    with points " << endl
-                        << "    " << es[fEdgesA[0]].start() << ' '
-                        << es[fEdgesA[0]].end() << endl
-                        << "    " << es[fEdgesA[1]].start() << ' '
-                        << es[fEdgesA[1]].end() << endl
-                        << "    " << es[fEdgesA[2]].start() << ' '
-                        << es[fEdgesA[2]].end() << endl
-
-                        << "triangle " << neighbours[1] << " has edges "
-                        << fEdgesB << endl
-                        << "    with points " << endl
-                        << "    " << es[fEdgesB[0]].start() << ' '
-                        << es[fEdgesB[0]].end() << endl
-                        << "    " << es[fEdgesB[1]].start() << ' '
-                        << es[fEdgesB[1]].end() << endl
-                        << "    " << es[fEdgesB[2]].start() << ' '
-                        << es[fEdgesB[2]].end() << endl
-                        << endl;
+                        << "triangle " << neighbours[0]
+                        << " points " << triA << endl
+                        << "triangle " << neighbours[1]
+                        << " points " << triB << endl;
                 }
             }
         }
@@ -477,7 +420,7 @@ boolList triSurface::checkOrientation(const bool verbose)
         {
             if (verbose)
             {
-                const edge& e = es[edgei];
+                const edge& e = edges()[edgeI];
                 WarningIn("triSurface::checkOrientation(bool)")
                     << "Wrong number of edge neighbours." << endl
                     << "Edge:" << e
@@ -485,7 +428,7 @@ boolList triSurface::checkOrientation(const bool verbose)
                     << ' ' << localPoints()[e.end()]
                     << " has neighbours:" << neighbours << endl;
             }
-            borderEdge[edgei] = true;
+            borderEdge[edgeI] = true;
         }
     }
 

@@ -62,6 +62,14 @@ inline Foam::DynamicList<T, SizeInc, SizeMult, SizeDiv>::DynamicList
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class T, unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
+inline Foam::label Foam::DynamicList<T, SizeInc, SizeMult, SizeDiv>::allocSize()
+const
+{
+    return List<T>::size();
+}
+
+
+template<class T, unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
 inline Foam::label Foam::DynamicList<T, SizeInc, SizeMult, SizeDiv>::size()
 const
 {
@@ -150,8 +158,10 @@ Foam::DynamicList<T, SizeInc, SizeMult, SizeDiv>::transfer
     DynamicList<T, SizeInc, SizeMult, SizeDiv>& l
 )
 {
+    nextFree_ = l.nextFree_;    // take over used size
+    // this should disable shrink() in List<T>::transfer - but somehow doesn't
+    l.nextFree_ = l.allocSize();
     List<T>::transfer(l);       // take over storage
-    nextFree_ = l.size();       // take over used size
     l.clear();                  // set nextFree of l to 0
 }
 
