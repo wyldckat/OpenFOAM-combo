@@ -1020,7 +1020,11 @@ void Foam::vtkPV3Foam::printMemory()
             }
         }
 
-        Info << "memUsed: " << (memTotal - memFree) << " kB\n";
+        Info << "memUsed: " << (memTotal - memFree) << " kB" << endl;
+    }
+    else
+    {
+        Info << "Has no /proc/meminfo - Not a Linux-machine" << endl;
     }
 }
 
