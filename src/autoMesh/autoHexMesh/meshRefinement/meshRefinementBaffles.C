@@ -201,7 +201,7 @@ Foam::label Foam::meshRefinement::getBafflePatch
 
     WarningIn
     (
-        "meshRefinement::getBafflePatch(const labelList& const label)"
+        "meshRefinement::getBafflePatch(const labelList&, const label)"
     )   << "Could not find boundary face neighbouring internal face "
         << faceI << " with face centre " << mesh_.faceCentres()[faceI]
         << nl
@@ -383,7 +383,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::meshRefinement::createBaffles
         FatalErrorIn
         (
             "meshRefinement::createBaffles"
-            "(const label, const labelList&, const labelList&)"
+            "(const labelList&, const labelList&)"
         )   << "Illegal size :"
             << " ownPatch:" << ownPatch.size()
             << " neiPatch:" << neiPatch.size()
@@ -409,7 +409,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::meshRefinement::createBaffles
                 FatalErrorIn
                 (
                     "meshRefinement::createBaffles"
-                    "(const label, const labelList&, const labelList&)"
+                    "(const labelList&, const labelList&)"
                 )   << "Non synchronised at face:" << faceI
                     << " on patch:" << mesh_.boundaryMesh().whichPatch(faceI)
                     << " fc:" << mesh_.faceCentres()[faceI] << endl
