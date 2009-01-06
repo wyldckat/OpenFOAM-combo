@@ -274,7 +274,6 @@ Foam::Map<Foam::label> Foam::meshRefinement::findEdgeConnectedProblemCells
     }
     return candidateCells;
 }
-//XXXXXXXXX
 
 
 // Returns list with for every internal face -1 or the patch they should
@@ -305,28 +304,27 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     boolList isBoundaryFace(mesh_.nFaces(), false);
 
     // Fill boundary data. All elements on meshed patches get marked.
-    forAll(globalToPatch, i)
+    labelList adaptPatchIDs(meshRefinement::addedPatches(globalToPatch));
+
+    forAll(adaptPatchIDs, i)
     {
-        label patchI = globalToPatch[i];
+        label patchI = adaptPatchIDs[i];
 
-        if (patchI != -1)
+        const polyPatch& pp = patches[patchI];
+
+        label faceI = pp.start();
+
+        forAll(pp, j)
         {
-            const polyPatch& pp = patches[patchI];
+            markBoundaryFace
+            (
+                faceI,
+                isBoundaryFace,
+                isBoundaryEdge,
+                isBoundaryPoint
+            );
 
-            label faceI = pp.start();
-
-            forAll(pp, j)
-            {
-                markBoundaryFace
-                (
-                    faceI,
-                    isBoundaryFace,
-                    isBoundaryEdge,
-                    isBoundaryPoint
-                );
-
-                faceI++;
-            }
+            faceI++;
         }
     }
 
