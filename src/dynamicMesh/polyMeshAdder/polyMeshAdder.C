@@ -61,6 +61,29 @@ void Foam::polyMeshAdder::append
 }
 
 
+//- Append all mapped elements of a list to a DynamicList
+void Foam::polyMeshAdder::append
+(
+    const labelList& map,
+    const labelList& lst,
+    const SortableList<label>& sortedLst,
+    DynamicList<label>& dynLst
+)
+{
+    dynLst.setSize(dynLst.size() + lst.size());
+
+    forAll(lst, i)
+    {
+        label newElem = map[lst[i]];
+
+        if (newElem != -1 && findSortedIndex(sortedLst, newElem) == -1)
+        {
+            dynLst.append(newElem);
+        }
+    }
+}
+
+
 // Get index of patch in new set of patchnames/types
 Foam::label Foam::polyMeshAdder::patchIndex
 (
@@ -909,7 +932,7 @@ void Foam::polyMeshAdder::mergePointZones
 
     from1ToAll.setSize(pz1.size());
 
-    forAll (pz1, zoneI)
+    forAll(pz1, zoneI)
     {
         from1ToAll[zoneI] = zoneIndex(pz1[zoneI].name(), zoneNames);
     }
@@ -920,22 +943,33 @@ void Foam::polyMeshAdder::mergePointZones
 
     forAll(pz0, zoneI)
     {
-        DynamicList<label>& newZone = pzPoints[zoneI];
+        append(from0ToAllPoints, pz0[zoneI], pzPoints[zoneI]);
+    }
 
-        newZone.setSize(pz0[zoneI].size());
-
-        append(from0ToAllPoints, pz0[zoneI], newZone);
+    // Get sorted zone contents for duplicate element recognition
+    PtrList<SortableList<label> > pzPointsSorted(pzPoints.size());
+    forAll(pzPoints, zoneI)
+    {
+        pzPointsSorted.set
+        (
+            zoneI,
+            new SortableList<label>(pzPoints[zoneI].shrink())
+        );
     }
 
     // Now we have full addressing for points so do the pointZones of mesh1.
     forAll(pz1, zoneI)
     {
         // Relabel all points of zone and add to correct pzPoints.
-        DynamicList<label>& newZone = pzPoints[from1ToAll[zoneI]];
+        label allZoneI = from1ToAll[zoneI];
 
-        newZone.setSize(newZone.size() + pz1[zoneI].size());
-
-        append(from1ToAllPoints, pz1[zoneI], newZone);
+        append
+        (
+            from1ToAllPoints,
+            pz1[zoneI],
+            pzPointsSorted[allZoneI],
+            pzPoints[allZoneI]
+        );
     }
 
     forAll(pzPoints, i)
@@ -997,11 +1031,24 @@ void Foam::polyMeshAdder::mergeFaceZones
         }
     }
 
+    // Get sorted zone contents for duplicate element recognition
+    PtrList<SortableList<label> > fzFacesSorted(fzFaces.size());
+    forAll(fzFaces, zoneI)
+    {
+        fzFacesSorted.set
+        (
+            zoneI,
+            new SortableList<label>(fzFaces[zoneI].shrink())
+        );
+    }
+
     // Now we have full addressing for faces so do the faceZones of mesh1.
     forAll(fz1, zoneI)
     {
-        DynamicList<label>& newZone = fzFaces[from1ToAll[zoneI]];
-        DynamicList<bool>& newFlip = fzFlips[from1ToAll[zoneI]];
+        label allZoneI = from1ToAll[zoneI];
+        DynamicList<label>& newZone = fzFaces[allZoneI];
+        const SortableList<label>& newZoneSorted = fzFacesSorted[allZoneI];
+        DynamicList<bool>& newFlip = fzFlips[allZoneI];
 
         newZone.setSize(newZone.size() + fz1[zoneI].size());
         newFlip.setSize(newZone.size());
@@ -1012,10 +1059,15 @@ void Foam::polyMeshAdder::mergeFaceZones
         forAll(addressing, i)
         {
             label faceI = addressing[i];
+            label allFaceI = from1ToAllFaces[faceI];
 
-            if (from1ToAllFaces[faceI] != -1)
+            if
+            (
+                allFaceI != -1
+             && findSortedIndex(newZoneSorted, allFaceI) == -1
+            )
             {
-                newZone.append(from1ToAllFaces[faceI]);
+                newZone.append(allFaceI);
                 newFlip.append(flipMap[i]);
             }
         }
@@ -1056,20 +1108,16 @@ void Foam::polyMeshAdder::mergeCellZones
     czCells.setSize(zoneNames.size());
     forAll(cz0, zoneI)
     {
-        czCells[zoneI].setSize(cz0[zoneI].size());
         // Insert mesh0 cells
         append(cz0[zoneI], czCells[zoneI]);
     }
 
-
-    // Cell mapping is trivial.
+    // Cell mapping is trivial. Also no duplicate elements possible.
     forAll(cz1, zoneI)
     {
-        DynamicList<label>& newZone = czCells[from1ToAll[zoneI]];
+        label allZoneI = from1ToAll[zoneI];
 
-        newZone.setSize(newZone.size() + cz1[zoneI].size());
-
-        append(from1ToAllCells, cz1[zoneI], newZone);
+        append(from1ToAllCells, cz1[zoneI], czCells[allZoneI]);
     }
 
     forAll(czCells, i)
@@ -1737,84 +1785,217 @@ Foam::autoPtr<Foam::mapAddedPolyMesh> Foam::polyMeshAdder::add
 Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
 (
     const polyMesh& mesh,
-    const scalar mergeTol
+    const scalar mergeDist
 )
 {
     const labelList& sharedPointLabels = mesh.globalData().sharedPointLabels();
+    const labelList& sharedPointAddr = mesh.globalData().sharedPointAddr();
 
-    labelList sharedToMerged;
-    pointField mergedPoints;
-    bool hasMerged = Foam::mergePoints
-    (
-        pointField
-        (
-            IndirectList<point>
+    // Because of adding the missing pieces e.g. when redistributing a mesh
+    // it can be that there are multiple points on the same processor that
+    // refer to the same shared point.
+
+    // Invert point-to-shared addressing
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Map<labelList> sharedToMesh(sharedPointLabels.size());
+
+    label nMultiple = 0;
+
+    forAll(sharedPointLabels, i)
+    {
+        label pointI = sharedPointLabels[i];
+
+        label sharedI = sharedPointAddr[i];
+
+        Map<labelList>::iterator iter = sharedToMesh.find(sharedI);
+
+        if (iter != sharedToMesh.end())
+        {
+            // sharedI already used by other point. Add this one.
+
+            nMultiple++;
+
+            labelList& connectedPointLabels = iter();
+
+            label sz = connectedPointLabels.size();
+
+            // Check just to make sure.
+            if (findIndex(connectedPointLabels, pointI) != -1)
+            {
+                FatalErrorIn("polyMeshAdder::findSharedPoints(..)")
+                    << "Duplicate point in sharedPoint addressing." << endl
+                    << "When trying to add point " << pointI << " on shared "
+                    << sharedI  << " with connected points "
+                    << connectedPointLabels
+                    << abort(FatalError);
+            }
+
+            connectedPointLabels.setSize(sz+1);
+            connectedPointLabels[sz] = pointI;
+        }
+        else
+        {
+            sharedToMesh.insert(sharedI, labelList(1, pointI));
+        }
+    }
+
+
+    // Assign single master for every shared with multiple geometric points
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Map<label> pointToMaster(nMultiple);
+
+    forAllConstIter(Map<labelList>, sharedToMesh, iter)
+    {
+        const labelList& connectedPointLabels = iter();
+
+        //Pout<< "For shared:" << iter.key()
+        //    << " found points:" << connectedPointLabels
+        //    << " at coords:"
+        //    <<  pointField(mesh.points(), connectedPointLabels) << endl;
+
+        if (connectedPointLabels.size() > 1)
+        {
+            const pointField connectedPoints
             (
                 mesh.points(),
-                sharedPointLabels
-            )()
-        ),
-        mergeTol,
-        false,
-        sharedToMerged,
-        mergedPoints
-    );
+                connectedPointLabels
+            );
 
-    // Find out which sets of points get merged and create a map from
-    // mesh point to unique point.
-
-    Map<label> pointToMaster(10*sharedToMerged.size());
-
-    if (hasMerged)
-    {
-        labelListList mergeSets
-        (
-            invertOneToMany
+            labelList toMergedPoints;
+            pointField mergedPoints;
+            bool hasMerged = Foam::mergePoints
             (
-                sharedToMerged.size(),
-                sharedToMerged
-            )
-        );
+                connectedPoints,
+                mergeDist,
+                false,
+                toMergedPoints,
+                mergedPoints
+            );
 
-        label nMergeSets = 0;
-
-        forAll(mergeSets, setI)
-        {
-            const labelList& mergeSet = mergeSets[setI];
-
-            if (mergeSet.size() > 1)
+            if (hasMerged)
             {
-                // Take as master the shared point with the lowest mesh
-                // point label. (rather arbitrarily - could use max or any other
-                // one of the points)
+                // Invert toMergedPoints
+                const labelListList mergeSets
+                (
+                    invertOneToMany
+                    (
+                        mergedPoints.size(),
+                        toMergedPoints
+                    )
+                );
 
-                nMergeSets++;
-
-                label masterI = labelMax;
-
-                forAll(mergeSet, i)
+                // Find master for valid merges
+                forAll(mergeSets, setI)
                 {
-                    label sharedI = mergeSet[i];
+                    const labelList& mergeSet = mergeSets[setI];
 
-                    masterI = min(masterI, sharedPointLabels[sharedI]);
-                }
+                    if (mergeSet.size() > 1)
+                    {
+                        // Pick lowest numbered point
+                        label masterPointI = labelMax;
 
-                forAll(mergeSet, i)
-                {
-                    label sharedI = mergeSet[i];
+                        forAll(mergeSet, i)
+                        {
+                            label pointI = connectedPointLabels[mergeSet[i]];
 
-                    pointToMaster.insert(sharedPointLabels[sharedI], masterI);
+                            masterPointI = min(masterPointI, pointI);
+                        }
+
+                        forAll(mergeSet, i)
+                        {
+                            label pointI = connectedPointLabels[mergeSet[i]];
+
+                            //Pout<< "Merging point " << pointI
+                            //    << " at " << mesh.points()[pointI]
+                            //    << " into master point "
+                            //    << masterPointI
+                            //    << " at " << mesh.points()[masterPointI]
+                            //    << endl;
+
+                            pointToMaster.insert(pointI, masterPointI);
+                        }
+                    }
                 }
             }
         }
-
-        //if (debug)
-        //{
-        //    Pout<< "polyMeshAdder : merging:"
-        //        << pointToMaster.size() << " into " << nMergeSets << " sets."
-        //        << endl;
-        //}
     }
+
+    //- Old: geometric merging. Causes problems for two close shared points.
+    //labelList sharedToMerged;
+    //pointField mergedPoints;
+    //bool hasMerged = Foam::mergePoints
+    //(
+    //    pointField
+    //    (
+    //        IndirectList<point>
+    //        (
+    //            mesh.points(),
+    //            sharedPointLabels
+    //        )()
+    //    ),
+    //    mergeDist,
+    //    false,
+    //    sharedToMerged,
+    //    mergedPoints
+    //);
+    //
+    //// Find out which sets of points get merged and create a map from
+    //// mesh point to unique point.
+    //
+    //Map<label> pointToMaster(10*sharedToMerged.size());
+    //
+    //if (hasMerged)
+    //{
+    //    labelListList mergeSets
+    //    (
+    //        invertOneToMany
+    //        (
+    //            sharedToMerged.size(),
+    //            sharedToMerged
+    //        )
+    //    );
+    //
+    //    label nMergeSets = 0;
+    //
+    //    forAll(mergeSets, setI)
+    //    {
+    //        const labelList& mergeSet = mergeSets[setI];
+    //
+    //        if (mergeSet.size() > 1)
+    //        {
+    //            // Take as master the shared point with the lowest mesh
+    //            // point label. (rather arbitrarily - could use max or
+    //            // any other one of the points)
+    //
+    //            nMergeSets++;
+    //
+    //            label masterI = labelMax;
+    //
+    //            forAll(mergeSet, i)
+    //            {
+    //                label sharedI = mergeSet[i];
+    //
+    //                masterI = min(masterI, sharedPointLabels[sharedI]);
+    //            }
+    //
+    //            forAll(mergeSet, i)
+    //            {
+    //                label sharedI = mergeSet[i];
+    //
+    //                pointToMaster.insert(sharedPointLabels[sharedI], masterI);
+    //            }
+    //        }
+    //    }
+    //
+    //    //if (debug)
+    //    //{
+    //    //    Pout<< "polyMeshAdder : merging:"
+    //    //        << pointToMaster.size() << " into " << nMergeSets
+    //    //        << " sets." << endl;
+    //    //}
+    //}
 
     return pointToMaster;
 }
