@@ -340,6 +340,11 @@ void vtkPV3FoamReader::addPatchNamesToView()
 {
     pqApplicationCore* appCore = pqApplicationCore::instance();
 
+    if (appCore==NULL)
+    {
+        return;
+    }
+
     // Server manager model for querying items in the server manager
     pqServerManagerModel* smModel = appCore->getServerManagerModel();
 
@@ -359,6 +364,11 @@ void vtkPV3FoamReader::addPatchNamesToView()
 void vtkPV3FoamReader::removePatchNamesFromView()
 {
     pqApplicationCore* appCore = pqApplicationCore::instance();
+
+    if (appCore==NULL)
+    {
+        return;
+    }
 
     // Server manager model for querying items in the server manager
     pqServerManagerModel* smModel = appCore->getServerManagerModel();

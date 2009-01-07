@@ -47,7 +47,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class OPstream Declaration
+                          Class OPstream Declaration
 \*---------------------------------------------------------------------------*/
 
 class OPstream
@@ -70,7 +70,7 @@ class OPstream
         inline void writeToBuffer(const char&);
 
         //- Write data to the transfer buffer
-        inline void writeToBuffer(const void* data, size_t count);
+        inline void writeToBuffer(const void* data, size_t count, size_t align);
 
 
 public:
@@ -160,7 +160,7 @@ public:
             void flush()
             {}
 
-            //- Add '\n' and flush stream
+            //- Add newline and flush stream
             void endl()
             {}
 
