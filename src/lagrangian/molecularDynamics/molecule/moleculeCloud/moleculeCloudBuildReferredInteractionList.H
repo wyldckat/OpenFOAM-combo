@@ -228,7 +228,7 @@ if (Pstream::parRun())
             (
                 Pstream::blocking,
                 patch.neighbProcNo(),
-                2*(sizeof(label) + patch.size()*sizeof(vector))
+                2*(sizeof(label) + patch.size()*sizeof(vector) + sizeof(scalar))
             );
             fromNeighbProc
                 >> neighbFaceCentres
