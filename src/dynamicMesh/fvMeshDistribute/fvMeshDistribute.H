@@ -114,14 +114,13 @@ class fvMeshDistribute
             labelPairHash()
             {}
 
-            label operator()(const labelPair& p) const
-            {
-                return label(p[0]*p[0]+p[0]+p[1]);
-            }
-
             label operator()(const labelPair& p, const label tableSize) const
             {
-                return mag(operator()(p)) % tableSize;
+                unsigned int p0 = static_cast<unsigned int>(p[0]);
+                unsigned int p1 = static_cast<unsigned int>(p[1]);
+                unsigned int key = p0*p0+p0+p1;
+                unsigned int sz = static_cast<unsigned int>(tableSize);
+                return key % sz;
             }
         };
 
