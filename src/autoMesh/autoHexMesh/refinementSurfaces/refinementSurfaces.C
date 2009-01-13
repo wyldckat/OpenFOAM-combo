@@ -217,7 +217,6 @@ Foam::refinementSurfaces::refinementSurfaces
 
             minLevel_[globalRegionI] = iter();
             maxLevel_[globalRegionI] = regionMaxLevel[surfI][iter.key()];
-            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
 
             // Check validity
             if
@@ -236,6 +235,12 @@ Foam::refinementSurfaces::refinementSurfaces
                     << " maxLevel:" << maxLevel_[globalRegionI]
                     << exit(FatalError);
             }
+        }
+        forAllConstIter(Map<scalar>, regionAngle[surfI], iter)
+        {
+            label globalRegionI = regionOffset_[surfI] + iter.key();
+
+            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
         }
 
         //// Optional patch names and patch types
@@ -393,7 +398,6 @@ Foam::refinementSurfaces::refinementSurfaces
 
             minLevel_[globalRegionI] = iter();
             maxLevel_[globalRegionI] = regionMaxLevel[surfI][iter.key()];
-            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
 
             // Check validity
             if
@@ -412,6 +416,13 @@ Foam::refinementSurfaces::refinementSurfaces
                     << " maxLevel:" << maxLevel_[globalRegionI]
                     << exit(FatalError);
             }
+        }
+
+        forAllConstIter(Map<scalar>, regionAngle[surfI], iter)
+        {
+            label globalRegionI = regionOffset_[surfI] + iter.key();
+
+            perpendicularAngle_[globalRegionI] = regionAngle[surfI][iter.key()];
         }
     }
 }
