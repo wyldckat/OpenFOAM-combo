@@ -48,9 +48,8 @@ void fft::transform
 {
     forAll(nn, idim)
     {
-        // Check for power of two
-        unsigned int dimCount = nn[idim];
-        if (!dimCount || (dimCount & (dimCount - 1)))
+        scalar pow2 = log(scalar(nn[idim]))/log(scalar(2));
+        if ((pow2 - int(pow2 + 0.5)) > SMALL)
         {
             FatalErrorIn
             (
