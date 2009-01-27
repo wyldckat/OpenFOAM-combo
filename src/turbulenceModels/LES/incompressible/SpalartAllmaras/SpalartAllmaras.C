@@ -55,6 +55,7 @@ tmp<volScalarField> SpalartAllmaras::fv1() const
 tmp<volScalarField> SpalartAllmaras::fv2() const
 {
     volScalarField chi = nuTilda_/nu();
+    //return scalar(1) - chi/(scalar(1) + chi*fv1());
     return 1.0/pow3(scalar(1) + chi/Cv2_);
 }
 
