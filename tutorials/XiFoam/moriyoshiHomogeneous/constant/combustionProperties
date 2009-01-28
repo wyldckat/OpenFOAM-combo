@@ -67,9 +67,8 @@ GuldersCoeffs
 
 ignite          yes;
 
-ignitionSites   
+ignitionSites
 (
-    
     {
         location        (0 0 0.0005);
         diameter        0.003;
