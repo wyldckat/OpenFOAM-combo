@@ -34,7 +34,7 @@
 
 export WM_PROJECT=OpenFOAM
 #export WM_PROJECT_VERSION=1.5.x
-: ${WM_PROJECT_VERSION:=dev}; export WM_PROJECT_VERSION
+: ${WM_PROJECT_VERSION:=1.5.x}; export WM_PROJECT_VERSION
 
 
 #!!User:
@@ -69,7 +69,7 @@ export WM_THIRD_PARTY_DIR=$WM_PROJECT_INST_DIR/ThirdParty
 : ${WM_OS:=Unix}; export WM_OS
 
 
-# Compiler: set to Gcc, Gcc43 or Icc (for Intel's icc)
+# Compiler: set to Gcc, Gcc42 or Icc (for Intel's icc)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 : ${WM_COMPILER:=Gcc}; export WM_COMPILER
 
