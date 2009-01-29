@@ -30,8 +30,10 @@ Description
 
 SourceFiles
     treeLeaf.C
-    octreeDataPointTreaLeaf.H       (specialization for points only )
-    octreeDataPointTreeLeaf.C       (   ,,                          )
+    octreeDataPointTreaLeaf.H       (specialization for points)
+    octreeDataPointTreeLeaf.C
+    octreeDataTriSurfaceTreeLeaf.H  (specialization for triSurface)
+    octreeDataTriSurfaceTreeLeaf.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -274,6 +276,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "octreeDataPointTreeLeaf.H"
+#include "octreeDataTriSurfaceTreeLeaf.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
