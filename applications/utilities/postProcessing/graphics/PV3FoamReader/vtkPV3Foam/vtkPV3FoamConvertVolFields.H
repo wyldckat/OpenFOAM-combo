@@ -164,16 +164,25 @@ void Foam::vtkPV3Foam::convertVolFields
                 )
             )
             {
-                fvPatch p
+                fvPatch p(ptf.patch().patch(), tf.mesh().boundary());
+                tmp<Field<Type> > tpptf
                 (
-                    ptf.patch().patch(),
-                    tf.mesh().boundary()
+                    fvPatchField<Type>(p, tf).patchInternalField()
                 );
 
                 convertPatchFaceField
                 (
                     tf.name(),
-                    fvPatchField<Type>(p, tf).patchInternalField()(),
+                    tpptf(),
+                    output,
+                    selectInfoPatches_,
+                    selectedRegionDatasetIds_[regionId]
+                );
+
+                convertPatchPointField
+                (
+                    tf.name(),
+                    ppInterpList[patchId].faceToPointInterpolate(tpptf)(),
                     output,
                     selectInfoPatches_,
                     selectedRegionDatasetIds_[regionId]
@@ -189,16 +198,15 @@ void Foam::vtkPV3Foam::convertVolFields
                     selectInfoPatches_,
                     selectedRegionDatasetIds_[regionId]
                 );
+                convertPatchPointField
+                (
+                    tf.name(),
+                    ppInterpList[patchId].faceToPointInterpolate(ptf)(),
+                    output,
+                    selectInfoPatches_,
+                    selectedRegionDatasetIds_[regionId]
+                );
             }
-
-            convertPatchPointField
-            (
-                tf.name(),
-                ppInterpList[patchId].faceToPointInterpolate(ptf)(),
-                output,
-                selectInfoPatches_,
-                selectedRegionDatasetIds_[regionId]
-            );
         }
 
         // Convert cell zones
