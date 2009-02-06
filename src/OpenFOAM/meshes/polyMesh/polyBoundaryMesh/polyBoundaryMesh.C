@@ -420,7 +420,7 @@ Foam::labelHashSet Foam::polyBoundaryMesh::patchSet
 
     forAll(patchNames, i)
     {
-        // Treat the diven patch names as wild-cards and search the set
+        // Treat the given patch names as wild-cards and search the set
         // of all patch names for matches
         labelList patchIDs = findStrings(patchNames[i], allPatchNames);
 
