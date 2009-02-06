@@ -43,7 +43,7 @@ labelList findStrings(const string& regexp, const StringList& sl)
 
     regex_t *preg = new regex_t;
 
-    if (regcomp(preg, regexp.c_str(), REG_EXTENDED|REG_NOSUB) != 0)
+    if (regcomp(preg, regexp.c_str(), REG_EXTENDED) != 0)
     {
         WarningIn("findStrings(const string& regexp, const stringList& sl)")
             << "Failed to compile regular expression " << regexp
@@ -52,13 +52,17 @@ labelList findStrings(const string& regexp, const StringList& sl)
         return matches;
     }
 
-    size_t nmatch = 0;
-    regmatch_t *pmatch = NULL;
+    size_t nmatch = 1;
+    regmatch_t pmatch[1];
 
     label matchi = 0;
     forAll(sl, i)
     {
-        if (regexec(preg, sl[i].c_str(), nmatch, pmatch, 0) == 0)
+        if
+        (
+            regexec(preg, sl[i].c_str(), nmatch, pmatch, 0) == 0
+         && (pmatch[0].rm_so == 0 && pmatch[0].rm_eo == label(sl[i].size()))
+        )
         {
             matches[matchi++] = i;
         }
