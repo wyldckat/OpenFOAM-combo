@@ -55,4 +55,7 @@ doc/[Dd]oxygen/man
 # ignore .ebrowse in the main directory
 /.ebrowse
 
+# tutorials copy for testing
+/tutorialsTest
+
 # end-of-file
