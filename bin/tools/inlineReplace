@@ -17,12 +17,12 @@ shift
 
 for f in $*
 do
-    if fgrep "$FROMSTRING" "$f" >/dev/null
+    if grep "$FROMSTRING" "$f" >/dev/null
     then
         cp "$f" "${f}_bak"
         sed -e "s@$FROMSTRING@$TOSTRING@g" "${f}"_bak > "$f"
-        #rm -f "${f}"_bak
-    else
-        echo "String $FROMSTRING not present in $f"
-    fi
+        rm -f "${f}"_bak
+    #else
+    #    echo "String $FROMSTRING not present in $f"
+    #fi
 done
