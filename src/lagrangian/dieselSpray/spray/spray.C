@@ -87,6 +87,9 @@ Foam::spray::spray
         )
     ),
 
+    ambientPressure_(p_.average().value()),
+    ambientTemperature_(T_.average().value()),
+
     injectors_
     (
         IOobject
@@ -206,10 +209,7 @@ Foam::spray::spray
     srhos_(fuels_->components().size()),
 
     totalInjectedLiquidMass_(0.0),
-    injectedLiquidKE_(0.0),
-
-    ambientPressure_(p_.average().value()),
-    ambientTemperature_(T_.average().value())
+    injectedLiquidKE_(0.0)
 
 {
     // create the evaporation source fields
