@@ -616,9 +616,7 @@ Foam::cyclicPolyPatch::cyclicPolyPatch
     transform_(UNKNOWN),
     rotationAxis_(vector::zero),
     rotationCentre_(point::zero)
-{
-    calcTransforms();
-}
+{}
 
 
 Foam::cyclicPolyPatch::cyclicPolyPatch
@@ -656,8 +654,6 @@ Foam::cyclicPolyPatch::cyclicPolyPatch
             }
         }
     }
-
-    calcTransforms();
 }
 
 
@@ -674,9 +670,7 @@ Foam::cyclicPolyPatch::cyclicPolyPatch
     transform_(pp.transform_),
     rotationAxis_(pp.rotationAxis_),
     rotationCentre_(pp.rotationCentre_)
-{
-    calcTransforms();
-}
+{}
 
 
 Foam::cyclicPolyPatch::cyclicPolyPatch
@@ -695,9 +689,7 @@ Foam::cyclicPolyPatch::cyclicPolyPatch
     transform_(pp.transform_),
     rotationAxis_(pp.rotationAxis_),
     rotationCentre_(pp.rotationCentre_)
-{
-    calcTransforms();
-}
+{}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -720,6 +712,7 @@ void Foam::cyclicPolyPatch::initGeometry()
 void Foam::cyclicPolyPatch::calcGeometry()
 {
     polyPatch::calcGeometry();
+    calcTransforms();
 }
 
 void Foam::cyclicPolyPatch::initMovePoints(const pointField& p)

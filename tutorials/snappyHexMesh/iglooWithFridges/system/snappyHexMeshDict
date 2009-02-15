@@ -92,10 +92,10 @@ castellatedMeshControls
     // This is a featureEdgeMesh, read from constant/triSurface for now.
     features
     (
-        //{
-        //    file "someLine.eMesh";
-        //    level 2;
-        //}
+        {
+            file "fridgeA.eMesh";
+            level 3;
+        }
     );
 
 
