@@ -317,7 +317,7 @@ void LRR::correct()
     RASModel::correct();
 
     volSymmTensorField P = -twoSymm(R_ & fvc::grad(U_));
-    volScalarField G = 0.5*tr(P);
+    volScalarField G = 0.5*mag(tr(P));
 
 #   include "wallFunctionsI.H"
 
@@ -355,7 +355,7 @@ void LRR::correct()
             {
                 label faceCelli = curPatch.faceCells()[facei];
                 P[faceCelli]
-                    *= min(G[faceCelli]/(0.5*tr(P[faceCelli]) + SMALL), 100.0);
+                    *= min(G[faceCelli]/(0.5*mag(tr(P[faceCelli])) + SMALL), 100.0);
             }
         }
     }
