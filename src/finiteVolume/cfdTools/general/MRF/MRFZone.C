@@ -30,6 +30,7 @@ License
 #include "surfaceFields.H"
 #include "fvMatrices.H"
 #include "syncTools.H"
+#include "faceSet.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -89,7 +90,7 @@ Foam::MRFZone::MRFZone(const fvMesh& mesh, Istream& is)
         }
 
 
-        // Faces in zone
+        // (internal and coupled) faces in zone
         boolList zoneFacesSet(mesh_.nFaces(), false);
 
         for (label faceI = 0; faceI < mesh_.nInternalFaces(); faceI++)
@@ -97,6 +98,23 @@ Foam::MRFZone::MRFZone(const fvMesh& mesh, Istream& is)
             if (zoneCell[own[faceI]] || zoneCell[nei[faceI]])
             {
                 zoneFacesSet[faceI] = true;
+            }
+        }
+        forAll(patches, patchI)
+        {
+            const polyPatch& pp = patches[patchI];
+
+            if (pp.coupled())
+            {
+                forAll(pp, i)
+                {
+                    label faceI = pp.start()+i;
+
+                    if (zoneCell[own[faceI]])
+                    {
+                        zoneFacesSet[faceI] = true;
+                    }
+                }
             }
         }
         syncTools::syncFaceList(mesh_, zoneFacesSet, orEqOp<bool>(), false);
