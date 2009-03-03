@@ -75,15 +75,23 @@ class MRFZone
         label cellZoneID_;
 
         //- label of face zone with faces on outside of cell zone.
-        //  If -2 determines outside faces itself
         label faceZoneID_;
 
-        //- outside faces (only if faceZoneID = -2)
-        labelList outsideFaces_;
-
+        //- Do patches move with frame (true) or are explicitly provided (false,
+        //  old behaviour)
+        Switch allPatchesMove_;
 
         const wordList patchNames_;
         labelList patchLabels_;
+
+        //- Internal faces that are part of MRF
+        labelList internalFaces_;
+
+        //- Outside faces (per patch) that move with the MRF
+        labelListList includedFaces_;
+
+        //- Excluded faces (per patch) that do not move with the MRF
+        labelListList excludedFaces_;
 
         const dimensionedVector origin_;
         dimensionedVector axis_;
@@ -92,6 +100,17 @@ class MRFZone
 
 
     // Private Member Functions
+
+        //- Divide faces in frame according to patch
+        void setMRFFaces
+        (
+            labelList& faceType,
+            const labelList& excludedPatchIDs
+        );
+
+        //- Divide faces in frame according to patch
+        void setMRFFaces();
+
 
         //- Disallow default bitwise copy construct
         MRFZone(const MRFZone&);
@@ -135,6 +154,13 @@ public:
 
 
     // Member Functions
+
+        //- Update the mesh corresponding to given map
+        void updateMesh(const mapPolyMesh& mpm)
+        {
+            // Only updates face addressing
+            setMRFFaces();
+        }
 
         //- Add the Coriolis force contribution to the momentum equation
         void addCoriolis(fvVectorMatrix& UEqn) const;
