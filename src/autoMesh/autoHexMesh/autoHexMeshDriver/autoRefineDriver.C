@@ -25,6 +25,7 @@ License
 \*----------------------------------------------------------------------------*/
 
 #include "autoRefineDriver.H"
+#include "meshRefinement.H"
 #include "fvMesh.H"
 #include "Time.H"
 #include "boundBox.H"
@@ -501,7 +502,8 @@ Foam::label Foam::autoRefineDriver::shellRefine
 void Foam::autoRefineDriver::baffleAndSplitMesh
 (
     const refinementParameters& refineParams,
-    const bool handleSnapProblems
+    const bool handleSnapProblems,
+    const dictionary& motionDict
 )
 {
     Info<< nl
@@ -520,6 +522,7 @@ void Foam::autoRefineDriver::baffleAndSplitMesh
         false,                          // perpendicular edge connected cells
         scalarField(0),                 // per region perpendicular angle
         !handleSnapProblems,            // merge free standing baffles?
+        motionDict,
         const_cast<Time&>(mesh.time()),
         globalToPatch_,
         refineParams.keepPoints()[0]
@@ -574,7 +577,8 @@ void Foam::autoRefineDriver::zonify
 void Foam::autoRefineDriver::splitAndMergeBaffles
 (
     const refinementParameters& refineParams,
-    const bool handleSnapProblems
+    const bool handleSnapProblems,
+    const dictionary& motionDict
 )
 {
     Info<< nl
@@ -598,6 +602,7 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
         handleSnapProblems,                 // remove perp edge connected cells
         perpAngle,                          // perp angle
         false,                              // merge free standing baffles?
+        motionDict,
         const_cast<Time&>(mesh.time()),
         globalToPatch_,
         refineParams.keepPoints()[0]
@@ -695,7 +700,8 @@ void Foam::autoRefineDriver::doRefine
 (
     const dictionary& refineDict,
     const refinementParameters& refineParams,
-    const bool prepareForSnapping
+    const bool prepareForSnapping,
+    const dictionary& motionDict
 )
 {
     Info<< nl
@@ -744,13 +750,13 @@ void Foam::autoRefineDriver::doRefine
     );
 
     // Introduce baffles at surface intersections
-    baffleAndSplitMesh(refineParams, prepareForSnapping);
+    baffleAndSplitMesh(refineParams, prepareForSnapping, motionDict);
 
     // Mesh is at its finest. Do optional zoning.
     zonify(refineParams);
 
     // Pull baffles apart
-    splitAndMergeBaffles(refineParams, prepareForSnapping);
+    splitAndMergeBaffles(refineParams, prepareForSnapping, motionDict);
 
     // Do something about cells with refined faces on the boundary
     if (prepareForSnapping)

@@ -157,7 +157,10 @@ public:
                 return cellZoneNames_;
             }
 
-            //- Get indices of named surfaces (surfaces with cellZoneName)
+            //- Get indices of unnamed surfaces (surfaces without faceZoneName)
+            labelList getUnnamedSurfaces() const;
+
+            //- Get indices of named surfaces (surfaces with faceZoneName)
             labelList getNamedSurfaces() const;
 
             //- Get indices of closed named surfaces
@@ -258,6 +261,8 @@ public:
 
             //- Find intersection nearest to the endpoints. surface1,2 are
             //  not indices into surfacesToTest but refinement surface indices.
+            //  Returns surface, region on surface (so not global surface)
+            //  and position on surface.
             void findNearestIntersection
             (
                 const labelList& surfacesToTest,

@@ -47,10 +47,8 @@ License
 
 namespace Foam
 {
-
-defineTypeNameAndDebug(autoHexMeshDriver, 0);
-
-} // End namespace Foam
+    defineTypeNameAndDebug(autoHexMeshDriver, 0);
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -324,25 +322,18 @@ Foam::autoHexMeshDriver::autoHexMeshDriver
 
             Info<< surfaces().names()[surfI] << ':' << nl << nl;
 
-            //const triSurfaceMesh& s = surfaces()[surfI];
-            //const geometricSurfacePatchList& regions = s.patches();
-            //labelList nTrisPerRegion(surfaces().countRegions(s));
-
             forAll(regNames, i)
             {
-                //if (nTrisPerRegion[i] > 0)
-                //{
-                    label patchI = meshRefinement::addPatch
-                    (
-                        mesh,
-                        regNames[i],
-                        wallPolyPatch::typeName
-                    );
+                label patchI = meshRefinement::addPatch
+                (
+                    mesh,
+                    regNames[i],
+                    wallPolyPatch::typeName
+                );
 
-                    Info<< patchI << '\t' << regNames[i] << nl;
+                Info<< patchI << '\t' << regNames[i] << nl;
 
-                    globalToPatch_[surfaces().globalRegion(surfI, i)] = patchI;
-                //}
+                globalToPatch_[surfaces().globalRegion(surfI, i)] = patchI;
             }
 
             Info<< nl;
@@ -491,6 +482,8 @@ void Foam::autoHexMeshDriver::doMesh()
 
     if (wantRefine)
     {
+        const dictionary& motionDict = dict_.subDict("motionDict");
+
         autoRefineDriver refineDriver
         (
             meshRefinerPtr_(),
@@ -502,7 +495,7 @@ void Foam::autoHexMeshDriver::doMesh()
         // Get all the refinement specific params
         refinementParameters refineParams(dict_, 1);
 
-        refineDriver.doRefine(dict_, refineParams, wantSnap);
+        refineDriver.doRefine(dict_, refineParams, wantSnap, motionDict);
 
         // Write mesh
         writeMesh("Refined mesh");

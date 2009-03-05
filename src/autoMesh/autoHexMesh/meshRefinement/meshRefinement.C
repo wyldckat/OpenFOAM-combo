@@ -50,6 +50,10 @@ License
 #include "globalIndex.H"
 #include "meshTools.H"
 #include "OFstream.H"
+#include "geomDecomp.H"
+#include "Random.H"
+#include "searchableSurfaces.H"
+#include "treeBoundBox.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -730,11 +734,6 @@ Foam::autoPtr<Foam::mapDistributePolyMesh> Foam::meshRefinement::balance
 
     if (Pstream::parRun())
     {
-        //Info<< nl
-        //    << "Doing final balancing" << nl
-        //    << "---------------------" << nl
-        //    << endl;
-        //
         //if (debug_)
         //{
         //    const_cast<Time&>(mesh_.time())++;

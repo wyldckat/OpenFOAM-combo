@@ -1341,6 +1341,7 @@ void Foam::meshRefinement::baffleAndSplitMesh
     const bool removeEdgeConnectedCells,
     const scalarField& perpendicularAngle,
     const bool mergeFreeStanding,
+    const dictionary& motionDict,
     Time& runTime,
     const labelList& globalToPatch,
     const point& keepPoint
@@ -1416,6 +1417,7 @@ void Foam::meshRefinement::baffleAndSplitMesh
         (
             markFacesOnProblemCells
             (
+                motionDict,
                 removeEdgeConnectedCells,
                 perpendicularAngle,
                 globalToPatch
