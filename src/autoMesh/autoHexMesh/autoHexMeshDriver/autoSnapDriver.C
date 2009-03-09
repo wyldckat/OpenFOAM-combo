@@ -58,35 +58,6 @@ defineTypeNameAndDebug(autoSnapDriver, 0);
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::autoSnapDriver::getZonedSurfaces
-(
-    labelList& zonedSurfaces,
-    labelList& unzonedSurfaces
-) const
-{    // Surfaces with zone information
-    const wordList& faceZoneNames = meshRefiner_.surfaces().faceZoneNames();
-
-    zonedSurfaces.setSize(faceZoneNames.size());
-    label zonedI = 0;
-    unzonedSurfaces.setSize(faceZoneNames.size());
-    label unzonedI = 0;
-
-    forAll(faceZoneNames, surfI)
-    {
-        if (faceZoneNames[surfI].size() > 0)
-        {
-            zonedSurfaces[zonedI++] = surfI;
-        }
-        else
-        {
-            unzonedSurfaces[unzonedI++] = surfI;
-        }
-    }
-    zonedSurfaces.setSize(zonedI);
-    unzonedSurfaces.setSize(unzonedI);
-}
-
-
 // Get faces to repatch. Returns map from face to patch.
 Foam::Map<Foam::label> Foam::autoSnapDriver::getZoneBafflePatches
 (
@@ -153,7 +124,7 @@ Foam::Map<Foam::label> Foam::autoSnapDriver::getZoneBafflePatches
 
 
 // Calculate geometrically collocated points, Requires PackedList to be
-// sizes and initalised!
+// sized and initalised!
 Foam::label Foam::autoSnapDriver::getCollocatedPoints
 (
     const scalar tol,
@@ -677,9 +648,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::autoSnapDriver::createZoneBaffles
     List<labelPair>& baffles
 )
 {
-    labelList zonedSurfaces;
-    labelList unzonedSurfaces;
-    getZonedSurfaces(zonedSurfaces, unzonedSurfaces);
+    labelList zonedSurfaces = meshRefiner_.surfaces().getNamedSurfaces();
 
     autoPtr<mapPolyMesh> map;
 
@@ -764,9 +733,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::autoSnapDriver::mergeZoneBaffles
     const List<labelPair>& baffles
 )
 {
-    labelList zonedSurfaces;
-    labelList unzonedSurfaces;
-    getZonedSurfaces(zonedSurfaces, unzonedSurfaces);
+    labelList zonedSurfaces = meshRefiner_.surfaces().getNamedSurfaces();
 
     autoPtr<mapPolyMesh> map;
 
@@ -930,6 +897,7 @@ void Foam::autoSnapDriver::preSmoothPatch
         const_cast<Time&>(mesh.time())++;
         Pout<< "Writing patch smoothed mesh to time " << mesh.time().timeName()
             << endl;
+
         mesh.write();
     }
 
@@ -1007,13 +975,13 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
     // Displacement per patch point
     vectorField patchDisp(localPoints.size(), vector::zero);
 
-
     if (returnReduce(localPoints.size(), sumOp<label>()) > 0)
     {
         // Divide surfaces into zoned and unzoned
-        labelList zonedSurfaces;
-        labelList unzonedSurfaces;
-        getZonedSurfaces(zonedSurfaces, unzonedSurfaces);
+        labelList zonedSurfaces =
+            meshRefiner_.surfaces().getNamedSurfaces();
+        labelList unzonedSurfaces =
+            meshRefiner_.surfaces().getUnnamedSurfaces();
 
 
         // 1. All points to non-interface surfaces
@@ -1059,6 +1027,7 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
         // Surfaces with zone information
         const wordList& faceZoneNames = surfaces.faceZoneNames();
 
+        // Current best snap distance
         scalarField minSnapDist(snapDist);
 
         forAll(zonedSurfaces, i)
@@ -1089,10 +1058,9 @@ Foam::vectorField Foam::autoSnapDriver::calcNearestSurface
                 hitInfo
             );
 
-
             forAll(hitInfo, i)
             {
-                label pointI = zonePointIndices[i]; 
+                label pointI = zonePointIndices[i];
 
                 if (hitInfo[i].hit())
                 {
@@ -1221,6 +1189,11 @@ void Foam::autoSnapDriver::smoothDisplacement
         const_cast<Time&>(mesh.time())++;
         Pout<< "Writing smoothed mesh to time " << mesh.time().timeName()
             << endl;
+
+        // Moving mesh creates meshPhi. Can be cleared out by a mesh.clearOut
+        // but this will also delete all pointMesh but not pointFields which
+        // gives an illegal situation.
+
         mesh.write();
 
         Pout<< "Writing displacement field ..." << endl;

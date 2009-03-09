@@ -158,15 +158,6 @@ private:
             labelList& neiLevel,
             pointField& neiCc
         ) const;
-        ////- Calculate coupled boundary end vector and refinement level. Sort
-        ////  so both sides of coupled face have data in same order.
-        //void calcCanonicalBoundaryData
-        //(
-        //    labelList& leftLevel,
-        //    pointField& leftCc,
-        //    labelList& rightLevel,
-        //    pointField& rightCc
-        //)  const;
 
         //- Find any intersection of surface. Store in surfaceIndex_.
         void updateIntersections(const labelList& changedFaces);
@@ -194,6 +185,8 @@ private:
             const string& msg,
             const label exposedPatchI
         );
+
+        // For decomposeCombineRegions
 
         //- Used in decomposeCombineRegions. Given global region per cell
         //  determines master processor/cell for regions straddling
@@ -346,11 +339,28 @@ private:
                 const labelList&
             ) const;
 
+            bool isCollapsedFace
+            (
+                const pointField&,
+                const pointField& neiCc,
+                const scalar minFaceArea,
+                const scalar maxNonOrtho,
+                const label faceI
+            ) const;
+
+            bool isCollapsedCell
+            (
+                const pointField&,
+                const scalar volFraction,
+                const label cellI
+            ) const;
+
             //- Returns list with for every internal face -1 or the patch
             //  they should be baffled into. If removeEdgeConnectedCells is set
             //  removes cells based on perpendicularAngle.
             labelList markFacesOnProblemCells
             (
+                const dictionary& motionDict,
                 const bool removeEdgeConnectedCells,
                 const scalarField& perpendicularAngle,
                 const labelList& globalToPatch
@@ -368,6 +378,8 @@ private:
 
             //- Finds zone per cell for cells inside closed named surfaces.
             //  (uses geometric test for insideness)
+            //  Adapts namedSurfaceIndex so all faces on boundary of cellZone
+            //  have corresponding faceZone.
             void findCellZoneGeometric
             (
                 const labelList& closedNamedSurfaces,
@@ -586,6 +598,7 @@ public:
                 const bool removeEdgeConnectedCells,
                 const scalarField& perpendicularAngle,
                 const bool mergeFreeStanding,
+                const dictionary& motionDict,
                 Time& runTime,
                 const labelList& globalToPatch,
                 const point& keepPoint

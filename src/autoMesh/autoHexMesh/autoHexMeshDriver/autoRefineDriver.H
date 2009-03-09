@@ -35,7 +35,7 @@ SourceFiles
 #ifndef autoRefineDriver_H
 #define autoRefineDriver_H
 
-#include "meshRefinement.H"
+#include "treeBoundBox.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,7 +45,9 @@ namespace Foam
 // Forward declaration of classes
 class featureEdgeMesh;
 class refinementParameters;
-
+class meshRefinement;
+class decompositionMethod;
+class fvMeshDistribute;
 
 /*---------------------------------------------------------------------------*\
                            Class autoRefineDriver Declaration
@@ -112,7 +114,8 @@ class autoRefineDriver
         void baffleAndSplitMesh
         (
             const refinementParameters& refineParams,
-            const bool handleSnapProblems
+            const bool handleSnapProblems,
+            const dictionary& motionDict
         );
 
         //- Add zones
@@ -121,7 +124,8 @@ class autoRefineDriver
         void splitAndMergeBaffles
         (
             const refinementParameters& refineParams,
-            const bool handleSnapProblems
+            const bool handleSnapProblems,
+            const dictionary& motionDict
         );
 
         //- Merge refined boundary faces (from exposing coarser cell)
@@ -163,7 +167,8 @@ public:
         (
             const dictionary& refineDict,
             const refinementParameters& refineParams,
-            const bool prepareForSnapping
+            const bool prepareForSnapping,
+            const dictionary& motionDict
         );
 };
 

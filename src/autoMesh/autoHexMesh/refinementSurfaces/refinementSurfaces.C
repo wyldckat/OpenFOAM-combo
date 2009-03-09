@@ -277,6 +277,7 @@ Foam::refinementSurfaces::refinementSurfaces
     List<Map<label> > regionMaxLevel(surfacesDict.size());
     List<Map<scalar> > regionAngle(surfacesDict.size());
 
+    // Count number of surfaces.
     label surfI = 0;
     forAllConstIter(dictionary, surfacesDict, iter)
     {
@@ -430,15 +431,34 @@ Foam::refinementSurfaces::refinementSurfaces
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// Get indices of named surfaces (surfaces with cellZoneName)
+// Get indices of unnamed surfaces (surfaces without faceZoneName)
+Foam::labelList Foam::refinementSurfaces::getUnnamedSurfaces() const
+{
+    labelList anonymousSurfaces(faceZoneNames_.size());
+
+    label i = 0;
+    forAll(faceZoneNames_, surfI)
+    {
+        if (faceZoneNames_[surfI].empty())
+        {
+            anonymousSurfaces[i++] = surfI;
+        }
+    }
+    anonymousSurfaces.setSize(i);
+
+    return anonymousSurfaces;
+}
+
+
+// Get indices of named surfaces (surfaces with faceZoneName)
 Foam::labelList Foam::refinementSurfaces::getNamedSurfaces() const
 {
-   labelList namedSurfaces(cellZoneNames_.size());
+   labelList namedSurfaces(faceZoneNames_.size());
 
     label namedI = 0;
-    forAll(cellZoneNames_, surfI)
+    forAll(faceZoneNames_, surfI)
     {
-        if (cellZoneNames_[surfI].size() > 0)
+        if (faceZoneNames_[surfI].size())
         {
             namedSurfaces[namedI++] = surfI;
         }

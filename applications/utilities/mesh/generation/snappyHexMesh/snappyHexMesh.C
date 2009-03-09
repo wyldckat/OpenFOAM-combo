@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
         // Refinement parameters
         refinementParameters refineParams(refineDict);
 
-        refineDriver.doRefine(refineDict, refineParams, wantSnap);
+        refineDriver.doRefine(refineDict, refineParams, wantSnap, motionDict);
 
         writeMesh
         (
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
     Info<< "Finished meshing in = "
         << runTime.elapsedCpuTime() << " s." << endl;
 
-    Pout<< "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return(0);
 }

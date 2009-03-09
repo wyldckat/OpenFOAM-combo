@@ -276,13 +276,105 @@ Foam::Map<Foam::label> Foam::meshRefinement::findEdgeConnectedProblemCells
 }
 
 
+// Check if moving face to new points causes a 'collapsed' face.
+// Uses new point position only for the face, not the neighbouring
+// cell centres
+bool Foam::meshRefinement::isCollapsedFace
+(
+    const pointField& points,
+    const pointField& neiCc,
+    const scalar minFaceArea,
+    const scalar maxNonOrtho,
+    const label faceI
+) const
+{
+    vector s = mesh_.faces()[faceI].normal(points);
+    scalar magS = mag(s);
+
+    // Check face area
+    if (magS < minFaceArea)
+    {
+        return true;
+    }
+
+    // Check orthogonality
+    const point& ownCc = mesh_.cellCentres()[mesh_.faceOwner()[faceI]];
+
+    if (mesh_.isInternalFace(faceI))
+    {
+        label nei = mesh_.faceNeighbour()[faceI];
+        vector d = ownCc - mesh_.cellCentres()[nei];
+
+        scalar dDotS = (d & s)/(mag(d)*magS + VSMALL);
+        
+        if (dDotS < maxNonOrtho)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        label patchI = mesh_.boundaryMesh().whichPatch(faceI);
+
+        if (mesh_.boundaryMesh()[patchI].coupled())
+        {
+            vector d = ownCc - neiCc[faceI-mesh_.nInternalFaces()];
+
+            scalar dDotS = (d & s)/(mag(d)*magS + VSMALL);
+
+            if (dDotS < maxNonOrtho)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            // Collapsing normal boundary face does not cause problems with
+            // non-orthogonality
+            return true;
+        }
+    }
+}
+
+
+// Check if moving cell to new points causes it to collapse.
+bool Foam::meshRefinement::isCollapsedCell
+(
+    const pointField& points,
+    const scalar volFraction,
+    const label cellI
+) const
+{
+    scalar vol = mesh_.cells()[cellI].mag(points, mesh_.faces());
+
+    if (vol/mesh_.cellVolumes()[cellI] < volFraction)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
 // Returns list with for every internal face -1 or the patch they should
-// be baffled into. Gets run after createBaffles so all the surface
-// intersections have already been turned into baffles. Used to remove cells
-// by baffling all their faces and have the splitMeshRegions chuck away non
-// used regions.
+// be baffled into. Gets run after createBaffles so all the unzoned surface
+// intersections have already been turned into baffles. (Note: zoned surfaces
+// are not baffled at this stage)
+// Used to remove cells by baffling all their faces and have the
+// splitMeshRegions chuck away non used regions.
 Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 (
+    const dictionary& motionDict,
     const bool removeEdgeConnectedCells,
     const scalarField& perpendicularAngle,
     const labelList& globalToPatch
@@ -292,6 +384,10 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     const labelList& pointLevel = meshCutter_.pointLevel();
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
+    // Swap neighbouring cell centres and cell level
+    labelList neiLevel(mesh_.nFaces()-mesh_.nInternalFaces());
+    pointField neiCc(mesh_.nFaces()-mesh_.nInternalFaces());
+    calcNeighbourData(neiLevel, neiCc);
 
     // Per internal face (boundary faces not used) the patch that the
     // baffle should get (or -1)
@@ -304,6 +400,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     boolList isBoundaryFace(mesh_.nFaces(), false);
 
     // Fill boundary data. All elements on meshed patches get marked.
+    // Get the labels of added patches.
     labelList adaptPatchIDs(meshRefinement::addedPatches(globalToPatch));
 
     forAll(adaptPatchIDs, i)
@@ -330,6 +427,9 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
     // Count of faces marked for baffling
     label nBaffleFaces = 0;
+
+    // Count of faces not baffled since would not cause a collapse
+    label nPrevented = 0;
 
     if (removeEdgeConnectedCells && max(perpendicularAngle) >= 0)
     {
@@ -417,6 +517,74 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     );
 
 
+    // See if checking for collapse
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Collapse checking parameters
+    scalar volFraction = -1;
+    if (motionDict.found("minVolCollapseRatio"))
+    {
+        volFraction = readScalar(motionDict.lookup("minVolCollapseRatio"));
+    }
+    const bool checkCollapse = (volFraction > 0);
+    scalar minArea = -1;
+    scalar maxNonOrtho = -1;
+
+
+    // Find nearest (non-baffle) surface
+    pointField newPoints;
+
+    if (checkCollapse)
+    {
+        minArea = readScalar(motionDict.lookup("minArea"));
+        maxNonOrtho = readScalar(motionDict.lookup("maxNonOrtho"));
+
+        Info<< "markFacesOnProblemCells :"
+            << " Deleting all-anchor surface cells only if"
+            << "snapping them violates mesh quality constraints:" << nl
+            << "    snapped/original cell volume < " << volFraction << nl
+            << "    face area                    < " << minArea << nl
+            << "    non-orthogonality            > " << maxNonOrtho << nl
+            << endl;
+
+        // Construct addressing engine.
+        autoPtr<indirectPrimitivePatch> ppPtr
+        (
+            meshRefinement::makePatch
+            (
+                mesh_,
+                adaptPatchIDs
+            )
+        );
+        const indirectPrimitivePatch& pp = ppPtr();
+        const pointField& localPoints = pp.localPoints();
+        const labelList& meshPoints = pp.meshPoints();
+
+        List<pointIndexHit> hitInfo;
+        labelList hitSurface;
+        surfaces_.findNearest
+        (
+            surfaces_.getUnnamedSurfaces(),
+            localPoints,
+            scalarField(localPoints.size(), sqr(GREAT)),    // sqr of attraction
+            hitSurface,
+            hitInfo
+        );
+
+        // Start of from current points
+        newPoints = mesh_.points();
+
+        forAll(hitInfo, i)
+        {
+            if (hitInfo[i].hit())
+            {
+                newPoints[meshPoints[i]] = hitInfo[i].hitPoint();
+            }
+        }
+    }
+
+
+
     // For each cell count the number of anchor points that are on
     // the boundary:
     // 8 : check the number of (baffle) boundary faces. If 3 or more block
@@ -427,6 +595,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     //     3 or more of these cells. (note that on a flat surface a boundary
     //     point will only have 4 cells connected to it)
 
+
     // Does cell have exactly 7 of its 8 anchor points on the boundary?
     PackedList<1> hasSevenBoundaryAnchorPoints(mesh_.nCells(), 0u);
     // If so what is the remaining non-boundary anchor point?
@@ -436,7 +605,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     {
         const labelList cPoints(meshCutter_.cellPoints(cellI));
 
-        // Get number of anchor points (pointLevel == cellLevel)
+        // Get number of anchor points (pointLevel <= cellLevel)
 
         label nBoundaryAnchors = 0;
         label nNonAnchorBoundary = 0;
@@ -487,23 +656,45 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             // Eugene: delete cell no matter what.
             //if (nBfaces > 1)
             {
-                forAll(cFaces, cf)
+                if
+                (
+                    checkCollapse
+                && !isCollapsedCell(newPoints, volFraction, cellI)
+                )
                 {
-                    label faceI = cFaces[cf];
-
-                    if (facePatch[faceI] == -1 && mesh_.isInternalFace(faceI))
+                    nPrevented++;
+                    //Pout<< "Preventing collapse of 8 anchor point cell "
+                    //    << cellI << " at " << mesh_.cellCentres()[cellI]
+                    //    << " since new volume "
+                    //    << mesh_.cells()[cellI].mag(newPoints, mesh_.faces())
+                    //    << " old volume " << mesh_.cellVolumes()[cellI]
+                    //    << endl;
+                }
+                else
+                {
+                    // Block all faces of cell
+                    forAll(cFaces, cf)
                     {
-                        facePatch[faceI] = getBafflePatch(facePatch, faceI);
-                        nBaffleFaces++;
+                        label faceI = cFaces[cf];
 
-                        // Mark face as a 'boundary'
-                        markBoundaryFace
+                        if
                         (
-                            faceI,
-                            isBoundaryFace,
-                            isBoundaryEdge,
-                            isBoundaryPoint
-                        );
+                            facePatch[faceI] == -1
+                         && mesh_.isInternalFace(faceI)
+                        )
+                        {
+                            facePatch[faceI] = getBafflePatch(facePatch, faceI);
+                            nBaffleFaces++;
+
+                            // Mark face as a 'boundary'
+                            markBoundaryFace
+                            (
+                                faceI,
+                                isBoundaryFace,
+                                isBoundaryEdge,
+                                isBoundaryPoint
+                            );
+                        }
                     }
                 }
             }
@@ -546,29 +737,52 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
                 if (hasSevenBoundaryAnchorPoints.get(cellI) == 1u)
                 {
-                    const cell& cFaces = mesh_.cells()[cellI];
-
-                    forAll(cFaces, cf)
+                    if
+                    (
+                        checkCollapse
+                    && !isCollapsedCell(newPoints, volFraction, cellI)
+                    )
                     {
-                        label faceI = cFaces[cf];
+                        nPrevented++;
+                        //Pout<< "Preventing collapse of 7 anchor cell "
+                        //    << cellI
+                        //    << " at " << mesh_.cellCentres()[cellI]
+                        //    << " since new volume "
+                        //    << mesh_.cells()[cellI].mag
+                        //        (newPoints, mesh_.faces())
+                        //    << " old volume " << mesh_.cellVolumes()[cellI]
+                        //    << endl;
+                    }
+                    else
+                    {
+                        const cell& cFaces = mesh_.cells()[cellI];
 
-                        if
-                        (
-                            facePatch[faceI] == -1
-                         && mesh_.isInternalFace(faceI)
-                        )
+                        forAll(cFaces, cf)
                         {
-                            facePatch[faceI] = getBafflePatch(facePatch, faceI);
-                            nBaffleFaces++;
+                            label faceI = cFaces[cf];
 
-                            // Mark face as a 'boundary'
-                            markBoundaryFace
+                            if
                             (
-                                faceI,
-                                isBoundaryFace,
-                                isBoundaryEdge,
-                                isBoundaryPoint
-                            );
+                                facePatch[faceI] == -1
+                             && mesh_.isInternalFace(faceI)
+                            )
+                            {
+                                facePatch[faceI] = getBafflePatch
+                                (
+                                    facePatch,
+                                    faceI
+                                );
+                                nBaffleFaces++;
+
+                                // Mark face as a 'boundary'
+                                markBoundaryFace
+                                (
+                                    faceI,
+                                    isBoundaryFace,
+                                    isBoundaryEdge,
+                                    isBoundaryPoint
+                                );
+                            }
                         }
                     }
                 }
@@ -625,11 +839,33 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
             if (nFaceBoundaryEdges == fEdges.size())
             {
-                facePatch[faceI] = getBafflePatch(facePatch, faceI);
-                nBaffleFaces++;
+                if
+                (
+                    checkCollapse
+                && !isCollapsedFace
+                    (
+                        newPoints,
+                        neiCc,
+                        minArea,
+                        maxNonOrtho,
+                        faceI
+                    )
+                )
+                {
+                    nPrevented++;
+                    //Pout<< "Preventing collapse of face " << faceI
+                    //    << " with all boundary edges "
+                    //    << " at " << mesh_.faceCentres()[faceI]
+                    //    << endl;
+                }
+                else
+                {
+                    facePatch[faceI] = getBafflePatch(facePatch, faceI);
+                    nBaffleFaces++;
 
-                // Do NOT update boundary data since this would grow blocked
-                // faces across gaps.
+                    // Do NOT update boundary data since this would grow blocked
+                    // faces across gaps.
+                }
             }
         }
     }
@@ -659,11 +895,34 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
                     if (nFaceBoundaryEdges == fEdges.size())
                     {
-                        facePatch[faceI] = getBafflePatch(facePatch, faceI);
-                        nBaffleFaces++;
+                        if
+                        (
+                            checkCollapse
+                        && !isCollapsedFace
+                            (
+                                newPoints,
+                                neiCc,
+                                minArea,
+                                maxNonOrtho,
+                                faceI
+                            )
+                        )
+                        {
+                            nPrevented++;
+                            //Pout<< "Preventing collapse of coupled face "
+                            //    << faceI
+                            //    << " with all boundary edges "
+                            //    << " at " << mesh_.faceCentres()[faceI]
+                            //    << endl;
+                        }
+                        else
+                        {
+                            facePatch[faceI] = getBafflePatch(facePatch, faceI);
+                            nBaffleFaces++;
 
-                        // Do NOT update boundary data since this would grow
-                        // blocked faces across gaps.
+                            // Do NOT update boundary data since this would grow
+                            // blocked faces across gaps.
+                        }
                     }
                 }
 
@@ -676,6 +935,14 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
         << returnReduce(nBaffleFaces, sumOp<label>())
         << " additional internal faces to be converted into baffles."
         << endl;
+
+    if (checkCollapse)
+    {
+        Info<< "markFacesOnProblemCells : prevented "
+            << returnReduce(nPrevented, sumOp<label>())
+            << " internal faces fom getting converted into baffles."
+            << endl;
+    }
 
     return facePatch;
 }
