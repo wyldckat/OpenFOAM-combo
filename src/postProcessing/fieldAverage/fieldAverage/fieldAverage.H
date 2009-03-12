@@ -79,6 +79,7 @@ SourceFiles
 
 #include "volFieldsFwd.H"
 #include "pointFieldFwd.H"
+#include "Switch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -112,6 +113,12 @@ protected:
 
         //- On/off switch
         bool active_;
+
+        //- Time at last call, prevents repeated averaging
+        label prevTimeIndex_;
+
+        //- resetOnOutput flag
+        Switch resetOnOutput_;
 
         //- List of field average items, describing what averages to be
         //  calculated and output
