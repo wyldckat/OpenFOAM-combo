@@ -41,6 +41,7 @@ SourceFiles
 #include "indexedOctree.H"
 #include "treeDataTriSurface.H"
 #include "treeDataEdge.H"
+#include "EdgeMap.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -80,6 +81,13 @@ private:
         (
             const fileName& fName,
             const fileName& objectName
+        );
+
+        //- Helper function for isSurfaceClosed
+        static bool addFaceToEdge
+        (
+            const edge&,
+            EdgeMap<label>&
         );
 
         //- Check whether surface is closed without calculating any permanent

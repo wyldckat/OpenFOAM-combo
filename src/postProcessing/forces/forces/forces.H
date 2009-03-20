@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -121,7 +121,7 @@ protected:
         //- Switch to send output to Info as well as to file
         Switch log_;
 
-        // Read from dictonary
+        // Read from dictionary
 
             //- Patches to integrate forces over
             labelHashSet patchSet_;
@@ -130,7 +130,13 @@ protected:
             word pName_;
 
             //- Name of velocity field
-            word Uname_;
+            word UName_;
+
+            //- Is the force density being supplied directly?
+            Switch directForceDensity_;
+
+            //- The name of the force density (fD) field
+            word fDName_;
 
             //- Reference density needed for incompressible calculations
             scalar rhoRef_;

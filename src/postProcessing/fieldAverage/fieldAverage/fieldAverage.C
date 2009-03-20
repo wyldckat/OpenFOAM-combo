@@ -189,6 +189,8 @@ Foam::fieldAverage::fieldAverage
     name_(name),
     obr_(obr),
     active_(true),
+    prevTimeIndex_(-1),
+    resetOnOutput_(false),
     faItems_(dict.lookup("fields")),
     meanScalarFields_(faItems_.size()),
     meanVectorFields_(faItems_.size()),
@@ -206,12 +208,12 @@ Foam::fieldAverage::fieldAverage
         active_ = false;
         WarningIn
         (
-            "fieldAverage::fieldAverage\n"
-            "(\n"
-                "const word&,\n"
-                "const objectRegistry&,\n"
-                "const dictionary&,\n"
-                "const bool\n"
+            "fieldAverage::fieldAverage"
+            "("
+                "const word&, "
+                "const objectRegistry&, "
+                "const dictionary&, "
+                "const bool"
             ")"
         )   << "No fvMesh available, deactivating."
             << nl << endl;
@@ -233,6 +235,8 @@ void Foam::fieldAverage::read(const dictionary& dict)
 {
     if (active_)
     {
+        dict.readIfPresent("resetOnOutput", resetOnOutput_);
+
         faItems_.clear();
         faItems_ = List<fieldAverageItem>(dict.lookup("fields"));
 
@@ -241,6 +245,9 @@ void Foam::fieldAverage::read(const dictionary& dict)
         initialise();
 
         readAveragingProperties();
+
+        // ensure first averaging works unconditionally
+        prevTimeIndex_ = -1;
     }
 }
 
@@ -256,6 +263,17 @@ void Foam::fieldAverage::write()
             writeAverages();
 
             writeAveragingProperties();
+
+            if (resetOnOutput_)
+            {
+                Info<< "fieldAverage: restarting averaging at time "
+                    << obr_.time().timeName() << nl << endl;
+
+                initialise();
+
+                // ensure first averaging works unconditionally
+                prevTimeIndex_ = -1;
+            }
         }
     }
 }
@@ -263,6 +281,18 @@ void Foam::fieldAverage::write()
 
 void Foam::fieldAverage::calcAverages()
 {
+    const label currentTimeIndex =
+        static_cast<const fvMesh&>(obr_).time().timeIndex();
+
+    if (prevTimeIndex_ == currentTimeIndex)
+    {
+        return;
+    }
+    else
+    {
+        prevTimeIndex_ = currentTimeIndex;
+    }
+
     Info<< "Calculating averages" << nl << endl;
     forAll(faItems_, i)
     {
