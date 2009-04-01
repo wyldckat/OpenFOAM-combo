@@ -140,6 +140,17 @@
 
         pdRefCell = pRefProbe->cells()[0];
 
+        // Current limitation is that the reference cell has to be on the
+        // master.
+        if (Pstream::master() && pdRefCell == -1)
+        {
+            FatalErrorIn(args.executable())
+                << "The pressure reference location "
+                << mesh.solutionDict().subDict("PISO").subDict("pRefProbe")
+                << " is not on the master. This is a requirement."
+                << exit(FatalError);
+        }
+
         p += dimensionedScalar
         (
             "p",
