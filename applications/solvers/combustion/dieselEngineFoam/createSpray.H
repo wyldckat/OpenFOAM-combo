@@ -1,8 +1,5 @@
 Info << "Constructing Spray" << endl;
 
-pointMesh pMesh(mesh);
-volPointInterpolation vpi(mesh, pMesh);
-
 PtrList<specieProperties> gasProperties(Y.size());
 forAll(gasProperties, i)
 {
@@ -18,7 +15,6 @@ forAll(gasProperties, i)
 
 spray dieselSpray
 (
-    vpi,
     U,
     rho,
     p,
@@ -35,8 +31,6 @@ if (dieselSpray.twoD())
 {
     gasMass0 *= 2.0*mathematicalConstant::pi/dieselSpray.angleOfWedge();
 }
-
-reduce(gasMass0, sumOp<scalar>());
 
 gasMass0 -=
     dieselSpray.injectedMass(runTime.value()) - dieselSpray.liquidMass();
