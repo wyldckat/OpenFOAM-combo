@@ -1,5 +1,8 @@
 Info << "Constructing Spray" << endl;
 
+pointMesh pMesh(mesh);
+volPointInterpolation vpi(mesh, pMesh);
+
 PtrList<specieProperties> gasProperties(Y.size());
 forAll(gasProperties, i)
 {
@@ -15,6 +18,7 @@ forAll(gasProperties, i)
 
 spray dieselSpray
 (
+    vpi,
     U,
     rho,
     p,
