@@ -180,7 +180,6 @@ void Foam::activeBaffleVelocityFvPatchVectorField::updateCoeffs()
 
         const fvPatch& cyclicPatch = patch().boundaryMesh()[cyclicPatchLabel_];
         const labelList& cyclicFaceCells = cyclicPatch.patch().faceCells();
-        const vectorField& cyclicSf = cyclicPatch.Sf();
         label nCyclicFaces = cyclicFaceCells.size();
         label nCyclicFacesPerSide = nCyclicFaces/2;
 
@@ -199,7 +198,7 @@ void Foam::activeBaffleVelocityFvPatchVectorField::updateCoeffs()
         openFraction_ =
             max(min(
                 openFraction_ + openFractionDelta_*sign(forceDiff),
-              1), 0);
+              1 - 1e-6), 1e-6);
 
         Info<< "openFraction = " << openFraction_ << endl;
 
@@ -209,8 +208,10 @@ void Foam::activeBaffleVelocityFvPatchVectorField::updateCoeffs()
         {
             Sfw[facei] = newSfw[facei];
         }
+        const_cast<scalarField&>(patch().magSf()) = mag(patch().Sf());
 
-        const_cast<vectorField&>(cyclicSf) = openFraction_*initCyclicSf_;
+        const_cast<vectorField&>(cyclicPatch.Sf()) = openFraction_*initCyclicSf_;
+        const_cast<scalarField&>(cyclicPatch.magSf()) = mag(cyclicPatch.Sf());
 
         curTimeIndex_ = this->db().time().timeIndex();
     }
