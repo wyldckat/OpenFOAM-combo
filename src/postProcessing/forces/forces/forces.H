@@ -190,9 +190,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~forces();
+    //- Destructor
+    virtual ~forces();
 
 
     // Member Functions
@@ -209,8 +208,18 @@ public:
         //- Calculate the forces and write
         virtual void write();
 
-        //- Calculate and return forces and moment
-        virtual forcesMoments calcForcesMoment() const;
+        //- Calculate and return forces and moments from the given stress
+        virtual forcesMoments calcForces
+        (
+            const volSymmTensorField& devRhoReff
+        ) const;
+
+        //- Calculate and return forces and moments
+        //  from the calculated the stress
+        virtual forcesMoments calcForces() const;
+
+        //- Calculate and return forces and moments from the force den
+        virtual forcesMoments calcForceDensityForces() const;
 
         //- Update for changes of mesh
         virtual void updateMesh(const mapPolyMesh&)
