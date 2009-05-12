@@ -44,94 +44,6 @@ namespace Foam
     defineTypeNameAndDebug(forces, 0);
 }
 
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-Foam::tmp<Foam::volSymmTensorField> Foam::forces::devRhoReff() const
-{
-    if (obr_.foundObject<compressible::RASModel>("RASProperties"))
-    {
-        const compressible::RASModel& ras
-            = obr_.lookupObject<compressible::RASModel>("RASProperties");
-
-        return ras.devRhoReff();
-    }
-    else if (obr_.foundObject<incompressible::RASModel>("RASProperties"))
-    {
-        const incompressible::RASModel& ras
-            = obr_.lookupObject<incompressible::RASModel>("RASProperties");
-
-        return rhoRef_*ras.devReff();
-    }
-    else if (obr_.foundObject<compressible::LESModel>("LESProperties"))
-    {
-        const compressible::LESModel& les =
-        obr_.lookupObject<compressible::LESModel>("LESProperties");
-
-        return les.devRhoBeff();
-    }
-    else if (obr_.foundObject<incompressible::LESModel>("LESProperties"))
-    {
-        const incompressible::LESModel& les
-            = obr_.lookupObject<incompressible::LESModel>("LESProperties");
-
-        return rhoRef_*les.devBeff();
-    }
-    else if (obr_.foundObject<basicThermo>("thermophysicalProperties"))
-    {
-        const basicThermo& thermo =
-             obr_.lookupObject<basicThermo>("thermophysicalProperties");
-
-        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
-
-        return -thermo.mu()*dev(twoSymm(fvc::grad(U)));
-    }
-    else if
-    (
-        obr_.foundObject<singlePhaseTransportModel>("transportProperties")
-    )
-    {
-        const singlePhaseTransportModel& laminarT =
-            obr_.lookupObject<singlePhaseTransportModel>
-            ("transportProperties");
-
-        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
-
-        return -rhoRef_*laminarT.nu()*dev(twoSymm(fvc::grad(U)));
-    }
-    else if (obr_.foundObject<dictionary>("transportProperties"))
-    {
-        const dictionary& transportProperties =
-             obr_.lookupObject<dictionary>("transportProperties");
-
-        dimensionedScalar nu(transportProperties.lookup("nu"));
-
-        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
-
-        return -rhoRef_*nu*dev(twoSymm(fvc::grad(U)));
-    }
-    else
-    {
-        FatalErrorIn("forces::devRhoReff()")
-            << "No valid model for viscous stress calculation."
-            << exit(FatalError);
-
-        return volSymmTensorField::null();
-    }
-}
-
-
-Foam::scalar Foam::forces::rho(const volScalarField& p) const
-{
-    if (p.dimensions() == dimPressure)
-    {
-        return 1.0;
-    }
-    else
-    {
-        return rhoRef_;
-    }
-}
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -225,7 +137,7 @@ void Foam::forces::read(const dictionary& dict)
             {
                 active_ = false;
                 WarningIn("void forces::read(const dictionary& dict)")
-                << "Could not find " << UName_ << " or "
+                    << "Could not find " << UName_ << " or "
                     << pName_ << " in database." << nl
                     << "    De-activating forces."
                     << endl;
@@ -322,6 +234,93 @@ void Foam::forces::write()
                     << endl;
             }
         }
+    }
+}
+
+
+Foam::tmp<Foam::volSymmTensorField> Foam::forces::devRhoReff() const
+{
+    if (obr_.foundObject<compressible::RASModel>("RASProperties"))
+    {
+        const compressible::RASModel& ras
+            = obr_.lookupObject<compressible::RASModel>("RASProperties");
+
+        return ras.devRhoReff();
+    }
+    else if (obr_.foundObject<incompressible::RASModel>("RASProperties"))
+    {
+        const incompressible::RASModel& ras
+            = obr_.lookupObject<incompressible::RASModel>("RASProperties");
+
+        return rhoRef_*ras.devReff();
+    }
+    else if (obr_.foundObject<compressible::LESModel>("LESProperties"))
+    {
+        const compressible::LESModel& les =
+        obr_.lookupObject<compressible::LESModel>("LESProperties");
+
+        return les.devRhoBeff();
+    }
+    else if (obr_.foundObject<incompressible::LESModel>("LESProperties"))
+    {
+        const incompressible::LESModel& les
+            = obr_.lookupObject<incompressible::LESModel>("LESProperties");
+
+        return rhoRef_*les.devBeff();
+    }
+    else if (obr_.foundObject<basicThermo>("thermophysicalProperties"))
+    {
+        const basicThermo& thermo =
+             obr_.lookupObject<basicThermo>("thermophysicalProperties");
+
+        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
+
+        return -thermo.mu()*dev(twoSymm(fvc::grad(U)));
+    }
+    else if
+    (
+        obr_.foundObject<singlePhaseTransportModel>("transportProperties")
+    )
+    {
+        const singlePhaseTransportModel& laminarT =
+            obr_.lookupObject<singlePhaseTransportModel>
+            ("transportProperties");
+
+        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
+
+        return -rhoRef_*laminarT.nu()*dev(twoSymm(fvc::grad(U)));
+    }
+    else if (obr_.foundObject<dictionary>("transportProperties"))
+    {
+        const dictionary& transportProperties =
+             obr_.lookupObject<dictionary>("transportProperties");
+
+        dimensionedScalar nu(transportProperties.lookup("nu"));
+
+        const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
+
+        return -rhoRef_*nu*dev(twoSymm(fvc::grad(U)));
+    }
+    else
+    {
+        FatalErrorIn("forces::devRhoReff()")
+            << "No valid model for viscous stress calculation."
+            << exit(FatalError);
+
+        return volSymmTensorField::null();
+    }
+}
+
+
+Foam::scalar Foam::forces::rho(const volScalarField& p) const
+{
+    if (p.dimensions() == dimPressure)
+    {
+        return 1.0;
+    }
+    else
+    {
+        return rhoRef_;
     }
 }
 
