@@ -42,10 +42,12 @@ activeBaffleVelocityFvPatchVectorField
     pName_("p"),
     cyclicPatchName_(),
     cyclicPatchLabel_(-1),
+    orientation_(1),
     initWallSf_(0),
     initCyclicSf_(0),
     openFraction_(0),
-    openFractionDelta_(0),
+    openingTime_(0),
+    maxOpenFractionDelta_(0),
     curTimeIndex_(-1)
 {}
 
@@ -63,10 +65,12 @@ activeBaffleVelocityFvPatchVectorField
     pName_(ptf.pName_),
     cyclicPatchName_(ptf.cyclicPatchName_),
     cyclicPatchLabel_(ptf.cyclicPatchLabel_),
+    orientation_(ptf.orientation_),
     initWallSf_(ptf.initWallSf_),
     initCyclicSf_(ptf.initCyclicSf_),
     openFraction_(ptf.openFraction_),
-    openFractionDelta_(ptf.openFractionDelta_),
+    openingTime_(ptf.openingTime_),
+    maxOpenFractionDelta_(ptf.maxOpenFractionDelta_),
     curTimeIndex_(-1)
 {}
 
@@ -83,10 +87,12 @@ activeBaffleVelocityFvPatchVectorField
     pName_("p"),
     cyclicPatchName_(dict.lookup("cyclicPatch")),
     cyclicPatchLabel_(p.patch().boundaryMesh().findPatchID(cyclicPatchName_)),
+    orientation_(readLabel(dict.lookup("orientation"))),
     initWallSf_(p.Sf()),
     initCyclicSf_(p.boundaryMesh()[cyclicPatchLabel_].Sf()),
     openFraction_(readScalar(dict.lookup("openFraction"))),
-    openFractionDelta_(readScalar(dict.lookup("openFractionDelta"))),
+    openingTime_(readScalar(dict.lookup("openingTime"))),
+    maxOpenFractionDelta_(readScalar(dict.lookup("maxOpenFractionDelta"))),
     curTimeIndex_(-1)
 {
     fvPatchVectorField::operator=(vector::zero);
@@ -108,10 +114,12 @@ activeBaffleVelocityFvPatchVectorField
     pName_(ptf.pName_),
     cyclicPatchName_(ptf.cyclicPatchName_),
     cyclicPatchLabel_(ptf.cyclicPatchLabel_),
+    orientation_(ptf.orientation_),
     initWallSf_(ptf.initWallSf_),
     initCyclicSf_(ptf.initCyclicSf_),
     openFraction_(ptf.openFraction_),
-    openFractionDelta_(ptf.openFractionDelta_),
+    openingTime_(ptf.openingTime_),
+    maxOpenFractionDelta_(ptf.maxOpenFractionDelta_),
     curTimeIndex_(-1)
 {}
 
@@ -127,10 +135,12 @@ activeBaffleVelocityFvPatchVectorField
     pName_(ptf.pName_),
     cyclicPatchName_(ptf.cyclicPatchName_),
     cyclicPatchLabel_(ptf.cyclicPatchLabel_),
+    orientation_(ptf.orientation_),
     initWallSf_(ptf.initWallSf_),
     initCyclicSf_(ptf.initCyclicSf_),
     openFraction_(ptf.openFraction_),
-    openFractionDelta_(ptf.openFractionDelta_),
+    openingTime_(ptf.openingTime_),
+    maxOpenFractionDelta_(ptf.maxOpenFractionDelta_),
     curTimeIndex_(-1)
 {}
 
@@ -197,7 +207,13 @@ void Foam::activeBaffleVelocityFvPatchVectorField::updateCoeffs()
 
         openFraction_ =
             max(min(
-                openFraction_ + openFractionDelta_*sign(forceDiff),
+                openFraction_
+              + max
+                (
+                    this->db().time().deltaT().value()/openingTime_,
+                    maxOpenFractionDelta_
+                )
+               *(orientation_*sign(forceDiff)),
               1 - 1e-6), 1e-6);
 
         Info<< "openFraction = " << openFraction_ << endl;
@@ -210,8 +226,10 @@ void Foam::activeBaffleVelocityFvPatchVectorField::updateCoeffs()
         }
         const_cast<scalarField&>(patch().magSf()) = mag(patch().Sf());
 
-        const_cast<vectorField&>(cyclicPatch.Sf()) = openFraction_*initCyclicSf_;
-        const_cast<scalarField&>(cyclicPatch.magSf()) = mag(cyclicPatch.Sf());
+        const_cast<vectorField&>(cyclicPatch.Sf()) =
+            openFraction_*initCyclicSf_;
+        const_cast<scalarField&>(cyclicPatch.magSf()) =
+            mag(cyclicPatch.Sf());
 
         curTimeIndex_ = this->db().time().timeIndex();
     }
@@ -225,10 +243,14 @@ void Foam::activeBaffleVelocityFvPatchVectorField::write(Ostream& os) const
     fvPatchVectorField::write(os);
     os.writeKeyword("cyclicPatch")
         << cyclicPatchName_ << token::END_STATEMENT << nl;
+    os.writeKeyword("orientation")
+        << orientation_ << token::END_STATEMENT << nl;
+    os.writeKeyword("openingTime")
+        << openingTime_ << token::END_STATEMENT << nl;
+    os.writeKeyword("maxOpenFractionDelta")
+        << maxOpenFractionDelta_ << token::END_STATEMENT << nl;
     os.writeKeyword("openFraction")
         << openFraction_ << token::END_STATEMENT << nl;
-    os.writeKeyword("openFractionDelta")
-        << openFractionDelta_ << token::END_STATEMENT << nl;
     os.writeKeyword("p")
         << pName_ << token::END_STATEMENT << nl;
     writeEntry("value", os);

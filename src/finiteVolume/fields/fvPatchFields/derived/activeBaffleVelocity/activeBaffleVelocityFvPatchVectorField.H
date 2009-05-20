@@ -54,9 +54,20 @@ class activeBaffleVelocityFvPatchVectorField
 {
     // Private data
 
+        //- Name of the pressure field used to calculate the force
+        //  on the active baffle
         word pName_;
+
+        //- Name of the cyclic patch used when the active baffle is open
         word cyclicPatchName_;
+
+        //- Index of the cyclic patch used when the active baffle is open
         label cyclicPatchLabel_;
+
+        //- Orientation (1 or -1) of the active baffle patch.
+        //  Used to change the direction of opening without the need for
+        //  reordering the patch faces
+        label orientation_;
 
         //- Initial wall patch areas
         vectorField initWallSf_;
@@ -67,8 +78,12 @@ class activeBaffleVelocityFvPatchVectorField
         //- Current fraction of the active baffle which is open
         scalar openFraction_;
 
-        //- Fractional change to the active baffle openness per time-step
-        scalar openFractionDelta_;
+        //- Time taken for the active baffle to open
+        scalar openingTime_;
+
+        //- Maximum fractional change to the active baffle openness
+        //  per time-step
+        scalar maxOpenFractionDelta_;
 
         label curTimeIndex_;
 
