@@ -105,7 +105,7 @@ void Foam::forceCoeffs::write()
         // Create the forces file if not already created
         makeFile();
 
-        forcesMoments fm = forces::calcForcesMoment();
+        forcesMoments fm = forces::calcForces();
 
         scalar pDyn = 0.5*rhoRef_*magUInf_*magUInf_;
 

@@ -116,13 +116,10 @@ PISO
     nGammaCorr      1;
     nGammaSubCycles 3;
     cGamma          1;
-    pdRefCell       0;
+
+    pdRefPoint      (0.51 0.51 0.51);
     pdRefValue      0;
-    pRefProbe
-    {
-        fields  (pd);
-        probeLocations ((0.51 0.51 0.51));
-    };
+    pRefValue       0;
 }
 
 // ************************************************************************* //

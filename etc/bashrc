@@ -244,7 +244,7 @@ cleanPath=`$cleanProg "$PATH"` && PATH="$cleanPath"
 cleanPath=`$cleanProg "$LD_LIBRARY_PATH"` && LD_LIBRARY_PATH="$cleanPath"
 
 #- Clean MANPATH
-cleanPath=`$cleanProg "$MANPATH"` && MANPATH="$cleanPath"
+cleanPath=`$cleanProg "$MANPATH"` && MANPATH="$cleanPath:"
 
 export PATH LD_LIBRARY_PATH MANPATH
 

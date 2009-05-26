@@ -23,28 +23,24 @@ License
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 Typedef
-    Foam::forceCoeffsFunctionObject
+    Foam::IOforcesFiltered
 
 Description
-    FunctionObject wrapper around forceCoeffs to allow them to be created via
-    the functions list within controlDict.
-
-SourceFiles
-    forceCoeffsFunctionObject.C
+    Instance of the generic IOOutputFilter for forcesFiltered.
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef forceCoeffsFunctionObject_H
-#define forceCoeffsFunctionObject_H
+#ifndef IOforcesFiltered_H
+#define IOforcesFiltered_H
 
-#include "forceCoeffs.H"
-#include "OutputFilterFunctionObject.H"
+#include "forcesFiltered.H"
+#include "IOOutputFilter.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    typedef OutputFilterFunctionObject<forceCoeffs> forceCoeffsFunctionObject;
+    typedef IOOutputFilter<forcesFiltered> IOforcesFiltered;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

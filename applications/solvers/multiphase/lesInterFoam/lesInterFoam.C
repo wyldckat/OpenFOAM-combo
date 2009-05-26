@@ -87,6 +87,16 @@ int main(int argc, char *argv[])
 
         p = pd + rho*gh;
 
+        if (pd.needReference())
+        {
+            p += dimensionedScalar
+            (
+                "p",
+                p.dimensions(),
+                pRefValue - getRefCellValue(p, pdRefCell)
+            );
+        }
+
         runTime.write();
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

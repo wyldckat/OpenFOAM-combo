@@ -22,33 +22,22 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Typedef
-    Foam::forceCoeffsFunctionObject
-
-Description
-    FunctionObject wrapper around forceCoeffs to allow them to be created via
-    the functions list within controlDict.
-
-SourceFiles
-    forceCoeffsFunctionObject.C
-
 \*---------------------------------------------------------------------------*/
 
-#ifndef forceCoeffsFunctionObject_H
-#define forceCoeffsFunctionObject_H
+#include "forcesFilteredFunctionObject.H"
 
-#include "forceCoeffs.H"
-#include "OutputFilterFunctionObject.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    typedef OutputFilterFunctionObject<forceCoeffs> forceCoeffsFunctionObject;
+    defineNamedTemplateTypeNameAndDebug(forcesFilteredFunctionObject, 0);
+
+    addToRunTimeSelectionTable
+    (
+        functionObject,
+        forcesFilteredFunctionObject,
+        dictionary
+    );
 }
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#endif
 
 // ************************************************************************* //

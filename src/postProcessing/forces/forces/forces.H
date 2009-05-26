@@ -151,24 +151,11 @@ protected:
 
     // Private Member Functions
 
-        //- If the forces file has not been created create it
-        void makeFile();
-
-        //- Return the effective viscous stress (laminar + turbulent).
-        tmp<volSymmTensorField> devRhoReff() const;
-
-        //- Return rhoRef if the pressure field is dynamic, i.e. p/rho
-        //  otherwise return 1
-        scalar rho(const volScalarField& p) const;
-
         //- Disallow default bitwise copy construct
         forces(const forces&);
 
         //- Disallow default bitwise assignment
         void operator=(const forces&);
-
-        //- Output file header information
-        virtual void writeFileHeader();
 
 
 public:
@@ -190,9 +177,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~forces();
+    //- Destructor
+    virtual ~forces();
 
 
     // Member Functions
@@ -206,11 +192,34 @@ public:
         //- Read the forces data
         virtual void read(const dictionary&);
 
+        //- If the forces file has not been created create it
+        void makeFile();
+
+        //- Output file header information
+        virtual void writeFileHeader();
+
         //- Calculate the forces and write
         virtual void write();
 
-        //- Calculate and return forces and moment
-        virtual forcesMoments calcForcesMoment() const;
+        //- Return rhoRef if the pressure field is dynamic, i.e. p/rho
+        //  otherwise return 1
+        virtual scalar rho(const volScalarField& p) const;
+
+        //- Return the effective viscous stress (laminar + turbulent).
+        virtual tmp<volSymmTensorField> devRhoReff() const;
+
+        //- Calculate and return forces and moments from the given stress
+        virtual forcesMoments calcForces
+        (
+            const volSymmTensorField& devRhoReff
+        ) const;
+
+        //- Calculate and return forces and moments
+        //  from the calculated the stress
+        virtual forcesMoments calcForces() const;
+
+        //- Calculate and return forces and moments from the force den
+        virtual forcesMoments calcForceDensityForces() const;
 
         //- Update for changes of mesh
         virtual void updateMesh(const mapPolyMesh&)

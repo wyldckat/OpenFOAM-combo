@@ -10,8 +10,6 @@ forAll (mesh_.points(), p)
 
             const label cellO(mesh_.faceOwner()[f]);
 
-            const label cellN(mesh_.faceNeighbour()[f]);
-
             forAll(pCells, pC)
             {
                 const label cellI(pCells[pC]);
@@ -37,6 +35,7 @@ forAll (mesh_.points(), p)
                 if (mesh_.isInternalFace(f))
                 {
                     // boundary faces will not have neighbour information
+                    const label cellN(mesh_.faceNeighbour()[f]);
 
                     if (cellN > cellI)
                     {
@@ -124,6 +123,7 @@ forAll (mesh_.edges(), edgeIIndex)
         }
     }
 }
+
 
 // label pointJIndex;
 //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -326,8 +326,9 @@ public:
             //- Set reference level for solution
             void setReference
             (
-                const label cell,
-                const Type& value
+                const label celli,
+                const Type& value,
+                const bool forceReference = false
             );
 
             //- Set reference level for a component of the solution

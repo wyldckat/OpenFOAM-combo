@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -456,10 +456,10 @@ void Foam::fvMatrix<Type>::setValues
 
                     if (internalCoeffs_[patchi].size())
                     {
-                        label patchFacei = 
+                        label patchFacei =
                             mesh.boundaryMesh()[patchi].whichFace(facei);
 
-                        internalCoeffs_[patchi][patchFacei] = 
+                        internalCoeffs_[patchi][patchFacei] =
                             pTraits<Type>::zero;
 
                         boundaryCoeffs_[patchi][patchFacei] =
@@ -472,21 +472,18 @@ void Foam::fvMatrix<Type>::setValues
 }
 
 
-// Set reference level for solution
 template<class Type>
 void Foam::fvMatrix<Type>::setReference
 (
-    const label cell,
-    const Type& value
+    const label celli,
+    const Type& value,
+    const bool forceReference
 )
 {
-    if (psi_.needReference())
+    if (celli >= 0 && (psi_.needReference() || forceReference))
     {
-        if (Pstream::master())
-        {
-            source()[cell] += diag()[cell]*value;
-            diag()[cell] += diag()[cell];
-        }
+        source()[celli] += diag()[celli]*value;
+        diag()[celli] += diag()[celli];
     }
 }
 
@@ -653,7 +650,7 @@ Foam::tmp<Foam::volScalarField> Foam::fvMatrix<Type>::A() const
 
 
 template<class Type>
-Foam::tmp<Foam::GeometricField<Type, Foam::fvPatchField, Foam::volMesh> > 
+Foam::tmp<Foam::GeometricField<Type, Foam::fvPatchField, Foam::volMesh> >
 Foam::fvMatrix<Type>::H() const
 {
     tmp<GeometricField<Type, fvPatchField, volMesh> > tHphi
@@ -838,7 +835,7 @@ flux() const
 
     forAll(fieldFlux.boundaryField(), patchI)
     {
-        fieldFlux.boundaryField()[patchI] = 
+        fieldFlux.boundaryField()[patchI] =
             InternalContrib[patchI] - NeighbourContrib[patchI];
     }
 
@@ -1255,7 +1252,7 @@ Foam::lduMatrix::solverPerformance Foam::solve
     Istream& solverControls
 )
 {
-    lduMatrix::solverPerformance solverPerf = 
+    lduMatrix::solverPerformance solverPerf =
         const_cast<fvMatrix<Type>&>(tfvm()).solve(solverControls);
 
     tfvm.clear();

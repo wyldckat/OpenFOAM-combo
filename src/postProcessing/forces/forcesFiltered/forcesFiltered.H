@@ -23,20 +23,20 @@ License
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 Class
-    Foam::forceCoeffs
+    Foam::forcesFiltered
 
 Description
     Derived from the forces function object, creates a specialisation to
-    calculate lift and drag forces.
+    calculate filtered lift and drag forces.
 
 SourceFiles
-    forceCoeffs.C
-    IOforceCoeffs.H
+    forcesFiltered.C
+    IOforcesFiltered.H
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef forceCoeffs_H
-#define forceCoeffs_H
+#ifndef forcesFiltered_H
+#define forcesFiltered_H
 
 #include "forces.H"
 
@@ -46,68 +46,39 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class forceCoeffs Declaration
+                        Class forcesFiltered Declaration
 \*---------------------------------------------------------------------------*/
 
-class forceCoeffs
+class forcesFiltered
 :
     public forces
 {
     // Private data
 
-        // Force coefficient geometry
-
-            //- Lift
-            vector liftDir_;
-
-            //- Drag
-            vector  dragDir_;
-
-            //- Pitch
-            vector pitchAxis_;
-
-
-        // Free-stream conditions
-
-            //- Velocity magnitude
-            scalar magUInf_;
-
-
-        // Reference scales
-
-            //- Length
-            scalar lRef_;
-
-            //- Area
-            scalar Aref_;
+        //- Filter field name
+        word filterFieldName_;
 
 
     // Private member functions
 
         //- Disallow default bitwise copy construct
-        forceCoeffs(const forceCoeffs&);
+        forcesFiltered(const forcesFiltered&);
 
         //- Disallow default bitwise assignment
-        void operator=(const forceCoeffs&);
-
-
-protected:
-
-    //- Output file header information
-    virtual void writeFileHeader();
+        void operator=(const forcesFiltered&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("forceCoeffs");
+    TypeName("forcesFiltered");
 
 
     // Constructors
 
         //- Construct for given objectRegistry and dictionary.
         //  Allow the possibility to load fields from files
-        forceCoeffs
+        forcesFiltered
         (
             const word& name,
             const objectRegistry&,
@@ -118,7 +89,7 @@ public:
 
     // Destructor
 
-        virtual ~forceCoeffs();
+        virtual ~forcesFiltered();
 
 
     // Member Functions
@@ -126,8 +97,9 @@ public:
         //- Read the forces data
         virtual void read(const dictionary&);
 
-        //- Calculate the forces and write
-        virtual void write();
+        //- Calculate and return forces and moments from the calculated the
+        //  stress filtered by the filter field provided
+        virtual forcesMoments calcForces() const;
 };
 
 
