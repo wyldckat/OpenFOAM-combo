@@ -1268,7 +1268,10 @@ Foam::lduMatrix::solverPerformance Foam::solve(fvMatrix<Type>& fvm)
 }
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve(const tmp<fvMatrix<Type> >& tfvm)
+Foam::lduMatrix::solverPerformance Foam::solve
+(
+    const tmp<fvMatrix<Type> >& tfvm
+)
 {
     lduMatrix::solverPerformance solverPerf =
         const_cast<fvMatrix<Type>&>(tfvm()).solve();
@@ -1276,6 +1279,51 @@ Foam::lduMatrix::solverPerformance Foam::solve(const tmp<fvMatrix<Type> >& tfvm)
     tfvm.clear();
 
     return solverPerf;
+}
+
+
+template<class Type>
+Foam::tmp<Foam::fvMatrix<Type> > Foam::correction
+(
+    const fvMatrix<Type>& A
+)
+{
+    tmp<Foam::fvMatrix<Type> > tAcorr = A - (A & A.psi());
+
+    if
+    (
+        (A.hasUpper() || A.hasLower())
+     && A.mesh().fluxRequired(A.psi().name())
+    )
+    {
+        tAcorr().faceFluxCorrectionPtr() = (-A.flux()).ptr();
+    }
+
+    return tAcorr;
+}
+
+
+template<class Type>
+Foam::tmp<Foam::fvMatrix<Type> > Foam::correction
+(
+    const tmp<fvMatrix<Type> >& tA
+)
+{
+    tmp<Foam::fvMatrix<Type> > tAcorr = tA - (tA() & tA().psi());
+
+    // Note the matrix coefficients are still that of matrix A
+    const fvMatrix<Type>& A = tAcorr();
+
+    if
+    (
+        (A.hasUpper() || A.hasLower())
+     && A.mesh().fluxRequired(A.psi().name())
+    )
+    {
+        tAcorr().faceFluxCorrectionPtr() = (-A.flux()).ptr();
+    }
+
+    return tAcorr;
 }
 
 
