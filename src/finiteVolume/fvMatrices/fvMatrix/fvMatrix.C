@@ -1293,7 +1293,7 @@ Foam::tmp<Foam::fvMatrix<Type> > Foam::correction
     if
     (
         (A.hasUpper() || A.hasLower())
-     && A.mesh().fluxRequired(A.psi().name())
+     && A.psi().mesh().fluxRequired(A.psi().name())
     )
     {
         tAcorr().faceFluxCorrectionPtr() = (-A.flux()).ptr();
@@ -1317,7 +1317,7 @@ Foam::tmp<Foam::fvMatrix<Type> > Foam::correction
     if
     (
         (A.hasUpper() || A.hasLower())
-     && A.mesh().fluxRequired(A.psi().name())
+     && A.psi().mesh().fluxRequired(A.psi().name())
     )
     {
         tAcorr().faceFluxCorrectionPtr() = (-A.flux()).ptr();
