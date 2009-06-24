@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -664,14 +664,17 @@ void Foam::slidingInterface::updateMesh(const mapPolyMesh& m)
     masterPatchID_.update(mesh.boundaryMesh());
     slavePatchID_.update(mesh.boundaryMesh());
 
-    if (!attached())
-    {
-        calcAttachedAddressing();
-    }
-    else
-    {
-        renumberAttachedAddressing(m);
-    }
+
+//Pout<< "**Mj: disabled updating." << endl;
+
+//    if (!attached())
+//    {
+//        calcAttachedAddressing();
+//    }
+//    else
+//    {
+//        renumberAttachedAddressing(m);
+//    }
 }
 
 

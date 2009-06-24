@@ -1,7 +1,7 @@
-        Info<< nl << "Creating merge patch pairs" << nl << endl;
-
         if (mergePatchPairs.size() > 0)
         {
+            Info<< nl << "Creating merge patch pairs" << nl << endl;
+
             // Create and add point and face zones and mesh modifiers
             List<pointZone*> pz(mergePatchPairs.size());
             List<faceZone*> fz(3*mergePatchPairs.size());

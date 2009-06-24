@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,10 +60,10 @@ Description
 #include "polyTopoChanger.H"
 #include "mapPolyMesh.H"
 #include "ListOps.H"
-#include "IndirectList.H"
 #include "slidingInterface.H"
 #include "perfectInterface.H"
 #include "IOobjectList.H"
+#include "ReadFields.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -91,34 +91,6 @@ void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 }
 
 
-// Read field
-template<class GeoField>
-void readFields
-(
-    const fvMesh& mesh,
-    const IOobjectList& objects,
-    PtrList<GeoField>& fields
-)
-{
-    // Search list of objects for volScalarFields
-    IOobjectList fieldObjects(objects.lookupClass(GeoField::typeName));
-
-    // Construct the vol scalar fields
-    fields.setSize(fieldObjects.size());
-
-    label fieldi = 0;
-    for
-    (
-        IOobjectList::iterator iter = fieldObjects.begin();
-        iter != fieldObjects.end();
-        ++iter
-    )
-    {
-        fields.set(fieldi++, new GeoField(*iter(), mesh));
-    }
-}
-
-
 // Main program:
 
 int main(int argc, char *argv[])
@@ -135,7 +107,9 @@ int main(int argc, char *argv[])
 
 #   include "setRootCase.H"
 #   include "createTime.H"
+    runTime.functionObjects().off();
 #   include "createMesh.H"
+    const word oldInstance = mesh.pointsInstance();
 
 
     word masterPatchName(args.additionalArgs()[0]);
@@ -342,7 +316,8 @@ int main(int argc, char *argv[])
                 cutZoneName,
                 masterPatchName,
                 slavePatchName,
-                tom                   // integral or partial
+                tom,                    // integral or partial
+                true                    // couple/decouple mode
             )
         );
     }
@@ -354,30 +329,30 @@ int main(int argc, char *argv[])
     // Read all current fvFields so they will get mapped
     Info<< "Reading all current volfields" << endl;
     PtrList<volScalarField> volScalarFields;
-    readFields(mesh, objects, volScalarFields);
+    ReadFields(mesh, objects, volScalarFields);
 
     PtrList<volVectorField> volVectorFields;
-    readFields(mesh, objects, volVectorFields);
+    ReadFields(mesh, objects, volVectorFields);
 
     PtrList<volSphericalTensorField> volSphericalTensorFields;
-    readFields(mesh, objects, volSphericalTensorFields);
+    ReadFields(mesh, objects, volSphericalTensorFields);
 
     PtrList<volSymmTensorField> volSymmTensorFields;
-    readFields(mesh, objects, volSymmTensorFields);
+    ReadFields(mesh, objects, volSymmTensorFields);
 
     PtrList<volTensorField> volTensorFields;
-    readFields(mesh, objects, volTensorFields);
+    ReadFields(mesh, objects, volTensorFields);
 
     //- uncomment if you want to interpolate surface fields (usually bad idea)
     //Info<< "Reading all current surfaceFields" << endl;
     //PtrList<surfaceScalarField> surfaceScalarFields;
-    //readFields(mesh, objects, surfaceScalarFields);
+    //ReadFields(mesh, objects, surfaceScalarFields);
     //
     //PtrList<surfaceVectorField> surfaceVectorFields;
-    //readFields(mesh, objects, surfaceVectorFields);
+    //ReadFields(mesh, objects, surfaceVectorFields);
     //
     //PtrList<surfaceTensorField> surfaceTensorFields;
-    //readFields(mesh, objects, surfaceTensorFields);
+    //ReadFields(mesh, objects, surfaceTensorFields);
 
     if (!overwrite)
     {
@@ -390,10 +365,24 @@ int main(int argc, char *argv[])
     mesh.movePoints(morphMap->preMotionPoints());
 
     // Write mesh
+    if (overwrite)
+    {
+        mesh.setInstance(oldInstance);
+    }
     Info << nl << "Writing polyMesh to time " << runTime.timeName() << endl;
 
     IOstream::defaultPrecision(10);
-    if (!mesh.write())
+
+    // Bypass runTime write (since only writes at outputTime)
+    if
+    (
+       !runTime.objectRegistry::writeObject
+        (
+            runTime.writeFormat(),
+            IOstream::currentVersion,
+            runTime.writeCompression()
+        )
+    )
     {
         FatalErrorIn(args.executable())
             << "Failed writing polyMesh."
