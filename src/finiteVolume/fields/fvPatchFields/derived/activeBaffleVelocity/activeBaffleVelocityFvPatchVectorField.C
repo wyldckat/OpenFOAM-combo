@@ -153,8 +153,12 @@ void Foam::activeBaffleVelocityFvPatchVectorField::autoMap
 )
 {
     fixedValueFvPatchVectorField::autoMap(m);
-    initWallSf_.autoMap(m);
-    initCyclicSf_.autoMap(m);
+
+    //- Note: cannot map field from cyclic patch anyway so just recalculate
+    //  Areas should be consistent when doing autoMap except in case of
+    //  topo changes.
+    initWallSf_ = patch().Sf();
+    initCyclicSf_ = patch().boundaryMesh()[cyclicPatchLabel_].Sf();
 }
 
 void Foam::activeBaffleVelocityFvPatchVectorField::rmap
@@ -165,11 +169,10 @@ void Foam::activeBaffleVelocityFvPatchVectorField::rmap
 {
     fixedValueFvPatchVectorField::rmap(ptf, addr);
 
-    const activeBaffleVelocityFvPatchVectorField& tiptf =
-        refCast<const activeBaffleVelocityFvPatchVectorField>(ptf);
-
-    initWallSf_.rmap(tiptf.initWallSf_, addr);
-    initCyclicSf_.rmap(tiptf.initCyclicSf_, addr);
+    //- Note: cannot map field from cyclic patch anyway so just recalculate
+    //  Areas should be consistent when doing rmap (mainly reconstructPar)
+    initWallSf_ = patch().Sf();
+    initCyclicSf_ = patch().boundaryMesh()[cyclicPatchLabel_].Sf();
 }
 
 
