@@ -36,8 +36,8 @@ Usage
     @param -ascii \n
     Write Ensight data in ASCII format instead of "C Binary"
 
-    @param -zeroTime \n
-    Include the often incomplete initial conditions.
+    @param -noZero \n
+    Exclude the often incomplete initial conditions.
 
 Note
     - no parallel data.
