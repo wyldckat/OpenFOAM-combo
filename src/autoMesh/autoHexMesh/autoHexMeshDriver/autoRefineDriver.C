@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -77,10 +77,11 @@ Foam::label Foam::autoRefineDriver::readFeatureEdges
             (
                 IOobject
                 (
-                    featFileName,           // name
-                    mesh.time().constant(), // directory
-                    "triSurface",           // instance
-                    mesh.db(),              // registry
+                    featFileName,                       // name
+                    mesh.time().findInstance("triSurface", featFileName),
+                                                        // instance
+                    "triSurface",                       // local
+                    mesh.time(),                        // registry
                     IOobject::MUST_READ,
                     IOobject::NO_WRITE,
                     false
@@ -94,7 +95,7 @@ Foam::label Foam::autoRefineDriver::readFeatureEdges
         Info<< "Refinement level " << featureLevels[i]
             << " for all cells crossed by feature " << featFileName
             << " (" << featureMeshes[i].points().size() << " points, "
-            << featureMeshes[i].edges().size() << ")." << endl;
+            << featureMeshes[i].edges().size() << " edges)." << endl;
     }
 
     Info<< "Read feature lines in = "
@@ -143,7 +144,7 @@ Foam::label Foam::autoRefineDriver::featureEdgeRefine
 
     label iter = 0;
 
-    if (featureMeshes.size() > 0 && maxIter > 0)
+    if (featureMeshes.size() && maxIter > 0)
     {
         for (; iter < maxIter; iter++)
         {
@@ -343,8 +344,8 @@ void Foam::autoRefineDriver::removeInsideCells
     if (debug)
     {
         Pout<< "Writing subsetted mesh to time "
-            << mesh.time().timeName() << '.' << endl;
-        meshRefiner_.write(debug, mesh.time().path()/mesh.time().timeName());
+            << meshRefiner_.timeName() << '.' << endl;
+        meshRefiner_.write(debug, mesh.time().path()/meshRefiner_.timeName());
         Pout<< "Dumped mesh in = "
             << mesh.time().cpuTimeIncrement() << " s\n" << nl << endl;
     }
@@ -541,7 +542,7 @@ void Foam::autoRefineDriver::zonify
     // into that surface's faceZone. All cells inside faceZone get given the
     // same cellZone.
 
-    if (meshRefiner_.surfaces().getNamedSurfaces().size() > 0)
+    if (meshRefiner_.surfaces().getNamedSurfaces().size())
     {
         Info<< nl
             << "Introducing zones for interfaces" << nl
@@ -560,11 +561,11 @@ void Foam::autoRefineDriver::zonify
         if (debug)
         {
             Pout<< "Writing zoned mesh to time "
-                << mesh.time().timeName() << '.' << endl;
+                << meshRefiner_.timeName() << '.' << endl;
             meshRefiner_.write
             (
                 debug,
-                mesh.time().path()/mesh.time().timeName()
+                mesh.time().path()/meshRefiner_.timeName()
             );
         }
 
@@ -652,8 +653,8 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
     if (debug)
     {
         Pout<< "Writing handleProblemCells mesh to time "
-            << mesh.time().timeName() << '.' << endl;
-        meshRefiner_.write(debug, mesh.time().path()/mesh.time().timeName());
+            << meshRefiner_.timeName() << '.' << endl;
+        meshRefiner_.write(debug, mesh.time().path()/meshRefiner_.timeName());
     }
 }
 
@@ -679,7 +680,7 @@ void Foam::autoRefineDriver::mergePatchFaces
     (
         Foam::cos(45*mathematicalConstant::pi/180.0),
         Foam::cos(45*mathematicalConstant::pi/180.0),
-        meshRefinement::addedPatches(globalToPatch_)
+        meshRefiner_.meshedPatches()
     );
 
     if (debug)
@@ -710,9 +711,6 @@ void Foam::autoRefineDriver::doRefine
         << endl;
 
     const fvMesh& mesh = meshRefiner_.mesh();
-
-    const_cast<Time&>(mesh.time())++;
-
 
     // Check that all the keep points are inside the mesh.
     refineParams.findCells(mesh);

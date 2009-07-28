@@ -1,2 +1,0 @@
-cDBUG       = 
-cOPT        = -march=opteron -O3 -fno-gcse

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,19 +29,13 @@ License
 #include "matchPoints.H"
 #include "indirectPrimitivePatch.H"
 #include "meshTools.H"
-#include "octreeDataFace.H"
-#include "octree.H"
+#include "treeDataFace.H"
+#include "indexedOctree.H"
 #include "OFstream.H"
-#include "IndirectList.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-defineTypeNameAndDebug(faceCoupleInfo, 0);
-
-}
+defineTypeNameAndDebug(Foam::faceCoupleInfo, 0);
 
 const Foam::scalar Foam::faceCoupleInfo::angleTol_ = 1E-3;
 
@@ -158,11 +152,7 @@ void Foam::faceCoupleInfo::writePointsFaces() const
         (
             "cutToMasterPoints.obj",
             m.localPoints(),
-            pointField
-            (
-                IndirectList<point>(c.localPoints(), masterToCutPoints_)()
-            )
-        );
+            pointField(c.localPoints(), masterToCutPoints_));
     }
     {
         Pout<< "Writing cutToSlavePoints to cutToSlavePoints.obj" << endl;
@@ -171,10 +161,7 @@ void Foam::faceCoupleInfo::writePointsFaces() const
         (
             "cutToSlavePoints.obj",
             s.localPoints(),
-            pointField
-            (
-                IndirectList<point>(c.localPoints(), slaveToCutPoints_)()
-            )
+            pointField(c.localPoints(), slaveToCutPoints_)
         );
     }
 
@@ -410,7 +397,7 @@ Foam::label Foam::faceCoupleInfo::mostAlignedCutEdge
     if (report)
     {
         Pout<< "mostAlignedEdge : finding nearest edge among "
-            << IndirectList<edge>(cutFaces().edges(), pEdges)()
+            << UIndirectList<edge>(cutFaces().edges(), pEdges)()
             << " connected to point " << pointI
             << " coord:" << localPoints[pointI]
             << " running between " << edgeStart << " coord:"
@@ -541,7 +528,7 @@ void Foam::faceCoupleInfo::setCutEdgeToPoints(const labelList& cutToMasterEdges)
 
         const labelList& stringedEdges = masterToCutEdges[masterEdgeI];
 
-        if (stringedEdges.size() == 0)
+        if (stringedEdges.empty())
         {
             FatalErrorIn
             (
@@ -628,7 +615,7 @@ void Foam::faceCoupleInfo::setCutEdgeToPoints(const labelList& cutToMasterEdges)
                         "(const labelList&)"
                     )   << " unsplitEdge:" << unsplitEdge
                         << " does not correspond to split edges "
-                        << IndirectList<edge>(cutEdges, stringedEdges)()
+                        << UIndirectList<edge>(cutEdges, stringedEdges)()
                         << abort(FatalError);
                 }
             }
@@ -636,7 +623,7 @@ void Foam::faceCoupleInfo::setCutEdgeToPoints(const labelList& cutToMasterEdges)
             //Pout<< "For master edge:"
             //    << unsplitEdge
             //    << " Found stringed points "
-            //    <<  IndirectList<point>
+            //    <<  UIndirectList<point>
             //        (
             //            cutFaces().localPoints(),
             //            splitPoints.shrink()
@@ -669,9 +656,9 @@ Foam::label Foam::faceCoupleInfo::matchFaces
             "(const scalar, const face&, const pointField&"
             ", const face&, const pointField&)"
         )   << "Different sizes for supposedly matching faces." << nl
-            << "f0:" << f0 << " coords:" << IndirectList<point>(points0, f0)()
+            << "f0:" << f0 << " coords:" << UIndirectList<point>(points0, f0)()
             << nl
-            << "f1:" << f1 << " coords:" << IndirectList<point>(points1, f1)()
+            << "f1:" << f1 << " coords:" << UIndirectList<point>(points1, f1)()
             << abort(FatalError);
     }
 
@@ -726,10 +713,9 @@ Foam::label Foam::faceCoupleInfo::matchFaces
             ", const face&, const pointField&)"
         )   << "No unique match between two faces" << nl
             << "Face " << f0 << " coords "
-            << IndirectList<point>(points0, f0)()
-            << nl
+            << UIndirectList<point>(points0, f0)() << nl
             << "Face " << f1 << " coords "
-            << IndirectList<point>(points1, f1)()
+            << UIndirectList<point>(points1, f1)()
             << "when using tolerance " << absTol
             << " and forwardMatching:" << sameOrientation
             << abort(FatalError);
@@ -1011,19 +997,29 @@ void Foam::faceCoupleInfo::findSlavesCoveringMaster
 )
 {
     // Construct octree from all mesh0 boundary faces
-    octreeDataFace shapes(mesh0);
+    labelList bndFaces(mesh0.nFaces()-mesh0.nInternalFaces());
+    forAll(bndFaces, i)
+    {
+        bndFaces[i] = mesh0.nInternalFaces() + i;
+    }
 
     treeBoundBox overallBb(mesh0.points());
 
-    octree<octreeDataFace> tree
-    (
-        overallBb,  // overall search domain
-        shapes,     // all information needed to do checks on cells
-        1,          // min levels
-        20.0,       // maximum ratio of cubes v.s. cells
-        10.0
-    );
+    Random rndGen(123456);
 
+    indexedOctree<treeDataFace> tree
+    (
+        treeDataFace    // all information needed to search faces
+        (
+            false,                      // do not cache bb
+            mesh0,
+            bndFaces                    // boundary faces only
+        ),
+        overallBb.extend(rndGen, 1E-4), // overall search domain
+        8,                              // maxLevel
+        10,                             // leafsize
+        3.0                             // duplicity
+    );
 
     if (debug)
     {
@@ -1048,17 +1044,11 @@ void Foam::faceCoupleInfo::findSlavesCoveringMaster
         // Generate face centre (prevent cellCentres() reconstruction)
         point fc(f1.centre(mesh1.points()));
 
-        // Search in bounding box of face only.
-        treeBoundBox tightest(static_cast<const pointField&>(f1.points(mesh1.points())));
+        pointIndexHit nearInfo = tree.findNearest(fc, Foam::sqr(absTol));
 
-        scalar tightestDist = GREAT;
-
-        label index = tree.findNearest(fc, tightest, tightestDist);
-
-
-        if (index != -1)
+        if (nearInfo.hit())
         {
-            label mesh0FaceI = shapes.meshFaces()[index];
+            label mesh0FaceI = tree.shapes().faceLabels()[nearInfo.index()];
 
             // Check if points of f1 actually lie on top of mesh0 face
             // This is the bit that might fail since if f0 is severely warped
@@ -1417,16 +1407,15 @@ Foam::label Foam::faceCoupleInfo::geometricMatchEdgeFaces
             {
                 label masterFaceI = masterFaces[i];
 
-                if (masterToCutFaces[masterFaces[i]].size() == 0)
+                if (masterToCutFaces[masterFaces[i]].empty())
                 {
-                    scalar dist =
-                        maxDistance
-                        (
-                            cutF,
-                            cutPoints,
-                            masterPatch()[masterFaceI],
-                            masterPatch().points()
-                        );
+                    scalar dist = maxDistance
+                    (
+                        cutF,
+                        cutPoints,
+                        masterPatch()[masterFaceI],
+                        masterPatch().points()
+                    );
 
                     if (dist < minDist)
                     {
@@ -1577,7 +1566,7 @@ void Foam::faceCoupleInfo::perfectPointMatch
 
 
     // Use compaction lists to renumber cutPoints.
-    cutPoints_ = IndirectList<point>(cutPoints_, compactToCut)();
+    cutPoints_ = UIndirectList<point>(cutPoints_, compactToCut)();
     {
         const faceList& cutLocalFaces = cutFaces().localFaces();
 
@@ -1772,11 +1761,11 @@ void Foam::faceCoupleInfo::subDivisionMatch
                 writeOBJ
                 (
                     "errorEdges.obj",
-                    IndirectList<edge>
+                    UIndirectList<edge>
                     (
                         cutFaces().edges(),
                         cutFaces().pointEdges()[cutPointI]
-                    )(),
+                    ),
                     cutFaces().localPoints(),
                     false
                 );
@@ -1896,7 +1885,7 @@ void Foam::faceCoupleInfo::subDivisionMatch
                 "(const polyMesh&, const bool, const scalar)"
             )   << "Did not match all of cutFaces to a master face" << nl
                 << "First unmatched cut face:" << cutFaceI << " with points:"
-                << IndirectList<point>(cutFaces().points(), cutF)()
+                << UIndirectList<point>(cutFaces().points(), cutF)()
                 << nl
                 << "This usually means that the slave patch is not a"
                 << " subdivision of the master patch"
@@ -2061,7 +2050,7 @@ Foam::faceCoupleInfo::faceCoupleInfo
 
     if
     (
-        masterAddressing.size() > 0
+        masterAddressing.size()
      && min(masterAddressing) < masterMesh.nInternalFaces()
     )
     {
@@ -2075,7 +2064,7 @@ Foam::faceCoupleInfo::faceCoupleInfo
     }
     if
     (
-        slaveAddressing.size() > 0
+        slaveAddressing.size()
      && min(slaveAddressing) < slaveMesh.nInternalFaces()
     )
     {
@@ -2152,7 +2141,7 @@ Foam::Map<Foam::labelList> Foam::faceCoupleInfo::makeMap
 
     forAll(lst, i)
     {
-        if (lst[i].size() > 0)
+        if (lst[i].size())
         {
             map.insert(i, lst[i]);
         }

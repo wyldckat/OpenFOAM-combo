@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,11 +40,7 @@ scalar maxCo
     readScalar(runTime.controlDict().lookup("maxCo"))
 );
 
-scalar maxDeltaT = GREAT;
-
-if (runTime.controlDict().found("maxDeltaT"))
-(
-    maxDeltaT = readScalar(runTime.controlDict().lookup("maxDeltaT"))
-);
+scalar maxDeltaT =
+    runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", GREAT);
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,15 +30,10 @@ License
 #include "SortableList.H"
 #include "ListOps.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 // Returns edgeI between two points.
-Foam::label primitiveMesh::getEdge
+Foam::label Foam::primitiveMesh::getEdge
 (
     List<DynamicList<label> >& pe,
     DynamicList<edge>& es,
@@ -76,7 +71,7 @@ Foam::label primitiveMesh::getEdge
 }
 
 
-void primitiveMesh::calcEdges(const bool doFaceEdges) const
+void Foam::primitiveMesh::calcEdges(const bool doFaceEdges) const
 {
     if (debug)
     {
@@ -113,7 +108,7 @@ void primitiveMesh::calcEdges(const bool doFaceEdges) const
         List<DynamicList<label> > pe(nPoints());
         forAll(pe, pointI)
         {
-            pe[pointI].setSize(primitiveMesh::edgesPerPoint_);
+            pe[pointI].setCapacity(primitiveMesh::edgesPerPoint_);
         }
 
         // Estimate edges storage
@@ -337,7 +332,7 @@ void primitiveMesh::calcEdges(const bool doFaceEdges) const
 
                         oldToNew[edgeI] = internal0EdgeI++;
                     }
-                }        
+                }
             }
             else
             {
@@ -441,11 +436,10 @@ void primitiveMesh::calcEdges(const bool doFaceEdges) const
         forAll(pe, pointI)
         {
             DynamicList<label>& pEdges = pe[pointI];
-            inplaceRenumber(oldToNew, pEdges);
             pEdges.shrink();
+            inplaceRenumber(oldToNew, pEdges);
             pointEdges[pointI].transfer(pEdges);
             Foam::sort(pointEdges[pointI]);
-            pEdges.clear();
         }
 
         // faceEdges
@@ -461,52 +455,225 @@ void primitiveMesh::calcEdges(const bool doFaceEdges) const
 }
 
 
+Foam::label Foam::primitiveMesh::findFirstCommonElementFromSortedLists
+(
+    const labelList& list1,
+    const labelList& list2
+)
+{
+    label result = -1;
+
+    labelList::const_iterator iter1 = list1.begin();
+    labelList::const_iterator iter2 = list2.begin();
+
+    while (iter1 != list1.end() && iter2 != list2.end())
+    {
+        if( *iter1 < *iter2)
+        {
+            ++iter1;
+        }
+        else if (*iter1 > *iter2)
+        {
+            ++iter2;
+        }
+        else
+        {
+            result = *iter1;
+            break;
+        }
+    }
+    if (result == -1)
+    {
+        FatalErrorIn
+        (
+            "primitiveMesh::findFirstCommonElementFromSortedLists"
+            "(const labelList&, const labelList&)"
+        )   << "No common elements in lists " << list1 << " and " << list2
+            << abort(FatalError);
+    }
+    return result;
+}
+
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const edgeList& primitiveMesh::edges() const
+const Foam::edgeList& Foam::primitiveMesh::edges() const
 {
     if (!edgesPtr_)
     {
-        calcEdges(true);
+        //calcEdges(true);
+        calcEdges(false);
     }
 
     return *edgesPtr_;
 }
 
-const labelListList& primitiveMesh::pointEdges() const
+const Foam::labelListList& Foam::primitiveMesh::pointEdges() const
 {
     if (!pePtr_)
     {
-        //// Invert edges
-        //pePtr_ = new labelListList(nPoints());
-        //invertManyToMany(nPoints(), edges(), *pePtr_);
-        calcEdges(true);
+        //calcEdges(true);
+        calcEdges(false);
     }
 
     return *pePtr_;
 }
 
 
-const labelListList& primitiveMesh::faceEdges() const
+const Foam::labelListList& Foam::primitiveMesh::faceEdges() const
 {
     if (!fePtr_)
     {
-        calcEdges(true);
+        if (debug)
+        {
+            Pout<< "primitiveMesh::faceEdges() : "
+                << "calculating faceEdges" << endl;
+        }
+
+        //calcEdges(true);
+        const faceList& fcs = faces();
+        const labelListList& pe = pointEdges();
+        const edgeList& es = edges();
+
+        fePtr_ = new labelListList(fcs.size());
+        labelListList& faceEdges = *fePtr_;
+
+        forAll(fcs, faceI)
+        {
+            const face& f = fcs[faceI];
+
+            labelList& fEdges = faceEdges[faceI];
+            fEdges.setSize(f.size());
+
+            forAll(f, fp)
+            {
+                label pointI = f[fp];
+                label nextPointI = f[f.fcIndex(fp)];
+
+                // Find edge between pointI, nextPontI
+                const labelList& pEdges = pe[pointI];
+
+                forAll(pEdges, i)
+                {
+                    label edgeI = pEdges[i];
+
+                    if (es[edgeI].otherVertex(pointI) == nextPointI)
+                    {
+                        fEdges[fp] = edgeI;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     return *fePtr_;
 }
 
-void primitiveMesh::clearOutEdges()
+
+void Foam::primitiveMesh::clearOutEdges()
 {
     deleteDemandDrivenData(edgesPtr_);
     deleteDemandDrivenData(pePtr_);
     deleteDemandDrivenData(fePtr_);
+    labels_.clear();
+    labelSet_.clear();
+}
+
+
+const Foam::labelList& Foam::primitiveMesh::faceEdges
+(
+    const label faceI,
+    DynamicList<label>& storage
+) const
+{
+    if (hasFaceEdges())
+    {
+        return faceEdges()[faceI];
+    }
+    else
+    {
+        const labelListList& pointEs = pointEdges();
+        const face& f = faces()[faceI];
+
+        storage.clear();
+        if (f.size() > storage.capacity())
+        {
+            storage.setCapacity(f.size());
+        }
+
+        forAll(f, fp)
+        {
+            storage.append
+            (
+                findFirstCommonElementFromSortedLists
+                (
+                    pointEs[f[fp]],
+                    pointEs[f.nextLabel(fp)]
+                )
+            );
+        }
+
+        return storage;
+    }
+}
+
+
+const Foam::labelList& Foam::primitiveMesh::faceEdges(const label faceI) const
+{
+    return faceEdges(faceI, labels_);
+}
+
+
+const Foam::labelList& Foam::primitiveMesh::cellEdges
+(
+    const label cellI,
+    DynamicList<label>& storage
+) const
+{
+    if (hasCellEdges())
+    {
+        return cellEdges()[cellI];
+    }
+    else
+    {
+        const labelList& cFaces = cells()[cellI];
+
+        labelSet_.clear();
+
+        forAll(cFaces, i)
+        {
+            const labelList& fe = faceEdges(cFaces[i]);
+
+            forAll(fe, feI)
+            {
+                labelSet_.insert(fe[feI]);
+            }
+        }
+
+        storage.clear();
+
+        if (labelSet_.size() > storage.capacity())
+        {
+            storage.setCapacity(labelSet_.size());
+        }
+
+        forAllConstIter(labelHashSet, labelSet_, iter)
+        {
+            storage.append(iter.key());
+        }
+
+        return storage;
+    }
+}
+
+
+const Foam::labelList& Foam::primitiveMesh::cellEdges(const label cellI) const
+{
+    return cellEdges(cellI, labels_);
 }
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

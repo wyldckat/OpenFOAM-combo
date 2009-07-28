@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ Description
 // Calculate inverse sum of edge weights (currently always 1.0)
 void Foam::autoLayerDriver::sumWeights
 (
-    const PackedList<1>& isMasterEdge,
+    const PackedBoolList& isMasterEdge,
     const labelList& meshEdges,
     const labelList& meshPoints,
     const edgeList& edges,
@@ -91,7 +91,7 @@ void Foam::autoLayerDriver::sumWeights
 void Foam::autoLayerDriver::smoothField
 (
     const motionSmoother& meshMover,
-    const PackedList<1>& isMasterEdge,
+    const PackedBoolList& isMasterEdge,
     const labelList& meshEdges,
     const scalarField& fieldMin,
     const label& nSmoothDisp,
@@ -163,7 +163,7 @@ void Foam::autoLayerDriver::smoothField
 void Foam::autoLayerDriver::smoothPatchNormals
 (
     const motionSmoother& meshMover,
-    const PackedList<1>& isMasterEdge,
+    const PackedBoolList& isMasterEdge,
     const labelList& meshEdges,
     const label nSmoothDisp,
     pointField& normals
@@ -228,7 +228,7 @@ void Foam::autoLayerDriver::smoothPatchNormals
 void Foam::autoLayerDriver::smoothNormals
 (
     const label nSmoothDisp,
-    const PackedList<1>& isMasterEdge,
+    const PackedBoolList& isMasterEdge,
     const labelList& fixedPoints,
     pointVectorField& normals
 ) const
@@ -240,7 +240,7 @@ void Foam::autoLayerDriver::smoothNormals
     const edgeList& edges = mesh.edges();
 
     // Points that do not change.
-    PackedList<1> isFixedPoint(mesh.nPoints(), 0);
+    PackedBoolList isFixedPoint(mesh.nPoints(), 0);
 
     // Internal points that are fixed
     forAll(fixedPoints, i)
@@ -452,7 +452,7 @@ void Foam::autoLayerDriver::handleFeatureAngleLayerTerminations
 void Foam::autoLayerDriver::findIsolatedRegions
 (
     const indirectPrimitivePatch& pp,
-    const PackedList<1>& isMasterEdge,
+    const PackedBoolList& isMasterEdge,
     const labelList& meshEdges,
     const scalar minCosLayerTermination,
     scalarField& field,
@@ -675,7 +675,6 @@ void Foam::autoLayerDriver::medialAxisSmoothingInfo
 
     const polyMesh& mesh = meshMover.mesh();
     const pointField& points = mesh.points();
-    const pointMesh& pMesh = meshMover.pMesh();
 
     const indirectPrimitivePatch& pp = meshMover.patch();
     const vectorField& faceNormals = pp.faceNormals();
@@ -685,7 +684,7 @@ void Foam::autoLayerDriver::medialAxisSmoothingInfo
     // ~~~~~~~~~~~~~~~~~~~~~~~
 
     // Precalulate master edge (only relevant for shared edges)
-    PackedList<1> isMasterEdge(syncTools::getMasterEdges(mesh));
+    PackedBoolList isMasterEdge(syncTools::getMasterEdges(mesh));
     // Precalculate meshEdge per pp edge
     labelList meshEdges(pp.nEdges());
 
@@ -788,12 +787,12 @@ void Foam::autoLayerDriver::medialAxisSmoothingInfo
         List<pointData> edgeWallDist(mesh.nEdges());
         PointEdgeWave<pointData> wallDistCalc
         (
-            pMesh,
+            mesh,
             meshPoints,
             wallInfo,
             pointWallDist,
             edgeWallDist,
-            mesh.nPoints()  // max iterations
+            mesh.globalData().nTotalPoints()    // max iterations
         );
     }
 
@@ -892,13 +891,13 @@ void Foam::autoLayerDriver::medialAxisSmoothingInfo
         // Do all calculations
         PointEdgeWave<pointData> medialDistCalc
         (
-            pMesh,
+            mesh,
             maxPoints,
             maxInfo,
 
             pointMedialDist,
             edgeMedialDist,
-            mesh.nPoints()  // max iterations
+            mesh.globalData().nTotalPoints()    // max iterations
         );
 
         // Extract medial axis distance as pointScalarField
@@ -954,6 +953,7 @@ void Foam::autoLayerDriver::medialAxisSmoothingInfo
 void Foam::autoLayerDriver::shrinkMeshMedialDistance
 (
     motionSmoother& meshMover,
+    const dictionary& meshQualityDict,
     const label nSmoothThickness,
     const scalar maxThicknessToMedialRatio,
     const label nAllowableErrors,
@@ -975,13 +975,12 @@ void Foam::autoLayerDriver::shrinkMeshMedialDistance
     Info<< "shrinkMeshMedialDistance : Smoothing using Medial Axis ..." << endl;
 
     const polyMesh& mesh = meshMover.mesh();
-    const pointMesh& pMesh = meshMover.pMesh();
 
     const indirectPrimitivePatch& pp = meshMover.patch();
     const labelList& meshPoints = pp.meshPoints();
 
     // Precalulate master edge (only relevant for shared edges)
-    PackedList<1> isMasterEdge(syncTools::getMasterEdges(mesh));
+    PackedBoolList isMasterEdge(syncTools::getMasterEdges(mesh));
     // Precalculate meshEdge per pp edge
     labelList meshEdges(pp.nEdges());
 
@@ -1100,12 +1099,12 @@ void Foam::autoLayerDriver::shrinkMeshMedialDistance
         // Do all calculations
         PointEdgeWave<pointData> wallDistCalc
         (
-            pMesh,
+            mesh,
             wallPoints,
             wallInfo,
             pointWallDist,
             edgeWallDist,
-            mesh.nPoints()  // max iterations
+            mesh.globalData().nTotalPoints()    // max iterations
         );
     }
 
@@ -1140,7 +1139,18 @@ void Foam::autoLayerDriver::shrinkMeshMedialDistance
             oldErrorReduction = meshMover.setErrorReduction(0.0);
         }
 
-        if (meshMover.scaleMesh(checkFaces, true, nAllowableErrors))
+        if
+        (
+            meshMover.scaleMesh
+            (
+                checkFaces,
+                List<labelPair>(0),
+                meshMover.paramDict(),
+                meshQualityDict,
+                true,
+                nAllowableErrors
+            )
+        )
         {
             Info<< "shrinkMeshMedialDistance : Successfully moved mesh" << endl;
             break;

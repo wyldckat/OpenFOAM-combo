@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,17 +25,13 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "coupledPolyPatch.H"
-#include "SortableList.H"
 #include "ListOps.H"
 #include "transform.H"
 #include "OFstream.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(coupledPolyPatch, 0);
-}
+defineTypeNameAndDebug(Foam::coupledPolyPatch, 0);
 
 Foam::scalar Foam::coupledPolyPatch::matchTol = 1E-3;
 
@@ -264,6 +260,7 @@ void Foam::coupledPolyPatch::calcTransformTensors
         Pout<< "coupledPolyPatch::calcTransformTensors : " << name() << endl
             << "    (half)size:" << Cf.size() << nl
             << "    absTol:" << absTol << nl
+            //<< "    smallDist:" << smallDist << nl
             << "    sum(mag(nf & nr)):" << sum(mag(nf & nr)) << endl;
     }
 
@@ -317,6 +314,13 @@ void Foam::coupledPolyPatch::calcTransformTensors
             {
                 forwardT_.setSize(1);
                 reverseT_.setSize(1);
+
+                if (debug)
+                {
+                    Pout<< "    difference in rotation less than"
+                        << " local tolerance "
+                        << error << ". Assuming uniform rotation." << endl;
+                }
             }
         }
         else
@@ -385,7 +389,7 @@ void Foam::coupledPolyPatch::calcTransformTensors
 
     if (debug)
     {
-        Pout<< "    separation_:" << separation_ << nl
+        Pout<< "    separation_:" << separation_.size() << nl
             << "    forwardT size:" << forwardT_.size() << endl;
     }
 }

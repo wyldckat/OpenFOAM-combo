@@ -336,8 +336,8 @@ Foam::fvMatrix<Type>::fvMatrix
 {
     if (debug)
     {
-        Info<< "fvMatrix<Type>(GeometricField<Type, fvPatchField, volMesh>&,"
-               " Istream&) : "
+        Info<< "fvMatrix<Type>"
+               "(GeometricField<Type, fvPatchField, volMesh>&, Istream&) : "
                "constructing fvMatrix<Type> for field " << psi_.name()
             << endl;
     }
@@ -589,6 +589,20 @@ void Foam::fvMatrix<Type>::relax()
 
 
 template<class Type>
+void Foam::fvMatrix<Type>::boundaryManipulate
+(
+    typename GeometricField<Type, fvPatchField, volMesh>::
+        GeometricBoundaryField& bFields
+)
+{
+    forAll(bFields, patchI)
+    {
+        bFields[patchI].manipulateMatrix(*this);
+    }
+}
+
+
+template<class Type>
 Foam::tmp<Foam::scalarField> Foam::fvMatrix<Type>::D() const
 {
     tmp<scalarField> tdiag(new scalarField(diag()));
@@ -695,7 +709,7 @@ Foam::fvMatrix<Type>::H() const
     (
         pow
         (
-            psi_.mesh().directions(),
+            psi_.mesh().solutionD(),
             pTraits<typename powProduct<Vector<label>, Type::rank>::type>::zero
         )
     );
@@ -1150,7 +1164,7 @@ void Foam::fvMatrix<Type>::operator*=
 }
 
 
-// * * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
 template<class Type>
 void Foam::checkMethod
@@ -1239,7 +1253,7 @@ template<class Type>
 Foam::lduMatrix::solverPerformance Foam::solve
 (
     fvMatrix<Type>& fvm,
-    Istream& solverControls
+    const dictionary& solverControls
 )
 {
     return fvm.solve(solverControls);
@@ -1249,7 +1263,7 @@ template<class Type>
 Foam::lduMatrix::solverPerformance Foam::solve
 (
     const tmp<fvMatrix<Type> >& tfvm,
-    Istream& solverControls
+    const dictionary& solverControls
 )
 {
     lduMatrix::solverPerformance solverPerf =
@@ -1268,10 +1282,7 @@ Foam::lduMatrix::solverPerformance Foam::solve(fvMatrix<Type>& fvm)
 }
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve
-(
-    const tmp<fvMatrix<Type> >& tfvm
-)
+Foam::lduMatrix::solverPerformance Foam::solve(const tmp<fvMatrix<Type> >& tfvm)
 {
     lduMatrix::solverPerformance solverPerf =
         const_cast<fvMatrix<Type>&>(tfvm()).solve();
@@ -1327,7 +1338,7 @@ Foam::tmp<Foam::fvMatrix<Type> > Foam::correction
 }
 
 
-// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * Global Operators  * * * * * * * * * * * * * //
 
 template<class Type>
 Foam::tmp<Foam::fvMatrix<Type> > Foam::operator==

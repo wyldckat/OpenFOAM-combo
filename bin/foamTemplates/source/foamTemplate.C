@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,13 @@ License
 const dataType Foam::className::staticData();
 
 
+// * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
+
+
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+
+// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -71,10 +77,10 @@ Foam::className::~className()
 {}
 
 
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
 
-// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * * //
 
 void Foam::className::operator=(const className& rhs)
 {
@@ -87,11 +93,10 @@ void Foam::className::operator=(const className& rhs)
     }
 }
 
+// * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * * //
 
-// * * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * //
 
-
-// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Friend Operators * * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

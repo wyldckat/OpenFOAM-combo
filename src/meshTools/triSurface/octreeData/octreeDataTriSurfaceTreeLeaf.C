@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,7 +37,7 @@ bool Foam::treeLeaf<Foam::octreeDataTriSurface>::findNearest
     const octreeDataTriSurface& shapes,
     const point& sample,
     treeBoundBox& tightest,
-    label& tightesti,
+    label& tightestI,
     scalar& tightestDist
 ) const
 {
@@ -54,7 +54,7 @@ bool Foam::treeLeaf<Foam::octreeDataTriSurface>::findNearest
         label faceI = indices_[i];
 
         // Quick rejection test.
-        if (tightest.intersects(allBb[faceI]))
+        if (tightest.overlaps(allBb[faceI]))
         {
             // Full calculation
             scalar dist = shapes.calcNearest(faceI, sample, nearest);
@@ -70,7 +70,7 @@ bool Foam::treeLeaf<Foam::octreeDataTriSurface>::findNearest
                 max.y() = sample.y() + dist;
                 max.z() = sample.z() + dist;
 
-                tightesti = faceI;
+                tightestI = faceI;
                 tightestDist = dist;
 
                 changed = true;

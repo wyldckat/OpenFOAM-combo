@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,15 +48,12 @@ void Foam::coordinateRotation::calcTransform
     vector a = axis1 / mag(axis1);
     vector b = axis2;
 
-    // Absorb minor non-orthogonality into axis2
+    // Absorb minor nonorthogonality into axis2
     b = b - (b & a)*a;
 
     if (mag(b) < SMALL)
     {
-        FatalErrorIn
-        (
-            "coordinateRotation::calcTransform()"
-        )
+        FatalErrorIn("coordinateRotation::calcTransform()")
             << "axis1, axis2 appear co-linear: "
             << axis1 << ", " << axis2 << endl
             << abort(FatalError);
@@ -88,10 +85,7 @@ void Foam::coordinateRotation::calcTransform
             break;
 
         default:
-            FatalErrorIn
-            (
-                "coordinateRotation::calcTransform()"
-            )
+            FatalErrorIn("coordinateRotation::calcTransform()")
                 << "programmer error" << endl
                 << abort(FatalError);
             break;
@@ -196,25 +190,19 @@ void Foam::coordinateRotation::operator=(const dictionary& rhs)
     );
 
     vector axis1, axis2;
-    axisOrder order = e3e1;
+    axisOrder order(e3e1);
 
-    if (dict.found("e1") && dict.found("e2"))
+    if (dict.readIfPresent("e1", axis1) && dict.readIfPresent("e2", axis2))
     {
         order = e1e2;
-        dict.lookup("e1") >> axis1;
-        dict.lookup("e2") >> axis2;
     }
-    else if (dict.found("e2") && dict.found("e3"))
+    else if (dict.readIfPresent("e2", axis1) && dict.readIfPresent("e3", axis2))
     {
         order = e2e3;
-        dict.lookup("e2") >> axis1;
-        dict.lookup("e3") >> axis2;
     }
-    else if (dict.found("e3") && dict.found("e1"))
+    else if (dict.readIfPresent("e3", axis1) && dict.readIfPresent("e1", axis2))
     {
         order = e3e1;
-        dict.lookup("e3") >> axis1;
-        dict.lookup("e1") >> axis2;
     }
     else if (dict.found("axis") || dict.found("direction"))
     {
@@ -232,5 +220,6 @@ void Foam::coordinateRotation::operator=(const dictionary& rhs)
 
     calcTransform(axis1, axis2, order);
 }
+
 
 // ************************************************************************* //

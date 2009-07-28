@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,6 +54,7 @@ SourceFiles
 #define fvMeshDistribute_H
 
 #include "Field.H"
+#include "uLabel.H"
 #include "fvMeshSubset.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -102,25 +103,6 @@ class fvMeshDistribute
                         << " having exactly the same type."
                         << abort(FatalError);
                 }
-            }
-        };
-
-        // Hash labelPair. Note non-commutative since p[0] is face, p[1] is
-        // processor.
-        class labelPairHash
-        {
-        public:
-
-            labelPairHash()
-            {}
-
-            label operator()(const labelPair& p, const label tableSize) const
-            {
-                unsigned int p0 = static_cast<unsigned int>(p[0]);
-                unsigned int p1 = static_cast<unsigned int>(p[1]);
-                unsigned int key = p0*p0+p0+p1;
-                unsigned int sz = static_cast<unsigned int>(tableSize);
-                return key % sz;
             }
         };
 
@@ -287,7 +269,7 @@ class fvMeshDistribute
             void addProcPatches
             (
                 const labelList&, // processor that neighbour is on
-                labelList& procPatchID              
+                labelList& procPatchID
             );
 
             //- Get boundary faces to be repatched. Is -1 or new patchID

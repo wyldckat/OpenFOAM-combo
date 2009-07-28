@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,6 +34,7 @@ Description
 #include "primitiveMesh.H"
 #include "demandDrivenData.H"
 #include "mapPolyMesh.H"
+#include "syncTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -242,6 +243,30 @@ Foam::faceZone::faceZone
 }
 
 
+Foam::faceZone::faceZone
+(
+    const word& name,
+    const Xfer<labelList>& addr,
+    const Xfer<boolList>& fm,
+    const label index,
+    const faceZoneMesh& zm
+)
+:
+    labelList(addr),
+    name_(name),
+    flipMap_(fm),
+    index_(index),
+    zoneMesh_(zm),
+    patchPtr_(NULL),
+    masterCellsPtr_(NULL),
+    slaveCellsPtr_(NULL),
+    mePtr_(NULL),
+    faceLookupMapPtr_(NULL)
+{
+    checkAddressing();
+}
+
+
 // Construct from dictionary
 Foam::faceZone::faceZone
 (
@@ -273,6 +298,30 @@ Foam::faceZone::faceZone
     const faceZone& fz,
     const labelList& addr,
     const boolList& fm,
+    const label index,
+    const faceZoneMesh& zm
+)
+:
+    labelList(addr),
+    name_(fz.name()),
+    flipMap_(fm),
+    index_(index),
+    zoneMesh_(zm),
+    patchPtr_(NULL),
+    masterCellsPtr_(NULL),
+    slaveCellsPtr_(NULL),
+    mePtr_(NULL),
+    faceLookupMapPtr_(NULL)
+{
+    checkAddressing();
+}
+
+
+Foam::faceZone::faceZone
+(
+    const faceZone& fz,
+    const Xfer<labelList>& addr,
+    const Xfer<boolList>& fm,
     const label index,
     const faceZoneMesh& zm
 )
@@ -362,16 +411,27 @@ const Foam::labelList& Foam::faceZone::meshEdges() const
 {
     if (!mePtr_)
     {
-        labelList faceCells(size());
-
-        const labelList& own = zoneMesh().mesh().faceOwner();
-
-        const labelList& faceLabels = *this;
-
-        forAll (faceCells, faceI)
-        {
-            faceCells[faceI] = own[faceLabels[faceI]];
-        }
+        //labelList faceCells(size());
+        //
+        //const labelList& own = zoneMesh().mesh().faceOwner();
+        //
+        //const labelList& faceLabels = *this;
+        //
+        //forAll (faceCells, faceI)
+        //{
+        //    faceCells[faceI] = own[faceLabels[faceI]];
+        //}
+        //
+        //mePtr_ =
+        //    new labelList
+        //    (
+        //        operator()().meshEdges
+        //        (
+        //            zoneMesh().mesh().edges(),
+        //            zoneMesh().mesh().cellEdges(),
+        //            faceCells
+        //        )
+        //    );
 
         mePtr_ =
             new labelList
@@ -379,8 +439,7 @@ const Foam::labelList& Foam::faceZone::meshEdges() const
                 operator()().meshEdges
                 (
                     zoneMesh().mesh().edges(),
-                    zoneMesh().mesh().cellEdges(),
-                    faceCells
+                    zoneMesh().mesh().pointEdges()
                 )
             );
     }
@@ -469,6 +528,87 @@ bool Foam::faceZone::checkDefinition(const bool report) const
         }
     }
     return boundaryError;
+}
+
+
+bool Foam::faceZone::checkParallelSync(const bool report) const
+{
+    const polyMesh& mesh = zoneMesh().mesh();
+    const polyBoundaryMesh& bm = mesh.boundaryMesh();
+
+    bool boundaryError = false;
+
+
+    // Check that zone faces are synced
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    {
+        boolList neiZoneFace(mesh.nFaces()-mesh.nInternalFaces(), false);
+        boolList neiZoneFlip(mesh.nFaces()-mesh.nInternalFaces(), false);
+        forAll(*this, i)
+        {
+            label faceI = operator[](i);
+
+            if (!mesh.isInternalFace(faceI))
+            {
+                neiZoneFace[faceI-mesh.nInternalFaces()] = true;
+                neiZoneFlip[faceI-mesh.nInternalFaces()] = flipMap()[i];
+            }
+        }
+        boolList myZoneFace(neiZoneFace);
+        syncTools::swapBoundaryFaceList(mesh, neiZoneFace, false);
+        boolList myZoneFlip(neiZoneFlip);
+        syncTools::swapBoundaryFaceList(mesh, neiZoneFlip, false);
+
+        forAll(*this, i)
+        {
+            label faceI = operator[](i);
+
+            label patchI = bm.whichPatch(faceI);
+
+            if (patchI != -1 && bm[patchI].coupled())
+            {
+                label bFaceI = faceI-mesh.nInternalFaces();
+
+                // Check face in zone on both sides
+                if (myZoneFace[bFaceI] != neiZoneFace[bFaceI])
+                {
+                    boundaryError = true;
+
+                    if (report)
+                    {
+                        Pout<< " ***Problem with faceZone " << index()
+                            << " named " << name()
+                            << ". Face " << faceI
+                            << " on coupled patch "
+                            << bm[patchI].name()
+                            << " is not consistent with its coupled neighbour."
+                            << endl;
+                    }
+                }
+
+                // Flip state should be opposite.
+                if (myZoneFlip[bFaceI] == neiZoneFlip[bFaceI])
+                {
+                    boundaryError = true;
+
+                    if (report)
+                    {
+                        Pout<< " ***Problem with faceZone " << index()
+                            << " named " << name()
+                            << ". Face " << faceI
+                            << " on coupled patch "
+                            << bm[patchI].name()
+                            << " does not have consistent flipMap"
+                            << " across coupled faces."
+                            << endl;
+                    }
+                }
+            }
+        }
+    }
+
+    return returnReduce(boundaryError, orOp<bool>());
 }
 
 

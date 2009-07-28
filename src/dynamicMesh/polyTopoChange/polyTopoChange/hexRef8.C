@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,13 +51,13 @@ namespace Foam
     defineTypeNameAndDebug(hexRef8, 0);
 
     //- Reduction class. If x and y are not equal assign value.
-    template< int value >
+    template<int value>
     class ifEqEqOp
     {
         public:
-        void operator()( label& x, const label& y ) const
+        void operator()(label& x, const label& y) const
         {
-            x = (x==y) ? x:value;
+            x = (x==y) ? x : value;
         }
     };
 }
@@ -372,7 +372,7 @@ Foam::scalar Foam::hexRef8::getLevel0EdgeLength() const
         {
             const label cLevel = cellLevel_[cellI];
 
-            const labelList& cEdges = mesh_.cellEdges()[cellI];
+            const labelList& cEdges = mesh_.cellEdges(cellI);
 
             forAll(cEdges, i)
             {
@@ -447,7 +447,7 @@ Foam::scalar Foam::hexRef8::getLevel0EdgeLength() const
     {
         const label cLevel = cellLevel_[cellI];
 
-        const labelList& cEdges = mesh_.cellEdges()[cellI];
+        const labelList& cEdges = mesh_.cellEdges(cellI);
 
         forAll(cEdges, i)
         {
@@ -532,7 +532,7 @@ Foam::label Foam::hexRef8::getAnchorCell
     const label pointI
 ) const
 {
-    if (cellAnchorPoints[cellI].size() > 0)
+    if (cellAnchorPoints[cellI].size())
     {
         label index = findIndex(cellAnchorPoints[cellI], pointI);
 
@@ -558,18 +558,7 @@ Foam::label Foam::hexRef8::getAnchorCell
         }
 
         // Problem.
-
-        // Pick up points of the cell
-        const labelList cPoints(cellPoints(cellI));
-
-        Perr<< "cell:" << cellI << " points:" << endl;
-        forAll(cPoints, i)
-        {
-            label pointI = cPoints[i];
-
-            Perr<< "    " << pointI << " coord:" << mesh_.points()[pointI]
-                << nl;
-        }
+        dumpCell(cellI);
         Perr<< "cell:" << cellI << " anchorPoints:" << cellAnchorPoints[cellI]
             << endl;
 
@@ -691,9 +680,50 @@ Foam::label Foam::hexRef8::countAnchors
 }
 
 
+void Foam::hexRef8::dumpCell(const label cellI) const
+{
+    OFstream str(mesh_.time().path()/"cell_" + Foam::name(cellI) + ".obj");
+    Pout<< "hexRef8 : Dumping cell as obj to " << str.name() << endl;
+
+    const cell& cFaces = mesh_.cells()[cellI];
+
+    Map<label> pointToObjVert;
+    label objVertI = 0;
+
+    forAll(cFaces, i)
+    {
+        const face& f = mesh_.faces()[cFaces[i]];
+
+        forAll(f, fp)
+        {
+            if (pointToObjVert.insert(f[fp], objVertI))
+            {
+                meshTools::writeOBJ(str, mesh_.points()[f[fp]]);
+                objVertI++;
+            }
+        }
+    }
+
+    forAll(cFaces, i)
+    {
+        const face& f = mesh_.faces()[cFaces[i]];
+
+        forAll(f, fp)
+        {
+            label pointI = f[fp];
+            label nexPointI = f[f.fcIndex(fp)];
+
+            str << "l " << pointToObjVert[pointI]+1
+                << ' ' << pointToObjVert[nexPointI]+1 << nl;
+        }
+    }
+}
+
+
 // Find point with certain pointLevel. Skip any higher levels.
 Foam::label Foam::hexRef8::findLevel
 (
+    const label faceI,
     const face& f,
     const label startFp,
     const bool searchForward,
@@ -708,9 +738,15 @@ Foam::label Foam::hexRef8::findLevel
 
         if (pointLevel_[pointI] < wantedLevel)
         {
-            FatalErrorIn("hexRef8::findLevel")
+            dumpCell(mesh_.faceOwner()[faceI]);
+            if (mesh_.isInternalFace(faceI))
+            {
+                dumpCell(mesh_.faceNeighbour()[faceI]);
+            }
+
+            FatalErrorIn("hexRef8::findLevel(..)")
                 << "face:" << f
-                << " level:" << IndirectList<label>(pointLevel_, f)()
+                << " level:" << UIndirectList<label>(pointLevel_, f)()
                 << " startFp:" << startFp
                 << " wantedLevel:" << wantedLevel
                 << abort(FatalError);
@@ -730,9 +766,15 @@ Foam::label Foam::hexRef8::findLevel
         }
     }
 
-    FatalErrorIn("hexRef8::findLevel")
+    dumpCell(mesh_.faceOwner()[faceI]);
+    if (mesh_.isInternalFace(faceI))
+    {
+        dumpCell(mesh_.faceNeighbour()[faceI]);
+    }
+
+    FatalErrorIn("hexRef8::findLevel(..)")
         << "face:" << f
-        << " level:" << IndirectList<label>(pointLevel_, f)()
+        << " level:" << UIndirectList<label>(pointLevel_, f)()
         << " startFp:" << startFp
         << " wantedLevel:" << wantedLevel
         << abort(FatalError);
@@ -764,15 +806,6 @@ Foam::label Foam::hexRef8::getAnchorLevel(const label faceI) const
         }
         else
         {
-            //FatalErrorIn("hexRef8::getAnchorLevel(const label) const")
-            //    << "face:" << faceI
-            //    << " centre:" << mesh_.faceCentres()[faceI]
-            //    << " verts:" << f
-            //    << " point levels:" << IndirectList<label>(pointLevel_, f)()
-            //    << " own:" << mesh_.faceOwner()[faceI]
-            //    << " ownLevel:" << cellLevel_[mesh_.faceOwner()[faceI]]
-            //    << abort(FatalError);
-
             return -1;
         }
     }
@@ -790,7 +823,7 @@ void Foam::hexRef8::checkInternalOrientation
 )
 {
     face compactFace(identity(newFace.size()));
-    pointField compactPoints(IndirectList<point>(meshMod.points(), newFace)());
+    pointField compactPoints(meshMod.points(), newFace);
 
     vector n(compactFace.normal(compactPoints));
 
@@ -836,7 +869,7 @@ void Foam::hexRef8::checkBoundaryOrientation
 )
 {
     face compactFace(identity(newFace.size()));
-    pointField compactPoints(IndirectList<point>(meshMod.points(), newFace)());
+    pointField compactPoints(meshMod.points(), newFace);
 
     vector n(compactFace.normal(compactPoints));
 
@@ -1046,8 +1079,7 @@ Foam::label Foam::hexRef8::storeMidPointInfo
         }
 
         face newFace;
-        newFace.transfer(newFaceVerts.shrink());
-        newFaceVerts.clear();
+        newFace.transfer(newFaceVerts);
 
         label anchorCell0 = getAnchorCell
         (
@@ -1157,6 +1189,10 @@ void Foam::hexRef8::createInternalFaces
     // From edge mid to face mids
     Map<edge> midPointToFaceMids(24);
 
+    // Storage for on-the-fly addressing
+    DynamicList<label> storage;
+
+
     // Running count of number of internal faces added so far.
     label nFacesAdded = 0;
 
@@ -1165,7 +1201,7 @@ void Foam::hexRef8::createInternalFaces
         label faceI = cFaces[i];
 
         const face& f = mesh_.faces()[faceI];
-        const labelList& fEdges = mesh_.faceEdges()[faceI];
+        const labelList& fEdges = mesh_.faceEdges(faceI, storage);
 
         // We are on the cellI side of face f. The face will have 1 or 4
         // cLevel points and lots of higher numbered ones.
@@ -1192,8 +1228,22 @@ void Foam::hexRef8::createInternalFaces
             }
 
             // Now the face mid point is the second cLevel+1 point
-            label edgeMid = findLevel(f, f.fcIndex(anchorFp), true, cLevel+1);
-            label faceMid = findLevel(f, f.fcIndex(edgeMid), true, cLevel+1);
+            label edgeMid = findLevel
+            (
+                faceI,
+                f,
+                f.fcIndex(anchorFp),
+                true,
+                cLevel+1
+            );
+            label faceMid = findLevel
+            (
+                faceI,
+                f,
+                f.fcIndex(edgeMid),
+                true,
+                cLevel+1
+            );
 
             faceMidPointI = f[faceMid];
         }
@@ -1206,7 +1256,13 @@ void Foam::hexRef8::createInternalFaces
         }
         else
         {
-            FatalErrorIn("createInternalFaces")
+            dumpCell(mesh_.faceOwner()[faceI]);
+            if (mesh_.isInternalFace(faceI))
+            {
+                dumpCell(mesh_.faceNeighbour()[faceI]);
+            }
+
+            FatalErrorIn("createInternalFaces(..)")
                 << "nAnchors:" << nAnchors
                 << " faceI:" << faceI
                 << abort(FatalError);
@@ -1244,17 +1300,19 @@ void Foam::hexRef8::createInternalFaces
 
                     if (edgeMidPointI == -1)
                     {
-                        const labelList cPoints(cellPoints(cellI));
+                        dumpCell(cellI);
+
+                        const labelList& cPoints = mesh_.cellPoints(cellI);
 
                         FatalErrorIn("createInternalFaces(..)")
                             << "cell:" << cellI << " cLevel:" << cLevel
                             << " cell points:" << cPoints
                             << " pointLevel:"
-                            << IndirectList<label>(pointLevel_, cPoints)()
+                            << UIndirectList<label>(pointLevel_, cPoints)()
                             << " face:" << faceI
                             << " f:" << f
                             << " pointLevel:"
-                            << IndirectList<label>(pointLevel_, f)()
+                            << UIndirectList<label>(pointLevel_, f)()
                             << " faceAnchorLevel:" << faceAnchorLevel[faceI]
                             << " faceMidPoint:" << faceMidPoint[faceI]
                             << " faceMidPointI:" << faceMidPointI
@@ -1265,7 +1323,7 @@ void Foam::hexRef8::createInternalFaces
                 else
                 {
                     // Search forward in face to clevel+1
-                    label edgeMid = findLevel(f, fp1, true, cLevel+1);
+                    label edgeMid = findLevel(faceI, f, fp1, true, cLevel+1);
 
                     edgeMidPointI = f[edgeMid];
                 }
@@ -1315,17 +1373,19 @@ void Foam::hexRef8::createInternalFaces
 
                     if (edgeMidPointI == -1)
                     {
-                        const labelList cPoints(cellPoints(cellI));
+                        dumpCell(cellI);
+
+                        const labelList& cPoints = mesh_.cellPoints(cellI);
 
                         FatalErrorIn("createInternalFaces(..)")
                             << "cell:" << cellI << " cLevel:" << cLevel
                             << " cell points:" << cPoints
                             << " pointLevel:"
-                            << IndirectList<label>(pointLevel_, cPoints)()
+                            << UIndirectList<label>(pointLevel_, cPoints)()
                             << " face:" << faceI
                             << " f:" << f
                             << " pointLevel:"
-                            << IndirectList<label>(pointLevel_, f)()
+                            << UIndirectList<label>(pointLevel_, f)()
                             << " faceAnchorLevel:" << faceAnchorLevel[faceI]
                             << " faceMidPoint:" << faceMidPoint[faceI]
                             << " faceMidPointI:" << faceMidPointI
@@ -1336,7 +1396,14 @@ void Foam::hexRef8::createInternalFaces
                 else
                 {
                     // Search back to clevel+1
-                    label edgeMid = findLevel(f, fpMin1, false, cLevel+1);
+                    label edgeMid = findLevel
+                    (
+                        faceI,
+                        f,
+                        fpMin1,
+                        false,
+                        cLevel+1
+                    );
 
                     edgeMidPointI = f[edgeMid];
                 }
@@ -1390,7 +1457,7 @@ void Foam::hexRef8::walkFaceToMid
 ) const
 {
     const face& f = mesh_.faces()[faceI];
-    const labelList& fEdges = mesh_.faceEdges()[faceI];
+    const labelList& fEdges = mesh_.faceEdges(faceI);
 
     label fp = startFp;
 
@@ -1439,7 +1506,7 @@ void Foam::hexRef8::walkFaceFromMid
 ) const
 {
     const face& f = mesh_.faces()[faceI];
-    const labelList& fEdges = mesh_.faceEdges()[faceI];
+    const labelList& fEdges = mesh_.faceEdges(faceI);
 
     label fp = f.rcIndex(startFp);
 
@@ -1487,7 +1554,7 @@ void Foam::hexRef8::walkFaceFromMid
 Foam::label Foam::hexRef8::faceConsistentRefinement
 (
     const bool maxSet,
-    PackedList<1>& refineCell
+    PackedBoolList& refineCell
 ) const
 {
     label nChanged = 0;
@@ -1576,7 +1643,7 @@ void Foam::hexRef8::checkWantedRefinementLevels
     const labelList& cellsToRefine
 ) const
 {
-    PackedList<1> refineCell(mesh_.nCells(), 0);
+    PackedBoolList refineCell(mesh_.nCells());
     forAll(cellsToRefine, i)
     {
         refineCell.set(cellsToRefine[i], 1);
@@ -1592,6 +1659,8 @@ void Foam::hexRef8::checkWantedRefinementLevels
 
         if (mag(ownLevel-neiLevel) > 1)
         {
+            dumpCell(own);
+            dumpCell(nei);
             FatalErrorIn
             (
                 "hexRef8::checkWantedRefinementLevels(const labelList&)"
@@ -1634,6 +1703,7 @@ void Foam::hexRef8::checkWantedRefinementLevels
         {
             label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
+            dumpCell(own);
             FatalErrorIn
             (
                 "hexRef8::checkWantedRefinementLevels(const labelList&)"
@@ -1946,27 +2016,6 @@ Foam::hexRef8::hexRef8
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-//- Get points of a cell (without using cellPoints addressing)
-Foam::labelList Foam::hexRef8::cellPoints(const label cellI) const
-{
-    // Pick up points of the cell
-    const cell& cFaces = mesh_.cells()[cellI];
-
-    labelHashSet cPoints(4*cFaces.size());
-
-    forAll(cFaces, i)
-    {
-        const face& f = mesh_.faces()[cFaces[i]];
-
-        forAll(f, fp)
-        {
-            cPoints.insert(f[fp]);
-        }
-    }
-    return cPoints.toc();
-}
-
-
 Foam::labelList Foam::hexRef8::consistentRefinement
 (
     const labelList& cellsToRefine,
@@ -1979,7 +2028,7 @@ Foam::labelList Foam::hexRef8::consistentRefinement
     // maxSet = true  : select cells to refine
 
     // Go to straight boolList.
-    PackedList<1> refineCell(mesh_.nCells(), 0);
+    PackedBoolList refineCell(mesh_.nCells());
     forAll(cellsToRefine, i)
     {
         refineCell.set(cellsToRefine[i], 1);
@@ -2291,13 +2340,11 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
         // as cell level purely for ease)
         labelList maxPointCount(mesh_.nPoints(), 0);
 
-        const labelListList& pointCells = mesh_.pointCells();
-
-        forAll(pointCells, pointI)
+        forAll(maxPointCount, pointI)
         {
             label& pLevel = maxPointCount[pointI];
 
-            const labelList& pCells = pointCells[pointI];
+            const labelList& pCells = mesh_.pointCells(pointI);
 
             forAll(pCells, i)
             {
@@ -2328,7 +2375,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
             // Loop over all cells using the point and check whether their
             // refinement level is much less than the maximum.
 
-            const labelList& pCells = pointCells[pointI];
+            const labelList& pCells = mesh_.pointCells(pointI);
 
             forAll(pCells, pCellI)
             {
@@ -2384,8 +2431,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
 
 
         // Transfer into seedFaces, seedFacesInfo
-        seedFaces.setSize(changedFacesInfo.size());
-        seedFacesInfo.setSize(changedFacesInfo.size());
+        seedFaces.setCapacity(changedFacesInfo.size());
+        seedFacesInfo.setCapacity(changedFacesInfo.size());
 
         forAllConstIter(Map<refinementData>, changedFacesInfo, iter)
         {
@@ -2411,9 +2458,13 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
 
             if (mag(ownLevel-neiLevel) > 1)
             {
+                dumpCell(own);
+                dumpCell(nei);
                 FatalErrorIn
                 (
                     "hexRef8::consistentSlowRefinement"
+                    "(const label, const labelList&, const labelList&"
+                    ", const label, const labelList&)"
                 )   << "cell:" << own
                     << " current level:" << cellLevel_[own]
                     << " current refData:" << allCellInfo[own]
@@ -2467,6 +2518,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
 
             if (mag(ownLevel - nbrLevel) > 1)
             {
+                dumpCell(own);
                 label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
                 FatalErrorIn
@@ -2821,9 +2873,10 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
         allCellInfo[cellI].origin() = cc[cellI];
     }
 
+    // 2. Extend to 2:1. I don't understand yet why this is not done
     // 2. Extend to 2:1. For non-cube cells the scalar distance does not work
     // so make sure it at least provides 2:1.
-    PackedList<1> refineCell(mesh_.nCells(), 0);
+    PackedBoolList refineCell(mesh_.nCells());
     forAll(allCellInfo, cellI)
     {
         label wanted = allCellInfo[cellI].wantedLevel(cc[cellI]);
@@ -2833,6 +2886,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
             refineCell.set(cellI, 1);
         }
     }
+    faceConsistentRefinement(true, refineCell);
 
     while (true)
     {
@@ -2899,12 +2953,12 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
         }
 
         // Extend to 2:1
-        PackedList<1> refineCell(mesh_.nCells(), 0);
+        PackedBoolList refineCell(mesh_.nCells());
         forAll(newCellsToRefine, i)
         {
             refineCell.set(newCellsToRefine[i], 1);
         }
-        const PackedList<1> savedRefineCell(refineCell);
+        const PackedBoolList savedRefineCell(refineCell);
 
         label nChanged = faceConsistentRefinement(true, refineCell);
 
@@ -2936,6 +2990,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                  && savedRefineCell.get(cellI) == 0
                 )
                 {
+                    dumpCell(cellI);
                     FatalErrorIn
                     (
                         "hexRef8::consistentSlowRefinement2"
@@ -2967,7 +3022,9 @@ Foam::labelListList Foam::hexRef8::setRefinement
             << " Checking initial mesh just to make sure" << endl;
 
         checkMesh();
-        checkRefinementLevels(-1, labelList(0));
+        // Cannot call checkRefinementlevels since hanging points might
+        // get triggered by the mesher after subsetting.
+        //checkRefinementLevels(-1, labelList(0));
     }
 
     // Clear any saved point/cell data.
@@ -3065,7 +3122,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
     {
         if (cellMidPoint[cellI] >= 0)
         {
-            const labelList& cEdges = mesh_.cellEdges()[cellI];
+            const labelList& cEdges = mesh_.cellEdges(cellI);
 
             forAll(cEdges, i)
             {
@@ -3402,7 +3459,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
 
         forAll(pointLevel_, pointI)
         {
-            const labelList& pCells = mesh_.pointCells()[pointI];
+            const labelList& pCells = mesh_.pointCells(pointI);
 
             forAll(pCells, pCellI)
             {
@@ -3416,6 +3473,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
                 {
                     if (nAnchorPoints[cellI] == 8)
                     {
+                        dumpCell(cellI);
                         FatalErrorIn
                         (
                             "hexRef8::setRefinement(const labelList&"
@@ -3439,7 +3497,9 @@ Foam::labelListList Foam::hexRef8::setRefinement
             {
                 if (nAnchorPoints[cellI] != 8)
                 {
-                    const labelList cPoints(cellPoints(cellI));
+                    dumpCell(cellI);
+
+                    const labelList& cPoints = mesh_.cellPoints(cellI);
 
                     FatalErrorIn
                     (
@@ -3451,7 +3511,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
                         << " lower level" << endl
                         << "cellPoints:" << cPoints << endl
                         << "pointLevels:"
-                        << IndirectList<label>(pointLevel_, cPoints)() << endl
+                        << UIndirectList<label>(pointLevel_, cPoints)() << endl
                         << abort(FatalError);
                 }
             }
@@ -3523,7 +3583,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
     }
 
     // Get all affected faces.
-    PackedList<1> affectedFace(mesh_.nFaces(), 0);
+    PackedBoolList affectedFace(mesh_.nFaces());
 
     {
         forAll(cellMidPoint, cellI)
@@ -3551,7 +3611,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
         {
             if (edgeMidPoint[edgeI] >= 0)
             {
-                const labelList& eFaces = mesh_.edgeFaces()[edgeI];
+                const labelList& eFaces = mesh_.edgeFaces(edgeI);
 
                 forAll(eFaces, i)
                 {
@@ -3626,8 +3686,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
                     );
 
                     // Convert dynamiclist to face.
-                    newFace.transfer(faceVerts.shrink());
-                    faceVerts.clear();
+                    newFace.transfer(faceVerts);
 
                     //Pout<< "Split face:" << faceI << " verts:" << f
                     //    << " into quad:" << newFace << endl;
@@ -3709,13 +3768,16 @@ Foam::labelListList Foam::hexRef8::setRefinement
             << endl;
     }
 
+    DynamicList<label> eFacesStorage;
+    DynamicList<label> fEdgesStorage;
+
     forAll(edgeMidPoint, edgeI)
     {
         if (edgeMidPoint[edgeI] >= 0)
         {
             // Split edge. Check that face not already handled above.
 
-            const labelList& eFaces = mesh_.edgeFaces()[edgeI];
+            const labelList& eFaces = mesh_.edgeFaces(edgeI, eFacesStorage);
 
             forAll(eFaces, i)
             {
@@ -3726,7 +3788,11 @@ Foam::labelListList Foam::hexRef8::setRefinement
                     // Unsplit face. Add edge splits to face.
 
                     const face& f = mesh_.faces()[faceI];
-                    const labelList& fEdges = mesh_.faceEdges()[faceI];
+                    const labelList& fEdges = mesh_.faceEdges
+                    (
+                        faceI,
+                        fEdgesStorage
+                    );
 
                     DynamicList<label> newFaceVerts(f.size());
 
@@ -3743,8 +3809,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
                     }
 
                     face newFace;
-                    newFace.transfer(newFaceVerts.shrink());
-
+                    newFace.transfer(newFaceVerts);
 
                     // The point with the lowest level should be an anchor
                     // point of the neighbouring cells.
@@ -3925,10 +3990,8 @@ Foam::labelListList Foam::hexRef8::setRefinement
         }
     }
 
-    pointLevel_.transfer(newPointLevel.shrink());
-    newPointLevel.clear();
-    cellLevel_.transfer(newCellLevel.shrink());
-    newCellLevel.clear();
+    pointLevel_.transfer(newPointLevel);
+    cellLevel_.transfer(newCellLevel);
 
     // Mark files as changed
     setInstance(mesh_.facesInstance());
@@ -3954,7 +4017,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
         {
             const labelList& addedCells = cellAddedCells[cellI];
 
-            if (addedCells.size() > 0)
+            if (addedCells.size())
             {
                 // Cell was split.
                 history_.storeSplit(cellI, addedCells);
@@ -4069,13 +4132,6 @@ void Foam::hexRef8::updateMesh
 
                 if (oldCellI == -1)
                 {
-                    //FatalErrorIn("hexRef8::updateMesh(const mapPolyMesh&)")
-                    //    << "Problem : cell " << newCellI
-                    //    << " at " << mesh_.cellCentres()[newCellI]
-                    //    << " does not originate from another cell"
-                    //    << " (i.e. is inflated)." << nl
-                    //    << "Hence we cannot determine the new cellLevel"
-                    //    << " for it." << abort(FatalError);
                     newCellLevel[newCellI] = -1;
                 }
                 else
@@ -4319,8 +4375,7 @@ void Foam::hexRef8::distribute(const mapDistributePolyMesh& map)
 
 void Foam::hexRef8::checkMesh() const
 {
-    const boundBox& meshBb = mesh_.globalData().bb();
-    const scalar smallDim = 1E-6*mag(meshBb.max() - meshBb.min());
+    const scalar smallDim = 1E-6 * mesh_.globalData().bb().mag();
 
     if (debug)
     {
@@ -4366,6 +4421,7 @@ void Foam::hexRef8::checkMesh() const
 
                     if (!cellToFace.insert(labelPair(own, nei[bFaceI]), faceI))
                     {
+                        dumpCell(own);
                         FatalErrorIn("hexRef8::checkMesh()")
                             << "Faces do not seem to be correct across coupled"
                             << " boundaries" << endl
@@ -4409,13 +4465,15 @@ void Foam::hexRef8::checkMesh() const
                 const face& f = mesh_.faces()[faceI];
                 label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
+                dumpCell(mesh_.faceOwner()[faceI]);
+
                 FatalErrorIn("hexRef8::checkMesh()")
                     << "Faces do not seem to be correct across coupled"
                     << " boundaries" << endl
                     << "Coupled face " << faceI
                     << " on patch " << patchI
                     << " " << mesh_.boundaryMesh()[patchI].name()
-                    << " coords:" << IndirectList<point>(mesh_.points(), f)()
+                    << " coords:" << UIndirectList<point>(mesh_.points(), f)()
                     << " has face area:" << magArea
                     << " (coupled) neighbour face area differs:"
                     << neiFaceAreas[i]
@@ -4447,6 +4505,8 @@ void Foam::hexRef8::checkMesh() const
 
             if (f.size() != nVerts[i])
             {
+                dumpCell(mesh_.faceOwner()[faceI]);
+
                 label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
                 FatalErrorIn("hexRef8::checkMesh()")
@@ -4455,7 +4515,7 @@ void Foam::hexRef8::checkMesh() const
                     << "Coupled face " << faceI
                     << " on patch " << patchI
                     << " " << mesh_.boundaryMesh()[patchI].name()
-                    << " coords:" << IndirectList<point>(mesh_.points(), f)()
+                    << " coords:" << UIndirectList<point>(mesh_.points(), f)()
                     << " has size:" << f.size()
                     << " (coupled) neighbour face has size:"
                     << nVerts[i]
@@ -4495,6 +4555,8 @@ void Foam::hexRef8::checkMesh() const
 
             if (mag(anchorVec - anchorPoints[i]) > smallDim)
             {
+                dumpCell(mesh_.faceOwner()[faceI]);
+
                 label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
                 FatalErrorIn("hexRef8::checkMesh()")
@@ -4503,7 +4565,7 @@ void Foam::hexRef8::checkMesh() const
                     << "Coupled face " << faceI
                     << " on patch " << patchI
                     << " " << mesh_.boundaryMesh()[patchI].name()
-                    << " coords:" << IndirectList<point>(mesh_.points(), f)()
+                    << " coords:" << UIndirectList<point>(mesh_.points(), f)()
                     << " has anchor vector:" << anchorVec
                     << " (coupled) neighbour face anchor vector differs:"
                     << anchorPoints[i]
@@ -4561,6 +4623,9 @@ void Foam::hexRef8::checkRefinementLevels
 
             if (mag(cellLevel_[own] - cellLevel_[nei]) > 1)
             {
+                dumpCell(own);
+                dumpCell(nei);
+
                 FatalErrorIn
                 (
                     "hexRef8::checkRefinementLevels(const label)"
@@ -4594,6 +4659,8 @@ void Foam::hexRef8::checkRefinementLevels
 
             if (mag(cellLevel_[own] - neiLevel[i]) > 1)
             {
+                dumpCell(own);
+
                 label patchI = mesh_.boundaryMesh().whichPatch(faceI);
 
                 FatalErrorIn
@@ -4651,14 +4718,12 @@ void Foam::hexRef8::checkRefinementLevels
     // Check 2:1 across points (instead of faces)
     if (maxPointDiff != -1)
     {
-        const labelListList& pointCells = mesh_.pointCells();
-
         // Determine per point the max cell level.
         labelList maxPointLevel(mesh_.nPoints(), 0);
 
-        forAll(pointCells, pointI)
+        forAll(maxPointLevel, pointI)
         {
-            const labelList& pCells = pointCells[pointI];
+            const labelList& pCells = mesh_.pointCells(pointI);
 
             label& pLevel = maxPointLevel[pointI];
 
@@ -4683,7 +4748,7 @@ void Foam::hexRef8::checkRefinementLevels
         {
             label pointI = pointsToCheck[i];
 
-            const labelList& pCells = pointCells[pointI];
+            const labelList& pCells = mesh_.pointCells(pointI);
 
             forAll(pCells, i)
             {
@@ -4695,6 +4760,8 @@ void Foam::hexRef8::checkRefinementLevels
                   > maxPointDiff
                 )
                 {
+                    dumpCell(cellI);
+
                     FatalErrorIn
                     (
                         "hexRef8::checkRefinementLevels(const label)"
@@ -4711,6 +4778,72 @@ void Foam::hexRef8::checkRefinementLevels
             }
         }
     }
+
+
+    //- Gives problems after first splitting off inside mesher.
+    //// Hanging points
+    //{
+    //    // Any patches with points having only two edges.
+    //
+    //    boolList isHangingPoint(mesh_.nPoints(), false);
+    //
+    //    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+    //
+    //    forAll(patches, patchI)
+    //    {
+    //        const polyPatch& pp = patches[patchI];
+    //
+    //        const labelList& meshPoints = pp.meshPoints();
+    //
+    //        forAll(meshPoints, i)
+    //        {
+    //            label pointI = meshPoints[i];
+    //
+    //            const labelList& pEdges = mesh_.pointEdges()[pointI];
+    //
+    //            if (pEdges.size() == 2)
+    //            {
+    //                isHangingPoint[pointI] = true;
+    //            }
+    //        }
+    //    }
+    //
+    //    syncTools::syncPointList
+    //    (
+    //        mesh_,
+    //        isHangingPoint,
+    //        andEqOp<bool>(),        // only if all decide it is hanging point
+    //        true,                   // null
+    //        false                   // no separation
+    //    );
+    //
+    //    //OFstream str(mesh_.time().path()/"hangingPoints.obj");
+    //
+    //    label nHanging = 0;
+    //
+    //    forAll(isHangingPoint, pointI)
+    //    {
+    //        if (isHangingPoint[pointI])
+    //        {
+    //            nHanging++;
+    //
+    //            Pout<< "Hanging boundary point " << pointI
+    //                << " at " << mesh_.points()[pointI]
+    //                << endl;
+    //            //meshTools::writeOBJ(str, mesh_.points()[pointI]);
+    //        }
+    //    }
+    //
+    //    if (returnReduce(nHanging, sumOp<label>()) > 0)
+    //    {
+    //        FatalErrorIn
+    //        (
+    //            "hexRef8::checkRefinementLevels(const label)"
+    //        )   << "Detected a point used by two edges only (hanging point)"
+    //            << nl << "This is not allowed"
+    //            << abort(FatalError);
+    //    }
+    //}
 }
 
 
@@ -4750,11 +4883,11 @@ Foam::labelList Foam::hexRef8::getSplitPoints() const
     labelList splitMasterLevel(mesh_.nPoints(), 0);
 
     // Unmark all with not 8 cells
-    const labelListList& pointCells = mesh_.pointCells();
+    //const labelListList& pointCells = mesh_.pointCells();
 
-    forAll(pointCells, pointI)
+    for (label pointI = 0; pointI < mesh_.nPoints(); pointI++)
     {
-        const labelList& pCells = pointCells[pointI];
+        const labelList& pCells = mesh_.pointCells(pointI);
 
         if (pCells.size() != 8)
         {
@@ -4767,8 +4900,7 @@ Foam::labelList Foam::hexRef8::getSplitPoints() const
 
     forAll(visibleCells, cellI)
     {
-        //const labelList& cPoints = mesh_.cellPoints()[cellI];
-        const labelList cPoints(cellPoints(cellI));
+        const labelList& cPoints = mesh_.cellPoints(cellI);
 
         if (visibleCells[cellI] != -1 && history_.parentIndex(cellI) >= 0)
         {
@@ -4952,7 +5084,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
     // maxSet = true: select points to refine
 
     // Maintain boolList for pointsToUnrefine and cellsToUnrefine
-    PackedList<1> unrefinePoint(mesh_.nPoints(), 0);
+    PackedBoolList unrefinePoint(mesh_.nPoints());
 
     forAll(pointsToUnrefine, i)
     {
@@ -4967,13 +5099,13 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
         // Construct cells to unrefine
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        PackedList<1> unrefineCell(mesh_.nCells(), 0);
+        PackedBoolList unrefineCell(mesh_.nCells());
 
         forAll(unrefinePoint, pointI)
         {
             if (unrefinePoint.get(pointI) == 1)
             {
-                const labelList& pCells = mesh_.pointCells()[pointI];
+                const labelList& pCells = mesh_.pointCells(pointI);
 
                 forAll(pCells, j)
                 {
@@ -5113,7 +5245,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
         {
             if (unrefinePoint.get(pointI) == 1)
             {
-                const labelList& pCells = mesh_.pointCells()[pointI];
+                const labelList& pCells = mesh_.pointCells(pointI);
 
                 forAll(pCells, j)
                 {
@@ -5198,7 +5330,7 @@ void Foam::hexRef8::setUnrefinement
 
         forAll(splitPointLabels, i)
         {
-            const labelList& pCells = mesh_.pointCells()[splitPointLabels[i]];
+            const labelList& pCells = mesh_.pointCells(splitPointLabels[i]);
 
             forAll(pCells, j)
             {
@@ -5264,7 +5396,7 @@ void Foam::hexRef8::setUnrefinement
 
         // Get original cell label
 
-        const labelList& pCells = mesh_.pointCells()[pointI];
+        const labelList& pCells = mesh_.pointCells(pointI);
 
         // Check
         if (pCells.size() != 8)
@@ -5332,7 +5464,7 @@ void Foam::hexRef8::setUnrefinement
     {
         label pointI = splitPointLabels[i];
 
-        const labelList& pCells = mesh_.pointCells()[pointI];
+        const labelList& pCells = mesh_.pointCells(pointI);
 
         label masterCellI = min(pCells);
 

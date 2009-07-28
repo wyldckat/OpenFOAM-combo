@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,8 @@ License
 #include "OFstream.H"
 #include "cellSet.H"
 #include "searchableSurfaces.H"
+#include "polyMeshGeometry.H"
+#include "IOmanip.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -48,7 +50,7 @@ void Foam::meshRefinement::markBoundaryFace
 {
     isBoundaryFace[faceI] = true;
 
-    const labelList& fEdges = mesh_.faceEdges()[faceI];
+    const labelList& fEdges = mesh_.faceEdges(faceI);
 
     forAll(fEdges, fp)
     {
@@ -134,15 +136,13 @@ Foam::Map<Foam::label> Foam::meshRefinement::findEdgeConnectedProblemCells
     const labelList& globalToPatch
 ) const
 {
-    labelList adaptPatchIDs(meshRefinement::addedPatches(globalToPatch));
-
-    // Construct addressing engine.
+    // Construct addressing engine from all patches added for meshing.
     autoPtr<indirectPrimitivePatch> ppPtr
     (
         meshRefinement::makePatch
         (
             mesh_,
-            adaptPatchIDs
+            meshedPatches()
         )
     );
     const indirectPrimitivePatch& pp = ppPtr();
@@ -384,11 +384,6 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     const labelList& pointLevel = meshCutter_.pointLevel();
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
-    // Swap neighbouring cell centres and cell level
-    labelList neiLevel(mesh_.nFaces()-mesh_.nInternalFaces());
-    pointField neiCc(mesh_.nFaces()-mesh_.nInternalFaces());
-    calcNeighbourData(neiLevel, neiCc);
-
     // Per internal face (boundary faces not used) the patch that the
     // baffle should get (or -1)
     labelList facePatch(mesh_.nFaces(), -1);
@@ -401,7 +396,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
     // Fill boundary data. All elements on meshed patches get marked.
     // Get the labels of added patches.
-    labelList adaptPatchIDs(meshRefinement::addedPatches(globalToPatch));
+    labelList adaptPatchIDs(meshedPatches());
 
     forAll(adaptPatchIDs, i)
     {
@@ -424,6 +419,12 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             faceI++;
         }
     }
+
+    // Swap neighbouring cell centres and cell level
+    labelList neiLevel(mesh_.nFaces()-mesh_.nInternalFaces());
+    pointField neiCc(mesh_.nFaces()-mesh_.nInternalFaces());
+    calcNeighbourData(neiLevel, neiCc);
+
 
     // Count of faces marked for baffling
     label nBaffleFaces = 0;
@@ -597,13 +598,17 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
 
     // Does cell have exactly 7 of its 8 anchor points on the boundary?
-    PackedList<1> hasSevenBoundaryAnchorPoints(mesh_.nCells(), 0u);
+    PackedBoolList hasSevenBoundaryAnchorPoints(mesh_.nCells());
     // If so what is the remaining non-boundary anchor point?
     labelHashSet nonBoundaryAnchors(mesh_.nCells()/10000);
 
+    // On-the-fly addressing storage.
+    DynamicList<label> dynFEdges;
+    DynamicList<label> dynCPoints;
+
     forAll(cellLevel, cellI)
     {
-        const labelList cPoints(meshCutter_.cellPoints(cellI));
+        const labelList& cPoints = mesh_.cellPoints(cellI, dynCPoints);
 
         // Get number of anchor points (pointLevel <= cellLevel)
 
@@ -711,11 +716,14 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     // Loop over all points. If a point is connected to 4 or more cells
     // with 7 anchor points on the boundary set those cell's non-boundary faces
     // to baffles
+
+    DynamicList<label> dynPCells;
+
     forAllConstIter(labelHashSet, nonBoundaryAnchors, iter)
     {
         label pointI = iter.key();
 
-        const labelList& pCells = mesh_.pointCells()[pointI];
+        const labelList& pCells = mesh_.pointCells(pointI, dynPCells);
 
         // Count number of 'hasSevenBoundaryAnchorPoints' cells.
         label n = 0;
@@ -826,7 +834,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
     {
         if (facePatch[faceI] == -1)
         {
-            const labelList& fEdges = mesh_.faceEdges()[faceI];
+            const labelList& fEdges = mesh_.faceEdges(faceI, dynFEdges);
             label nFaceBoundaryEdges = 0;
 
             forAll(fEdges, fe)
@@ -882,7 +890,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             {
                 if (facePatch[faceI] == -1)
                 {
-                    const labelList& fEdges = mesh_.faceEdges()[faceI];
+                    const labelList& fEdges = mesh_.faceEdges(faceI, dynFEdges);
                     label nFaceBoundaryEdges = 0;
 
                     forAll(fEdges, fe)
@@ -946,6 +954,167 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
     return facePatch;
 }
+
+
+//// Mark faces to be baffled to prevent snapping problems. Does
+//// test to find nearest surface and checks which faces would get squashed.
+//Foam::labelList Foam::meshRefinement::markFacesOnProblemCellsGeometric
+//(
+//    const dictionary& motionDict
+//) const
+//{
+//    // Construct addressing engine.
+//    autoPtr<indirectPrimitivePatch> ppPtr
+//    (
+//        meshRefinement::makePatch
+//        (
+//            mesh_,
+//            meshedPatches()
+//        )
+//    );
+//    const indirectPrimitivePatch& pp = ppPtr();
+//    const pointField& localPoints = pp.localPoints();
+//    const labelList& meshPoints = pp.meshPoints();
+//
+//    // Find nearest (non-baffle) surface
+//    pointField newPoints(mesh_.points());
+//    {
+//        List<pointIndexHit> hitInfo;
+//        labelList hitSurface;
+//        surfaces_.findNearest
+//        (
+//            surfaces_.getUnnamedSurfaces(),
+//            localPoints,
+//            scalarField(localPoints.size(), sqr(GREAT)),// sqr of attraction
+//            hitSurface,
+//            hitInfo
+//        );
+//
+//        forAll(hitInfo, i)
+//        {
+//            if (hitInfo[i].hit())
+//            {
+//                //label pointI = meshPoints[i];
+//                //Pout<< "   " << pointI << " moved from "
+//                //    << mesh_.points()[pointI] << " by "
+//                //    << mag(hitInfo[i].hitPoint()-mesh_.points()[pointI])
+//                //    << endl;
+//                newPoints[meshPoints[i]] = hitInfo[i].hitPoint();
+//            }
+//        }
+//    }
+//
+//    // Per face (internal or coupled!) the patch that the
+//    // baffle should get (or -1).
+//    labelList facePatch(mesh_.nFaces(), -1);
+//    // Count of baffled faces
+//    label nBaffleFaces = 0;
+//
+//    {
+//        pointField oldPoints(mesh_.points());
+//        mesh_.movePoints(newPoints);
+//        faceSet wrongFaces(mesh_, "wrongFaces", 100);
+//        {
+//            //motionSmoother::checkMesh(false, mesh_, motionDict, wrongFaces);
+//
+//            // Just check the errors from squashing
+//            // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//            const labelList allFaces(identity(mesh_.nFaces()));
+//            label nWrongFaces = 0;
+//
+//            scalar minArea(readScalar(motionDict.lookup("minArea")));
+//            if (minArea > -SMALL)
+//            {
+//                polyMeshGeometry::checkFaceArea
+//                (
+//                    false,
+//                    minArea,
+//                    mesh_,
+//                    mesh_.faceAreas(),
+//                    allFaces,
+//                    &wrongFaces
+//                );
+//
+//                label nNewWrongFaces = returnReduce
+//                (
+//                    wrongFaces.size(),
+//                    sumOp<label>()
+//                );
+//
+//                Info<< "    faces with area < "
+//                    << setw(5) << minArea
+//                    << " m^2                            : "
+//                    << nNewWrongFaces-nWrongFaces << endl;
+//
+//                nWrongFaces = nNewWrongFaces;
+//            }
+//
+////            scalar minDet(readScalar(motionDict.lookup("minDeterminant")));
+//            scalar minDet = 0.01;
+//            if (minDet > -1)
+//            {
+//                polyMeshGeometry::checkCellDeterminant
+//                (
+//                    false,
+//                    minDet,
+//                    mesh_,
+//                    mesh_.faceAreas(),
+//                    allFaces,
+//                    polyMeshGeometry::affectedCells(mesh_, allFaces),
+//                    &wrongFaces
+//                );
+//
+//                label nNewWrongFaces = returnReduce
+//                (
+//                    wrongFaces.size(),
+//                    sumOp<label>()
+//                );
+//
+//                Info<< "    faces on cells with determinant < "
+//                    << setw(5) << minDet << "                : "
+//                    << nNewWrongFaces-nWrongFaces << endl;
+//
+//                nWrongFaces = nNewWrongFaces;
+//            }
+//        }
+//
+//
+//        forAllConstIter(faceSet, wrongFaces, iter)
+//        {
+//            label patchI = mesh_.boundaryMesh().whichPatch(iter.key());
+//
+//            if (patchI == -1 || mesh_.boundaryMesh()[patchI].coupled())
+//            {
+//                facePatch[iter.key()] = getBafflePatch(facePatch, iter.key());
+//                nBaffleFaces++;
+//
+//                //Pout<< "    " << iter.key()
+//                //    //<< " on patch " << mesh_.boundaryMesh()[patchI].name()
+//                //    << " is destined for patch " << facePatch[iter.key()]
+//                //    << endl;
+//            }
+//        }
+//        // Restore points.
+//        mesh_.movePoints(oldPoints);
+//    }
+//
+//
+//    Info<< "markFacesOnProblemCellsGeometric : marked "
+//        << returnReduce(nBaffleFaces, sumOp<label>())
+//        << " additional internal and coupled faces"
+//        << " to be converted into baffles." << endl;
+//
+//    syncTools::syncFaceList
+//    (
+//        mesh_,
+//        facePatch,
+//        maxEqOp<label>(),
+//        false               // no separation
+//    );
+//
+//    return facePatch;
+//}
 
 
 // ************************************************************************* //

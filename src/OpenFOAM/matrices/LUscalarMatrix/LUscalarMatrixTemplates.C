@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,16 +28,16 @@ License
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class T>
-void Foam::LUscalarMatrix::solve(Field<T>& sourceSol) const
+template<class Type>
+void Foam::LUscalarMatrix::solve(Field<Type>& sourceSol) const
 {
     if (Pstream::parRun())
     {
-        Field<T> completeSourceSol(n());
+        Field<Type> completeSourceSol(n());
 
         if (Pstream::master())
         {
-            typename Field<T>::subField
+            typename Field<Type>::subField
             (
                 completeSourceSol,
                 sourceSol.size()
@@ -58,7 +58,7 @@ void Foam::LUscalarMatrix::solve(Field<T>& sourceSol) const
                     (
                         &(completeSourceSol[procOffsets_[slave]])
                     ),
-                    (procOffsets_[slave + 1] - procOffsets_[slave])*sizeof(T)
+                    (procOffsets_[slave + 1] - procOffsets_[slave])*sizeof(Type)
                 );
             }
         }
@@ -77,7 +77,7 @@ void Foam::LUscalarMatrix::solve(Field<T>& sourceSol) const
         {
             LUBacksubstitute(*this, pivotIndices_, completeSourceSol);
 
-            sourceSol = typename Field<T>::subField
+            sourceSol = typename Field<Type>::subField
             (
                 completeSourceSol,
                 sourceSol.size()
@@ -98,7 +98,7 @@ void Foam::LUscalarMatrix::solve(Field<T>& sourceSol) const
                     (
                         &(completeSourceSol[procOffsets_[slave]])
                     ),
-                    (procOffsets_[slave + 1] - procOffsets_[slave])*sizeof(T)
+                    (procOffsets_[slave + 1] - procOffsets_[slave])*sizeof(Type)
                 );
             }
         }

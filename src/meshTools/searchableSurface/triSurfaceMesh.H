@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,11 @@ Class
 Description
     IOoject and searching on triSurface
 
+    Note: when constructing from dictionary has optional parameters:
+        - scale     : scaling factor.
+        - tolerance : relative tolerance for doing intersections
+                      (see triangle::intersection)
+
 SourceFiles
     triSurfaceMesh.C
 
@@ -36,6 +41,7 @@ SourceFiles
 #ifndef triSurfaceMesh_H
 #define triSurfaceMesh_H
 
+#include "treeBoundBox.H"
 #include "searchableSurface.H"
 #include "objectRegistry.H"
 #include "indexedOctree.H"
@@ -62,6 +68,9 @@ private:
 
     // Private member data
 
+        //- Optional tolerance to use in searches
+        scalar tolerance_;
+
         //- Search tree (triangles)
         mutable autoPtr<indexedOctree<treeDataTriSurface> > tree_;
 
@@ -75,6 +84,14 @@ private:
         mutable label surfaceClosed_;
 
     // Private Member Functions
+
+        ////- Helper: find instance of files without header
+        //static word findRawInstance
+        //(
+        //    const Time&,
+        //    const fileName&,
+        //    const word&
+        //);
 
         //- Check file existence
         static const fileName& checkFile
@@ -112,10 +129,11 @@ public:
         //- Construct from triSurface
         triSurfaceMesh(const IOobject&, const triSurface&);
 
-        //- Construct read
+        //- Construct read.
         triSurfaceMesh(const IOobject& io);
 
-        //- Construct from dictionary (used by searchableSurface)
+        //- Construct from IO and dictionary (used by searchableSurface).
+        //  Dictionary may contain a 'scale' entry (eg, 0.001: mm -> m)
         triSurfaceMesh
         (
             const IOobject& io,
@@ -150,8 +168,11 @@ public:
             //- Whether supports volume type below. I.e. whether is closed.
             virtual bool hasVolumeType() const;
 
-
-        // Multiple point queries.
+            //- Range of local indices that can be returned.
+            virtual label size() const
+            {
+                return triSurface::size();
+            }
 
             virtual void findNearest
             (
@@ -204,6 +225,30 @@ public:
                 List<volumeType>&
             ) const;
 
+            //- Set bounds of surface. Bounds currently set as list of
+            //  bounding boxes. The bounds are hints to the surface as for
+            //  the range of queries it can expect. faceMap/pointMap can be
+            //  set if the surface has done any redistribution.
+            virtual void distribute
+            (
+                const List<treeBoundBox>&,
+                const bool keepNonLocal,
+                autoPtr<mapDistribute>& faceMap,
+                autoPtr<mapDistribute>& pointMap
+            )
+            {}
+
+        // Other
+
+            //- Specific to triSurfaceMesh: from a set of hits (points and
+            //  indices) get the specified field. Misses do not get set.
+            virtual void getField
+            (
+                const word& fieldName,
+                const List<pointIndexHit>&,
+                labelList& values
+            ) const;
+
 
         // regIOobject implementation
 
@@ -212,6 +257,14 @@ public:
                 notImplemented("triSurfaceMesh::writeData(Ostream&) const");
                 return false;
             }
+
+            //- Write using given format, version and compression
+            virtual bool writeObject
+            (
+                IOstream::streamFormat fmt,
+                IOstream::versionNumber ver,
+                IOstream::compressionType cmp
+            ) const;
 
 };
 

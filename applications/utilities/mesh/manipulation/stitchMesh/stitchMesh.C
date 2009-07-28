@@ -82,7 +82,7 @@ void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
             << exit(FatalError);
     }
 
-    if (bMesh[patchI].size() == 0)
+    if (bMesh[patchI].empty())
     {
         FatalErrorIn("checkPatch(const polyBoundaryMesh&, const word&)")
             << "Patch " << name << " is present but zero size"
@@ -115,9 +115,9 @@ int main(int argc, char *argv[])
     word masterPatchName(args.additionalArgs()[0]);
     word slavePatchName(args.additionalArgs()[1]);
 
-    bool partialCover = args.options().found("partial");
-    bool perfectCover = args.options().found("perfect");
-    bool overwrite = args.options().found("overwrite");
+    bool partialCover = args.optionFound("partial");
+    bool perfectCover = args.optionFound("perfect");
+    bool overwrite    = args.optionFound("overwrite");
 
     if (partialCover && perfectCover)
     {
@@ -368,6 +368,7 @@ int main(int argc, char *argv[])
     if (overwrite)
     {
         mesh.setInstance(oldInstance);
+        stitcher.instance() = oldInstance;
     }
     Info << nl << "Writing polyMesh to time " << runTime.timeName() << endl;
 

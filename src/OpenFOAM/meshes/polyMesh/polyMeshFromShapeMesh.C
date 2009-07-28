@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ Foam::labelListList Foam::polyMesh::cellShapePointCells
     const cellShapeList& c
 ) const
 {
-    List<DynamicList<label, primitiveMesh::cellsPerPoint_> > 
+    List<DynamicList<label, primitiveMesh::cellsPerPoint_> >
         pc(points().size());
 
     // For each cell
@@ -64,7 +64,7 @@ Foam::labelListList Foam::polyMesh::cellShapePointCells
 
     forAll (pc, pointI)
     {
-        pointCellAddr[pointI].transfer(pc[pointI].shrink());
+        pointCellAddr[pointI].transfer(pc[pointI]);
     }
 
     return pointCellAddr;
@@ -136,7 +136,7 @@ Foam::labelList Foam::polyMesh::facePatchFaceCells
 Foam::polyMesh::polyMesh
 (
     const IOobject& io,
-    const pointField& points,
+    const Xfer<pointField>& points,
     const cellShapeList& cellsAsShapes,
     const faceListList& boundaryFaces,
     const wordList& boundaryPatchNames,
@@ -217,7 +217,8 @@ Foam::polyMesh::polyMesh
         boundaryFaces.size() + 1    // add room for a default patch
     ),
     bounds_(points_, syncPar),
-    directions_(Vector<label>::zero),
+    geometricD_(Vector<label>::zero),
+    solutionD_(Vector<label>::zero),
     pointZones_
     (
         IOobject
@@ -311,7 +312,7 @@ Foam::polyMesh::polyMesh
         // Insertion cannot be done in one go as the faces need to be
         // added into the list in the increasing order of neighbour
         // cells.  Therefore, all neighbours will be detected first
-        // and then added in the correct order.  
+        // and then added in the correct order.
 
         const faceList& curFaces = cellsFaceShapes[cellI];
 
@@ -414,8 +415,8 @@ Foam::polyMesh::polyMesh
                 (
                     "polyMesh::polyMesh\n"
                     "(\n"
-                    "    const IOobject& io,\n"
-                    "    const pointField& points,\n"
+                    "    const IOobject&,\n"
+                    "    const Xfer<pointField>&,\n"
                     "    const cellShapeList& cellsAsShapes,\n"
                     "    const faceListList& boundaryFaces,\n"
                     "    const wordList& boundaryPatchTypes,\n"
@@ -472,8 +473,8 @@ Foam::polyMesh::polyMesh
                         (
                             "polyMesh::polyMesh\n"
                             "(\n"
-                            "    const IOobject& io,\n"
-                            "    const pointField& points,\n"
+                            "    const IOobject&,\n"
+                            "    const Xfer<pointField>&,\n"
                             "    const cellShapeList& cellsAsShapes,\n"
                             "    const faceListList& boundaryFaces,\n"
                             "    const wordList& boundaryPatchTypes,\n"

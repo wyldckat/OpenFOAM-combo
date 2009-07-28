@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -73,10 +73,10 @@ SourceFiles
 #include "PtrList.H"
 #include "cellList.H"
 #include "Map.H"
-#include "labelHashSet.H"
+#include "HashSet.H"
 #include "mapPolyMesh.H"
 #include "CompactListList.H"
-#include "PackedList.H"
+#include "PackedBoolList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -171,13 +171,13 @@ class polyTopoChange
             Map<label> faceFromEdge_;
 
             //- In mapping whether to reverse the flux.
-            labelHashSet flipFaceFlux_;
+            PackedBoolList flipFaceFlux_;
 
             //- Zone of face
             Map<label> faceZone_;
 
             //- Orientation of face in zone
-            Map<bool> faceZoneFlip_;
+            PackedBoolList faceZoneFlip_;
 
             //- Active faces
             label nActiveFaces_;
@@ -216,14 +216,16 @@ class polyTopoChange
         template<class T>
         static void renumberKey(const labelList& map, Map<T>&);
 
-        //- Renumber elements of list according to map
-        static void renumber(const labelList&, DynamicList<label>&);
+        //- Renumber elements of container according to map
         static void renumber(const labelList&, labelHashSet&);
         //- Special handling of reverse maps which have <-1 in them
         static void renumberReverseMap(const labelList&, DynamicList<label>&);
 
         //- Renumber & compact elements of list according to map
         static void renumberCompact(const labelList&, labelList&);
+
+        //- Get all set elements as a labelHashSet
+        static labelHashSet getSetIndices(const PackedBoolList&);
 
         //- Count number of added and removed quantities from maps.
         static void countMap
@@ -431,17 +433,17 @@ public:
                 return faces_;
             }
 
-            const DynamicList<label>& region()const
+            const DynamicList<label>& region() const
             {
                 return region_;
             }
 
-            const DynamicList<label>& faceOwner()const
+            const DynamicList<label>& faceOwner() const
             {
                 return faceOwner_;
             }
 
-            const DynamicList<label>& faceNeighbour()const
+            const DynamicList<label>& faceNeighbour() const
             {
                 return faceNeighbour_;
             }

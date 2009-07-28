@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,10 @@ Class
     Foam::fluxCorrectedVelocityFvPatchVectorField
 
 Description
-    Foam::fluxCorrectedVelocityFvPatchVectorField
+    Velocity outlet boundary condition for patches where the pressure is
+    specified. The outflow velocity is obtained by "zeroGradient" and then
+    corrected from the flux.  If reverse flow is possible or expected use
+    the "pressureInletOutletVelocityFvPatchVectorField" BC instead.
 
 SourceFiles
     fluxCorrectedVelocityFvPatchVectorField.C

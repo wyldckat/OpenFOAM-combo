@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,6 +83,7 @@ Foam::label Foam::removeFaces::changeFaceRegion
     const labelList& nFacesPerEdge,
     const label faceI,
     const label newRegion,
+    const labelList& fEdges,
     labelList& faceRegion
 ) const
 {
@@ -94,27 +95,33 @@ Foam::label Foam::removeFaces::changeFaceRegion
 
         nChanged = 1;
 
+        // Storage for on-the-fly addressing
+        DynamicList<label> fe;
+        DynamicList<label> ef;
+
         // Step to neighbouring faces across edges that will get removed
-
-        const labelList& fEdges = mesh_.faceEdges()[faceI];
-
         forAll(fEdges, i)
         {
             label edgeI = fEdges[i];
 
             if (nFacesPerEdge[edgeI] >= 0 && nFacesPerEdge[edgeI] <= 2)
             {
-                const labelList& eFaces = mesh_.edgeFaces()[edgeI];
+                const labelList& eFaces = mesh_.edgeFaces(edgeI, ef);
 
                 forAll(eFaces, j)
                 {
+                    label nbrFaceI = eFaces[j];
+
+                    const labelList& fEdges1 = mesh_.faceEdges(nbrFaceI, fe);
+
                     nChanged += changeFaceRegion
                     (
                         cellRegion,
                         removedFace,
                         nFacesPerEdge,
-                        eFaces[j],
+                        nbrFaceI,
                         newRegion,
+                        fEdges1,
                         faceRegion
                     );
                 }
@@ -166,7 +173,7 @@ Foam::boolList Foam::removeFaces::getFacesAffected
     //  Mark faces affected by removal of edges
     forAllConstIter(labelHashSet, edgesToRemove, iter)
     {
-        const labelList& eFaces = mesh_.edgeFaces()[iter.key()];
+        const labelList& eFaces = mesh_.edgeFaces(iter.key());
 
         forAll(eFaces, eFaceI)
         {
@@ -358,8 +365,7 @@ void Foam::removeFaces::mergeFaces
     }
 
     face mergedFace;
-    mergedFace.transfer(faceVerts.shrink());
-    faceVerts.clear();
+    mergedFace.transfer(faceVerts);
 
     if (reverseLoop)
     {
@@ -369,7 +375,7 @@ void Foam::removeFaces::mergeFaces
     //{
     //    Pout<< "Modifying masterface " << faceI
     //        << " from faces:" << faceLabels
-    //        << " old verts:" << IndirectList<face>(mesh_.faces(), faceLabels)
+    //        << " old verts:" << UIndirectList<face>(mesh_.faces(), faceLabels)
     //        << " for new verts:"
     //        << mergedFace
     //        << " possibly new owner " << own
@@ -567,7 +573,7 @@ Foam::removeFaces::removeFaces
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 // Removing face connects cells. This function works out a consistent set of
-// cell regions. 
+// cell regions.
 // - returns faces to remove. Can be extended with additional faces
 //   (if owner would become neighbour)
 // - sets cellRegion to -1 or to region number
@@ -686,7 +692,7 @@ Foam::label Foam::removeFaces::compatibleRemoves
 
 
     // Various checks
-    // - master is lowest numbered in any region 
+    // - master is lowest numbered in any region
     // - regions have more than 1 cell
     {
         labelList nCells(regionMaster.size(), 0);
@@ -756,8 +762,7 @@ Foam::label Foam::removeFaces::compatibleRemoves
         }
     }
 
-    newFacesToRemove.transfer(allFacesToRemove.shrink());
-    allFacesToRemove.clear();
+    newFacesToRemove.transfer(allFacesToRemove);
 
     return nUsedRegions;
 }
@@ -814,6 +819,10 @@ void Foam::removeFaces::setRefinement
     // Number of connected face regions
     label nRegions = 0;
 
+    // Storage for on-the-fly addressing
+    DynamicList<label> fe;
+    DynamicList<label> ef;
+
 
     {
         const polyBoundaryMesh& patches = mesh_.boundaryMesh();
@@ -827,7 +836,7 @@ void Foam::removeFaces::setRefinement
         {
             label faceI = faceLabels[i];
 
-            const labelList& fEdges = mesh_.faceEdges()[faceI];
+            const labelList& fEdges = mesh_.faceEdges(faceI, fe);
 
             forAll(fEdges, i)
             {
@@ -835,8 +844,7 @@ void Foam::removeFaces::setRefinement
 
                 if (nFacesPerEdge[edgeI] == -1)
                 {
-                    nFacesPerEdge[edgeI] =
-                        mesh_.edgeFaces()[edgeI].size()-1;
+                    nFacesPerEdge[edgeI] = mesh_.edgeFaces(edgeI, ef).size()-1;
                 }
                 else
                 {
@@ -849,16 +857,15 @@ void Foam::removeFaces::setRefinement
         // Note that this only needs to be done for possibly coupled edges
         // so we could choose to loop only over boundary faces and use faceEdges
         // of those.
-        const labelListList& edgeFaces = mesh_.edgeFaces();
 
-        forAll(edgeFaces, edgeI)
+        forAll(mesh_.edges(), edgeI)
         {
             if (nFacesPerEdge[edgeI] == -1)
             {
                 // Edge not yet handled in loop above so is not used by any
                 // face to be removed.
 
-                const labelList& eFaces = edgeFaces[edgeI];
+                const labelList& eFaces = mesh_.edgeFaces(edgeI, ef);
 
                 if (eFaces.size() > 2)
                 {
@@ -922,7 +929,7 @@ void Foam::removeFaces::setRefinement
                 label f0 = -1;
                 label f1 = -1;
 
-                const labelList& eFaces = mesh_.edgeFaces()[edgeI];
+                const labelList& eFaces = mesh_.edgeFaces(edgeI, ef);
 
                 forAll(eFaces, i)
                 {
@@ -1093,7 +1100,7 @@ void Foam::removeFaces::setRefinement
             else if (nFacesPerEdge[edgeI] == 1)
             {
                 // 1: illegal. Tested above.
-            }            
+            }
             else if (nFacesPerEdge[edgeI] == 2)
             {
                 // 2: merge faces.
@@ -1152,6 +1159,7 @@ void Foam::removeFaces::setRefinement
                 nFacesPerEdge,
                 startFaceI,
                 nRegions,
+                mesh_.faceEdges(startFaceI, fe),
                 faceRegion
             );
 
@@ -1209,7 +1217,7 @@ void Foam::removeFaces::setRefinement
                         << "The other side has region:" << nbrRegion
                         << endl
                         << "(region -1 means face is to be deleted)"
-                        << abort(FatalError);                
+                        << abort(FatalError);
                 }
             }
             else if (toNbrRegion[myRegion] == -1)
@@ -1230,9 +1238,9 @@ void Foam::removeFaces::setRefinement
                         << " with coupled neighbouring regions:"
                         << toNbrRegion[myRegion] << " and "
                         << nbrRegion
-                        << abort(FatalError);                
+                        << abort(FatalError);
                 }
-            }   
+            }
         }
     }
 
@@ -1348,7 +1356,7 @@ void Foam::removeFaces::setRefinement
             pointsToRemove
         )
     );
-    
+
     //
     // Now we know
     // - faceLabels         : faces to remove (sync since no boundary faces)
@@ -1357,7 +1365,7 @@ void Foam::removeFaces::setRefinement
     // - faceRegion         : connected face region of faces to be merged (sync)
     // - affectedFace       : faces with points removed and/or owner/neighbour
     //                        changed (non sync)
-    
+
 
     // Start modifying mesh and keep track of faces changed.
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -196,7 +196,7 @@ void Foam::fvMeshDistribute::printMeshInfo(const fvMesh& mesh)
             << endl;
     }
 
-    if (mesh.pointZones().size() > 0)
+    if (mesh.pointZones().size())
     {
         Pout<< "PointZones:" << endl;
         forAll(mesh.pointZones(), zoneI)
@@ -207,7 +207,7 @@ void Foam::fvMeshDistribute::printMeshInfo(const fvMesh& mesh)
                 << endl;
         }
     }
-    if (mesh.faceZones().size() > 0)
+    if (mesh.faceZones().size())
     {
         Pout<< "FaceZones:" << endl;
         forAll(mesh.faceZones(), zoneI)
@@ -218,7 +218,7 @@ void Foam::fvMeshDistribute::printMeshInfo(const fvMesh& mesh)
                 << endl;
         }
     }
-    if (mesh.cellZones().size() > 0)
+    if (mesh.cellZones().size())
     {
         Pout<< "CellZones:" << endl;
         forAll(mesh.cellZones(), zoneI)
@@ -392,7 +392,7 @@ void Foam::fvMeshDistribute::deleteTrailingPatch()
         const_cast<polyBoundaryMesh&>(mesh_.boundaryMesh());
     fvBoundaryMesh& fvPatches = const_cast<fvBoundaryMesh&>(mesh_.boundary());
 
-    if (polyPatches.size() == 0)
+    if (polyPatches.empty())
     {
         FatalErrorIn("fvMeshDistribute::deleteTrailingPatch(fvMesh&)")
             << "No patches in mesh"
@@ -410,7 +410,7 @@ void Foam::fvMeshDistribute::deleteTrailingPatch()
             << " : " << polyPatches[sz-1].name() << " size:" << nFaces << endl;
     }
 
-    if (nFaces != 0)
+    if (nFaces)
     {
         FatalErrorIn("fvMeshDistribute::deleteTrailingPatch()")
             << "There are still " << nFaces << " faces in patch to be deleted "
@@ -586,8 +586,8 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::repatch
                 "fvMeshDistribute::repatch(const labelList&, labelListList&)"
             )   << "reverseFaceMap contains -1 at index:"
                 << index << endl
-                << "This means that the repatch operation was not just a shuffle?"
-                << abort(FatalError);
+                << "This means that the repatch operation was not just"
+                << " a shuffle?" << abort(FatalError);
         }
     }
 
@@ -622,9 +622,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::mergeSharedPoints
         )
     );
 
-    bool merged = pointToMaster.size() > 0;
-
-    if (!returnReduce(merged, orOp<bool>()))
+    if (returnReduce(pointToMaster.size(), sumOp<label>()) == 0)
     {
         return autoPtr<mapPolyMesh>(NULL);
     }
@@ -639,14 +637,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::mergeSharedPoints
     // Update fields. No inflation, parallel sync.
     mesh_.updateMesh(map);
 
-    // Move mesh (since morphing does not do this)
-    if (map().hasMotionPoints())
-    {
-        mesh_.movePoints(map().preMotionPoints());
-    }
-
     // Adapt constructMaps for merged points.
-    // 1.4.1: use reversePointMap < -1 feature.
     forAll(constructPointMap, procI)
     {
         labelList& constructMap = constructPointMap[procI];
@@ -655,16 +646,38 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::mergeSharedPoints
         {
             label oldPointI = constructMap[i];
 
-            // See if merged into other point
-            Map<label>::const_iterator iter = pointToMaster.find(oldPointI);
+            label newPointI = map().reversePointMap()[oldPointI];
 
-            if (iter != pointToMaster.end())
+            if (newPointI < -1)
             {
-                oldPointI = iter();
+                constructMap[i] = -newPointI-2;
             }
-
-            constructMap[i] = map().reversePointMap()[oldPointI];
+            else if (newPointI >= 0)
+            {
+                constructMap[i] = newPointI;
+            }
+            else
+            {
+                FatalErrorIn("fvMeshDistribute::mergeSharedPoints()")
+                    << "Problem. oldPointI:" << oldPointI
+                    << " newPointI:" << newPointI << abort(FatalError);
+            }
         }
+        //- old: use pointToMaster map.
+        //forAll(constructMap, i)
+        //{
+        //    label oldPointI = constructMap[i];
+        //
+        //    // See if merged into other point
+        //    Map<label>::const_iterator iter = pointToMaster.find(oldPointI);
+        //
+        //    if (iter != pointToMaster.end())
+        //    {
+        //        oldPointI = iter();
+        //    }
+        //
+        //    constructMap[i] = map().reversePointMap()[oldPointI];
+        //}
     }
     return map;
 }
@@ -705,7 +718,7 @@ void Foam::fvMeshDistribute::getNeighbourData
             // Which processor they will end up on
             const labelList newProc
             (
-                IndirectList<label>(distribution, pp.faceCells())
+                UIndirectList<label>(distribution, pp.faceCells())
             );
 
             OPstream toNeighbour(Pstream::blocking, procPatch.neighbProcNo());
@@ -851,7 +864,7 @@ void Foam::fvMeshDistribute::findCouples
 {
     // Store domain neighbour as map so we can easily look for pair
     // with same face+proc.
-    HashTable<label, labelPair, labelPairHash> map(domainFace.size());
+    HashTable<label, labelPair, labelPair::Hash<> > map(domainFace.size());
 
     forAll(domainFace, bFaceI)
     {
@@ -871,8 +884,8 @@ void Foam::fvMeshDistribute::findCouples
         {
             labelPair myData(sourceFace[bFaceI], sourceProc[bFaceI]);
 
-            HashTable<label, labelPair, labelPairHash>::const_iterator iter =
-                map.find(myData);
+            HashTable<label, labelPair, labelPair::Hash<> >::const_iterator
+                iter = map.find(myData);
 
             if (iter != map.end())
             {
@@ -915,7 +928,7 @@ Foam::labelList Foam::fvMeshDistribute::mapBoundaryData
     {
         label newFaceI = map.oldFaceMap()[oldBFaceI + map.nOldInternalFaces()];
 
-        // Face still exists (is nessecary?) and still boundary face
+        // Face still exists (is necessary?) and still boundary face
         if (newFaceI >= 0 && newFaceI >= mesh.nInternalFaces())
         {
             newBoundaryData[newFaceI - mesh.nInternalFaces()] =
@@ -1172,14 +1185,14 @@ void Foam::fvMeshDistribute::sendMesh
     //labelList cellZoneID;
     //if (hasCellZones)
     //{
-    //    cellZoneID.setSize(mesh.nCells());;
+    //    cellZoneID.setSize(mesh.nCells());
     //    cellZoneID = -1;
     //
     //    const cellZoneMesh& cellZones = mesh.cellZones();
     //
     //    forAll(cellZones, zoneI)
     //    {
-    //        IndirectList<label>(cellZoneID, cellZones[zoneI]) = zoneI;
+    //        UIndirectList<label>(cellZoneID, cellZones[zoneI]) = zoneI;
     //    }
     //}
 
@@ -1246,10 +1259,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::fvMeshDistribute::receiveMesh
                 runTime,
                 IOobject::NO_READ
             ),
-            domainPoints,
-            domainFaces,
-            domainAllOwner,
-            domainAllNeighbour,
+            xferMove(domainPoints),
+            xferMove(domainFaces),
+            xferMove(domainAllOwner),
+            xferMove(domainAllNeighbour),
             false                   // no parallel comms
         )
     );
@@ -1269,7 +1282,6 @@ Foam::autoPtr<Foam::fvMesh> Foam::fvMeshDistribute::receiveMesh
     }
     // Add patches; no parallel comms
     domainMesh.addFvPatches(patches, false);
-
 
     // Construct zones
     List<pointZone*> pZonePtrs(pointZoneNames.size());
@@ -2023,7 +2035,7 @@ Foam::autoPtr<Foam::mapDistributePolyMesh> Foam::fvMeshDistribute::distribute
 
             forAll(constructPatchMap, procI)
             {
-                if (procI != sendProc && constructPatchMap[procI].size() > 0)
+                if (procI != sendProc && constructPatchMap[procI].size())
                 {
                     // Processor already in mesh (either myProcNo or received)
                     inplaceRenumber(oldCellMap, constructCellMap[procI]);

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,6 +54,7 @@ SourceFiles
 #ifndef primitiveMesh_H
 #define primitiveMesh_H
 
+#include "DynamicList.H"
 #include "edgeList.H"
 #include "pointField.H"
 #include "SubField.H"
@@ -63,7 +64,7 @@ SourceFiles
 #include "cellShapeList.H"
 #include "labelList.H"
 #include "boolList.H"
-#include "labelHashSet.H"
+#include "HashSet.H"
 #include "Map.H"
 #include "EdgeMap.H"
 
@@ -155,6 +156,15 @@ class primitiveMesh
             mutable labelListList* cpPtr_;
 
 
+        // On-the-fly edge addresing storage
+
+            //- Temporary storage for addressing.
+            mutable DynamicList<label> labels_;
+
+            //- Temporary storage for addressing
+            mutable labelHashSet labelSet_;
+
+
         // Geometric data
 
             //- Cell centres
@@ -209,8 +219,14 @@ class primitiveMesh
             (
                 List<DynamicList<label> >&,
                 DynamicList<edge>&,
-                const label pA,
-                const label pB
+                const label,
+                const label
+            );
+            //- For on-the-fly addressing calculation
+            static label findFirstCommonElementFromSortedLists
+            ( 
+                const labelList&,
+                const labelList&
             );
 
 
@@ -356,6 +372,17 @@ public:
             const label nFaces,
             const label nCells,
             cellList& cells
+        );
+
+
+        //- Reset this primitiveMesh given the primitive array sizes and cells
+        void reset
+        (
+            const label nPoints,
+            const label nInternalFaces,
+            const label nFaces,
+            const label nCells,
+            const Xfer<cellList>& cells
         );
 
 
@@ -666,6 +693,104 @@ public:
 
             //- Print a list of all the currently allocated mesh data
             void printAllocated() const;
+
+            // Per storage whether allocated
+            inline bool hasCellShapes() const;
+            inline bool hasEdges() const;
+            inline bool hasCellCells() const;
+            inline bool hasEdgeCells() const;
+            inline bool hasPointCells() const;
+            inline bool hasCells() const;
+            inline bool hasEdgeFaces() const;
+            inline bool hasPointFaces() const;
+            inline bool hasCellEdges() const;
+            inline bool hasFaceEdges() const;
+            inline bool hasPointEdges() const;
+            inline bool hasPointPoints() const;
+            inline bool hasCellPoints() const;
+            inline bool hasCellCentres() const;
+            inline bool hasFaceCentres() const;
+            inline bool hasCellVolumes() const;
+            inline bool hasFaceAreas() const;
+
+            // On-the-fly addressing calculation. These functions return either
+            // a reference to the full addressing (if already calculated) or
+            // a reference to the supplied storage. The one-argument ones
+            // use member DynamicList labels_ so be careful when not storing
+            // result.
+
+            //- cellCells using cells.
+            const labelList& cellCells
+            (
+                const label cellI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& cellCells(const label cellI) const;
+
+            //- cellPoints using cells
+            const labelList& cellPoints
+            (
+                const label cellI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& cellPoints(const label cellI) const;
+
+            //- pointCells using pointFaces
+            const labelList& pointCells
+            (
+                const label pointI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& pointCells(const label pointI) const;
+
+            //- pointPoints using edges, pointEdges
+            const labelList& pointPoints
+            (
+                const label pointI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& pointPoints(const label pointI) const;
+
+            //- faceEdges using pointFaces, edges, pointEdges
+            const labelList& faceEdges
+            (
+                const label faceI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& faceEdges(const label faceI) const;
+
+            //- edgeFaces using pointFaces, edges, pointEdges
+            const labelList& edgeFaces
+            (
+                const label edgeI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& edgeFaces(const label edgeI) const;
+
+            //- edgeCells using pointFaces, edges, pointEdges
+            const labelList& edgeCells
+            (
+                const label edgeI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& edgeCells(const label edgeI) const;
+
+            //- cellEdges using cells, pointFaces, edges, pointEdges
+            const labelList& cellEdges
+            (
+                const label cellI,
+                DynamicList<label>&
+            ) const;
+
+            const labelList& cellEdges(const label cellI) const;
+
 
             //- Clear geometry
             void clearGeom();

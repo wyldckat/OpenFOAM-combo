@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,6 +68,8 @@ class searchableSurfaces
         //- Indices of all surfaces. Precalculated and stored.
         labelList allSurfaces_;
 
+
+    // Private Member Functions
 
         //- Disallow default bitwise copy construct
         searchableSurfaces(const searchableSurfaces&);
@@ -149,7 +151,7 @@ public:
                 const pointField& start,
                 const pointField& end,
                 labelListList& surfaces,
-                List<List<pointIndexHit> >& surfaceHits
+                List<List<pointIndexHit> >&
             ) const;
 
             //- Find nearest. Return -1 (and a miss()) or surface and nearest

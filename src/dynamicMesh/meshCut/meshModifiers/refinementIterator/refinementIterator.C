@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,12 +26,10 @@ License
 
 #include "refinementIterator.H"
 #include "polyMesh.H"
-#include "polyTopoChanger.H"
 #include "Time.H"
 #include "refineCell.H"
 #include "undoableMeshCutter.H"
 #include "polyTopoChange.H"
-#include "DynamicList.H"
 #include "mapPolyMesh.H"
 #include "cellCuts.H"
 #include "OFstream.H"

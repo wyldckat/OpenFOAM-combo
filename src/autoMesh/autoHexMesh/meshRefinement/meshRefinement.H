@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,6 @@ SourceFiles
 #include "hexRef8.H"
 #include "mapPolyMesh.H"
 #include "autoPtr.H"
-#include "pointIOField.H"
 #include "labelPair.H"
 #include "indirectPrimitivePatch.H"
 #include "pointFieldsFwd.H"
@@ -68,7 +67,9 @@ class shellSurfaces;
 class removeCells;
 class featureEdgeMesh;
 class fvMeshDistribute;
+class searchableSurface;
 class regionSplit;
+class globalIndex;
 
 /*---------------------------------------------------------------------------*\
                            Class meshRefinement Declaration
@@ -109,6 +110,12 @@ private:
         //- tolerance used for sorting coordinates (used in 'less' routine)
         const scalar mergeDistance_;
 
+        //- overwrite the mesh?
+        const bool overwrite_;
+
+        //- Instance of mesh upon construction. Used when in overwrite_ mode.
+        const word oldInstance_;
+
         //- All surface-intersection interaction
         const refinementSurfaces& surfaces_;
 
@@ -123,6 +130,10 @@ private:
 
         //- user supplied face based data.
         List<Tuple2<mapType, labelList> > userFaceData_;
+
+        //- Meshed patches - are treated differently. Stored as wordList since
+        //  order changes.
+        wordList meshedPatches_;
 
 
     // Private Member Functions
@@ -162,9 +173,6 @@ private:
         //- Find any intersection of surface. Store in surfaceIndex_.
         void updateIntersections(const labelList& changedFaces);
 
-        //- Set instance of all local IOobjects
-        void setInstance(const fileName&);
-
         //- Remove cells. Put exposedFaces into exposedPatchIDs.
         autoPtr<mapPolyMesh> doRemoveCells
         (
@@ -188,15 +196,49 @@ private:
 
         // For decomposeCombineRegions
 
-        //- Used in decomposeCombineRegions. Given global region per cell
-        //  determines master processor/cell for regions straddling
-        //  procboundaries.
-        void getRegionMaster
-        (
-            const boolList& blockedFace,
-            const regionSplit& globalRegion,
-            Map<label>& regionToMaster
-        ) const;
+            //- Used in decomposeCombineRegions. Given global region per cell
+            //  determines master processor/cell for regions straddling
+            //  procboundaries.
+            void getCoupledRegionMaster
+            (
+                const globalIndex& globalCells,
+                const boolList& blockedFace,
+                const regionSplit& globalRegion,
+                Map<label>& regionToMaster
+            ) const;
+
+            //- Determine regions that are local to me or coupled ones that
+            //  are owned by me. Determine representative location.
+            void calcLocalRegions
+            (
+                const globalIndex& globalCells,
+                const labelList& globalRegion,
+                const Map<label>& coupledRegionToMaster,
+
+                Map<label>& globalToLocalRegion,
+                pointField& localPoints
+            ) const;
+
+            //- Convert region into global index.
+            static label getShiftedRegion
+            (
+                const globalIndex& indexer,
+                const Map<label>& globalToLocalRegion,
+                const Map<label>& coupledRegionToShifted,
+                const label globalRegion
+            );
+
+            //- helper: add element if not in list. Linear search.
+            static void addUnique(const label, labelList&);
+
+            //- Calculate region connectivity. Major communication.
+            void calcRegionRegions
+            (
+                const labelList& globalRegion,
+                const Map<label>& globalToLocalRegion,
+                const Map<label>& coupledRegionToMaster,
+                labelListList& regionRegions
+            ) const;
 
 
         // Refinement candidate selection
@@ -279,7 +321,6 @@ private:
                 labelList& refineCell,
                 label& nRefine
             ) const;
-
 
         // Baffle handling
 
@@ -366,6 +407,12 @@ private:
                 const labelList& globalToPatch
             ) const;
 
+            ////- Initial test of marking faces using geometric information.
+            //labelList markFacesOnProblemCellsGeometric
+            //(
+            //    const dictionary& motionDict
+            //) const;
+
 
         // Baffle merging
 
@@ -408,6 +455,12 @@ private:
                 labelList& cellToZone
             ) const;
 
+            void makeConsistentFaceIndex
+            (
+                const labelList& cellToZone,
+                labelList& namedSurfaceIndex
+            ) const;
+
 
         //- Disallow default bitwise copy construct
         meshRefinement(const meshRefinement&);
@@ -428,6 +481,7 @@ public:
         (
             fvMesh& mesh,
             const scalar mergeDistance,
+            const bool overwrite,
             const refinementSurfaces&,
             const shellSurfaces&
         );
@@ -450,6 +504,18 @@ public:
             scalar mergeDistance() const
             {
                 return mergeDistance_;
+            }
+
+            //- Overwrite the mesh?
+            bool overwrite() const
+            {
+                return overwrite_;
+            }
+
+            //- (points)instance of mesh upon construction
+            const word& oldInstance() const
+            {
+                return oldInstance_;
             }
 
             //- reference to surface search engines
@@ -530,9 +596,6 @@ public:
 
             //- Get points on surfaces with intersection and boundary faces.
             labelList intersectedPoints() const;
-
-            //- Get added patches (inverse of globalToPatch)
-            static labelList addedPatches(const labelList& globalToPatch);
 
             //- Create patch from set of patches
             static autoPtr<indirectPrimitivePatch> makePatch
@@ -641,8 +704,15 @@ public:
 
         // Other topo changes
 
-            //- Helper function to add patch to mesh
+            //- Helper:add patch to mesh. Update all registered fields.
+            //  Use addMeshedPatch to add patches originating from surfaces.
             static label addPatch(fvMesh&, const word& name, const word& type);
+
+            //- Add patch originating from meshing. Update meshedPatches_.
+            label addMeshedPatch(const word& name, const word& type);
+
+            //- Get patchIDs for patches added in addMeshedPatch.
+            labelList meshedPatches() const;
 
             //- Split mesh. Keep part containing point.
             autoPtr<mapPolyMesh> splitMeshRegions(const point& keepPoint);
@@ -652,7 +722,11 @@ public:
 
             //- Update for external change to mesh. changedFaces are in new mesh
             //  face labels.
-            void updateMesh(const mapPolyMesh&, const labelList& changedFaces);
+            void updateMesh
+            (
+                const mapPolyMesh&,
+                const labelList& changedFaces
+            );
 
 
             // Restoring : is where other processes delete and reinsert data.
@@ -709,6 +783,13 @@ public:
 
             //- Print some mesh stats.
             void printMeshInfo(const bool, const string&) const;
+
+            //- Replacement for Time::timeName() : return oldInstance (if
+            //  overwrite_)
+            word timeName() const;
+
+            //- Set instance of all local IOobjects
+            void setInstance(const fileName&);
 
             //- Write mesh and all data
             bool write() const;

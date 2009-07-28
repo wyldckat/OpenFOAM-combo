@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ void Foam::polyMeshAdder::append
     DynamicList<label>& dynLst
 )
 {
-    dynLst.setSize(dynLst.size() + lst.size());
+    dynLst.setCapacity(dynLst.size() + lst.size());
 
     forAll(lst, i)
     {
@@ -512,7 +512,6 @@ void Foam::polyMeshAdder::insertVertices
 
     if (workFace.size() != allF.size())
     {
-        workFace.shrink();
         allF.transfer(workFace);
     }
 }
@@ -925,14 +924,14 @@ void Foam::polyMeshAdder::mergePointZones
     List<DynamicList<label> >& pzPoints
 )
 {
-    zoneNames.setSize(pz0.size() + pz1.size());
+    zoneNames.setCapacity(pz0.size() + pz1.size());
 
     // Names
     append(pz0.names(), zoneNames);
 
     from1ToAll.setSize(pz1.size());
 
-    forAll(pz1, zoneI)
+    forAll (pz1, zoneI)
     {
         from1ToAll[zoneI] = zoneIndex(pz1[zoneI].name(), zoneNames);
     }
@@ -953,7 +952,7 @@ void Foam::polyMeshAdder::mergePointZones
         pzPointsSorted.set
         (
             zoneI,
-            new SortableList<label>(pzPoints[zoneI].shrink())
+            new SortableList<label>(pzPoints[zoneI])
         );
     }
 
@@ -992,8 +991,8 @@ void Foam::polyMeshAdder::mergeFaceZones
     List<DynamicList<bool> >& fzFlips
 )
 {
-    zoneNames.setSize(fz0.size() + fz1.size());
-    
+    zoneNames.setCapacity(fz0.size() + fz1.size());
+
     append(fz0.names(), zoneNames);
 
     from1ToAll.setSize(fz1.size());
@@ -1013,8 +1012,8 @@ void Foam::polyMeshAdder::mergeFaceZones
         DynamicList<label>& newZone = fzFaces[zoneI];
         DynamicList<bool>& newFlip = fzFlips[zoneI];
 
-        newZone.setSize(fz0[zoneI].size());
-        newFlip.setSize(newZone.size());
+        newZone.setCapacity(fz0[zoneI].size());
+        newFlip.setCapacity(newZone.size());
 
         const labelList& addressing = fz0[zoneI];
         const boolList& flipMap = fz0[zoneI].flipMap();
@@ -1038,7 +1037,7 @@ void Foam::polyMeshAdder::mergeFaceZones
         fzFacesSorted.set
         (
             zoneI,
-            new SortableList<label>(fzFaces[zoneI].shrink())
+            new SortableList<label>(fzFaces[zoneI])
         );
     }
 
@@ -1046,12 +1045,13 @@ void Foam::polyMeshAdder::mergeFaceZones
     forAll(fz1, zoneI)
     {
         label allZoneI = from1ToAll[zoneI];
+
         DynamicList<label>& newZone = fzFaces[allZoneI];
         const SortableList<label>& newZoneSorted = fzFacesSorted[allZoneI];
         DynamicList<bool>& newFlip = fzFlips[allZoneI];
 
-        newZone.setSize(newZone.size() + fz1[zoneI].size());
-        newFlip.setSize(newZone.size());
+        newZone.setCapacity(newZone.size() + fz1[zoneI].size());
+        newFlip.setCapacity(newZone.size());
 
         const labelList& addressing = fz1[zoneI];
         const boolList& flipMap = fz1[zoneI].flipMap();
@@ -1092,8 +1092,8 @@ void Foam::polyMeshAdder::mergeCellZones
     List<DynamicList<label> >& czCells
 )
 {
-    zoneNames.setSize(cz0.size() + cz1.size());
-    
+    zoneNames.setCapacity(cz0.size() + cz1.size());
+
     append(cz0.names(), zoneNames);
 
     from1ToAll.setSize(cz1.size());
@@ -1112,7 +1112,8 @@ void Foam::polyMeshAdder::mergeCellZones
         append(cz0[zoneI], czCells[zoneI]);
     }
 
-    // Cell mapping is trivial. Also no duplicate elements possible.
+
+    // Cell mapping is trivial.
     forAll(cz1, zoneI)
     {
         label allZoneI = from1ToAll[zoneI];
@@ -1216,7 +1217,7 @@ void Foam::polyMeshAdder::addZones
             mesh.pointZones()
         );
     }
-    
+
     List<faceZone*> fZones(fzFaces.size());
     forAll(fZones, i)
     {
@@ -1446,10 +1447,10 @@ Foam::autoPtr<Foam::polyMesh> Foam::polyMeshAdder::add
         new polyMesh
         (
             io,
-            allPoints,
-            allFaces,
-            allOwner,
-            allNeighbour
+            xferMove(allPoints),
+            xferMove(allFaces),
+            xferMove(allOwner),
+            xferMove(allNeighbour)
         )
     );
     polyMesh& mesh = tmesh();
@@ -1605,7 +1606,7 @@ Foam::autoPtr<Foam::mapAddedPolyMesh> Foam::polyMeshAdder::add
 
     // Inplace extend mesh0 patches (note that patches0.size() now also
     // has changed)
-    polyBoundaryMesh& allPatches = 
+    polyBoundaryMesh& allPatches =
         const_cast<polyBoundaryMesh&>(mesh0.boundaryMesh());
     allPatches.setSize(allPatchNames.size());
 
@@ -1750,11 +1751,10 @@ Foam::autoPtr<Foam::mapAddedPolyMesh> Foam::polyMeshAdder::add
     mesh0.resetMotion();    // delete any oldPoints.
     mesh0.resetPrimitives
     (
-        allFaces.size(),
-        allPoints,
-        allFaces,
-        allOwner,
-        allNeighbour,
+        xferMove(allPoints),
+        xferMove(allFaces),
+        xferMove(allOwner),
+        xferMove(allNeighbour),
         patchSizes,     // size
         patchStarts,    // patchstarts
         validBoundary   // boundary valid?
@@ -1929,11 +1929,8 @@ Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
     //(
     //    pointField
     //    (
-    //        IndirectList<point>
-    //        (
-    //            mesh.points(),
-    //            sharedPointLabels
-    //        )()
+    //        mesh.points(),
+    //        sharedPointLabels
     //    ),
     //    mergeDist,
     //    false,
@@ -2017,8 +2014,7 @@ void Foam::polyMeshAdder::mergePoints
         {
             if (iter() != pointI)
             {
-                //1.4.1: meshMod.removePoint(pointI, iter());
-                meshMod.setAction(polyRemovePoint(pointI));
+                meshMod.removePoint(pointI, iter());
             }
         }
     }

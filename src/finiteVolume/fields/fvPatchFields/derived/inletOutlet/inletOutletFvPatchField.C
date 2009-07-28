@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,7 +72,7 @@ inletOutletFvPatchField<Type>::inletOutletFvPatchField
 )
 :
     mixedFvPatchField<Type>(p, iF),
-    phiName_("phi")
+    phiName_(dict.lookupOrDefault<word>("phi", "phi"))
 {
     this->refValue() = Field<Type>("inletValue", dict, p.size());
 
@@ -90,11 +90,6 @@ inletOutletFvPatchField<Type>::inletOutletFvPatchField
 
     this->refGrad() = pTraits<Type>::zero;
     this->valueFraction() = 0.0;
-
-    if (dict.found("phi"))
-    {
-        dict.lookup("phi") >> phiName_;
-    }
 }
 
 
@@ -134,8 +129,8 @@ void inletOutletFvPatchField<Type>::updateCoeffs()
     const Field<scalar>& phip = this->patch().lookupPatchField
     (
         phiName_,
-        reinterpret_cast<const surfaceScalarField*>(NULL),
-        reinterpret_cast<const scalar*>(NULL)
+        reinterpret_cast<const surfaceScalarField*>(0),
+        reinterpret_cast<const scalar*>(0)
     );
 
     this->valueFraction() = 1.0 - pos(phip);
@@ -150,11 +145,26 @@ void inletOutletFvPatchField<Type>::write(Ostream& os) const
     fvPatchField<Type>::write(os);
     if (phiName_ != "phi")
     {
-        os.writeKeyword("phi")
-            << phiName_ << token::END_STATEMENT << nl;
+        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
     }
     this->refValue().writeEntry("inletValue", os);
     this->writeEntry("value", os);
+}
+
+
+// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
+
+template<class Type>
+void inletOutletFvPatchField<Type>::operator=
+(
+    const fvPatchField<Type>& ptf
+)
+{
+    fvPatchField<Type>::operator=
+    (
+        this->valueFraction()*this->refValue()
+        + (1 - this->valueFraction())*ptf
+    );
 }
 
 

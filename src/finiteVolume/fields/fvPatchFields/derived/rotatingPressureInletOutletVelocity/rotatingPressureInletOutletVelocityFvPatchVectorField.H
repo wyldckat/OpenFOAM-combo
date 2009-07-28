@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,10 @@ Class
     Foam::rotatingPressureInletOutletVelocityFvPatchVectorField
 
 Description
-    Foam::rotatingPressureInletOutletVelocityFvPatchVectorField
+    Velocity inlet/outlet boundary condition in a rotating frame
+    for patches where the pressure is specified.  zero-gradient is applied for
+    outflow (as defined by the flux) and for inflow the velocity is obtained
+    from the flux with a direction normal to the patch faces.
 
 SourceFiles
     rotatingPressureInletOutletVelocityFvPatchVectorField.C

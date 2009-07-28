@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -151,18 +151,20 @@ public:
             const IOobject& fieldIoObject
         );
 
-        //- Reconstruct and write all volume fields
+        //- Reconstruct and write all/selected volume fields
         template<class Type>
         void reconstructFvVolumeFields
         (
-            const IOobjectList& objects
+            const IOobjectList& objects,
+            const HashSet<word>& selectedFields
         );
 
-        //- Reconstruct and write all volume fields
+        //- Reconstruct and write all/selected volume fields
         template<class Type>
         void reconstructFvSurfaceFields
         (
-            const IOobjectList& objects
+            const IOobjectList& objects,
+            const HashSet<word>& selectedFields
         );
 };
 

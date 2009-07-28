@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -103,6 +103,10 @@ public:
         inline friend Istream& operator>>(Istream&, labelledTri&);
         inline friend Ostream& operator<<(Ostream&, const labelledTri&);
 };
+
+
+template<>
+inline bool contiguous<labelledTri>()  {return true;}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

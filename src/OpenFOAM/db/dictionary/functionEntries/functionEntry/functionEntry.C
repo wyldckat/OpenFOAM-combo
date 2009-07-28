@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,7 +58,7 @@ bool Foam::functionEntry::execute
     is.fatalCheck
     (
         "functionEntry::execute"
-        "(const word& functionName, dictionary& parentDict, Istream& is)"
+        "(const word& functionName, dictionary& parentDict, Istream&)"
     );
 
     if (!executedictionaryIstreamMemberFunctionTablePtr_)
@@ -103,14 +103,13 @@ bool Foam::functionEntry::execute
     is.fatalCheck
     (
         "functionEntry::execute"
-        "(const word& functionName, const dictionary& parentDict, "
-        "primitiveEntry&, Istream&)"
+        "(const word&, const dictionary&, primitiveEntry&, Istream&)"
     );
 
     if (!executeprimitiveEntryIstreamMemberFunctionTablePtr_)
     {
         cerr<<"functionEntry::execute"
-            << "(const word&, dictionary&, primitiveEntry&, Istream&)"
+            << "(const word&, const dictionary&, primitiveEntry&, Istream&)"
             << " not yet initialized, function = "
             << functionName.c_str() << std::endl;
 
@@ -126,8 +125,7 @@ bool Foam::functionEntry::execute
         FatalErrorIn
         (
             "functionEntry::execute"
-            "(const word& functionName, const dictionary& parentDict, "
-            "primitiveEntry&, Istream&)"
+            "(const word&, const dictionary&, primitiveEntry&, Istream&)"
         )   << "Unknown functionEntry " << functionName
             << endl << endl
             << "Valid functionEntries are :" << endl

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,6 @@ SourceFiles
 #ifndef refinementSurfaces_H
 #define refinementSurfaces_H
 
-#include "PackedList.H"
 #include "triSurfaceGeoMesh.H"
 #include "triSurfaceFields.H"
 #include "vectorList.H"
@@ -92,9 +91,6 @@ class refinementSurfaces
 
         //- From global region number to perpendicular angle
         scalarField perpendicularAngle_;
-
-        //- Per surface refinement level adapted for shells.
-        PtrList<triSurfaceLabelField> minLevelFields_;
 
 
     // Private Member Functions
@@ -222,13 +218,6 @@ public:
                 const shellSurfaces& shells
             );
 
-            //- Helper: orient (closed only) surfaces so keepPoint is outside.
-            static void orientSurface
-            (
-                const point& keepPoint,
-                triSurfaceMesh& surface
-            );
-
             //- Helper: count number of triangles per region
             static labelList countRegions(const triSurface&);
 
@@ -294,6 +283,17 @@ public:
                 const scalarField& nearestDistSqr,
                 labelList& surfaces,
                 List<pointIndexHit>&
+            ) const;
+
+            //- Find nearest point on surfaces. Return surface and region on
+            //  surface (so not global surface)
+            void findNearestRegion
+            (
+                const labelList& surfacesToTest,
+                const pointField& samples,
+                const  scalarField& nearestDistSqr,
+                labelList& hitSurface,
+                labelList& hitRegion
             ) const;
 
             //- Detect if a point is 'inside' (closed) surfaces.

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -135,9 +135,9 @@ class addPatchCellLayer
 
             void operator()(labelList& x, const labelList& y) const
             {
-                if (x.size() == 0)
+                if (x.empty())
                 {
-                    if (y.size() > 0)
+                    if (y.size())
                     {
                         x = y;
                     }
@@ -232,6 +232,7 @@ class addPatchCellLayer
             const label meshEdgeI,
             const label layerI,
             const label numEdgeFaces,
+            const labelList& meshFaces,
             polyTopoChange&
         ) const;
 
@@ -293,9 +294,10 @@ public:
             //  - nPointLayers : number of layers per (patch)point
             //  - nFaceLayers : number of layers per (patch) face
             //  - firstDisplacement : displacement per point for first
-            //    layer of points. If zero do not add point.
+            //    layer of points (i.e. nearest to original mesh). If zero
+            //    do not add point.
             //  Layer thicknesses are calculated to constant geometric
-            //  expansion. Use expansionRatio for constant size.
+            //  expansion. Use expansionRatio 1 for constant size.
             //  Sets addedPoints_ which is per pp point a list of points
             //  added.
             //  Note: firstDisplacement has to be parallel synchronised before

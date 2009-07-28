@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,35 +26,40 @@ License
 
 #include "boundBox.H"
 #include "PstreamReduceOps.H"
+#include "tmp.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
+const Foam::scalar Foam::boundBox::great(VGREAT);
+
+const Foam::boundBox Foam::boundBox::greatBox
+(
+    point(-VGREAT, -VGREAT, -VGREAT),
+    point(VGREAT, VGREAT, VGREAT)
+);
+
+
+const Foam::boundBox Foam::boundBox::invertedBox
+(
+    point(VGREAT, VGREAT, VGREAT),
+    point(-VGREAT, -VGREAT, -VGREAT)
+);
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+void Foam::boundBox::calculate(const pointField& points, const bool doReduce)
 {
-
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
-
-boundBox::boundBox(const pointField& points, const bool doReduce)
-:
-    min_(vector::zero),
-    max_(vector::zero)
-{
-    if (points.size() == 0)
+    if (points.empty())
     {
-        if (Pstream::parRun() && doReduce)
+        min_ = point::zero;
+        max_ = point::zero;
+
+        if (doReduce && Pstream::parRun())
         {
-            // Use values which get overwritten by reduce minOp,maxOp below
+            // Use values that get overwritten by reduce minOp, maxOp below
             min_ = point(VGREAT, VGREAT, VGREAT);
             max_ = point(-VGREAT, -VGREAT, -VGREAT);
-        }
-        else
-        {
-            WarningIn("boundBox::boundBox(const pointField& points)")
-                << "Cannot find bounding box for zero sized pointField, "
-                   "returning zero"
-                << endl;
-
-            return;
         }
     }
     else
@@ -62,39 +67,90 @@ boundBox::boundBox(const pointField& points, const bool doReduce)
         min_ = points[0];
         max_ = points[0];
 
-        forAll(points, i)
+        for (label i = 1; i < points.size(); i++)
         {
             min_ = ::Foam::min(min_, points[i]);
             max_ = ::Foam::max(max_, points[i]);
         }
     }
 
+    // Reduce parallel information
     if (doReduce)
     {
-        // Reduce parallel information
         reduce(min_, minOp<point>());
         reduce(max_, maxOp<point>());
     }
 }
 
 
-boundBox::boundBox(Istream& is)
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::boundBox::boundBox(const pointField& points, const bool doReduce)
 :
-    min_(is),
-    max_(is)
-{}
+    min_(point::zero),
+    max_(point::zero)
+{
+    calculate(points, doReduce);
+}
+
+
+Foam::boundBox::boundBox(const tmp<pointField>& points, const bool doReduce)
+:
+    min_(point::zero),
+    max_(point::zero)
+{
+    calculate(points(), doReduce);
+    points.clear();
+}
+
+
+Foam::boundBox::boundBox(Istream& is)
+{
+    operator>>(is, *this);
+}
 
 
 // * * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * //
 
-Ostream& operator<<(Ostream& os, const boundBox& b)
+Foam::Ostream& Foam::operator<<(Ostream& os, const boundBox& bb)
 {
-    return os << b.min() << token::SPACE << b.max();
+    if (os.format() == IOstream::ASCII)
+    {
+        os << bb.min_ << token::SPACE << bb.max_;
+    }
+    else
+    {
+        os.write
+        (
+            reinterpret_cast<const char*>(&bb.min_),
+            sizeof(boundBox)
+        );
+    }
+
+    // Check state of Ostream
+    os.check("Ostream& operator<<(Ostream&, const boundBox&)");
+    return os;
 }
 
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Foam::Istream& Foam::operator>>(Istream& is, boundBox& bb)
+{
+    if (is.format() == IOstream::ASCII)
+    {
+        return is >> bb.min_ >> bb.max_;
+    }
+    else
+    {
+        is.read
+        (
+            reinterpret_cast<char*>(&bb.min_),
+            sizeof(boundBox)
+        );
+    }
 
-} // End namespace Foam
+    // Check state of Istream
+    is.check("Istream& operator>>(Istream&, boundBox&)");
+    return is;
+}
 
 // ************************************************************************* //

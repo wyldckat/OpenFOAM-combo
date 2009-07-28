@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -97,9 +97,10 @@ public:
             dictionary,
             (
                 const dictionary& compressibilityProperties,
-                const volScalarField& gamma
+                const volScalarField& gamma,
+                const word& psiName
             ),
-            (compressibilityProperties, gamma)
+            (compressibilityProperties, gamma, psiName)
         );
 
 
@@ -109,7 +110,8 @@ public:
         static autoPtr<barotropicCompressibilityModel> New
         (
             const dictionary& compressibilityProperties,
-            const volScalarField& gamma
+            const volScalarField& gamma,
+            const word& psiName = "psi"
         );
 
 
@@ -119,7 +121,8 @@ public:
         barotropicCompressibilityModel
         (
             const dictionary& compressibilityProperties,
-            const volScalarField& gamma
+            const volScalarField& gamma,
+            const word& psiName = "psi"
         );
 
 

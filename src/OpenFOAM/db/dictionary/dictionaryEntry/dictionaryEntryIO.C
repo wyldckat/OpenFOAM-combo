@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,9 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
+#include "keyType.H"
 #include "dictionaryEntry.H"
+#include "IOstreams.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -43,14 +45,14 @@ Foam::dictionaryEntry::dictionaryEntry
     is.fatalCheck
     (
         "dictionaryEntry::dictionaryEntry"
-        "(Istream& is, const dictionary& parentDict)"
+        "(const dictionary& parentDict, Istream&)"
     );
 }
 
 
 Foam::dictionaryEntry::dictionaryEntry
 (
-    const word& key,
+    const keyType& key,
     const dictionary& parentDict,
     Istream& is
 )
@@ -63,7 +65,7 @@ Foam::dictionaryEntry::dictionaryEntry
     is.fatalCheck
     (
         "dictionaryEntry::dictionaryEntry"
-        "(const word& keyword, const dictionary& parentDict, Istream& is)"
+        "(const keyType&, const dictionary& parentDict, Istream&)"
     );
 }
 
@@ -72,7 +74,9 @@ Foam::dictionaryEntry::dictionaryEntry
 
 void Foam::dictionaryEntry::write(Ostream& os) const
 {
-    os.writeKeyword(keyword());
+    // write keyword with indent but without trailing spaces
+    os.indent();
+    os.write(keyword());
     dictionary::write(os);
 }
 

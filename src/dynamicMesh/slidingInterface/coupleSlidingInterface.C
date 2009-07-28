@@ -741,19 +741,22 @@ void Foam::slidingInterface::coupleInterface(polyTopoChange& ref) const
         } // End if both ends missing
     } // End for all slave edges
 
+//     Pout << "pointsIntoMasterEdges: " << pointsIntoMasterEdges << endl;
+//     Pout << "pointsIntoSlaveEdges: " << pointsIntoSlaveEdges << endl;
+
     // Re-pack the points into edges lists
     labelListList pime(pointsIntoMasterEdges.size());
 
     forAll (pointsIntoMasterEdges, i)
     {
-        pime[i].transfer(pointsIntoMasterEdges[i].shrink());
+        pime[i].transfer(pointsIntoMasterEdges[i]);
     }
 
     labelListList pise(pointsIntoSlaveEdges.size());
 
     forAll (pointsIntoSlaveEdges, i)
     {
-        pise[i].transfer(pointsIntoSlaveEdges[i].shrink());
+        pise[i].transfer(pointsIntoSlaveEdges[i]);
     }
 
     // Prepare the enriched faces
@@ -1287,7 +1290,7 @@ void Foam::slidingInterface::coupleInterface(polyTopoChange& ref) const
                             // Get points on current edge
                             const labelList& curPime = pime[curEdges[curEdgeI]];
 
-                            if (curPime.size() > 0)
+                            if (curPime.size())
                             {
                                 changed = true;
                                 // Pout << "curPime: " << curPime << endl;
@@ -1408,9 +1411,10 @@ void Foam::slidingInterface::coupleInterface(polyTopoChange& ref) const
             }
 
             face newFace;
-            newFace.transfer(newFaceLabels.shrink());
+            newFace.transfer(newFaceLabels);
 
-//             Pout << "Modifying master stick-out face " << curFaceID << " old face: " << oldFace << " new face: " << newFace << endl;
+            //Pout << "Modifying master stick-out face " << curFaceID
+            //    << " old face: " << oldFace << " new face: " << newFace << endl;
 
             // Modify the face
             if (mesh.isInternalFace(curFaceID))
@@ -1593,7 +1597,7 @@ void Foam::slidingInterface::coupleInterface(polyTopoChange& ref) const
                             // Get points on current edge
                             const labelList& curPise = pise[curEdges[curEdgeI]];
 
-                            if (curPise.size() > 0)
+                            if (curPise.size())
                             {
                                 changed = true;
 //                                 Pout << "curPise: " << curPise << endl;
@@ -1714,7 +1718,7 @@ void Foam::slidingInterface::coupleInterface(polyTopoChange& ref) const
             }
 
             face newFace;
-            newFace.transfer(newFaceLabels.shrink());
+            newFace.transfer(newFaceLabels);
 
 //             Pout << "Modifying slave stick-out face " << curFaceID << " old face: " << oldFace << " new face: " << newFace << endl;
 

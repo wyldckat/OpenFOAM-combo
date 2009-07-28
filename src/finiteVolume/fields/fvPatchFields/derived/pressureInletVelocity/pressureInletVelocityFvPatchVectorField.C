@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -70,20 +70,10 @@ pressureInletVelocityFvPatchVectorField::pressureInletVelocityFvPatchVectorField
 )
 :
     fixedValueFvPatchVectorField(p, iF),
-    phiName_("phi"),
-    rhoName_("rho")
+    phiName_(dict.lookupOrDefault<word>("phi", "phi")),
+    rhoName_(dict.lookupOrDefault<word>("rho", "rho"))
 {
     fvPatchVectorField::operator=(vectorField("value", dict, p.size()));
-
-    if (dict.found("phi"))
-    {
-        dict.lookup("phi") >> phiName_;
-    }
-
-    if (dict.found("rho"))
-    {
-        dict.lookup("rho") >> rhoName_;
-    }
 }
 
 
@@ -119,10 +109,8 @@ void pressureInletVelocityFvPatchVectorField::updateCoeffs()
         return;
     }
 
-    const surfaceScalarField& phi = db().lookupObject<surfaceScalarField>
-    (
-        phiName_
-    );
+    const surfaceScalarField& phi =
+        db().lookupObject<surfaceScalarField>(phiName_);
 
     const fvsPatchField<scalar>& phip =
         patch().patchField<surfaceScalarField, scalar>(phi);
@@ -158,9 +146,26 @@ void pressureInletVelocityFvPatchVectorField::updateCoeffs()
 void pressureInletVelocityFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchVectorField::write(os);
-    os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
-    os.writeKeyword("rho") << rhoName_ << token::END_STATEMENT << nl;
+    if (phiName_ != "phi")
+    {
+        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
+    }
+    if (rhoName_ != "rho")
+    {
+        os.writeKeyword("rho") << rhoName_ << token::END_STATEMENT << nl;
+    }
     writeEntry("value", os);
+}
+
+
+// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
+
+void pressureInletVelocityFvPatchVectorField::operator=
+(
+    const fvPatchField<vector>& pvf
+)
+{
+    fvPatchField<vector>::operator=(patch().nf()*(patch().nf() & pvf));
 }
 
 

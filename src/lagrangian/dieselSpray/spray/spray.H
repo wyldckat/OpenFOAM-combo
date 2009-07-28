@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,13 +36,12 @@ Description
 #include "parcel.H"
 #include "injector.H"
 #include "IOPtrList.H"
-#include "volPointInterpolation.H"
 #include "interpolation.H"
 #include "liquid.H"
-#include "sprayThermoTypes.H"
 #include "autoPtr.H"
 #include "liquidMixture.H"
 #include "Random.H"
+#include "thermoPhysicsTypes.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -59,7 +58,7 @@ class injectorModel;
 class heatTransferModel;
 class wallModel;
 
-class combustionMixture;
+class basicMultiComponentMixture;
 
 /*---------------------------------------------------------------------------*\
                         Class spray Declaration
@@ -76,10 +75,12 @@ class spray
             const Time& runTime_;
             scalar time0_;
             const fvMesh& mesh_;
-            const volPointInterpolation& volPointInterpolation_;
 
             //- Random number generator
             Random rndGen_;
+
+        //- Acceleration due to gravity
+        const vector& g_;
 
 
         // References to the physical fields
@@ -95,14 +96,14 @@ class spray
 
 
         //- Ambient Pressure
-            scalar ambientPressure_;
+        scalar ambientPressure_;
 
         //- Ambient Temperature
-            scalar ambientTemperature_;
+        scalar ambientTemperature_;
 
 
         //- The injectors
-            IOPtrList<injector> injectors_;
+        IOPtrList<injector> injectors_;
 
 
         // References to the spray sub-models
@@ -123,14 +124,10 @@ class spray
         const label subCycles_;
 
 
-        //- Acceleration due to gravity
-        vector g_;
-
-
         // Composition properties
 
-            const PtrList<specieProperties>& gasProperties_;
-            const combustionMixture& composition_;
+            const PtrList<gasThermoPhysics>& gasProperties_;
+            const basicMultiComponentMixture& composition_;
 
             List<label> liquidToGasIndex_;
             List<label> gasToLiquidIndex_;
@@ -190,15 +187,14 @@ public:
         //- Construct from components
         spray
         (
-            const volPointInterpolation& vpi,
             const volVectorField& U,
             const volScalarField& rho,
             const volScalarField& p,
             const volScalarField& T,
-            const combustionMixture& composition,
-            const PtrList<specieProperties>& gasProperties,
+            const basicMultiComponentMixture& composition,
+            const PtrList<gasThermoPhysics>& gasProperties,
             const dictionary& thermophysicalProperties,
-            const dictionary& environmentalProperties
+            const dimensionedVector& g
         );
 
 
@@ -260,8 +256,8 @@ public:
             inline const vector& g() const;
 
             inline const liquidMixture& fuels() const;
-            inline const PtrList<specieProperties>& gasProperties() const;
-            inline const combustionMixture& composition() const;
+            inline const PtrList<gasThermoPhysics>& gasProperties() const;
+            inline const basicMultiComponentMixture& composition() const;
 
             inline const List<label>& liquidToGasIndex() const;
             inline const List<label>& gasToLiquidIndex() const;
@@ -348,7 +344,7 @@ public:
     // I/O
 
             //- Write fields
-            void writeFields() const;
+            virtual void writeFields() const;
 };
 
 

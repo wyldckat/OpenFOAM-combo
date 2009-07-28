@@ -1,2 +1,0 @@
-c++DBUG     = 
-c++OPT      = -xT -O3 -no-prec-div

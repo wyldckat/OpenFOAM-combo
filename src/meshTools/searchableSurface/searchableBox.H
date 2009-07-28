@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -119,6 +119,12 @@ public:
         virtual bool hasVolumeType() const
         {
             return true;
+        }
+
+        //- Range of local indices that can be returned.
+        virtual label size() const
+        {
+            return 6;
         }
 
 

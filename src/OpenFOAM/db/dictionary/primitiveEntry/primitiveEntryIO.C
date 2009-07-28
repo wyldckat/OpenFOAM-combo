@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,9 +81,9 @@ bool Foam::primitiveEntry::expandVariable
     word varName = w(1, w.size()-1);
 
     // lookup the variable name in the given dictionary....
-    const entry* ePtr = dict.lookupEntryPtr(varName, true);
+    const entry* ePtr = dict.lookupEntryPtr(varName, true, true);
 
-    // ...if defined insert its tokens into this 
+    // ...if defined insert its tokens into this
     if (ePtr != NULL)
     {
         append(ePtr->stream());
@@ -91,7 +91,7 @@ bool Foam::primitiveEntry::expandVariable
     }
     else
     {
-        // if not in the dictionary see if it is an environment 
+        // if not in the dictionary see if it is an environment
         // variable
 
         string enVarString = getEnv(varName);
@@ -123,7 +123,7 @@ bool Foam::primitiveEntry::read(const dictionary& dict, Istream& is)
 {
     is.fatalCheck
     (
-        "primitiveEntry::readData(const dictionary& dict, Istream& is)"
+        "primitiveEntry::readData(const dictionary&, Istream&)"
     );
 
     label blockCount = 0;
@@ -177,7 +177,7 @@ bool Foam::primitiveEntry::read(const dictionary& dict, Istream& is)
 
     is.fatalCheck
     (
-        "primitiveEntry::readData(const dictionary& dict, Istream& is)"
+        "primitiveEntry::readData(const dictionary&, Istream&)"
     );
 
     if (currToken.good())
@@ -205,7 +205,7 @@ void Foam::primitiveEntry::readEntry(const dictionary& dict, Istream& is)
     {
         FatalIOErrorIn
         (
-            "primitiveEntry::readEntry(const dictionary& dict,Istream& is)",
+            "primitiveEntry::readEntry(const dictionary&, Istream&)",
             is
         )   << "ill defined primitiveEntry starting at keyword '"
             << keyword() << '\''
@@ -218,7 +218,7 @@ void Foam::primitiveEntry::readEntry(const dictionary& dict, Istream& is)
 
 Foam::primitiveEntry::primitiveEntry
 (
-    const word& key,
+    const keyType& key,
     const dictionary& dict,
     Istream& is
 )
@@ -236,7 +236,7 @@ Foam::primitiveEntry::primitiveEntry
 }
 
 
-Foam::primitiveEntry::primitiveEntry(const word& key, Istream& is)
+Foam::primitiveEntry::primitiveEntry(const keyType& key, Istream& is)
 :
     entry(key),
     ITstream
@@ -266,7 +266,7 @@ void Foam::primitiveEntry::write(Ostream& os) const
             os << token::SPACE;
         }
     }
-    
+
     os << token::END_STATEMENT << endl;
 }
 
@@ -297,7 +297,7 @@ Foam::Ostream& Foam::operator<<
     {
         os  << " ...";
     }
-    
+
     os  << endl;
 
     return os;

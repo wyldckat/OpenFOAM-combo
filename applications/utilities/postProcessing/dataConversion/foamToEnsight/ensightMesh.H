@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -78,22 +78,22 @@ class ensightMesh
 
     // Private data
 
+        //- Reference to the OpenFOAM mesh
+        const fvMesh& mesh_;
+
         //- Set binary file output
         bool binary_;
 
-        //- Reference to the OpenFOAM mesh
-        const fvMesh& mesh_;
+        //- The ensight part id for the first patch
+        label patchPartOffset_;
 
         cellSets meshCellSets_;
 
         List<faceSets> boundaryFaceSets_;
 
+        wordList allPatchNames_;
 
-
-
-        HashTable<labelList> allPatchNames_;
-
-        HashTable<label> patchIndices_;
+        List<labelList> allPatchProcs_;
 
         wordHashSet patchNames_;
 
@@ -246,9 +246,8 @@ public:
         ensightMesh(const fvMesh&, const argList& args, const bool binary);
 
 
-    // Destructor
-
-        ~ensightMesh();
+    //- Destructor
+    ~ensightMesh();
 
 
     // Member Functions
@@ -270,14 +269,14 @@ public:
                 return boundaryFaceSets_;
             }
 
-            const HashTable<labelList>& allPatchNames() const
+            const wordList& allPatchNames() const
             {
                 return allPatchNames_;
             }
 
-            const HashTable<label>& patchIndices() const
+            const List<labelList>& allPatchProcs() const
             {
-                return patchIndices_;
+                return allPatchProcs_;
             }
 
             const wordHashSet& patchNames() const
@@ -288,6 +287,12 @@ public:
             const HashTable<nFacePrimitives>& nPatchPrims() const
             {
                 return nPatchPrims_;
+            }
+
+            //- The ensight part id for the first patch
+            label patchPartOffset() const
+            {
+                return patchPartOffset_;
             }
 
 

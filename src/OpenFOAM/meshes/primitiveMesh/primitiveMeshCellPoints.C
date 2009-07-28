@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,14 +27,9 @@ License
 #include "primitiveMesh.H"
 #include "ListOps.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const labelListList& primitiveMesh::cellPoints() const
+const Foam::labelListList& Foam::primitiveMesh::cellPoints() const
 {
     if (!cpPtr_)
     {
@@ -42,19 +37,74 @@ const labelListList& primitiveMesh::cellPoints() const
         {
             Pout<< "primitiveMesh::cellPoints() : "
                 << "calculating cellPoints" << endl;
+
+            if (debug == -1)
+            {
+                // For checking calls:abort so we can quickly hunt down
+                // origin of call
+                FatalErrorIn("primitiveMesh::cellPoints()")
+                    << abort(FatalError);
+            }
         }
 
         // Invert pointCells
         cpPtr_ = new labelListList(nCells());
         invertManyToMany(nCells(), pointCells(), *cpPtr_);
     }
-    
+
     return *cpPtr_;
 }
 
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+const Foam::labelList& Foam::primitiveMesh::cellPoints
+(
+    const label cellI,
+    DynamicList<label>& storage
+) const
+{
+    if (hasCellPoints())
+    {
+        return cellPoints()[cellI];
+    }
+    else
+    {
+        const faceList& fcs = faces();
+        const labelList& cFaces = cells()[cellI];
 
-} // End namespace Foam
+        labelSet_.clear();
+
+        forAll(cFaces, i)
+        {
+            const labelList& f = fcs[cFaces[i]];
+
+            forAll(f, fp)
+            {
+                labelSet_.insert(f[fp]);
+            }
+        }
+
+        storage.clear();
+        if (labelSet_.size() > storage.capacity())
+        {
+            storage.setCapacity(labelSet_.size());
+        }
+
+        forAllConstIter(labelHashSet, labelSet_, iter)
+        {
+            storage.append(iter.key());
+        }
+
+        return storage;
+    }
+}
+
+
+const Foam::labelList& Foam::primitiveMesh::cellPoints(const label cellI) const
+{
+    return cellPoints(cellI, labels_);
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // ************************************************************************* //

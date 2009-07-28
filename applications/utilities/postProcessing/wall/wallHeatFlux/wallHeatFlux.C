@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,7 +34,7 @@ Description
 
 #include "fvCFD.H"
 #include "hCombustionThermo.H"
-#include "compressible/RASModel/RASModel.H"
+#include "RASModel.H"
 #include "wallFvPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -43,9 +43,9 @@ int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
     #include "setRootCase.H"
-#   include "createTime.H"
+    #include "createTime.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
-#   include "createMesh.H"
+    #include "createMesh.H"
 
     forAll(timeDirs, timeI)
     {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         Info<< "Time = " << runTime.timeName() << endl;
         mesh.readUpdate();
 
-#       include "createFields.H"
+        #include "createFields.H"
 
         surfaceScalarField heatFlux =
             fvc::interpolate(RASModel->alphaEff())*fvc::snGrad(h);

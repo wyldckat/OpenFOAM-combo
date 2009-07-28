@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -268,7 +268,12 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         // Calculate the geometry for the patches (transformation tensors etc.)
         boundary_.calcGeometry();
 
+        // Derived info
+        bounds_ = boundBox(points_);
+        geometricD_ = Vector<label>::zero;
+        solutionD_ = Vector<label>::zero;
 
+        // Zones
         pointZoneMesh newPointZones
         (
             IOobject
@@ -303,12 +308,6 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         for (label czI = oldSize; czI < newPointZones.size(); czI++)
         {
             pointZones_.set(czI, newPointZones[czI].clone(pointZones_));
-        }
-
-        pointZones_.setSize(newPointZones.size());
-        forAll (pointZones_, pzI)
-        {
-            pointZones_[pzI] = newPointZones[pzI];
         }
 
 
@@ -424,6 +423,13 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
                 false
             )
         );
+
+        // Derived info
+        bounds_ = boundBox(points_);
+
+        // Rotation can cause direction vector to change
+        geometricD_ = Vector<label>::zero;
+        solutionD_ = Vector<label>::zero;
         
         return polyMesh::POINTS_MOVED;
     }

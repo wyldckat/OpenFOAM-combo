@@ -3,7 +3,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -30,15 +30,17 @@
 #
 #------------------------------------------------------------------------------
 
-echo "Cleaning backup files"
-find . -type f \( -name "*~" -o -name "*.bak" \) -exec rm {} \;
-find . \( -name 'core' -o -name 'core.[1-9]*' \) -exec rm {} \;
-find . \( -name '*.pvs' -o -name '*.foam' \) -exec rm {} \;
-rm logs > /dev/null 2>&1
-rm testLoopReport > /dev/null 2>&1
+cd ${0%/*} || exit 1    # run from this directory
 
-echo ""
+echo "--------"
+echo "Cleaning tutorials ..."
+echo "Removing backup files"
+find . -type f \( -name "*~" -o -name "*.bak" \) -exec rm {} \;
+find . \( -name core -o -name 'core.[1-9]*' \) -exec rm {} \;
+find . \( -name '*.pvs' -o -name '*.OpenFOAM' \) -exec rm {} \;
+rm logs testLoopReport > /dev/null 2>&1
 
 foamCleanTutorials cases
 
+echo "--------"
 # ----------------------------------------------------------------- end-of-file

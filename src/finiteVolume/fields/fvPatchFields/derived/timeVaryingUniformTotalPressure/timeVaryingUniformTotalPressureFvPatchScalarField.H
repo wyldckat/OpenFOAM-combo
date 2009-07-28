@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -77,8 +77,8 @@ class timeVaryingUniformTotalPressureFvPatchScalarField
         //- Total pressure
         scalar p0_;
 
-        //- Table of time vs total pressure
-        interpolationTable<scalar> totalPressureTimeSeries_;
+        //- Table of time vs total pressure, including the bounding treatment
+        interpolationTable<scalar> timeSeries_;
 
 
 public:
@@ -192,7 +192,7 @@ public:
             //- Return the time series used
             const interpolationTable<scalar>& totalPressureTimeSeries() const
             {
-                return totalPressureTimeSeries_;
+                return timeSeries_;
             }
 
 

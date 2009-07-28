@@ -26,7 +26,7 @@ Class
     Foam::activeBaffleVelocityFvPatchVectorField
 
 Description
-    Foam::activeBaffleVelocityFvPatchVectorField
+    Boundary condition that modifies mesh areas based on velocity.
 
 SourceFiles
     activeBaffleVelocityFvPatchVectorField.C

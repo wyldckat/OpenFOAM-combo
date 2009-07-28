@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,7 +45,7 @@ SourceFiles
 
 #include "cellDistFuncs.H"
 #include "FieldField.H"
-
+#include "UPtrList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -78,7 +78,7 @@ private:
         labelHashSet patchIDs_;
 
         //- Reference to initial extra data at patch faces
-        const List<Field<Type>*>& initialPatchValuePtrs_;
+        const UPtrList<Field<Type> >& initialPatchValuePtrs_;
 
         //- Do accurate distance calculation for near-wall cells.
         bool correctWalls_;
@@ -129,7 +129,7 @@ public:
         (
             const polyMesh& mesh,
             const labelHashSet& patchIDs,
-            const List<Field<Type>*>& initialPatchValuePtrs,
+            const UPtrList<Field<Type> >& initialPatchValuePtrs,
             bool correctWalls = true
         );
 

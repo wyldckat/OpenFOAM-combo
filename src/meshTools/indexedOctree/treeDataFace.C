@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -412,14 +412,14 @@ bool Foam::treeDataFace::overlaps
     // 1. Quick rejection: bb does not intersect face bb at all
     if (cacheBb_)
     {
-        if (!cubeBb.intersects(bbs_[index]))
+        if (!cubeBb.overlaps(bbs_[index]))
         {
             return false;
         }
     }
     else
     {
-        if (!cubeBb.intersects(calcBb(faceLabels_[index])))
+        if (!cubeBb.overlaps(calcBb(faceLabels_[index])))
         {
             return false;
         }

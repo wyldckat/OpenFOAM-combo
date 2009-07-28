@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -74,17 +74,13 @@ class removeEntry
 public:
 
     //- Runtime type information
-    TypeName("remove");
+    ClassName("remove");
 
 
     // Member Functions
 
         //- Execute the functionEntry in a sub-dict context
-        static bool execute
-        (
-            dictionary& parentDict,
-            Istream& is
-        );
+        static bool execute(dictionary& parentDict, Istream&);
 };
 
 

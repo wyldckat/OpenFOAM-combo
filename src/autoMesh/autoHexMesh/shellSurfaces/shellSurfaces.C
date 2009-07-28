@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,6 +30,7 @@ License
 #include "triSurfaceMesh.H"
 #include "refinementSurfaces.H"
 #include "searchableSurfaces.H"
+#include "orientedSurface.H"
 #include "pointIndexHit.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -157,11 +158,7 @@ void Foam::shellSurfaces::setAndCheckLevels
 void Foam::shellSurfaces::orient()
 {
     // Determine outside point.
-    boundBox overallBb
-    (
-        point(GREAT, GREAT, GREAT),
-        point(-GREAT, -GREAT, -GREAT)
-    );
+    boundBox overallBb = boundBox::invertedBox;
 
     bool hasSurface = false;
 
@@ -173,7 +170,7 @@ void Foam::shellSurfaces::orient()
         {
             const triSurfaceMesh& shell = refCast<const triSurfaceMesh>(s);
 
-            if (shell.triSurface::size() > 0)
+            if (shell.triSurface::size())
             {
                 const pointField& points = shell.points();
 
@@ -196,7 +193,7 @@ void Foam::shellSurfaces::orient()
 
     if (hasSurface)
     {
-        const point outsidePt(2*overallBb.max() - overallBb.min());
+        const point outsidePt = overallBb.max() + overallBb.span();
 
         //Info<< "Using point " << outsidePt << " to orient shells" << endl;
 
@@ -211,7 +208,27 @@ void Foam::shellSurfaces::orient()
                     refCast<const triSurfaceMesh>(s)
                 );
 
-                refinementSurfaces::orientSurface(outsidePt, shell);
+                // Flip surface so outsidePt is outside.
+                bool anyFlipped = orientedSurface::orient
+                (
+                    shell,
+                    outsidePt,
+                    true
+                );
+
+                if (anyFlipped)
+                {
+                    // orientedSurface will have done a clearOut of the surface.
+                    // we could do a clearout of the triSurfaceMeshes::trees()
+                    // but these aren't affected by orientation
+                    // (except for cached
+                    // sideness which should not be set at this point.
+                    // !!Should check!)
+
+                    Info<< "shellSurfaces : Flipped orientation of surface "
+                        << s.name()
+                        << " so point " << outsidePt << " is outside." << endl;
+                }
             }
         }
     }

@@ -1,10 +1,11 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
 set -x
 
 wmake libso dummy
 
 case "$WM_MPLIB" in
-LAM | *MPI* )
+*MPI*)
     set +x
     echo
     echo "Note: ignore spurious warnings about missing mpicxx.h headers"
@@ -17,3 +18,5 @@ LAM | *MPI* )
 #    ;;
 esac
 
+
+# ----------------------------------------------------------------- end-of-file

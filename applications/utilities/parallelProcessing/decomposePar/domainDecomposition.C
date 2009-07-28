@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ License
 #include "OSspecific.H"
 #include "Map.H"
 #include "globalMeshData.H"
-
+#include "DynamicList.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -268,13 +268,13 @@ bool domainDecomposition::writeDecomposition()
         (
             IOobject
             (
-                polyMesh::defaultRegion,
+                this->polyMesh::name(),  // region name of undecomposed mesh
                 pointsInstance(),
                 processorDb
             ),
-            procPoints,
-            procFaces,
-            procCells
+            xferMove(procPoints),
+            xferMove(procFaces),
+            xferMove(procCells)
         );
 
         // Create processor boundary patches
@@ -299,7 +299,7 @@ bool domainDecomposition::writeDecomposition()
         (
             curPatchSizes.size()
           + curProcessorPatchSizes.size(),
-            reinterpret_cast<polyPatch*>(NULL)
+            reinterpret_cast<polyPatch*>(0)
         );
 
         label nPatches = 0;
@@ -354,7 +354,7 @@ bool domainDecomposition::writeDecomposition()
             // Estimate size
             forAll(zonePoints, zoneI)
             {
-                zonePoints[zoneI].setSize(pz[zoneI].size() / nProcs_);
+                zonePoints[zoneI].setCapacity(pz[zoneI].size() / nProcs_);
             }
 
             // Use the pointToZone map to find out the single zone (if any),
@@ -423,8 +423,8 @@ bool domainDecomposition::writeDecomposition()
             {
                 label procSize = fz[zoneI].size() / nProcs_;
 
-                zoneFaces[zoneI].setSize(procSize);
-                zoneFaceFlips[zoneI].setSize(procSize);
+                zoneFaces[zoneI].setCapacity(procSize);
+                zoneFaceFlips[zoneI].setCapacity(procSize);
             }
 
             // Go through all the zoned faces and find out if they
@@ -514,7 +514,7 @@ bool domainDecomposition::writeDecomposition()
             // Estimate size
             forAll(zoneCells, zoneI)
             {
-                zoneCells[zoneI].setSize(cz[zoneI].size() / nProcs_);
+                zoneCells[zoneI].setCapacity(cz[zoneI].size() / nProcs_);
             }
 
             forAll (curCellLabels, celli)

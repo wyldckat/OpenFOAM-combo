@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,6 +42,7 @@ SourceFiles
 #ifndef entry_H
 #define entry_H
 
+#include "keyType.H"
 #include "IDLList.H"
 #include "fileName.H"
 #include "autoPtr.H"
@@ -70,13 +71,13 @@ class entry
     // Private data
 
         //- Keyword of entry
-        word keyword_;
+        keyType keyword_;
 
 
     // Private Member Functions
 
         //- Get the next valid keyword otherwise return false
-        static bool getKeyword(word& keyword, Istream& is);
+        static bool getKeyword(keyType& keyword, Istream& is);
 
 
 public:
@@ -84,27 +85,27 @@ public:
     // Constructors
 
         //- Construct from keyword
-        entry(const word& keyword);
+        entry(const keyType& keyword);
 
         //- Construct as copy
         entry(const entry&);
 
         //- Construct on freestore as copy with reference to the
         //  dictionary the copy belongs to
-        virtual Foam::autoPtr<entry> clone
+        virtual autoPtr<entry> clone
         (
             const dictionary& parentDict
         ) const = 0;
 
         //- Construct on freestore as copy
         //  Note: the parent directory is set to dictionary::null
-        virtual Foam::autoPtr<entry> clone() const;
+        virtual autoPtr<entry> clone() const;
 
         //- Construct from Istream and insert into dictionary
         static bool New(dictionary& parentDict, Istream& is);
 
         //- Construct on freestore from Istream and return
-        static Foam::autoPtr<entry> New(Istream& is);
+        static autoPtr<entry> New(Istream& is);
 
 
     // Destructor
@@ -116,13 +117,13 @@ public:
     // Member functions
 
         //- Return keyword
-        const word& keyword() const
+        const keyType& keyword() const
         {
             return keyword_;
         }
 
         //- Return non-const access to keyword
-        word& keyword()
+        keyType& keyword()
         {
             return keyword_;
         }

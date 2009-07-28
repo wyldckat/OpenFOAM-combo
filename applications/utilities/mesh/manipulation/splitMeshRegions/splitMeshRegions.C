@@ -23,8 +23,10 @@ License
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 Description
-    Splits mesh into multiple regions. Each region is defined as a domain
-    whose cells can all be reached by cell-face-cell walking without crossing
+    Splits mesh into multiple regions.
+
+    Each region is defined as a domain whose cells can all be reached by
+    cell-face-cell walking without crossing
     - boundary faces
     - additional faces from faceset (-blockedFaces faceSet).
     - any face inbetween differing cellZones (-cellZones)
@@ -57,6 +59,7 @@ Description
 #include "EdgeMap.H"
 #include "syncTools.H"
 #include "ReadFields.H"
+#include "directMappedWallPolyPatch.H"
 
 using namespace Foam;
 
@@ -627,7 +630,7 @@ autoPtr<mapPolyMesh> createRegionMesh
         Info<< "Testing:" << io.objectPath() << endl;
 
         if (!io.headerOk())
-        //if (!exists(io.objectPath()))
+        // if (!exists(io.objectPath()))
         {
             Info<< "Writing dummy " << regionName/io.name() << endl;
             dictionary dummyDict;
@@ -763,7 +766,8 @@ void createAndWriteRegion
     const regionSplit& cellRegion,
     const wordList& regionNames,
     const EdgeMap<label>& interfaceToPatch,
-    const label regionI
+    const label regionI,
+    const word& newMeshInstance
 )
 {
     Info<< "Creating mesh for region " << regionI
@@ -907,6 +911,7 @@ void createAndWriteRegion
 
     Info<< "Writing new mesh" << endl;
 
+    newMesh().setInstance(newMeshInstance);
     newMesh().write();
 
     // Write addressing files like decomposePar
@@ -1020,13 +1025,13 @@ EdgeMap<label> addRegionPatches
             (
                 mesh,
                 regionNames[e[0]] + "_to_" + regionNames[e[1]],
-                polyPatch::typeName
+                directMappedWallPolyPatch::typeName
             );
             addPatch
             (
                 mesh,
                 regionNames[e[1]] + "_to_" + regionNames[e[0]],
-                polyPatch::typeName
+                directMappedWallPolyPatch::typeName
             );
 
             Info<< "For interface between region " << e[0]
@@ -1098,7 +1103,6 @@ EdgeMap<label> addRegionPatches
 //}
 
 
-//XXXXXXXXX
 // Find region that covers most of cell zone
 label findCorrespondingRegion
 (
@@ -1150,7 +1154,6 @@ label findCorrespondingRegion
 
     return regionI;
 }
-//XXXXXXXXX
 
 
 //// Checks if cellZone has corresponding cellRegion.
@@ -1235,22 +1238,23 @@ int main(int argc, char *argv[])
 #   include "createTime.H"
     runTime.functionObjects().off();
 #   include "createMesh.H"
+    const word oldInstance = mesh.pointsInstance();
 
     word blockedFacesName;
-    if (args.options().found("blockedFaces"))
+    if (args.optionFound("blockedFaces"))
     {
-        blockedFacesName = args.options()["blockedFaces"];
+        blockedFacesName = args.option("blockedFaces");
         Info<< "Reading blocked internal faces from faceSet "
             << blockedFacesName << nl << endl;
     }
 
-    bool makeCellZones = args.options().found("makeCellZones");
-    bool largestOnly = args.options().found("largestOnly");
-    bool insidePoint = args.options().found("insidePoint");
-    bool useCellZones = args.options().found("cellZones");
-    bool overwrite = args.options().found("overwrite");
-    bool detectOnly = args.options().found("detectOnly");
-    bool sloppyCellZones = args.options().found("sloppyCellZones");
+    bool makeCellZones   = args.optionFound("makeCellZones");
+    bool largestOnly     = args.optionFound("largestOnly");
+    bool insidePoint     = args.optionFound("insidePoint");
+    bool useCellZones    = args.optionFound("cellZones");
+    bool overwrite       = args.optionFound("overwrite");
+    bool detectOnly      = args.optionFound("detectOnly");
+    bool sloppyCellZones = args.optionFound("sloppyCellZones");
 
     if (insidePoint && largestOnly)
     {
@@ -1712,12 +1716,16 @@ int main(int argc, char *argv[])
         if (!overwrite)
         {
             runTime++;
+            mesh.setInstance(runTime.timeName());
+        }
+        else
+        {
+            mesh.setInstance(oldInstance);
         }
 
         Info<< "Writing cellZones as new mesh to time " << runTime.timeName()
             << nl << endl;
 
-        mesh.setInstance(runTime.timeName());
         mesh.write();
 
 
@@ -1765,7 +1773,7 @@ int main(int argc, char *argv[])
 
         if (insidePoint)
         {
-            point insidePoint(IStringStream(args.options()["insidePoint"])());
+            point insidePoint(args.optionLookup("insidePoint")());
 
             label regionI = -1;
 
@@ -1800,7 +1808,8 @@ int main(int argc, char *argv[])
                 cellRegion,
                 regionNames,
                 interfaceToPatch,
-                regionI
+                regionI,
+                (overwrite ? oldInstance : runTime.timeName())
             );
         }
         else if (largestOnly)
@@ -1817,7 +1826,8 @@ int main(int argc, char *argv[])
                 cellRegion,
                 regionNames,
                 interfaceToPatch,
-                regionI
+                regionI,
+                (overwrite ? oldInstance : runTime.timeName())
             );
         }
         else
@@ -1835,7 +1845,8 @@ int main(int argc, char *argv[])
                     cellRegion,
                     regionNames,
                     interfaceToPatch,
-                    regionI
+                    regionI,
+                    (overwrite ? oldInstance : runTime.timeName())
                 );
             }
         }
