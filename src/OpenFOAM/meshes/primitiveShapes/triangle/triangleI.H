@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2008 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -376,16 +376,29 @@ inline pointHit triangle<Point, PointRef>::ray
         return ray(p, q1 - n, alg, intersection::VECTOR);
     }
 
+    // Intersection point with triangle plane
     point pInter;
+    // Is intersection point inside triangle
     bool hit;
     {
         // Reuse the fast ray intersection routine below in FULL_RAY
         // mode since the original intersection routine has rounding problems.
         pointHit fastInter = intersection(p, q1, intersection::FULL_RAY);
-        pInter = fastInter.rawPoint();
         hit = fastInter.hit();
+
+        if (hit)
+        {
+            pInter = fastInter.rawPoint();
+        }
+        else
+        {
+            // Calculate intersection of ray with triangle plane
+            vector v = a_ - p;
+            pInter = p + (q1&v)*q1;
+        }
     }
 
+    // Distance to intersection point
     scalar dist = q1 & (pInter - p);
 
     const scalar planarPointTol =
