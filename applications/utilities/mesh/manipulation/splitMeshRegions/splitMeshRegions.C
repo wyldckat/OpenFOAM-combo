@@ -396,7 +396,8 @@ void subsetVolFields
     const fvMesh& mesh,
     const fvMesh& subMesh,
     const labelList& cellMap,
-    const labelList& faceMap
+    const labelList& faceMap,
+    const labelHashSet& addedPatches
 )
 {
     const labelList patchMap(identity(mesh.boundaryMesh().size()));
@@ -427,14 +428,7 @@ void subsetVolFields
         //       get initialised.
         forAll(tSubFld().boundaryField(), patchI)
         {
-            const fvPatchField<typename GeoField::value_type>& pfld =
-                tSubFld().boundaryField()[patchI];
-
-            if
-            (
-                isA<calculatedFvPatchField<typename GeoField::value_type> >
-                (pfld)
-            )
+            if (addedPatches.found(patchI))
             {
                 tSubFld().boundaryField()[patchI] ==
                     pTraits<typename GeoField::value_type>::zero;
@@ -455,7 +449,8 @@ void subsetSurfaceFields
 (
     const fvMesh& mesh,
     const fvMesh& subMesh,
-    const labelList& faceMap
+    const labelList& faceMap,
+    const labelHashSet& addedPatches
 )
 {
     const labelList patchMap(identity(mesh.boundaryMesh().size()));
@@ -485,14 +480,7 @@ void subsetSurfaceFields
         //       get initialised.
         forAll(tSubFld().boundaryField(), patchI)
         {
-            const fvsPatchField<typename GeoField::value_type>& pfld =
-                tSubFld().boundaryField()[patchI];
-
-            if
-            (
-                isA<calculatedFvsPatchField<typename GeoField::value_type> >
-                (pfld)
-            )
+            if (addedPatches.found(patchI))
             {
                 tSubFld().boundaryField()[patchI] ==
                     pTraits<typename GeoField::value_type>::zero;
@@ -867,6 +855,15 @@ void createAndWriteRegion
         newMesh
     );
 
+
+    // Make map of all added patches
+    labelHashSet addedPatches(2*interfaceToPatch.size());
+    forAllConstIter(EdgeMap<label>, interfaceToPatch, iter)
+    {
+        addedPatches.insert(iter());
+        addedPatches.insert(iter()+1);
+    }
+
     Info<< "Mapping fields" << endl;
 
     // Map existing fields
@@ -878,66 +875,76 @@ void createAndWriteRegion
         mesh,
         newMesh(),
         map().cellMap(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetVolFields<volVectorField>
     (
         mesh,
         newMesh(),
         map().cellMap(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetVolFields<volSphericalTensorField>
     (
         mesh,
         newMesh(),
         map().cellMap(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetVolFields<volSymmTensorField>
     (
         mesh,
         newMesh(),
         map().cellMap(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetVolFields<volTensorField>
     (
         mesh,
         newMesh(),
         map().cellMap(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
 
     subsetSurfaceFields<surfaceScalarField>
     (
         mesh,
         newMesh(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetSurfaceFields<surfaceVectorField>
     (
         mesh,
         newMesh(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetSurfaceFields<surfaceSphericalTensorField>
     (
         mesh,
         newMesh(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetSurfaceFields<surfaceSymmTensorField>
     (
         mesh,
         newMesh(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
     subsetSurfaceFields<surfaceTensorField>
     (
         mesh,
         newMesh(),
-        map().faceMap()
+        map().faceMap(),
+        addedPatches
     );
 
 
