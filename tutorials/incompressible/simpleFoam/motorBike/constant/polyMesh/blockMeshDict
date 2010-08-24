@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7                                   |
-|   \\  /    A nd           | Web:      http://www.OpenFOAM.com               |
+|  \\    /   O peration     | Version:  1.7.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 
@@ -10,31 +10,36 @@ FoamFile
 {
     version         2.0;
     format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
     class           dictionary;
     object          blockMeshDict;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+
 convertToMeters 1;
 
 vertices
 (
-    ( 581321  4.78537e+06   930)
-    ( 582290  4.78537e+06   930)
-    ( 582290  4.78624e+06   930)
-    ( 581321  4.78624e+06   930)
-    ( 581321  4.78537e+06   1500)
-    ( 582290  4.78537e+06   1500)
-    ( 582290  4.78624e+06   1500)
-    ( 581321  4.78624e+06   1500)
-
+    (-5 -4 0)
+    (15 -4 0)
+    (15  4 0)
+    (-5  4 0)
+    (-5 -4 8)
+    (15 -4 8)
+    (15  4 8)
+    (-5  4 8)
 );
 
 blocks
-
 (
-    hex (0 1 2 3 4 5 6 7) (30 30 20) simpleGrading (1 1 1)
+    hex (0 1 2 3 4 5 6 7) (20 8 8) simpleGrading (1 1 1)
 );
 
 edges
@@ -43,32 +48,27 @@ edges
 
 patches
 (
-    patch outlet
+    patch frontAndBack
     (
-        (2 6 5 1)
-    )
-    patch sides
-    (
-        (1 5 4 0)
         (3 7 6 2)
+        (1 5 4 0)
     )
     patch inlet
     (
         (0 4 7 3)
     )
-    wall ground
+    patch outlet
+    (
+        (2 6 5 1)
+    )
+    wall lowerWall
     (
         (0 3 2 1)
     )
-    patch top
+    patch upperWall
     (
         (4 5 6 7)
     )
 );
-
-mergePatchPairs
-(
-);
-
 
 // ************************************************************************* //
