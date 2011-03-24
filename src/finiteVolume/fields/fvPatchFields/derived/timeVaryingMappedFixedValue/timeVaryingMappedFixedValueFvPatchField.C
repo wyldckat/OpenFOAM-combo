@@ -29,8 +29,8 @@ License
 #include "triSurface.H"
 #include "vector2D.H"
 #include "OFstream.H"
-#include "long.H"
 #include "AverageIOField.H"
+#include "Random.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -340,16 +340,24 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
     );
     vectorField& localVertices = tlocalVertices();
 
-    // Shear to avoid degenerate cases
+    const boundBox bb(localVertices, true);
+    const point bbMid(bb.midpoint());
+
+    if (debug)
+    {
+        Info<< "timeVaryingMappedFixedValueFvPatchField :"
+            << " Perturbing points with " << perturb_
+            << " fraction of a random position inside " << bb
+            << " to break any ties on regular meshes."
+            << nl << endl;
+    }
+
+    Random rndGen(123456);
     forAll(localVertices, i)
     {
-        point& pt = localVertices[i];
-        const scalar magPt = mag(pt);
-        const point nptDir = pt/magPt;
-        if (magPt > ROOTVSMALL)
-        {
-            pt += pow(magPt, 1.1 + Foam::sqrt(SMALL))*nptDir;
-        }
+        localVertices[i] +=
+            perturb_
+           *(rndGen.position(bb.min(), bb.max())-bbMid);
     }
 
     // Determine triangulation
@@ -362,26 +370,13 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
 
     triSurface s(triSurfaceTools::delaunay2D(localVertices2D));
 
-    tmp<pointField> tlocalFaceCentres
+    tmp<pointField> localFaceCentres
     (
         referenceCS().localPosition
         (
             this->patch().patch().faceCentres()
         )
     );
-
-    pointField& localFaceCentres = tlocalFaceCentres();
-    // Shear to avoid degenerate cases
-    forAll(localFaceCentres, i)
-    {
-        point& pt = localFaceCentres[i];
-        const scalar magPt = mag(pt);
-        const point nptDir = pt/magPt;
-        if (magPt > ROOTVSMALL)
-        {
-            pt += pow(magPt, 1.1 + Foam::sqrt(SMALL))*nptDir;
-        }
-    }
 
     if (debug)
     {
@@ -393,9 +388,9 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
         Pout<< "readSamplePoints :"
             << " Dumping face centres to " << str.name() << endl;
 
-        forAll(localFaceCentres, i)
+        forAll(localFaceCentres(), i)
         {
-            const point& p = localFaceCentres[i];
+            const point& p = localFaceCentres()[i];
             str<< "v " << p.x() << ' ' << p.y() << ' ' << p.z() << nl;
         }
     }
