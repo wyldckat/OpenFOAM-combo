@@ -6,6 +6,9 @@
       + turbulence->divDevReff(U)
     );
 
+    // Add resistance on the actuation disks
+    actuationDisks.addSu(UEqn());
+
     UEqn().relax();
 
     eqnResidual = solve
@@ -14,4 +17,3 @@
     ).initialResidual();
 
     maxResidual = max(eqnResidual, maxResidual);
-
