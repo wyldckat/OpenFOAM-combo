@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,7 +72,7 @@ void Foam::motionDirectionalDiffusivity::correct()
 
     if (!first)
     {
-        const volVectorField& cellMotionU = 
+        const volVectorField& cellMotionU =
             mesh.lookupObject<volVectorField>("cellMotionU");
 
         volVectorField D
@@ -90,7 +90,7 @@ void Foam::motionDirectionalDiffusivity::correct()
         );
         D.correctBoundaryConditions();
 
-        surfaceVectorField n = mesh.Sf()/mesh.magSf();
+        const surfaceVectorField n(mesh.Sf()/mesh.magSf());
         faceDiffusivity_ == (n & cmptMultiply(fvc::interpolate(D), n));
     }
     else

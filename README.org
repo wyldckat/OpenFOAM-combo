@@ -1,11 +1,11 @@
 #                            -*- mode: org; -*-
 #
-#+TITLE:     OpenFOAM README for version 1.7.1
+#+TITLE:     OpenFOAM README for version 2.0.0
 #+AUTHOR:                      OpenCFD Ltd.
-#+DATE:                     26th August 2010
+#+DATE:                     16th June 2011
 #+LINK:                   http://www.openfoam.com
 #+OPTIONS: author:nil ^:{}
-# Copyright (c) 2010 OpenCFD Ltd.
+# Copyright (c) 2011 OpenCFD Ltd.
 
 * About OpenFOAM
   OpenFOAM is a free, open source computational fluid dynamcis (CFD) software
@@ -30,6 +30,9 @@
     [[http://www.OpenFOAM.com/download/source.php]]
   + To install from the Git repository, see
     [[http://www.OpenFOAM.com/download/git.php]]
+
+* Release notes
+  [[http://www.OpenFOAM.com/version2.0.0]]
 
 * Documentation
   [[http://www.OpenFOAM.com/docs]]

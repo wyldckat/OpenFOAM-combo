@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,8 @@ void Foam::processorLduInterface::send
             commsType,
             neighbProcNo(),
             reinterpret_cast<const char*>(f.begin()),
-            f.byteSize()
+            f.byteSize(),
+            tag()
         );
     }
     else if (commsType == Pstream::nonBlocking)
@@ -55,7 +56,8 @@ void Foam::processorLduInterface::send
             commsType,
             neighbProcNo(),
             receiveBuf_.begin(),
-            receiveBuf_.size()
+            receiveBuf_.size(),
+            tag()
         );
 
         resizeBuf(sendBuf_, f.byteSize());
@@ -66,7 +68,8 @@ void Foam::processorLduInterface::send
             commsType,
             neighbProcNo(),
             sendBuf_.begin(),
-            f.byteSize()
+            f.byteSize(),
+            tag()
         );
     }
     else
@@ -92,7 +95,8 @@ void Foam::processorLduInterface::receive
             commsType,
             neighbProcNo(),
             reinterpret_cast<char*>(f.begin()),
-            f.byteSize()
+            f.byteSize(),
+            tag()
         );
     }
     else if (commsType == Pstream::nonBlocking)
@@ -146,7 +150,7 @@ void Foam::processorLduInterface::compressedSend
             fArray[i] = sArray[i] - slast[i%nCmpts];
         }
 
-        reinterpret_cast<Type&>(fArray[nm1]) = f[f.size() - 1];
+        reinterpret_cast<Type&>(fArray[nm1]) = f.last();
 
         if (commsType == Pstream::blocking || commsType == Pstream::scheduled)
         {
@@ -155,7 +159,8 @@ void Foam::processorLduInterface::compressedSend
                 commsType,
                 neighbProcNo(),
                 sendBuf_.begin(),
-                nBytes
+                nBytes,
+                tag()
             );
         }
         else if (commsType == Pstream::nonBlocking)
@@ -167,7 +172,8 @@ void Foam::processorLduInterface::compressedSend
                 commsType,
                 neighbProcNo(),
                 receiveBuf_.begin(),
-                receiveBuf_.size()
+                receiveBuf_.size(),
+                tag()
             );
 
             OPstream::write
@@ -175,7 +181,8 @@ void Foam::processorLduInterface::compressedSend
                 commsType,
                 neighbProcNo(),
                 sendBuf_.begin(),
-                nBytes
+                nBytes,
+                tag()
             );
         }
         else
@@ -215,7 +222,8 @@ void Foam::processorLduInterface::compressedReceive
                 commsType,
                 neighbProcNo(),
                 receiveBuf_.begin(),
-                nBytes
+                nBytes,
+                tag()
             );
         }
         else if (commsType != Pstream::nonBlocking)
@@ -227,7 +235,7 @@ void Foam::processorLduInterface::compressedReceive
 
         const float *fArray =
             reinterpret_cast<const float*>(receiveBuf_.begin());
-        f[f.size() - 1] = reinterpret_cast<const Type&>(fArray[nm1]);
+        f.last() = reinterpret_cast<const Type&>(fArray[nm1]);
         scalar *sArray = reinterpret_cast<scalar*>(f.begin());
         const scalar *slast = &sArray[nm1];
 

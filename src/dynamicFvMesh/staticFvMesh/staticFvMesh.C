@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,19 +28,18 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(staticFvMesh, 0);
+namespace Foam
+{
+    defineTypeNameAndDebug(staticFvMesh, 0);
+    addToRunTimeSelectionTable(dynamicFvMesh, staticFvMesh, IOobject);
+}
 
-addToRunTimeSelectionTable(dynamicFvMesh, staticFvMesh, IOobject);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-//- Construct from objectRegistry, and read/write options
-staticFvMesh::staticFvMesh(const IOobject& io)
+Foam::staticFvMesh::staticFvMesh(const IOobject& io)
 :
     dynamicFvMesh(io)
 {}
@@ -48,20 +47,16 @@ staticFvMesh::staticFvMesh(const IOobject& io)
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-staticFvMesh::~staticFvMesh()
+Foam::staticFvMesh::~staticFvMesh()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool staticFvMesh::update()
+bool Foam::staticFvMesh::update()
 {
     return false;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

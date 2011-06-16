@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,66 +40,96 @@ Usage
 
     - foamToVTK [OPTION]
 
-
-    @param -ascii \n
+    \param -ascii \n
     Write VTK data in ASCII format instead of binary.
 
-    @param -mesh \<name\>\n
+    \param -mesh \<name\>\n
     Use a different mesh name (instead of -region)
 
-    @param -fields \<fields\>\n
+    \param -fields \<fields\>\n
     Convert selected fields only. For example,
-    @verbatim
+    \verbatim
          -fields "( p T U )"
-    @endverbatim
+    \endverbatim
     The quoting is required to avoid shell expansions and to pass the
     information as a single argument.
 
-    @param -surfaceFields \n
+    \param -surfaceFields \n
     Write surfaceScalarFields (e.g., phi)
 
-    @param -cellSet \<name\>\n
-    @param -faceSet \<name\>\n
-    @param -pointSet \<name\>\n
+    \param -cellSet \<name\>\n
+    \param -faceSet \<name\>\n
+    \param -pointSet \<name\>\n
     Restrict conversion to the cellSet, faceSet or pointSet.
 
-    @param -nearCellValue \n
+    \param -nearCellValue \n
     Output cell value on patches instead of patch value itself
 
-    @param -noInternal \n
+    \param -noInternal \n
     Do not generate file for mesh, only for patches
 
-    @param -noPointValues \n
+    \param -noPointValues \n
     No pointFields
 
-    @param -noFaceZones \n
+    \param -noFaceZones \n
     No faceZones
 
-    @param -noLinks \n
+    \param -noLinks \n
     (in parallel) do not link processor files to master
 
-    @param -allPatches \n
+    \param poly \n
+    write polyhedral cells without tet/pyramid decomposition
+
+    \param -allPatches \n
     Combine all patches into a single file
 
-    @param -excludePatches \<patchNames\>\n
-    Specify patches to exclude. For example,
-    @verbatim
-         -excludePatches "( inlet_1 inlet_2 )"
-    @endverbatim
+    \param -excludePatches \<patchNames\>\n
+    Specify patches (wildcards) to exclude. For example,
+    \verbatim
+         -excludePatches '( inlet_1 inlet_2 "proc.*")'
+    \endverbatim
     The quoting is required to avoid shell expansions and to pass the
-    information as a single argument.
+    information as a single argument. The double quotes denote a regular
+    expression.
 
-    @param -useTimeName \n
+    \param -useTimeName \n
     use the time index in the VTK file name instead of the time index
 
 Note
     mesh subset is handled by vtkMesh. Slight inconsistency in
-    interpolation: on the internal field it interpolates the whole volfield
+    interpolation: on the internal field it interpolates the whole volField
     to the whole-mesh pointField and then selects only those values it
     needs for the subMesh (using the fvMeshSubset cellMap(), pointMap()
     functions). For the patches however it uses the
     fvMeshSubset.interpolate function to directly interpolate the
     whole-mesh values onto the subset patch.
+
+Note
+    new file format: \n
+    no automatic timestep recognition.
+    However can have .pvd file format which refers to time simulation
+    if XML *.vtu files are available:
+
+    \verbatim
+      <?xml version="1.0"?>
+      <VTKFile type="Collection"
+           version="0.1"
+           byte_order="LittleEndian"
+           compressor="vtkZLibDataCompressor">
+        <Collection>
+          <DataSet timestep="50" file="pitzDaily_2.vtu"/>
+          <DataSet timestep="100" file="pitzDaily_3.vtu"/>
+          <DataSet timestep="150" file="pitzDaily_4.vtu"/>
+          <DataSet timestep="200" file="pitzDaily_5.vtu"/>
+          <DataSet timestep="250" file="pitzDaily_6.vtu"/>
+          <DataSet timestep="300" file="pitzDaily_7.vtu"/>
+          <DataSet timestep="350" file="pitzDaily_8.vtu"/>
+          <DataSet timestep="400" file="pitzDaily_9.vtu"/>
+          <DataSet timestep="450" file="pitzDaily_10.vtu"/>
+          <DataSet timestep="500" file="pitzDaily_11.vtu"/>
+        </Collection>
+      </VTKFile>
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -115,6 +145,7 @@ Note
 #include "faceZoneMesh.H"
 #include "Cloud.H"
 #include "passiveParticle.H"
+#include "stringListOps.H"
 
 #include "vtkMesh.H"
 #include "readFields.H"
@@ -126,30 +157,23 @@ Note
 
 #include "writeFaceSet.H"
 #include "writePointSet.H"
-#include "writePatchGeom.H"
+#include "surfaceMeshWriter.H"
 #include "writeSurfFields.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-
-static const label VTK_TETRA      = 10;
-static const label VTK_PYRAMID    = 14;
-static const label VTK_WEDGE      = 13;
-static const label VTK_HEXAHEDRON = 12;
-
 
 template<class GeoField>
 void print(const char* msg, Ostream& os, const PtrList<GeoField>& flds)
 {
     if (flds.size())
     {
-        os << msg;
+        os  << msg;
         forAll(flds, i)
         {
-            os<< ' ' << flds[i].name();
+            os  << ' ' << flds[i].name();
         }
-        os << endl;
+        os  << endl;
     }
 }
 
@@ -158,16 +182,16 @@ void print(Ostream& os, const wordList& flds)
 {
     forAll(flds, i)
     {
-        os<< ' ' << flds[i];
+        os  << ' ' << flds[i];
     }
-    os << endl;
+    os  << endl;
 }
 
 
 labelList getSelectedPatches
 (
     const polyBoundaryMesh& patches,
-    const HashSet<word>& excludePatches
+    const List<wordRe>& excludePatches  //HashSet<word>& excludePatches
 )
 {
     DynamicList<label> patchIDs(patches.size());
@@ -180,14 +204,19 @@ labelList getSelectedPatches
 
         if
         (
-            isA<emptyPolyPatch>(pp)
-            || (Pstream::parRun() && isA<processorPolyPatch>(pp))
+            isType<emptyPolyPatch>(pp)
+            || (Pstream::parRun() && isType<processorPolyPatch>(pp))
         )
         {
             Info<< "    discarding empty/processor patch " << patchI
                 << " " << pp.name() << endl;
         }
-        else if (!excludePatches.found(pp.name()))
+        else if (findStrings(excludePatches, pp.name()))
+        {
+            Info<< "    excluding patch " << patchI
+                << " " << pp.name() << endl;
+        }
+        else
         {
             patchIDs.append(patchI);
             Info<< "    patch " << patchI << " " << pp.name() << endl;
@@ -197,39 +226,110 @@ labelList getSelectedPatches
 }
 
 
-
-
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 // Main program:
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "legacy VTK file format writer"
+    );
     timeSelector::addOptions();
 
-#   include "addRegionOption.H"
+    #include "addRegionOption.H"
+    argList::addOption
+    (
+        "fields",
+        "wordList",
+        "only convert the specified fields - eg '(p T U)'"
+    );
+    argList::addOption
+    (
+        "cellSet",
+        "name",
+        "convert a mesh subset corresponding to the specified cellSet"
+    );
+    argList::addOption
+    (
+        "faceSet",
+        "name",
+        "restrict conversion to the specified faceSet"
+    );
+    argList::addOption
+    (
+        "pointSet",
+        "name",
+        "restrict conversion to the specified pointSet"
+    );
+    argList::addBoolOption
+    (
+        "ascii",
+        "write in ASCII format instead of binary"
+    );
+    argList::addBoolOption
+    (
+        "poly",
+        "write polyhedral cells without tet/pyramid decomposition"
+    );
+    argList::addBoolOption
+    (
+        "surfaceFields",
+        "write surfaceScalarFields (e.g., phi)"
+    );
+    argList::addBoolOption
+    (
+        "nearCellValue",
+        "use cell value on patches instead of patch value itself"
+    );
+    argList::addBoolOption
+    (
+        "noInternal",
+        "do not generate file for mesh, only for patches"
+    );
+    argList::addBoolOption
+    (
+        "noPointValues",
+        "no pointFields"
+    );
+    argList::addBoolOption
+    (
+        "allPatches",
+        "combine all patches into a single file"
+    );
+    argList::addOption
+    (
+        "excludePatches",
+        "wordReList",
+        "a list of patches to exclude - eg '( inlet \".*Wall\" )' "
+    );
+    argList::addBoolOption
+    (
+        "noFaceZones",
+        "no faceZones"
+    );
+    argList::addBoolOption
+    (
+        "noLinks",
+        "don't link processor VTK files - parallel only"
+    );
+    argList::addBoolOption
+    (
+        "useTimeName",
+        "use the time name instead of the time index when naming the files"
+    );
 
-    argList::validOptions.insert("fields", "fields");
-    argList::validOptions.insert("cellSet", "cellSet name");
-    argList::validOptions.insert("faceSet", "faceSet name");
-    argList::validOptions.insert("pointSet", "pointSet name");
-    argList::validOptions.insert("ascii","");
-    argList::validOptions.insert("surfaceFields","");
-    argList::validOptions.insert("nearCellValue","");
-    argList::validOptions.insert("noInternal","");
-    argList::validOptions.insert("noPointValues","");
-    argList::validOptions.insert("allPatches","");
-    argList::validOptions.insert("excludePatches","patches to exclude");
-    argList::validOptions.insert("noFaceZones","");
-    argList::validOptions.insert("noLinks","");
-    argList::validOptions.insert("useTimeName","");
+    #include "setRootCase.H"
+    #include "createTime.H"
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    const bool doWriteInternal = !args.optionFound("noInternal");
+    const bool doFaceZones     = !args.optionFound("noFaceZones");
+    const bool doLinks         = !args.optionFound("noLinks");
+    const bool binary          = !args.optionFound("ascii");
+    const bool useTimeName     = args.optionFound("useTimeName");
 
-    bool doWriteInternal = !args.optionFound("noInternal");
-    bool doFaceZones     = !args.optionFound("noFaceZones");
-    bool doLinks         = !args.optionFound("noLinks");
-    bool binary          = !args.optionFound("ascii");
-    bool useTimeName     = args.optionFound("useTimeName");
+    // decomposition of polyhedral cells into tets/pyramids cells
+    vtkTopo::decomposePoly     = !args.optionFound("poly");
 
     if (binary && (sizeof(floatScalar) != 4 || sizeof(label) != 4))
     {
@@ -239,7 +339,7 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
-    bool nearCellValue = args.optionFound("nearCellValue");
+    const bool nearCellValue = args.optionFound("nearCellValue");
 
     if (nearCellValue)
     {
@@ -248,7 +348,7 @@ int main(int argc, char *argv[])
             << nl << endl;
     }
 
-    bool noPointValues = args.optionFound("noPointValues");
+    const bool noPointValues = args.optionFound("noPointValues");
 
     if (noPointValues)
     {
@@ -256,9 +356,9 @@ int main(int argc, char *argv[])
             << "Outputting cell values only" << nl << endl;
     }
 
-    bool allPatches = args.optionFound("allPatches");
+    const bool allPatches = args.optionFound("allPatches");
 
-    HashSet<word> excludePatches;
+    List<wordRe> excludePatches;
     if (args.optionFound("excludePatches"))
     {
         args.optionLookup("excludePatches")() >> excludePatches;
@@ -267,28 +367,21 @@ int main(int argc, char *argv[])
     }
 
     word cellSetName;
-    string vtkName;
+    string vtkName = runTime.caseName();
 
-    if (args.optionFound("cellSet"))
+    if (args.optionReadIfPresent("cellSet", cellSetName))
     {
-        cellSetName = args.option("cellSet");
         vtkName = cellSetName;
     }
     else if (Pstream::parRun())
     {
         // Strip off leading casename, leaving just processor_DDD ending.
-        vtkName = runTime.caseName();
-
         string::size_type i = vtkName.rfind("processor");
 
         if (i != string::npos)
         {
             vtkName = vtkName.substr(i);
         }
-    }
-    else
-    {
-        vtkName = runTime.caseName();
     }
 
 
@@ -377,15 +470,8 @@ int main(int argc, char *argv[])
 
         Info<< "Time: " << runTime.timeName() << endl;
 
-        word timeDesc = "";
-        if (useTimeName)
-        {
-            timeDesc = runTime.timeName();
-        }
-        else
-        {
-            timeDesc = name(runTime.timeIndex());
-        }
+        word timeDesc =
+            useTimeName ? runTime.timeName() : Foam::name(runTime.timeIndex());
 
         // Check for new polyMesh/ and update mesh, fvMeshSubset and cell
         // decomposition.
@@ -407,7 +493,7 @@ int main(int argc, char *argv[])
         if (args.optionFound("faceSet"))
         {
             // Load the faceSet
-            faceSet set(mesh, args.option("faceSet"));
+            faceSet set(mesh, args["faceSet"]);
 
             // Filename as if patch with same name.
             mkDir(fvPath/set.name());
@@ -430,7 +516,7 @@ int main(int argc, char *argv[])
         if (args.optionFound("pointSet"))
         {
             // Load the pointSet
-            pointSet set(mesh, args.option("pointSet"));
+            pointSet set(mesh, args["pointSet"]);
 
             // Filename as if patch with same name.
             mkDir(fvPath/set.name());
@@ -455,10 +541,7 @@ int main(int argc, char *argv[])
         IOobjectList objects(mesh, runTime.timeName());
 
         HashSet<word> selectedFields;
-        if (args.optionFound("fields"))
-        {
-            args.optionLookup("fields")() >> selectedFields;
-        }
+        args.optionReadIfPresent("fields", selectedFields);
 
         // Construct the vol fields (on the original mesh if subsetted)
 
@@ -495,9 +578,9 @@ int main(int argc, char *argv[])
         if (noPointValues)
         {
             Info<< "    pointScalarFields : switched off"
-                << " (\"-noPointValues\" option)\n";
+                << " (\"-noPointValues\" (at your option)\n";
             Info<< "    pointVectorFields : switched off"
-                << " (\"-noPointValues\" option)\n";
+                << " (\"-noPointValues\" (at your option)\n";
         }
 
         PtrList<pointScalarField> psf;
@@ -784,7 +867,7 @@ int main(int argc, char *argv[])
             {
                 const polyPatch& pp = patches[patchI];
 
-                if (!excludePatches.found(pp.name()))
+                if (!findStrings(excludePatches, pp.name()))
                 {
                     mkDir(fvPath/pp.name());
 
@@ -880,20 +963,42 @@ int main(int argc, char *argv[])
 
         if (doFaceZones)
         {
+            PtrList<surfaceScalarField> ssf;
+            readFields
+            (
+                vMesh,
+                vMesh.baseMesh(),
+                objects,
+                selectedFields,
+                ssf
+            );
+            print("    surfScalarFields  :", Info, ssf);
+
+            PtrList<surfaceVectorField> svf;
+            readFields
+            (
+                vMesh,
+                vMesh.baseMesh(),
+                objects,
+                selectedFields,
+                svf
+            );
+            print("    surfVectorFields  :", Info, svf);
+
             const faceZoneMesh& zones = mesh.faceZones();
 
             forAll(zones, zoneI)
             {
-                const faceZone& pp = zones[zoneI];
+                const faceZone& fz = zones[zoneI];
 
-                mkDir(fvPath/pp.name());
+                mkDir(fvPath/fz.name());
 
                 fileName patchFileName;
 
                 if (vMesh.useSubMesh())
                 {
                     patchFileName =
-                        fvPath/pp.name()/cellSetName
+                        fvPath/fz.name()/cellSetName
                       + "_"
                       + timeDesc
                       + ".vtk";
@@ -901,7 +1006,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     patchFileName =
-                        fvPath/pp.name()/pp.name()
+                        fvPath/fz.name()/fz.name()
                       + "_"
                       + timeDesc
                       + ".vtk";
@@ -909,18 +1014,31 @@ int main(int argc, char *argv[])
 
                 Info<< "    FaceZone  : " << patchFileName << endl;
 
-                std::ofstream str(patchFileName.c_str());
-
-                writeFuns::writeHeader(str, binary, pp.name());
-                str << "DATASET POLYDATA" << std::endl;
-
-                writePatchGeom
+                indirectPrimitivePatch pp
                 (
-                    binary,
-                    pp().localFaces(),
-                    pp().localPoints(),
-                    str
+                    IndirectList<face>(mesh.faces(), fz),
+                    mesh.points()
                 );
+
+                surfaceMeshWriter writer
+                (
+                    vMesh,
+                    binary,
+                    pp,
+                    fz.name(),
+                    patchFileName
+                );
+
+                // Number of fields
+                writeFuns::writeCellDataHeader
+                (
+                    writer.os(),
+                    pp.size(),
+                    ssf.size()+svf.size()
+                );
+
+                writer.write(ssf);
+                writer.write(svf);
             }
         }
 

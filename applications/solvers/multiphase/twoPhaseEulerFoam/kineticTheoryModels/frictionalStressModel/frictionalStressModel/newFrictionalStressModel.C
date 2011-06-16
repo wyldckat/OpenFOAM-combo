@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,9 +34,9 @@ Foam::autoPtr<Foam::frictionalStressModel> Foam::frictionalStressModel::New
 {
     word frictionalStressModelType(dict.lookup("frictionalStressModel"));
 
-    Info<< "Selecting frictionalStressModel " 
+    Info<< "Selecting frictionalStressModel "
         << frictionalStressModelType << endl;
-        
+
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(frictionalStressModelType);
 

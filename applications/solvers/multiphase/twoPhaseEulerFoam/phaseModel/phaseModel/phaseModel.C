@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -106,7 +106,7 @@ Foam::phaseModel::phaseModel
             calculatedFvPatchScalarField::typeName
         );
 
-        for (label i=0; i<U_.boundaryField().size(); i++)
+        forAll(U_.boundaryField(), i)
         {
             if (isA<fixedValueFvPatchVectorField>(U_.boundaryField()[i]))
             {

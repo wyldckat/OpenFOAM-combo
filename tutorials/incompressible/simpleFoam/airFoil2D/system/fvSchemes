@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -30,9 +30,9 @@ gradSchemes
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss linearUpwind Gauss linear;
-    div(phi,nuTilda) Gauss linearUpwind Gauss linear;
-    div((nuEff*dev(grad(U).T()))) Gauss linear;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    div(phi,nuTilda) Gauss linearUpwind grad(nuTilda);
+    div((nuEff*dev(T(grad(U))))) Gauss linear;
 }
 
 laplacianSchemes

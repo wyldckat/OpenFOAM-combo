@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -152,6 +152,12 @@ castellatedMeshControls
     // NOTE: This point should never be on a face, always inside a cell, even
     // after refinement.
     locationInMesh (3 3 0.43);
+
+
+    // Whether any faceZones (as specified in the refinementSurfaces)
+    // are only on the boundary of corresponding cellZones or also allow
+    // free-standing zone faces. Not used if there are no faceZones.
+    allowFreeStandingZoneFaces true;
 }
 
 
@@ -169,11 +175,16 @@ snapControls
     tolerance 4.0;
 
     //- Number of mesh displacement relaxation iterations.
-    nSolveIter 30;
+    nSolveIter 0;
 
     //- Maximum number of snapping relaxation iterations. Should stop
     //  before upon reaching a correct mesh.
     nRelaxIter 5;
+
+    //- Highly experimental and wip: number of feature edge snapping
+    //  iterations. Leave out altogether to disable.
+    //  Do not use here since mesh resolution too low and baffles present
+    //nFeatureSnapIter 10;
 }
 
 
@@ -188,275 +199,7 @@ addLayersControls
     // Per final patch (so not geometry!) the layer information
     layers
     {
-        minZ
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frt-fairing:001%1
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_windshield:002%2
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-rim:005%5
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-rim:010%10
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-rim:011%11
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-brake-disk:012%12
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frame:016-shadow%13
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-susp:014%14
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-susp:014-shadow%15
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frame:016%16
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-rim:005-shadow%17
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-chain-hub:022%22
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rearseat%24
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frt-fairing%25
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_windshield%26
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_headlights%27
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_driversseat%28
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-body%29
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fuel-tank%30
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_exhaust%31
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-rim%32
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-mud-guard%33
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-rim%34
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-brake-disk%35
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-brake-caliper%36
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-tyre%37
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_hbars%38
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-forks%39
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_chain%40
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-tyre%41
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_square-dial%42
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_round-dial%43
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_dial-holder%44
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-susp%45
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-brake-lights%46
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-light-bracket%47
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frame%48
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-mud-guard%49
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-susp-spring-damp%50
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fairing-inner-plate%51
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_clutch-housing%52
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_radiator%53
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_water-pipe%54
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_water-pump%55
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_engine%56
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-shock-link%57
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-brake-fluid-pot-bracket%58
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-brake-fluid-pot%59
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_footpeg%60
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-chain-hub%61
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-brake-caliper%62
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rider-helmet%65
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rider-visor%66
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rider-boots%67
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rider-gloves%68
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rider-body%69
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frame:0%70
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_frt-fairing:001-shadow%74
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_windshield-shadow%75
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-mud-guard-shadow%81
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_fr-wh-brake-disk-shadow%83
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-mud-guard-shadow%84
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-susp-spring-damp-shadow%85
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_radiator-shadow%86
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-shock-link-shadow%87
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rear-brake-fluid-pot-bracket-shadow%88
-        {
-            nSurfaceLayers 1;
-        }
-        motorBike_rr-wh-chain-hub-shadow%89
+        "(lowerWall|motorBike).*"
         {
             nSurfaceLayers 1;
         }
@@ -466,6 +209,9 @@ addLayersControls
     expansionRatio 1.0;
 
     //- Wanted thickness of final added cell layer. If multiple layers
+    //  is the
+    //  thickness of the layer furthest away from the wall.
+    //  Relative to undistorted size of cell outside layer.
     //  is the thickness of the layer furthest away from the wall.
     //  See relativeSizes parameter.
     finalLayerThickness 0.3;
@@ -478,8 +224,8 @@ addLayersControls
     //- If points get not extruded do nGrow layers of connected faces that are
     //  also not grown. This helps convergence of the layer addition process
     //  close to features.
-    nGrow 1;
-
+    // Note: changed(corrected) w.r.t 17x! (didn't do anything in 17x)
+    nGrow 0;
 
     // Advanced settings
 
@@ -508,12 +254,17 @@ addLayersControls
     maxThicknessToMedialRatio 0.3;
 
     // Angle used to pick up medial axis points
-    minMedianAxisAngle 130;
+    // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
+    minMedianAxisAngle 90;
+
 
     // Create buffer region for new layer terminations
     nBufferCellsNoExtrude 0;
 
-    // Overall max number of layer addition iterations
+
+    // Overall max number of layer addition iterations. The mesher will exit
+    // if it reaches this number of iterations; possibly with an illegal
+    // mesh.
     nLayerIter 50;
 }
 
@@ -535,13 +286,20 @@ meshQualityControls
     //  Set to 180 to disable.
     maxConcave 80;
 
-    //- Minimum projected area v.s. actual area. Set to -1 to disable.
-    minFlatness 0.5;
-
     //- Minimum pyramid volume. Is absolute volume of cell pyramid.
     //  Set to a sensible fraction of the smallest cell volume expected.
     //  Set to very negative number (e.g. -1E30) to disable.
     minVol 1e-13;
+
+    //- Minimum quality of the tet formed by the face-centre
+    //  and variable base point minimum decomposition triangles and
+    //  the cell centre. This has to be a positive number for tracking
+    //  to work. Set to very negative number (e.g. -1E30) to
+    //  disable.
+    //     <0 = inside out tet,
+    //      0 = flat tet
+    //      1 = regular tet
+    minTetQuality 1e-30;
 
     //- Minimum face area. Set to <0 to disable.
     minArea -1;
@@ -585,7 +343,7 @@ debug 0;
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.
-mergeTolerance 1E-6;
+mergeTolerance 1e-6;
 
 
 // ************************************************************************* //

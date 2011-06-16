@@ -54,7 +54,7 @@ mutLowReWallFunctionFvPatchScalarField::mutLowReWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mutWallFunctionFvPatchScalarField(p, iF)
+    mutkWallFunctionFvPatchScalarField(p, iF)
 {}
 
 
@@ -66,7 +66,7 @@ mutLowReWallFunctionFvPatchScalarField::mutLowReWallFunctionFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    mutWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
+    mutkWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
 {}
 
 
@@ -77,7 +77,7 @@ mutLowReWallFunctionFvPatchScalarField::mutLowReWallFunctionFvPatchScalarField
     const dictionary& dict
 )
 :
-    mutWallFunctionFvPatchScalarField(p, iF, dict)
+    mutkWallFunctionFvPatchScalarField(p, iF, dict)
 {}
 
 
@@ -86,7 +86,7 @@ mutLowReWallFunctionFvPatchScalarField::mutLowReWallFunctionFvPatchScalarField
     const mutLowReWallFunctionFvPatchScalarField& mlrwfpsf
 )
 :
-    mutWallFunctionFvPatchScalarField(mlrwfpsf)
+    mutkWallFunctionFvPatchScalarField(mlrwfpsf)
 {}
 
 
@@ -96,7 +96,7 @@ mutLowReWallFunctionFvPatchScalarField::mutLowReWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mutWallFunctionFvPatchScalarField(mlrwfpsf, iF)
+    mutkWallFunctionFvPatchScalarField(mlrwfpsf, iF)
 {}
 
 

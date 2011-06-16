@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -156,7 +156,7 @@ Foam::sampledThresholdCellFaces::sampledThresholdCellFaces
     fieldName_(dict.lookup("field")),
     lowerThreshold_(dict.lookupOrDefault<scalar>("lowerLimit", -VGREAT)),
     upperThreshold_(dict.lookupOrDefault<scalar>("upperLimit", VGREAT)),
-    zoneName_(word::null),
+    zoneKey_(keyType::null),
     triangulate_(dict.lookupOrDefault("triangulate", false)),
     prevTimeIndex_(-1),
     meshCells_(0)
@@ -171,16 +171,12 @@ Foam::sampledThresholdCellFaces::sampledThresholdCellFaces
             << abort(FatalError);
     }
 
-
-//    dict.readIfPresent("zone", zoneName_);
+//    dict.readIfPresent("zone", zoneKey_);
 //
-//    if (debug && zoneName_.size())
+//    if (debug && zoneKey_.size() && mesh.cellZones().findZoneID(zoneKey_) < 0)
 //    {
-//        if (mesh.cellZones().findZoneID(zoneName_) < 0)
-//        {
-//            Info<< "cellZone \"" << zoneName_
-//                << "\" not found - using entire mesh" << endl;
-//        }
+//        Info<< "cellZone " << zoneKey_
+//            << " not found - using entire mesh" << endl;
 //    }
 }
 
@@ -221,8 +217,7 @@ bool Foam::sampledThresholdCellFaces::update()
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::sampledThresholdCellFaces::sample
+Foam::tmp<Foam::scalarField> Foam::sampledThresholdCellFaces::sample
 (
     const volScalarField& vField
 ) const
@@ -231,8 +226,7 @@ Foam::sampledThresholdCellFaces::sample
 }
 
 
-Foam::tmp<Foam::vectorField>
-Foam::sampledThresholdCellFaces::sample
+Foam::tmp<Foam::vectorField> Foam::sampledThresholdCellFaces::sample
 (
     const volVectorField& vField
 ) const
@@ -241,8 +235,7 @@ Foam::sampledThresholdCellFaces::sample
 }
 
 
-Foam::tmp<Foam::sphericalTensorField>
-Foam::sampledThresholdCellFaces::sample
+Foam::tmp<Foam::sphericalTensorField> Foam::sampledThresholdCellFaces::sample
 (
     const volSphericalTensorField& vField
 ) const
@@ -251,8 +244,7 @@ Foam::sampledThresholdCellFaces::sample
 }
 
 
-Foam::tmp<Foam::symmTensorField>
-Foam::sampledThresholdCellFaces::sample
+Foam::tmp<Foam::symmTensorField> Foam::sampledThresholdCellFaces::sample
 (
     const volSymmTensorField& vField
 ) const
@@ -261,8 +253,7 @@ Foam::sampledThresholdCellFaces::sample
 }
 
 
-Foam::tmp<Foam::tensorField>
-Foam::sampledThresholdCellFaces::sample
+Foam::tmp<Foam::tensorField> Foam::sampledThresholdCellFaces::sample
 (
     const volTensorField& vField
 ) const
@@ -271,8 +262,7 @@ Foam::sampledThresholdCellFaces::sample
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::sampledThresholdCellFaces::interpolate
+Foam::tmp<Foam::scalarField> Foam::sampledThresholdCellFaces::interpolate
 (
     const interpolation<scalar>& interpolator
 ) const
@@ -281,8 +271,7 @@ Foam::sampledThresholdCellFaces::interpolate
 }
 
 
-Foam::tmp<Foam::vectorField>
-Foam::sampledThresholdCellFaces::interpolate
+Foam::tmp<Foam::vectorField> Foam::sampledThresholdCellFaces::interpolate
 (
     const interpolation<vector>& interpolator
 ) const
@@ -300,8 +289,7 @@ Foam::sampledThresholdCellFaces::interpolate
 }
 
 
-Foam::tmp<Foam::symmTensorField>
-Foam::sampledThresholdCellFaces::interpolate
+Foam::tmp<Foam::symmTensorField> Foam::sampledThresholdCellFaces::interpolate
 (
     const interpolation<symmTensor>& interpolator
 ) const
@@ -310,8 +298,7 @@ Foam::sampledThresholdCellFaces::interpolate
 }
 
 
-Foam::tmp<Foam::tensorField>
-Foam::sampledThresholdCellFaces::interpolate
+Foam::tmp<Foam::tensorField> Foam::sampledThresholdCellFaces::interpolate
 (
     const interpolation<tensor>& interpolator
 ) const

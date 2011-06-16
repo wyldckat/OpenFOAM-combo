@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Description
     communication schedule (usually linear-to-master or tree-to-master).
     The gathered data will be a list with element procID the data from processor
     procID. Before calling every processor should insert its value into
-    Values[Pstream::myProcNo()].
+    Values[UPstream::myProcNo()].
     Note: after gather every processor only knows its own data and that of the
     processors below it. Only the 'master' of the communication schedule holds
     a fully filled List. Use scatter to distribute the data.
@@ -47,26 +47,26 @@ namespace Foam
 template <class T>
 void Pstream::gatherList
 (
-    const List<Pstream::commsStruct>& comms,
+    const List<UPstream::commsStruct>& comms,
     List<T>& Values
 )
 {
-    if (Pstream::parRun())
+    if (UPstream::parRun())
     {
-        if (Values.size() != Pstream::nProcs())
+        if (Values.size() != UPstream::nProcs())
         {
             FatalErrorIn
             (
-                "Pstream::gatherList(const List<Pstream::commsStruct>&"
+                "UPstream::gatherList(const List<UPstream::commsStruct>&"
                 ", List<T>)"
             )   << "Size of list:" << Values.size()
                 << " does not equal the number of processors:"
-                << Pstream::nProcs()
+                << UPstream::nProcs()
                 << Foam::abort(FatalError);
         }
 
         // Get my communication order
-        const commsStruct& myComm = comms[Pstream::myProcNo()];
+        const commsStruct& myComm = comms[UPstream::myProcNo()];
 
         // Receive from my downstairs neighbours
         forAll(myComm.below(), belowI)
@@ -78,9 +78,9 @@ void Pstream::gatherList
             {
                 List<T> receivedValues(belowLeaves.size() + 1);
 
-                IPstream::read
+                UIPstream::read
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     belowID,
                     reinterpret_cast<char*>(receivedValues.begin()),
                     receivedValues.byteSize()
@@ -95,7 +95,7 @@ void Pstream::gatherList
             }
             else
             {
-                IPstream fromBelow(Pstream::scheduled, belowID);
+                IPstream fromBelow(UPstream::scheduled, belowID);
                 fromBelow >> Values[belowID];
 
                 if (debug & 2)
@@ -131,14 +131,14 @@ void Pstream::gatherList
             if (debug & 2)
             {
                 Pout<< " sending to " << myComm.above()
-                    << " data from me:" << Pstream::myProcNo()
-                    << " data:" << Values[Pstream::myProcNo()] << endl;
+                    << " data from me:" << UPstream::myProcNo()
+                    << " data:" << Values[UPstream::myProcNo()] << endl;
             }
 
             if (contiguous<T>())
             {
                 List<T> sendingValues(belowLeaves.size() + 1);
-                sendingValues[0] = Values[Pstream::myProcNo()];
+                sendingValues[0] = Values[UPstream::myProcNo()];
 
                 forAll(belowLeaves, leafI)
                 {
@@ -147,7 +147,7 @@ void Pstream::gatherList
 
                 OPstream::write
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.above(),
                     reinterpret_cast<const char*>(sendingValues.begin()),
                     sendingValues.byteSize()
@@ -155,8 +155,8 @@ void Pstream::gatherList
             }
             else
             {
-                OPstream toAbove(Pstream::scheduled, myComm.above());
-                toAbove << Values[Pstream::myProcNo()];
+                OPstream toAbove(UPstream::scheduled, myComm.above());
+                toAbove << Values[UPstream::myProcNo()];
 
                 forAll(belowLeaves, leafI)
                 {
@@ -179,13 +179,13 @@ void Pstream::gatherList
 template <class T>
 void Pstream::gatherList(List<T>& Values)
 {
-    if (Pstream::nProcs() < Pstream::nProcsSimpleSum)
+    if (UPstream::nProcs() < UPstream::nProcsSimpleSum)
     {
-        gatherList(Pstream::linearCommunication(), Values);
+        gatherList(UPstream::linearCommunication(), Values);
     }
     else
     {
-        gatherList(Pstream::treeCommunication(), Values);
+        gatherList(UPstream::treeCommunication(), Values);
     }
 }
 
@@ -193,26 +193,26 @@ void Pstream::gatherList(List<T>& Values)
 template <class T>
 void Pstream::scatterList
 (
-    const List<Pstream::commsStruct>& comms,
+    const List<UPstream::commsStruct>& comms,
     List<T>& Values
 )
 {
-    if (Pstream::parRun())
+    if (UPstream::parRun())
     {
-        if (Values.size() != Pstream::nProcs())
+        if (Values.size() != UPstream::nProcs())
         {
             FatalErrorIn
             (
-                "Pstream::scatterList(const List<Pstream::commsStruct>&"
+                "UPstream::scatterList(const List<UPstream::commsStruct>&"
                 ", List<T>)"
             )   << "Size of list:" << Values.size()
                 << " does not equal the number of processors:"
-                << Pstream::nProcs()
+                << UPstream::nProcs()
                 << Foam::abort(FatalError);
         }
 
         // Get my communication order
-        const commsStruct& myComm = comms[Pstream::myProcNo()];
+        const commsStruct& myComm = comms[UPstream::myProcNo()];
 
         // Reveive from up
         if (myComm.above() != -1)
@@ -223,9 +223,9 @@ void Pstream::scatterList
             {
                 List<T> receivedValues(notBelowLeaves.size());
 
-                IPstream::read
+                UIPstream::read
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.above(),
                     reinterpret_cast<char*>(receivedValues.begin()),
                     receivedValues.byteSize()
@@ -238,7 +238,7 @@ void Pstream::scatterList
             }
             else
             {
-                IPstream fromAbove(Pstream::scheduled, myComm.above());
+                IPstream fromAbove(UPstream::scheduled, myComm.above());
 
                 forAll(notBelowLeaves, leafI)
                 {
@@ -272,7 +272,7 @@ void Pstream::scatterList
 
                 OPstream::write
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     belowID,
                     reinterpret_cast<const char*>(sendingValues.begin()),
                     sendingValues.byteSize()
@@ -280,7 +280,7 @@ void Pstream::scatterList
             }
             else
             {
-                OPstream toBelow(Pstream::scheduled, belowID);
+                OPstream toBelow(UPstream::scheduled, belowID);
 
                 // Send data destined for all other processors below belowID
                 forAll(notBelowLeaves, leafI)
@@ -304,13 +304,13 @@ void Pstream::scatterList
 template <class T>
 void Pstream::scatterList(List<T>& Values)
 {
-    if (Pstream::nProcs() < Pstream::nProcsSimpleSum)
+    if (UPstream::nProcs() < UPstream::nProcsSimpleSum)
     {
-        scatterList(Pstream::linearCommunication(), Values);
+        scatterList(UPstream::linearCommunication(), Values);
     }
     else
     {
-        scatterList(Pstream::treeCommunication(), Values);
+        scatterList(UPstream::treeCommunication(), Values);
     }
 }
 

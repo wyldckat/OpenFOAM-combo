@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,47 +28,44 @@ License
 #include "noEvaporation.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noEvaporation, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        evaporationModel,
+        noEvaporation,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(noEvaporation, 0);
-
-addToRunTimeSelectionTable
-(
-    evaporationModel,
-    noEvaporation,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
-noEvaporation::noEvaporation
-(
-    const dictionary& dict
-)
+Foam::noEvaporation::noEvaporation( const dictionary& dict)
 :
     evaporationModel(dict)
 {}
 
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noEvaporation::~noEvaporation()
+Foam::noEvaporation::~noEvaporation()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool noEvaporation::evaporation() const
+bool Foam::noEvaporation::evaporation() const
 {
     return false;
 }
 
-scalar noEvaporation::Sh
+
+Foam::scalar Foam::noEvaporation::Sh
 (
     const scalar,
     const scalar
@@ -77,7 +74,8 @@ scalar noEvaporation::Sh
     return 0.0;
 }
 
-scalar noEvaporation::relaxationTime
+
+Foam::scalar Foam::noEvaporation::relaxationTime
 (
     const scalar,
     const scalar,
@@ -96,7 +94,7 @@ scalar noEvaporation::relaxationTime
 }
 
 
-scalar noEvaporation::boilingTime
+Foam::scalar Foam::noEvaporation::boilingTime
 (
     const scalar,
     const scalar,
@@ -119,13 +117,5 @@ scalar noEvaporation::boilingTime
     return GREAT;
 }
 
-inline label noEvaporation::nEvapIter() const
-{
-    return 0;
-}
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

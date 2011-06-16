@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2010-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2010-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,8 +33,10 @@ static const char* notImplementedMessage =
 "\n"
 "Please install metis and make sure that libmetis.so is in your "
 "LD_LIBRARY_PATH.\n"
-"The metisDecomp library can then be built in $FOAM_SRC/decompositionMethods/"
-"metisDecomp\n";
+"The metisDecomp library can then be built from "
+"$FOAM_SRC/parallel/decompose/metisDecomp and dynamically loading or linking"
+" this library will add metis as a decomposition method.\n"
+"Please be aware that there are license restrictions on using Metis.";
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -46,7 +48,7 @@ namespace Foam
     (
         decompositionMethod,
         metisDecomp,
-        dictionaryMesh
+        dictionary
     );
 }
 
@@ -80,12 +82,10 @@ Foam::label Foam::metisDecomp::decompose
 
 Foam::metisDecomp::metisDecomp
 (
-    const dictionary& decompositionDict,
-    const polyMesh& mesh
+    const dictionary& decompositionDict
 )
 :
-    decompositionMethod(decompositionDict),
-    mesh_(mesh)
+    decompositionMethod(decompositionDict)
 {}
 
 
@@ -93,6 +93,7 @@ Foam::metisDecomp::metisDecomp
 
 Foam::labelList Foam::metisDecomp::decompose
 (
+    const polyMesh& mesh,
     const pointField& points,
     const scalarField& pointWeights
 )
@@ -112,6 +113,7 @@ Foam::labelList Foam::metisDecomp::decompose
 
 Foam::labelList Foam::metisDecomp::decompose
 (
+    const polyMesh& mesh,
     const labelList& agglom,
     const pointField& agglomPoints,
     const scalarField& agglomWeights

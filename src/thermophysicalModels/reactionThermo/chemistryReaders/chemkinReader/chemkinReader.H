@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ SourceFiles
 #include "fileName.H"
 #include "typeInfo.H"
 #include "HashPtrTable.H"
-#include "SLPtrList.H"
+#include "ReactionList.H"
 #include "DynamicList.H"
 #include "labelList.H"
 #include "speciesTable.H"
@@ -205,7 +205,7 @@ private:
         HashTable<List<specieElement> > specieComposition_;
 
         //- List of the reactions
-        SLPtrList<gasReaction> reactions_;
+        ReactionList<gasThermoPhysics> reactions_;
 
 
     // Private Member Functions
@@ -233,7 +233,7 @@ private:
             {
                 elementName[1] = tolower(elementName[1]);
             }
-            else if(elementName[0] == 'E')
+            else if (elementName[0] == 'E')
             {
                 elementName = 'e';
             }
@@ -325,10 +325,9 @@ public:
         chemkinReader(const dictionary& thermoDict);
 
 
-    // Destructor
-
-        virtual ~chemkinReader()
-        {}
+    //- Destructor
+    virtual ~chemkinReader()
+    {}
 
 
     // Member functions
@@ -376,7 +375,7 @@ public:
         }
 
         //- List of the reactions
-        const SLPtrList<gasReaction>& reactions() const
+        const ReactionList<gasThermoPhysics>& reactions() const
         {
             return reactions_;
         }

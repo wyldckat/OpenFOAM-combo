@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,9 +57,10 @@ class procLduInterface
         scalarField coeffs_;
         label myProcNo_;
         label neighbProcNo_;
+        label tag_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Dissallow construction as copy
         procLduInterface(const procLduInterface&);
@@ -90,7 +91,7 @@ public:
         {
             return autoPtr<procLduInterface>(new procLduInterface(is));
         }
-            
+
 
     // Ostream operator
 

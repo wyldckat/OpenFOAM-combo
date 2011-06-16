@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ License
 
 #include "processorGAMGInterface.H"
 #include "addToRunTimeSelectionTable.H"
+#include "Map.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -44,6 +45,8 @@ namespace Foam
 
 Foam::processorGAMGInterface::processorGAMGInterface
 (
+    const label index,
+    const lduInterfacePtrsList& coarseInterfaces,
     const lduInterface& fineInterface,
     const labelField& localRestrictAddressing,
     const labelField& neighbourRestrictAddressing
@@ -51,6 +54,8 @@ Foam::processorGAMGInterface::processorGAMGInterface
 :
     GAMGInterface
     (
+        index,
+        coarseInterfaces,
         fineInterface,
         localRestrictAddressing,
         neighbourRestrictAddressing
@@ -58,20 +63,20 @@ Foam::processorGAMGInterface::processorGAMGInterface
     fineProcInterface_(refCast<const processorLduInterface>(fineInterface))
 {
     // Make a lookup table of entries for owner/neighbour
-    HashTable<SLList<label>, label, Hash<label> > neighboursTable
+    Map<SLList<label> > neighboursTable
     (
         localRestrictAddressing.size()
     );
 
     // Table of face-sets to be agglomerated
-    HashTable<SLList<SLList<label> >, label, Hash<label> > faceFaceTable
+    Map<SLList<SLList<label> > > faceFaceTable
     (
         localRestrictAddressing.size()
     );
 
     label nCoarseFaces = 0;
 
-    forAll (localRestrictAddressing, ffi)
+    forAll(localRestrictAddressing, ffi)
     {
         label curMaster = -1;
         label curSlave = -1;
@@ -159,7 +164,7 @@ Foam::processorGAMGInterface::processorGAMGInterface
     if (myProcNo() < neighbProcNo())
     {
         // On master side, the owner addressing is stored in table of contents
-        forAll (contents, masterI)
+        forAll(contents, masterI)
         {
             SLList<label>& curNbrs = neighboursTable.find(contents[masterI])();
 
@@ -180,12 +185,7 @@ Foam::processorGAMGInterface::processorGAMGInterface
             {
                 faceCells_[nCoarseFaces] = contents[masterI];
 
-                for
-                (
-                    SLList<label>::iterator facesIter = faceFacesIter().begin();
-                    facesIter != faceFacesIter().end();
-                    ++facesIter
-                )
+                forAllConstIter(SLList<label>, faceFacesIter(), facesIter)
                 {
                     faceRestrictAddressing_[facesIter()] = nCoarseFaces;
                 }
@@ -197,7 +197,7 @@ Foam::processorGAMGInterface::processorGAMGInterface
     else
     {
         // On slave side, the owner addressing is stored in linked lists
-        forAll (contents, masterI)
+        forAll(contents, masterI)
         {
             SLList<label>& curNbrs = neighboursTable.find(contents[masterI])();
 
@@ -218,12 +218,7 @@ Foam::processorGAMGInterface::processorGAMGInterface
             {
                 faceCells_[nCoarseFaces] = nbrsIter();
 
-                for
-                (
-                    SLList<label>::iterator facesIter = faceFacesIter().begin();
-                    facesIter != faceFacesIter().end();
-                    ++facesIter
-                )
+                forAllConstIter(SLList<label>, faceFacesIter(), facesIter)
                 {
                     faceRestrictAddressing_[facesIter()] = nCoarseFaces;
                 }
@@ -243,30 +238,10 @@ Foam::processorGAMGInterface::~processorGAMGInterface()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::processorGAMGInterface::initTransfer
-(
-    const Pstream::commsTypes commsType,
-    const unallocLabelList& interfaceData
-) const
-{
-    send(commsType, interfaceData);
-}
-
-
-Foam::tmp<Foam::labelField> Foam::processorGAMGInterface::transfer
-(
-    const Pstream::commsTypes commsType,
-    const unallocLabelList& interfaceData
-) const
-{
-    return receive<label>(commsType, this->size());
-}
-
-
 void Foam::processorGAMGInterface::initInternalFieldTransfer
 (
     const Pstream::commsTypes commsType,
-    const unallocLabelList& iF
+    const labelUList& iF
 ) const
 {
     send(commsType, interfaceInternalField(iF)());
@@ -276,7 +251,7 @@ void Foam::processorGAMGInterface::initInternalFieldTransfer
 Foam::tmp<Foam::labelField> Foam::processorGAMGInterface::internalFieldTransfer
 (
     const Pstream::commsTypes commsType,
-    const unallocLabelList& iF
+    const labelUList& iF
 ) const
 {
     return receive<label>(commsType, this->size());

@@ -24,8 +24,6 @@ License
 InClass
     Foam::hReactionThermo
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #ifndef makeReactionThermo_H
@@ -36,7 +34,15 @@ Description
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeReactionThermo(CThermo,MixtureThermo,Mixture,Transport,Thermo,EqnOfState) \
+#define makeReactionThermo\
+(                                                                             \
+    CThermo,                                                                  \
+    MixtureThermo,                                                            \
+    Mixture,                                                                  \
+    Transport,                                                                \
+    Thermo,                                                                   \
+    EqnOfState                                                                \
+)                                                                             \
                                                                               \
 typedef MixtureThermo                                                         \
     <Mixture<Transport<specieThermo<Thermo<EqnOfState> > > > >                \

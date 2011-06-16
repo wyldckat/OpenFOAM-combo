@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -98,9 +98,9 @@ public:
         //- Interpolate field to the given point in the given cell
         Type interpolate
         (
-            const vector& position, 
-            const label nCell,
-            const label facei = -1
+            const vector& position,
+            const label cellI,
+            const label faceI = -1
         ) const;
 };
 

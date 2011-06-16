@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -130,12 +130,36 @@ public:
             const dictionary& dict
         );
 
-    // Destructor
-
-        virtual ~searchableSurfaceCollection();
+    //- Destructor
+    virtual ~searchableSurfaceCollection();
 
 
     // Member Functions
+
+        //- scaling vector per subsurface
+        const vectorField& scale() const
+        {
+            return scale_;
+        }
+
+        //- scaling vector per subsurface
+        vectorField& scale()
+        {
+            return scale_;
+        }
+
+        //- coordinate system per subsurface
+        const PtrList<coordinateSystem>& transform() const
+        {
+            return transform_;
+        }
+
+        //- coordinate system per subsurface
+        PtrList<coordinateSystem>& transform()
+        {
+            return transform_;
+        }
+
 
         virtual const wordList& regions() const;
 

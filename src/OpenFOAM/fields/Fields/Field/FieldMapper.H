@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,10 +53,9 @@ public:
         {}
 
 
-    // Destructor
-
-        virtual ~FieldMapper()
-        {}
+    //- Destructor
+    virtual ~FieldMapper()
+    {}
 
 
     // Member Functions
@@ -65,13 +64,13 @@ public:
 
         virtual bool direct() const = 0;
 
-        virtual const unallocLabelList& directAddressing() const
+        virtual const labelUList& directAddressing() const
         {
             FatalErrorIn("FieldMapper::directAddressing() const")
                 << "attempt to access null direct addressing"
                 << abort(FatalError);
 
-            return unallocLabelList::null();
+            return labelUList::null();
         }
 
         virtual const labelListList& addressing() const

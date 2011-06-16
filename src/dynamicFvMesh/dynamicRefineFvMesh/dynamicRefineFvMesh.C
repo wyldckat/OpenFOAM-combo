@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,28 +25,26 @@ License
 
 #include "dynamicRefineFvMesh.H"
 #include "addToRunTimeSelectionTable.H"
+#include "surfaceInterpolate.H"
 #include "volFields.H"
 #include "polyTopoChange.H"
 #include "surfaceFields.H"
-#include "fvCFD.H"
 #include "syncTools.H"
 #include "pointFields.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(dynamicRefineFvMesh, 0);
-
-addToRunTimeSelectionTable(dynamicFvMesh, dynamicRefineFvMesh, IOobject);
-
+    defineTypeNameAndDebug(dynamicRefineFvMesh, 0);
+    addToRunTimeSelectionTable(dynamicFvMesh, dynamicRefineFvMesh, IOobject);
+}
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-label dynamicRefineFvMesh::count
+// the PackedBoolList::count method would probably be faster
+// since we are only checking for 'true' anyhow
+Foam::label Foam::dynamicRefineFvMesh::count
 (
     const PackedBoolList& l,
     const unsigned int val
@@ -64,7 +62,7 @@ label dynamicRefineFvMesh::count
 }
 
 
-void dynamicRefineFvMesh::calculateProtectedCells
+void Foam::dynamicRefineFvMesh::calculateProtectedCells
 (
     PackedBoolList& unrefineableCell
 ) const
@@ -86,7 +84,7 @@ void dynamicRefineFvMesh::calculateProtectedCells
     {
         neiLevel[faceI-nInternalFaces()] = cellLevel[faceOwner()[faceI]];
     }
-    syncTools::swapBoundaryFaceList(*this, neiLevel, false);
+    syncTools::swapBoundaryFaceList(*this, neiLevel);
 
 
     while (true)
@@ -97,9 +95,9 @@ void dynamicRefineFvMesh::calculateProtectedCells
         forAll(faceNeighbour(), faceI)
         {
             label own = faceOwner()[faceI];
-            bool ownProtected = (unrefineableCell.get(own) == 1);
+            bool ownProtected = unrefineableCell.get(own);
             label nei = faceNeighbour()[faceI];
-            bool neiProtected = (unrefineableCell.get(nei) == 1);
+            bool neiProtected = unrefineableCell.get(nei);
 
             if (ownProtected && (cellLevel[nei] > cellLevel[own]))
             {
@@ -113,7 +111,7 @@ void dynamicRefineFvMesh::calculateProtectedCells
         for (label faceI = nInternalFaces(); faceI < nFaces(); faceI++)
         {
             label own = faceOwner()[faceI];
-            bool ownProtected = (unrefineableCell.get(own) == 1);
+            bool ownProtected = unrefineableCell.get(own);
             if
             (
                 ownProtected
@@ -124,7 +122,7 @@ void dynamicRefineFvMesh::calculateProtectedCells
             }
         }
 
-        syncTools::syncFaceList(*this, seedFace, orEqOp<bool>(), false);
+        syncTools::syncFaceList(*this, seedFace, orEqOp<bool>());
 
 
         // Extend unrefineableCell
@@ -170,7 +168,7 @@ void dynamicRefineFvMesh::calculateProtectedCells
 }
 
 
-void dynamicRefineFvMesh::readDict()
+void Foam::dynamicRefineFvMesh::readDict()
 {
     dictionary refineDict
     (
@@ -181,7 +179,7 @@ void dynamicRefineFvMesh::readDict()
                 "dynamicMeshDict",
                 time().constant(),
                 *this,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE,
                 false
             )
@@ -195,7 +193,8 @@ void dynamicRefineFvMesh::readDict()
 
 
 // Refines cells, maps fields and recalculates (an approximate) flux
-autoPtr<mapPolyMesh> dynamicRefineFvMesh::refine
+Foam::autoPtr<Foam::mapPolyMesh>
+Foam::dynamicRefineFvMesh::refine
 (
     const labelList& cellsToRefine
 )
@@ -302,12 +301,14 @@ autoPtr<mapPolyMesh> dynamicRefineFvMesh::refine
             (
                 lookupObject<surfaceScalarField>(correctFluxes_[i][0])
             );
-            surfaceScalarField phiU =
+            const surfaceScalarField phiU
+            (
                 fvc::interpolate
                 (
                     lookupObject<volVectorField>(correctFluxes_[i][1])
                 )
-              & Sf();
+              & Sf()
+            );
 
             // Recalculate new internal faces.
             for (label faceI = 0; faceI < nInternalFaces(); faceI++)
@@ -333,7 +334,7 @@ autoPtr<mapPolyMesh> dynamicRefineFvMesh::refine
                 const fvsPatchScalarField& patchPhiU =
                     phiU.boundaryField()[patchI];
 
-                label faceI = patchPhi.patch().patch().start();
+                label faceI = patchPhi.patch().start();
 
                 forAll(patchPhi, i)
                 {
@@ -407,7 +408,8 @@ autoPtr<mapPolyMesh> dynamicRefineFvMesh::refine
 
 // Combines previously split cells, maps fields and recalculates
 // (an approximate) flux
-autoPtr<mapPolyMesh> dynamicRefineFvMesh::unrefine
+Foam::autoPtr<Foam::mapPolyMesh>
+Foam::dynamicRefineFvMesh::unrefine
 (
     const labelList& splitPoints
 )
@@ -492,12 +494,14 @@ autoPtr<mapPolyMesh> dynamicRefineFvMesh::unrefine
             (
                 lookupObject<surfaceScalarField>(correctFluxes_[i][0])
             );
-            surfaceScalarField phiU =
+            surfaceScalarField phiU
+            (
                 fvc::interpolate
                 (
                     lookupObject<volVectorField>(correctFluxes_[i][1])
                 )
-              & Sf();
+              & Sf()
+            );
 
             forAllConstIter(Map<label>, faceToSplitPoint, iter)
             {
@@ -562,7 +566,8 @@ autoPtr<mapPolyMesh> dynamicRefineFvMesh::unrefine
 
 
 // Get max of connected point
-scalarField dynamicRefineFvMesh::maxPointField(const scalarField& pFld) const
+Foam::scalarField
+Foam::dynamicRefineFvMesh::maxPointField(const scalarField& pFld) const
 {
     scalarField vFld(nCells(), -GREAT);
 
@@ -580,7 +585,8 @@ scalarField dynamicRefineFvMesh::maxPointField(const scalarField& pFld) const
 
 
 // Get min of connected cell
-scalarField dynamicRefineFvMesh::minCellField(const volScalarField& vFld) const
+Foam::scalarField
+Foam::dynamicRefineFvMesh::minCellField(const volScalarField& vFld) const
 {
     scalarField pFld(nPoints(), GREAT);
 
@@ -598,7 +604,8 @@ scalarField dynamicRefineFvMesh::minCellField(const volScalarField& vFld) const
 
 
 // Simple (non-parallel) interpolation by averaging.
-scalarField dynamicRefineFvMesh::cellToPoint(const scalarField& vFld) const
+Foam::scalarField
+Foam::dynamicRefineFvMesh::cellToPoint(const scalarField& vFld) const
 {
     scalarField pFld(nPoints());
 
@@ -618,7 +625,7 @@ scalarField dynamicRefineFvMesh::cellToPoint(const scalarField& vFld) const
 
 
 // Calculate error. Is < 0 or distance to minLevel, maxLevel
-scalarField dynamicRefineFvMesh::error
+Foam::scalarField Foam::dynamicRefineFvMesh::error
 (
     const scalarField& fld,
     const scalar minLevel,
@@ -640,7 +647,7 @@ scalarField dynamicRefineFvMesh::error
 }
 
 
-void dynamicRefineFvMesh::selectRefineCandidates
+void Foam::dynamicRefineFvMesh::selectRefineCandidates
 (
     const scalar lowerRefineLevel,
     const scalar upperRefineLevel,
@@ -674,7 +681,7 @@ void dynamicRefineFvMesh::selectRefineCandidates
 }
 
 
-labelList dynamicRefineFvMesh::selectRefineCells
+Foam::labelList Foam::dynamicRefineFvMesh::selectRefineCells
 (
     const label maxCells,
     const label maxRefinement,
@@ -704,10 +711,10 @@ labelList dynamicRefineFvMesh::selectRefineCells
             if
             (
                 cellLevel[cellI] < maxRefinement
-             && candidateCell.get(cellI) == 1
+             && candidateCell.get(cellI)
              && (
                     unrefineableCell.empty()
-                 || unrefineableCell.get(cellI) == 0
+                 || !unrefineableCell.get(cellI)
                 )
             )
             {
@@ -725,10 +732,10 @@ labelList dynamicRefineFvMesh::selectRefineCells
                 if
                 (
                     cellLevel[cellI] == level
-                 && candidateCell.get(cellI) == 1
+                 && candidateCell.get(cellI)
                  && (
                         unrefineableCell.empty()
-                     || unrefineableCell.get(cellI) == 0
+                     || !unrefineableCell.get(cellI)
                     )
                 )
                 {
@@ -761,7 +768,7 @@ labelList dynamicRefineFvMesh::selectRefineCells
 }
 
 
-labelList dynamicRefineFvMesh::selectUnrefinePoints
+Foam::labelList Foam::dynamicRefineFvMesh::selectUnrefinePoints
 (
     const scalar unrefineLevel,
     const PackedBoolList& markedCell,
@@ -786,7 +793,7 @@ labelList dynamicRefineFvMesh::selectUnrefinePoints
 
             forAll(pCells, pCellI)
             {
-                if (markedCell.get(pCells[pCellI]) == 1)
+                if (markedCell.get(pCells[pCellI]))
                 {
                     hasMarked = true;
                     break;
@@ -821,14 +828,17 @@ labelList dynamicRefineFvMesh::selectUnrefinePoints
 }
 
 
-void dynamicRefineFvMesh::extendMarkedCells(PackedBoolList& markedCell) const
+void Foam::dynamicRefineFvMesh::extendMarkedCells
+(
+    PackedBoolList& markedCell
+) const
 {
     // Mark faces using any marked cell
     boolList markedFace(nFaces(), false);
 
     forAll(markedCell, cellI)
     {
-        if (markedCell.get(cellI) == 1)
+        if (markedCell.get(cellI))
         {
             const cell& cFaces = cells()[cellI];
 
@@ -839,7 +849,7 @@ void dynamicRefineFvMesh::extendMarkedCells(PackedBoolList& markedCell) const
         }
     }
 
-    syncTools::syncFaceList(*this, markedFace, orEqOp<bool>(), false);
+    syncTools::syncFaceList(*this, markedFace, orEqOp<bool>());
 
     // Update cells using any markedFace
     for (label faceI = 0; faceI < nInternalFaces(); faceI++)
@@ -862,7 +872,7 @@ void dynamicRefineFvMesh::extendMarkedCells(PackedBoolList& markedCell) const
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
+Foam::dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
 :
     dynamicFvMesh(io),
     meshCutter_(*this),
@@ -885,25 +895,31 @@ dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
     // Count number of points <= cellLevel
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    labelList nAnchors(nCells(), 0);
+
     label nProtected = 0;
 
-    forAll(cellLevel, cellI)
+    forAll(pointCells(), pointI)
     {
-        const labelList& cPoints = cellPoints(cellI);
+        const labelList& pCells = pointCells()[pointI];
 
-        label nAnchors = 0;
-        forAll(cPoints, cPointI)
+        forAll(pCells, i)
         {
-            label pointI = cPoints[cPointI];
-            if (pointLevel[pointI] <= cellLevel[cellI])
+            label cellI = pCells[i];
+
+            if (!protectedCell_.get(cellI))
             {
-                nAnchors++;
+                if (pointLevel[pointI] <= cellLevel[cellI])
+                {
+                    nAnchors[cellI]++;
+
+                    if (nAnchors[cellI] > 8)
+                    {
+                        protectedCell_.set(cellI, 1);
+                        nProtected++;
+                    }
+                }
             }
-        }
-        if (nAnchors != 8)
-        {
-            protectedCell_.set(cellI, 1);
-            nProtected++;
         }
     }
 
@@ -924,7 +940,7 @@ dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
         {
             neiLevel[faceI] = cellLevel[faceOwner()[faceI]];
         }
-        syncTools::swapFaceList(*this, neiLevel, false);
+        syncTools::swapFaceList(*this, neiLevel);
 
 
         boolList protectedFace(nFaces(), false);
@@ -946,58 +962,39 @@ dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
                 if (pointLevel[f[fp]] <= faceLevel)
                 {
                     nAnchors++;
-                }
-            }
 
-            if (nAnchors != 4)
-            {
-                protectedFace[faceI] = true;
+                    if (nAnchors > 4)
+                    {
+                        protectedFace[faceI] = true;
+                        break;
+                    }
+                }
             }
         }
 
-        syncTools::syncFaceList
-        (
-            *this,
-            protectedFace,
-            orEqOp<bool>(),
-            false
-        );
+        syncTools::syncFaceList(*this, protectedFace, orEqOp<bool>());
 
         for (label faceI = 0; faceI < nInternalFaces(); faceI++)
         {
             if (protectedFace[faceI])
             {
-                if (protectedCell_.set(faceOwner()[faceI], 1))
-                {
-                    nProtected++;
-                }
-                if (protectedCell_.set(faceNeighbour()[faceI], 1))
-                {
-                    nProtected++;
-                }
+                protectedCell_.set(faceOwner()[faceI], 1);
+                nProtected++;
+                protectedCell_.set(faceNeighbour()[faceI], 1);
+                nProtected++;
             }
         }
         for (label faceI = nInternalFaces(); faceI < nFaces(); faceI++)
         {
             if (protectedFace[faceI])
             {
-                if (protectedCell_.set(faceOwner()[faceI], 1))
-                {
-                    nProtected++;
-                }
+                protectedCell_.set(faceOwner()[faceI], 1);
+                nProtected++;
             }
         }
     }
 
-    reduce(nProtected, sumOp<label>());
-
-    //Info<< "Protecting " << nProtected << " out of "
-    //    << returnReduce(nCells(), sumOp<label>())
-    //    << endl;
-
-
-
-    if (nProtected == 0)
+    if (returnReduce(nProtected, sumOp<label>()) == 0)
     {
         protectedCell_.clear();
     }
@@ -1006,13 +1003,13 @@ dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-dynamicRefineFvMesh::~dynamicRefineFvMesh()
+Foam::dynamicRefineFvMesh::~dynamicRefineFvMesh()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool dynamicRefineFvMesh::update()
+bool Foam::dynamicRefineFvMesh::update()
 {
     // Re-read dictionary. Choosen since usually -small so trivial amount
     // of time compared to actual refinement. Also very useful to be able
@@ -1026,7 +1023,7 @@ bool dynamicRefineFvMesh::update()
                 "dynamicMeshDict",
                 time().constant(),
                 *this,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE,
                 false
             )
@@ -1082,9 +1079,9 @@ bool dynamicRefineFvMesh::update()
                 << exit(FatalError);
         }
 
-        word field(refineDict.lookup("field"));
+        const word fieldName(refineDict.lookup("field"));
 
-        const volScalarField& vFld = lookupObject<volScalarField>(field);
+        const volScalarField& vFld = lookupObject<volScalarField>(fieldName);
 
         const scalar lowerRefineLevel =
             readScalar(refineDict.lookup("lowerRefineLevel"));
@@ -1214,7 +1211,7 @@ bool dynamicRefineFvMesh::update()
 }
 
 
-bool dynamicRefineFvMesh::writeObject
+bool Foam::dynamicRefineFvMesh::writeObject
 (
     IOstream::streamFormat fmt,
     IOstream::versionNumber ver,
@@ -1225,8 +1222,10 @@ bool dynamicRefineFvMesh::writeObject
     const_cast<hexRef8&>(meshCutter_).setInstance(time().timeName());
 
     bool writeOk =
+    (
         dynamicFvMesh::writeObjects(fmt, ver, cmp)
-     && meshCutter_.write();
+     && meshCutter_.write()
+    );
 
     if (dumpLevel_)
     {
@@ -1258,9 +1257,5 @@ bool dynamicRefineFvMesh::writeObject
     return writeOk;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

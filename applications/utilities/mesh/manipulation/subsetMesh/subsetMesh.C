@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -150,18 +150,29 @@ void subsetPointFields
 
 int main(int argc, char *argv[])
 {
-    argList::validArgs.append("set");
-    argList::validOptions.insert("patch", "patch name");
-    argList::validOptions.insert("overwrite", "");
+    argList::addNote
+    (
+        "select a mesh subset based on a cellSet"
+    );
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "addOverwriteOption.H"
+    argList::validArgs.append("cellSet");
+    argList::addOption
+    (
+        "patch",
+        "name",
+        "add exposed internal faces to specified patch instead of to "
+        "'oldInternalFaces'"
+    );
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
-#   include "createMesh.H"
+    #include "createMesh.H"
+
     const word oldInstance = mesh.pointsInstance();
 
-    word setName(args.additionalArgs()[0]);
-    bool overwrite = args.optionFound("overwrite");
+    const word setName = args[1];
+    const bool overwrite = args.optionFound("overwrite");
 
 
     Info<< "Reading cell set from " << setName << endl << endl;
@@ -173,7 +184,7 @@ int main(int argc, char *argv[])
 
     if (args.optionFound("patch"))
     {
-        word patchName(args.option("patch"));
+        const word patchName = args["patch"];
 
         patchI = mesh.boundaryMesh().findPatchID(patchName);
 
@@ -190,7 +201,7 @@ int main(int argc, char *argv[])
     else
     {
         Info<< "Adding exposed internal faces to a patch called"
-            << " \"oldInternalFaces\" (created if nessecary)" << endl
+            << " \"oldInternalFaces\" (created if necessary)" << endl
             << endl;
     }
 
@@ -438,7 +449,7 @@ int main(int argc, char *argv[])
     }
 
 
-    Info << nl << "End" << endl;
+    Info<< "\nEnd\n" << endl;
 
     return 0;
 }

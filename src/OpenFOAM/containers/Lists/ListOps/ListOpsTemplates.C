@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,12 +30,15 @@ License
 template<class ListType>
 ListType Foam::renumber
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     const ListType& lst
 )
 {
     // Create copy
     ListType newLst(lst.size());
+
+    // ensure consistent addressable size (eg, DynamicList)
+    newLst.setSize(lst.size());
 
     forAll(lst, elemI)
     {
@@ -52,7 +55,7 @@ ListType Foam::renumber
 template<class ListType>
 void Foam::inplaceRenumber
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     ListType& lst
 )
 {
@@ -69,12 +72,15 @@ void Foam::inplaceRenumber
 template<class ListType>
 ListType Foam::reorder
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     const ListType& lst
 )
 {
     // Create copy
     ListType newLst(lst.size());
+
+    // ensure consistent addressable size (eg, DynamicList)
+    newLst.setSize(lst.size());
 
     forAll(lst, elemI)
     {
@@ -94,12 +100,15 @@ ListType Foam::reorder
 template<class ListType>
 void Foam::inplaceReorder
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     ListType& lst
 )
 {
     // Create copy
     ListType newLst(lst.size());
+
+    // ensure consistent addressable size (eg, DynamicList)
+    newLst.setSize(lst.size());
 
     forAll(lst, elemI)
     {
@@ -120,7 +129,7 @@ void Foam::inplaceReorder
 template<class Container>
 void Foam::inplaceMapValue
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     Container& lst
 )
 {
@@ -142,7 +151,7 @@ void Foam::inplaceMapValue
 template<class Container>
 void Foam::inplaceMapKey
 (
-    const UList<label>& oldToNew,
+    const labelUList& oldToNew,
     Container& lst
 )
 {
@@ -258,6 +267,9 @@ ListType Foam::subset
 
     ListType newLst(lst.size());
 
+    // ensure consistent addressable size (eg, DynamicList)
+    newLst.setSize(lst.size());
+
     label nElem = 0;
     forAll(lst, elemI)
     {
@@ -317,6 +329,9 @@ ListType Foam::subset
     // eg, when it is a PackedBoolList or a labelHashSet
 
     ListType newLst(lst.size());
+
+    // ensure consistent addressable size (eg, DynamicList)
+    newLst.setSize(lst.size());
 
     label nElem = 0;
     forAll(lst, elemI)
@@ -468,7 +483,7 @@ template<class ListType>
 void Foam::setValues
 (
     ListType& l,
-    const UList<label>& indices,
+    const labelUList& indices,
     typename ListType::const_reference t
 )
 {
@@ -484,7 +499,7 @@ ListType Foam::createWithValues
 (
     const label sz,
     const typename ListType::const_reference initValue,
-    const UList<label>& indices,
+    const labelUList& indices,
     typename ListType::const_reference setValue
 )
 {

@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
-|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|  \\    /   O peration     | Version:  2.0.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -13,7 +13,6 @@ FoamFile
     location    "system";
     object      fvSchemes;
 }
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 ddtSchemes
@@ -28,30 +27,26 @@ gradSchemes
 
 divSchemes
 {
-    default         none;
-    div(phi,U)      Gauss linearUpwind Gauss linear;
-    div(phi,k)      Gauss upwind;
-    div(phi,ft_b_h) Gauss multivariateSelection
+    default        none;
+    div(phi,U)      Gauss linear;
+    div(phi,k)      Gauss limitedLinear 0.1;
+    div(phi,Yi_hs) Gauss multivariateSelection
     {
-        fu              limitedLinear 0.7;
-        ft              limitedLinear 0.7;
-        hs              limitedLinear 0.7;
+        O2              limitedLinear01 1;
+        CH4             limitedLinear01 1;
+        N2              limitedLinear01 1;
+        H2O             limitedLinear01 1;
+        CO2             limitedLinear01 1;
+        hs              limitedLinear 1;
     };
-    div((muEff*dev2(grad(U).T()))) Gauss linear;
+    div((muEff*dev2(T(grad(U))))) Gauss linear;
     div(phiU,p)     Gauss linear;
     div(Ji,Ii_h)    Gauss upwind;
 }
 
 laplacianSchemes
 {
-    default         none;
-    laplacian(muEff,U) Gauss linear corrected;
-    laplacian(DkEff,k) Gauss linear corrected;
-    laplacian(alphaEff,hs) Gauss linear corrected;
-    laplacian(alphaEff,fu) Gauss linear corrected;
-    laplacian(alphaEff,ft) Gauss linear corrected;
-    laplacian(interpolate((rho*(1|A(U)))),p_rgh) Gauss linear corrected;
-    laplacian(gammaRad,G) Gauss linear corrected;
+    default         Gauss linear corrected;
 }
 
 interpolationSchemes

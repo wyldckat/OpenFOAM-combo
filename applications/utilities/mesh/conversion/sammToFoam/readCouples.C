@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ void sammMesh::readCouples()
 
     if (couplesFile.good())
     {
-        Info << "\nReading couples" << endl;
+        Info<< "\nReading couples" << endl;
 
         // A mesh with couples cannot be a shape mesh
         isShapeMesh_ = false;
@@ -70,7 +70,7 @@ void sammMesh::readCouples()
             // get reference to master cell faces
             faceList& masterFaces = cellFaces_[masterCell - 1];
 
-//             Info << "Master cell: " << masterCell - 1 << " index: "
+//             Info<< "Master cell: " << masterCell - 1 << " index: "
 //                 << cellShapes_[masterCell - 1].model().index()
 //                 << " face: " <<
 //                 masterFaces
@@ -115,25 +115,25 @@ void sammMesh::readCouples()
                                 [slaveFace]
                         ].reverseFace();
 
-//                 Info << " slave cell: " << slaveCell - 1 << " index: "
+//                 Info<< " slave cell: " << slaveCell - 1 << " index: "
 //                     << cellShapes_[slaveCell - 1].model().index()
 //                     << " face: " << masterFaces[slaveToAdd] << endl;
 
                 slaveToAdd++;
 
             }
-//             Info << endl;
+//             Info<< endl;
 
         }
 
         // Once all couples are read, remove zero size faces from all cells
-        forAll (cellFaces_, cellI)
+        forAll(cellFaces_, cellI)
         {
             faceList& curFaces = cellFaces_[cellI];
 
             label zeroSizeFound = 0;
 
-            forAll (curFaces, faceI)
+            forAll(curFaces, faceI)
             {
                 if (curFaces[faceI].empty())
                 {
@@ -150,7 +150,7 @@ void sammMesh::readCouples()
 
                 label nFaces = 0;
 
-                forAll (oldFaces, faceI)
+                forAll(oldFaces, faceI)
                 {
                     if (oldFaces[faceI].size())
                     {

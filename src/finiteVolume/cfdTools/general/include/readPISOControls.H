@@ -1,15 +1,17 @@
-    dictionary piso = mesh.solutionDict().subDict("PISO");
+    const dictionary& pisoDict = mesh.solutionDict().subDict("PISO");
 
-    int nCorr(readInt(piso.lookup("nCorrectors")));
+    const int nOuterCorr =
+        pisoDict.lookupOrDefault<int>("nOuterCorrectors", 1);
 
-    int nNonOrthCorr =
-        piso.lookupOrDefault<int>("nNonOrthogonalCorrectors", 0);
+    const int nCorr =
+        pisoDict.lookupOrDefault<int>("nCorrectors", 1);
 
-    bool momentumPredictor =
-        piso.lookupOrDefault<Switch>("momentumPredictor", true);
+    const int nNonOrthCorr =
+        pisoDict.lookupOrDefault<int>("nNonOrthogonalCorrectors", 0);
 
-    bool transonic =
-        piso.lookupOrDefault<Switch>("transonic", false);
+    const bool momentumPredictor =
+        pisoDict.lookupOrDefault("momentumPredictor", true);
 
-    int nOuterCorr =
-        piso.lookupOrDefault<int>("nOuterCorrectors", 1);
+    const bool transonic =
+        pisoDict.lookupOrDefault("transonic", false);
+

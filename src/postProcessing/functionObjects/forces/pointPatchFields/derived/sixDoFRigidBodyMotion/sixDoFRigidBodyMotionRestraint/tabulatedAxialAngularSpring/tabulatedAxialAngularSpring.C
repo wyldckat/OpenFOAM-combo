@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2010-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "sixDoFRigidBodyMotion.H"
 #include "transform.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -36,14 +36,15 @@ namespace Foam
 namespace sixDoFRigidBodyMotionRestraints
 {
     defineTypeNameAndDebug(tabulatedAxialAngularSpring, 0);
+
     addToRunTimeSelectionTable
     (
         sixDoFRigidBodyMotionRestraint,
         tabulatedAxialAngularSpring,
         dictionary
     );
-};
-};
+}
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -86,7 +87,6 @@ Foam::sixDoFRigidBodyMotionRestraints::tabulatedAxialAngularSpring::restrain
     vector refDir = rotationTensor(vector(1, 0 ,0), axis_) & vector(0, 1, 0);
 
     vector oldDir = refQ_ & refDir;
-
     vector newDir = motion.orientation() & refDir;
 
     if (mag(oldDir & axis_) > 0.95 || mag(newDir & axis_) > 0.95)
@@ -95,9 +95,8 @@ Foam::sixDoFRigidBodyMotionRestraints::tabulatedAxialAngularSpring::restrain
 
         refDir = rotationTensor(vector(1, 0 ,0), axis_) & vector(0, 0, 1);
 
-        vector oldDir = refQ_ & refDir;
-
-        vector newDir = motion.orientation() & refDir;
+        oldDir = refQ_ & refDir;
+        newDir = motion.orientation() & refDir;
     }
 
     // Removing any axis component from oldDir and newDir and normalising
@@ -117,7 +116,7 @@ Foam::sixDoFRigidBodyMotionRestraints::tabulatedAxialAngularSpring::restrain
 
     if (convertToDegrees_)
     {
-        moment = moment_(theta*180.0/mathematicalConstant::pi);
+        moment = moment_(radToDeg(theta));
     }
     else
     {
@@ -192,7 +191,7 @@ bool Foam::sixDoFRigidBodyMotionRestraints::tabulatedAxialAngularSpring::read
 
     moment_ = interpolationTable<scalar>(sDoFRBMRCoeffs_);
 
-    word angleFormat = sDoFRBMRCoeffs_.lookup("angleFormat");
+    const word angleFormat = sDoFRBMRCoeffs_.lookup("angleFormat");
 
     if (angleFormat == "degrees" || angleFormat == "degree")
     {
@@ -209,7 +208,7 @@ bool Foam::sixDoFRigidBodyMotionRestraints::tabulatedAxialAngularSpring::read
             "Foam::sixDoFRigidBodyMotionRestraints::"
             "tabulatedAxialAngularSpring::read"
             "("
-                "const dictionary& sDoFRBMCDict"
+                "const dictionary&"
             ")"
         )
             << "angleFormat must be degree, degrees, radian or radians"

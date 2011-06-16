@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ Class
 Description
     One Equation Eddy Viscosity Model for compressible flow
 
-    @verbatim
+    \verbatim
         d/dt(rho*k) + div(rho*U*k) - div(muEff*grad(k))
         =
         -rho*B*L - ce*rho*k^3/2/delta
@@ -40,7 +40,7 @@ Description
 
         nuSgsHiRe = ck*sqrt(k)*delta
         nuSgs = (nu/beta)*(1 - exp(-beta*nuSgsHiRe/nu));
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     lowReOneEqEddy.C
@@ -71,6 +71,8 @@ class lowReOneEqEddy
 {
     // Private data
 
+        volScalarField k_;
+
         dimensionedScalar ck_;
         dimensionedScalar beta_;
 
@@ -98,7 +100,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -108,6 +112,12 @@ public:
 
 
     // Member Functions
+
+        //- Return SGS kinetic energy
+        virtual tmp<volScalarField> k() const
+        {
+            return k_;
+        }
 
         //- Return the effective diffusivity for k
         tmp<volScalarField> DkEff() const

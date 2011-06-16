@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2010-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,9 +94,8 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~linearAxialAngularSpring();
+    //- Destructor
+    virtual ~linearAxialAngularSpring();
 
 
     // Member Functions

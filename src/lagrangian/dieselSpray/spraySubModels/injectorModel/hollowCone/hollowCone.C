@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,27 +27,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(hollowConeInjector, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(hollowConeInjector, 0);
-
-addToRunTimeSelectionTable
-(
-    injectorModel,
-    hollowConeInjector,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        injectorModel,
+        hollowConeInjector,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-hollowConeInjector::hollowConeInjector
+Foam::hollowConeInjector::hollowConeInjector
 (
     const dictionary& dict,
     spray& sm
@@ -55,11 +52,11 @@ hollowConeInjector::hollowConeInjector
 :
     injectorModel(dict, sm),
     hollowConeDict_(dict.subDict(typeName + "Coeffs")),
-    dropletPDF_
+    sizeDistribution_
     (
-        pdfs::pdf::New
+        distributionModels::distributionModel::New
         (
-            hollowConeDict_.subDict("dropletPDF"),
+            hollowConeDict_.subDict("sizeDistribution"),
             sm.rndGen()
         )
     ),
@@ -69,17 +66,21 @@ hollowConeInjector::hollowConeInjector
 
     if (sm.injectors().size() != innerAngle_.size())
     {
-        FatalError << "hollowConeInjector::hollowConeInjector"
-            << "(const dictionary& dict, spray& sm)\n"
-            << "Wrong number of entries in innerAngle"
+        FatalErrorIn
+        (
+            "hollowConeInjector::hollowConeInjector"
+            "(const dictionary& dict, spray& sm)"
+        )   << "Wrong number of entries in innerAngle"
             << abort(FatalError);
     }
 
     if (sm.injectors().size() != outerAngle_.size())
     {
-        FatalError << "hollowConeInjector::hollowConeInjector"
-            << "(const dictionary& dict, spray& sm)\n"
-            << "Wrong number of entries in outerAngle"
+        FatalErrorIn
+        (
+            "hollowConeInjector::hollowConeInjector"
+            "(const dictionary& dict, spray& sm)"
+        )   << "Wrong number of entries in outerAngle"
             << abort(FatalError);
     }
 
@@ -88,31 +89,34 @@ hollowConeInjector::hollowConeInjector
     // correct velocityProfile
     forAll(sm.injectors(), i)
     {
-        sm.injectors()[i].properties()->correctProfiles(sm.fuels(), referencePressure);
+        sm.injectors()[i].properties()->correctProfiles
+        (
+            sm.fuels(),
+            referencePressure
+        );
     }
-
 }
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-hollowConeInjector::~hollowConeInjector()
+Foam::hollowConeInjector::~hollowConeInjector()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-scalar hollowConeInjector::d0
+Foam::scalar Foam::hollowConeInjector::d0
 (
     const label,
     const scalar
 ) const
 {
-    return dropletPDF_->sample();
+    return sizeDistribution_->sample();
 }
 
 
-vector hollowConeInjector::direction
+Foam::vector Foam::hollowConeInjector::direction
 (
     const label n,
     const label hole,
@@ -120,10 +124,10 @@ vector hollowConeInjector::direction
     const scalar d
 ) const
 {
-    scalar angle = innerAngle_[n] + rndGen_.scalar01()*(outerAngle_[n]-innerAngle_[n]);
-    scalar alpha = sin(angle*mathematicalConstant::pi/360.0);
-    scalar dcorr = cos(angle*mathematicalConstant::pi/360.0);
-    scalar beta = 2.0*mathematicalConstant::pi*rndGen_.scalar01();
+    scalar angle = rndGen_.position<scalar>(innerAngle_[n], outerAngle_[n]);
+    scalar alpha = sin(angle*constant::mathematical::pi/360.0);
+    scalar dcorr = cos(angle*constant::mathematical::pi/360.0);
+    scalar beta = constant::mathematical::twoPi*rndGen_.sample01<scalar>();
 
     // randomly distributed vector normal to the injection vector
     vector normal = vector::zero;
@@ -134,32 +138,38 @@ vector hollowConeInjector::direction
         // correct beta if this is a 2D run
         // map it onto the 'angleOfWedge'
 
-        beta *= (1.0-2.0*reduce)*sm_.angleOfWedge()/(2.0*mathematicalConstant::pi);
+        beta *=
+            (1.0 - 2.0*reduce)
+           *sm_.angleOfWedge()
+           /(constant::mathematical::twoPi);
         beta += reduce*sm_.angleOfWedge();
-        normal = alpha*
-        (
-            sm_.axisOfWedge()*cos(beta) +
-            sm_.axisOfWedgeNormal()*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                sm_.axisOfWedge()*cos(beta)
+              + sm_.axisOfWedgeNormal()*sin(beta)
+            );
     }
     else
     {
-        normal = alpha*
-        (
-            injectors_[n].properties()->tan1(hole)*cos(beta) +
-            injectors_[n].properties()->tan2(hole)*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                injectors_[n].properties()->tan1(hole)*cos(beta)
+              + injectors_[n].properties()->tan2(hole)*sin(beta)
+            );
     }
 
     // set the direction of injection by adding the normal vector
-    vector dir = dcorr*injectors_[n].properties()->direction(hole, time) + normal;
+    vector dir =
+        dcorr*injectors_[n].properties()->direction(hole, time) + normal;
     dir /= mag(dir);
 
     return dir;
-
 }
 
-scalar hollowConeInjector::velocity
+
+Foam::scalar Foam::hollowConeInjector::velocity
 (
     const label i,
     const scalar time
@@ -178,19 +188,15 @@ scalar hollowConeInjector::velocity
         scalar dp = max(0.0, Pinj - Pref);
         return sqrt(2.0*dp/rho);
     }
-
 }
 
-scalar hollowConeInjector::averageVelocity
-(
-    const label i
-) const
+
+Foam::scalar Foam::hollowConeInjector::averageVelocity(const label i) const
 {
     const injectorType& it = sm_.injectors()[i].properties();
     scalar dt = it.teoi() - it.tsoi();
     return it.integrateTable(it.velocityProfile())/dt;
 }
 
-} // End namespace Foam
 
 // ************************************************************************* //

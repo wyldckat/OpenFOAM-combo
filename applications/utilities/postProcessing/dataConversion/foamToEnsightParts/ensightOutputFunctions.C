@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,12 +33,10 @@ License
 #include "OFstream.H"
 #include "IOmanip.H"
 
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
-void ensightCaseEntry
+void Foam::ensightCaseEntry
 (
     OFstream& caseFile,
     const string& ensightType,
@@ -88,7 +86,7 @@ void ensightCaseEntry
 }
 
 
-void ensightParticlePositions
+void Foam::ensightParticlePositions
 (
     const polyMesh& mesh,
     const fileName& dataDir,
@@ -112,18 +110,18 @@ void ensightParticlePositions
     os.newline();
     os.write("particle coordinates");
     os.newline();
-    os.write(parcels.size(), 8);	// unusual width
+    os.write(parcels.size(), 8);   // unusual width
     os.newline();
 
     // binary write is Ensight6 - first ids, then positions
     if (format == IOstream::BINARY)
     {
-        forAll (parcels, i)
+        forAll(parcels, i)
         {
             os.write(i+1);
         }
 
-        forAllIter(Cloud<passiveParticle>, parcels, elmnt)
+        forAllConstIter(Cloud<passiveParticle>, parcels, elmnt)
         {
             const vector& p = elmnt().position();
 
@@ -136,11 +134,11 @@ void ensightParticlePositions
     {
         label nParcels = 0;
 
-        forAllIter(Cloud<passiveParticle>, parcels, elmnt)
+        forAllConstIter(Cloud<passiveParticle>, parcels, elmnt)
         {
             const vector& p = elmnt().position();
 
-            os.write(++nParcels, 8);	// unusual width
+            os.write(++nParcels, 8);    // unusual width
             os.write(p.x());
             os.write(p.y());
             os.write(p.z());
@@ -152,7 +150,7 @@ void ensightParticlePositions
 
 
 template<class Type>
-void ensightLagrangianField
+void Foam::ensightLagrangianField
 (
     const IOobject& fieldObject,
     const fileName& dataDir,
@@ -210,7 +208,7 @@ void ensightLagrangianField
 
 //- write generalized field components
 template <class Type>
-void ensightVolField
+void Foam::ensightVolField
 (
     const ensightParts& partsList,
     const IOobject& fieldObject,
@@ -239,10 +237,6 @@ void ensightVolField
         )
     );
 }
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // namespace Foam
 
 
 // ************************************************************************* //

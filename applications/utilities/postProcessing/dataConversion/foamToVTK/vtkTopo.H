@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -79,7 +79,7 @@ public:
 
    // Public static data
 
-        // this must be consistent with the enumeration in "vtkCell.H"
+        //- equivalent to enumeration in "vtkCellType.h"
         enum vtkTypes
         {
             VTK_TRIANGLE   = 5,
@@ -87,16 +87,20 @@ public:
             VTK_QUAD       = 9,
 
             VTK_TETRA      = 10,
-            VTK_PYRAMID    = 14,
-            VTK_WEDGE      = 13,
             VTK_HEXAHEDRON = 12,
+            VTK_WEDGE      = 13,
+            VTK_PYRAMID    = 14,
+            VTK_POLYHEDRON = 42
         };
+
+    //- Enable/disable polyhedron decomposition. Default = true
+    static bool decomposePoly;
+
 
     // Constructors
 
         //- Construct from components
-        vtkTopo(const polyMesh& mesh);
-
+        vtkTopo(const polyMesh&);
 
     // Member Functions
 

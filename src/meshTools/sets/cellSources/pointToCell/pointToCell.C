@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,19 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(pointToCell, 0);
+    addToRunTimeSelectionTable(topoSetSource, pointToCell, word);
+    addToRunTimeSelectionTable(topoSetSource, pointToCell, istream);
 
-defineTypeNameAndDebug(pointToCell, 0);
-
-addToRunTimeSelectionTable(topoSetSource, pointToCell, word);
-
-addToRunTimeSelectionTable(topoSetSource, pointToCell, istream);
-
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::pointToCell::pointAction,
+        1
+    >::names[] =
+    {
+        "any"
+    };
 }
 
 
@@ -49,13 +55,6 @@ Foam::topoSetSource::addToUsageTable Foam::pointToCell::usage_
     "\n    Usage: pointToCell <pointSet> any\n\n"
     "    Select all cells with any point in the pointSet\n\n"
 );
-
-template<>
-const char* Foam::NamedEnum<Foam::pointToCell::pointAction, 1>::names[] =
-{
-    "any"
-};
-
 
 const Foam::NamedEnum<Foam::pointToCell::pointAction, 1>
     Foam::pointToCell::pointActionNames_;
@@ -72,15 +71,9 @@ void Foam::pointToCell::combine(topoSet& set, const bool add) const
     // Handle any selection
     if (option_ == ANY)
     {
-        for
-        (
-            pointSet::const_iterator iter = loadedSet.begin();
-            iter != loadedSet.end();
-            ++iter
-        )
+        forAllConstIter(pointSet, loadedSet, iter)
         {
-            label pointI = iter.key();
-
+            const label pointI = iter.key();
             const labelList& pCells = mesh_.pointCells()[pointI];
 
             forAll(pCells, pCellI)

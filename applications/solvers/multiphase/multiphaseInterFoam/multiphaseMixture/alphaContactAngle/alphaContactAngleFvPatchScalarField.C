@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,7 @@ Ostream& operator<<
 )
 {
     os  << tp.theta0_ << token::SPACE
-        << tp.uTheta_ << token::SPACE 
+        << tp.uTheta_ << token::SPACE
         << tp.thetaA_ << token::SPACE
         << tp.thetaR_;
 
@@ -133,7 +133,11 @@ void alphaContactAngleFvPatchScalarField::write(Ostream& os) const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, alphaContactAngleFvPatchScalarField);
+makePatchTypeField
+(
+    fvPatchScalarField,
+    alphaContactAngleFvPatchScalarField
+);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

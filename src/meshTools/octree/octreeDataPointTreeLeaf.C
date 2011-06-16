@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -82,7 +80,7 @@ bool Foam::treeLeaf<Foam::octreeDataPoint>::findNearest
     if (minIndex != -1)
     {
         tightestDist = sqrt(minDist2);
-    
+
         // New nearer. Update 'tightest' bounding box
         tMin.x() = sample.x() - tightestDist;
         tMin.y() = sample.y() - tightestDist;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,153 +24,36 @@ License
 \*----------------------------------------------------------------------------*/
 
 #include "syncTools.H"
-#include "polyMesh.H"
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-// Does anyone have couples? Since meshes might have 0 cells and 0 proc
-// boundaries need to reduce this info.
-bool Foam::syncTools::hasCouples(const polyBoundaryMesh& patches)
-{
-    bool hasAnyCouples = false;
-
-    forAll(patches, patchI)
-    {
-        if (patches[patchI].coupled())
-        {
-            hasAnyCouples = true;
-            break;
-        }
-    }
-    return returnReduce(hasAnyCouples, orOp<bool>());
-}
-
-
-void Foam::syncTools::checkTransform
-(
-    const coupledPolyPatch& pp,
-    const bool applySeparation
-)
-{
-    if (!pp.parallel() && pp.forwardT().size() > 1)
-    {
-        FatalErrorIn("syncTools::checkTransform(const coupledPolyPatch&)")
-            << "Non-uniform transformation not supported for point or edge"
-            << " fields." << endl
-            << "Patch:" << pp.name()
-            << abort(FatalError);
-    }
-    if (applySeparation && pp.separated() && pp.separation().size() > 1)
-    {
-        FatalErrorIn("syncTools::checkTransform(const coupledPolyPatch&)")
-            << "Non-uniform separation vector not supported for point or edge"
-            << " fields." << endl
-            << "Patch:" << pp.name()
-            << abort(FatalError);
-    }
-}
-
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 // Determines for every point whether it is coupled and if so sets only one.
 Foam::PackedBoolList Foam::syncTools::getMasterPoints(const polyMesh& mesh)
 {
-    PackedBoolList isMasterPoint(mesh.nPoints(), 0);
-    PackedBoolList donePoint(mesh.nPoints(), 0);
+    PackedBoolList isMasterPoint(mesh.nPoints());
+    PackedBoolList donePoint(mesh.nPoints());
 
+    const globalMeshData& globalData = mesh.globalData();
+    const labelList& meshPoints = globalData.coupledPatch().meshPoints();
+    const labelListList& slaves = globalData.globalPointSlaves();
+    const labelListList& transformedSlaves =
+            globalData.globalPointTransformedSlaves();
 
-    // Do multiple shared points. Min. proc is master
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    const labelList& sharedPointAddr =
-        mesh.globalData().sharedPointAddr();
-
-    labelList minProc(mesh.globalData().nGlobalPoints(), labelMax);
-
-    UIndirectList<label>(minProc, sharedPointAddr) = Pstream::myProcNo();
-
-    Pstream::listCombineGather(minProc, minEqOp<label>());
-    Pstream::listCombineScatter(minProc);
-
-    const labelList& sharedPointLabels =
-        mesh.globalData().sharedPointLabels();
-
-    forAll(sharedPointAddr, i)
+    forAll(meshPoints, coupledPointI)
     {
-        if (minProc[sharedPointAddr[i]] == Pstream::myProcNo())
-        {
-            isMasterPoint.set(sharedPointLabels[i], 1u);
-        }
-        donePoint.set(sharedPointLabels[i], 1u);
-    }
-
-
-    // Do other points on coupled patches
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    const polyBoundaryMesh& patches = mesh.boundaryMesh();
-
-    forAll(patches, patchI)
-    {
-        if (patches[patchI].coupled())
-        {
-            if
+        label meshPointI = meshPoints[coupledPointI];
+        if
+        (
             (
-                Pstream::parRun()
-             && isA<processorPolyPatch>(patches[patchI])
+                slaves[coupledPointI].size()
+              + transformedSlaves[coupledPointI].size()
             )
-            {
-                const processorPolyPatch& pp =
-                    refCast<const processorPolyPatch>(patches[patchI]);
-
-                const labelList& meshPoints = pp.meshPoints();
-
-                forAll(meshPoints, i)
-                {
-                    label pointI = meshPoints[i];
-
-                    if (donePoint.get(pointI) == 0u)
-                    {
-                        donePoint.set(pointI, 1u);
-
-                        if (pp.owner())
-                        {
-                            isMasterPoint.set(pointI, 1u);
-                        }
-                    }
-                }
-            }
-            else if (isA<cyclicPolyPatch>(patches[patchI]))
-            {
-                const cyclicPolyPatch& pp =
-                    refCast<const cyclicPolyPatch>(patches[patchI]);
-
-                const edgeList& coupledPoints = pp.coupledPoints();
-                const labelList& meshPoints = pp.meshPoints();
-
-                forAll(coupledPoints, i)
-                {
-                    // First one of couple points is master
-
-                    const edge& pointPair = coupledPoints[i];
-                    label p0 = meshPoints[pointPair[0]];
-                    label p1 = meshPoints[pointPair[1]];
-
-                    if (donePoint.get(p0) == 0u)
-                    {
-                        donePoint.set(p0, 1u);
-                        isMasterPoint.set(p0, 1u);
-                        donePoint.set(p1, 1u);
-                    }
-                }
-            }
-            else
-            {
-                FatalErrorIn("syncTools::getMasterPoints(const polyMesh&)")
-                    << "Cannot handle coupled patch " << patches[patchI].name()
-                    << " of type " <<  patches[patchI].type()
-                    << abort(FatalError);
-            }
+          > 0
+        )
+        {
+            isMasterPoint[meshPointI] = true;
         }
+        donePoint[meshPointI] = true;
     }
 
 
@@ -179,10 +62,9 @@ Foam::PackedBoolList Foam::syncTools::getMasterPoints(const polyMesh& mesh)
 
     forAll(donePoint, pointI)
     {
-        if (donePoint.get(pointI) == 0u)
+        if (!donePoint[pointI])
         {
-            donePoint.set(pointI, 1u);
-            isMasterPoint.set(pointI, 1u);
+            isMasterPoint[pointI] = true;
         }
     }
 
@@ -193,103 +75,30 @@ Foam::PackedBoolList Foam::syncTools::getMasterPoints(const polyMesh& mesh)
 // Determines for every edge whether it is coupled and if so sets only one.
 Foam::PackedBoolList Foam::syncTools::getMasterEdges(const polyMesh& mesh)
 {
-    PackedBoolList isMasterEdge(mesh.nEdges(), 0);
-    PackedBoolList doneEdge(mesh.nEdges(), 0);
+    PackedBoolList isMasterEdge(mesh.nEdges());
+    PackedBoolList doneEdge(mesh.nEdges());
 
+    const globalMeshData& globalData = mesh.globalData();
+    const labelList& meshEdges = globalData.coupledPatchMeshEdges();
+    const labelListList& slaves = globalData.globalEdgeSlaves();
+    const labelListList& transformedSlaves =
+        globalData.globalEdgeTransformedSlaves();
 
-    // Do multiple shared edges. Min. proc is master
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    const labelList& sharedEdgeAddr =
-        mesh.globalData().sharedEdgeAddr();
-
-    labelList minProc(mesh.globalData().nGlobalEdges(), labelMax);
-
-    UIndirectList<label>(minProc, sharedEdgeAddr) = Pstream::myProcNo();
-
-    Pstream::listCombineGather(minProc, minEqOp<label>());
-    Pstream::listCombineScatter(minProc);
-
-    const labelList& sharedEdgeLabels =
-        mesh.globalData().sharedEdgeLabels();
-
-    forAll(sharedEdgeAddr, i)
+    forAll(meshEdges, coupledEdgeI)
     {
-        if (minProc[sharedEdgeAddr[i]] == Pstream::myProcNo())
-        {
-            isMasterEdge.set(sharedEdgeLabels[i], 1u);
-        }
-        doneEdge.set(sharedEdgeLabels[i], 1u);
-    }
-
-
-    // Do other edges on coupled patches
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    const polyBoundaryMesh& patches = mesh.boundaryMesh();
-
-    forAll(patches, patchI)
-    {
-        if (patches[patchI].coupled())
-        {
-            if
+        label meshEdgeI = meshEdges[coupledEdgeI];
+        if
+        (
             (
-                Pstream::parRun()
-             && isA<processorPolyPatch>(patches[patchI])
+                slaves[coupledEdgeI].size()
+              + transformedSlaves[coupledEdgeI].size()
             )
-            {
-                const processorPolyPatch& pp =
-                    refCast<const processorPolyPatch>(patches[patchI]);
-
-                const labelList& meshEdges = pp.meshEdges();
-
-                forAll(meshEdges, i)
-                {
-                    label edgeI = meshEdges[i];
-
-                    if (doneEdge.get(edgeI) == 0u)
-                    {
-                        doneEdge.set(edgeI, 1u);
-
-                        if (pp.owner())
-                        {
-                            isMasterEdge.set(edgeI, 1u);
-                        }
-                    }
-                }
-            }
-            else if (isA<cyclicPolyPatch>(patches[patchI]))
-            {
-                const cyclicPolyPatch& pp =
-                    refCast<const cyclicPolyPatch>(patches[patchI]);
-
-                const edgeList& coupledEdges = pp.coupledEdges();
-                const labelList& meshEdges = pp.meshEdges();
-
-                forAll(coupledEdges, i)
-                {
-                    // First one of couple edges is master
-
-                    const edge& edgePair = coupledEdges[i];
-                    label e0 = meshEdges[edgePair[0]];
-                    label e1 = meshEdges[edgePair[1]];
-
-                    if (doneEdge.get(e0) == 0u)
-                    {
-                        doneEdge.set(e0, 1u);
-                        isMasterEdge.set(e0, 1u);
-                        doneEdge.set(e1, 1u);
-                    }
-                }
-            }
-            else
-            {
-                FatalErrorIn("syncTools::getMasterEdges(const polyMesh&)")
-                    << "Cannot handle coupled patch " << patches[patchI].name()
-                    << " of type " <<  patches[patchI].type()
-                    << abort(FatalError);
-            }
+          > 0
+        )
+        {
+            isMasterEdge[meshEdgeI] = true;
         }
+        doneEdge[meshEdgeI] = true;
     }
 
 
@@ -298,10 +107,9 @@ Foam::PackedBoolList Foam::syncTools::getMasterEdges(const polyMesh& mesh)
 
     forAll(doneEdge, edgeI)
     {
-        if (doneEdge.get(edgeI) == 0u)
+        if (!doneEdge[edgeI])
         {
-            doneEdge.set(edgeI, 1u);
-            isMasterEdge.set(edgeI, 1u);
+            isMasterEdge[edgeI] = true;
         }
     }
 
@@ -320,136 +128,20 @@ Foam::PackedBoolList Foam::syncTools::getMasterFaces(const polyMesh& mesh)
     {
         if (patches[patchI].coupled())
         {
-            if (Pstream::parRun() && isA<processorPolyPatch>(patches[patchI]))
-            {
-                const processorPolyPatch& pp =
-                    refCast<const processorPolyPatch>(patches[patchI]);
+            const coupledPolyPatch& pp =
+                refCast<const coupledPolyPatch>(patches[patchI]);
 
-                if (!pp.owner())
-                {
-                    forAll(pp, i)
-                    {
-                        isMasterFace.set(pp.start()+i, 0);
-                    }
-                }
-            }
-            else if (isA<cyclicPolyPatch>(patches[patchI]))
+            if (!pp.owner())
             {
-                const cyclicPolyPatch& pp =
-                    refCast<const cyclicPolyPatch>(patches[patchI]);
-
-                for (label i = pp.size()/2; i < pp.size(); i++)
+                forAll(pp, i)
                 {
-                    isMasterFace.set(pp.start()+i, 0);
+                    isMasterFace.unset(pp.start()+i);
                 }
-            }
-            else
-            {
-                FatalErrorIn("syncTools::getMasterFaces(const polyMesh&)")
-                    << "Cannot handle coupled patch " << patches[patchI].name()
-                    << " of type " <<  patches[patchI].type()
-                    << abort(FatalError);
             }
         }
     }
 
     return isMasterFace;
-}
-
-
-template <>
-void Foam::syncTools::separateList
-(
-    const vectorField& separation,
-    UList<vector>& field
-)
-{
-    if (separation.size() == 1)
-    {
-        // Single value for all.
-
-        forAll(field, i)
-        {
-            field[i] += separation[0];
-        }
-    }
-    else if (separation.size() == field.size())
-    {
-        forAll(field, i)
-        {
-            field[i] += separation[i];
-        }
-    }
-    else
-    {
-        FatalErrorIn
-        (
-            "syncTools::separateList(const vectorField&, UList<vector>&)"
-        )   << "Sizes of field and transformation not equal. field:"
-            << field.size() << " transformation:" << separation.size()
-            << abort(FatalError);
-    }
-}
-
-
-template <>
-void Foam::syncTools::separateList
-(
-    const vectorField& separation,
-    Map<vector>& field
-)
-{
-    if (separation.size() == 1)
-    {
-        // Single value for all.
-        forAllIter(Map<vector>, field, iter)
-        {
-            iter() += separation[0];
-        }
-    }
-    else if (separation.size() == field.size())
-    {
-        forAllIter(Map<vector>, field, iter)
-        {
-            iter() += separation[iter.key()];
-        }
-    }
-    else
-    {
-        FatalErrorIn
-        (
-            "syncTools::separateList(const vectorField&, Map<vector>&)"
-        )   << "Sizes of field and transformation not equal. field:"
-            << field.size() << " transformation:" << separation.size()
-            << abort(FatalError);
-    }
-}
-
-
-template <>
-void Foam::syncTools::separateList
-(
-    const vectorField& separation,
-    EdgeMap<vector>& field
-)
-{
-    if (separation.size() == 1)
-    {
-        // Single value for all.
-        forAllIter(EdgeMap<vector>, field, iter)
-        {
-            iter() += separation[0];
-        }
-    }
-    else
-    {
-        FatalErrorIn
-        (
-            "syncTools::separateList(const vectorField&, EdgeMap<vector>&)"
-        )   << "Multiple separation vectors not supported. field:"
-            << field.size() << " transformation:" << separation.size()
-            << abort(FatalError);
-    }
 }
 
 

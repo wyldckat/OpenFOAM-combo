@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -74,7 +72,7 @@ void writeBytes(char* start, int nBytes)
 
     cout<< start << " : ";
 
-    for(int i = 0; i < nBytes; i++)
+    for (int i = 0; i < nBytes; i++)
     {
         cout<< " " << start[i];
     }
@@ -87,12 +85,12 @@ void writeBytes(char* start, int nBytes)
 // Debug: write wall flags data
 void writeWallFlags(Ostream& os, label cellI, const labelList& wallFlags)
 {
-    os << "cell " << cellI << " wallsFlags:";
+    os  << "cell " << cellI << " wallsFlags:";
     forAll(wallFlags, wallFaceI)
     {
-        os << wallFlags[wallFaceI] << " ";
+        os  << wallFlags[wallFaceI] << ' ';
     }
-    os << endl;
+    os  << endl;
 }
 
 

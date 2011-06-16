@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -85,7 +85,7 @@ void Foam::CentredFitData<Polynomial>::calcFit()
 
     const surfaceScalarField& w = mesh.surfaceInterpolation::weights();
 
-    for(label facei = 0; facei < mesh.nInternalFaces(); facei++)
+    for (label facei = 0; facei < mesh.nInternalFaces(); facei++)
     {
         FitData
         <
@@ -103,7 +103,7 @@ void Foam::CentredFitData<Polynomial>::calcFit()
 
         if (pw.coupled())
         {
-            label facei = pw.patch().patch().start();
+            label facei = pw.patch().start();
 
             forAll(pw, i)
             {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,10 +40,20 @@ using namespace Foam;
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validOptions.insert("new", "");
-    argList::validOptions.insert("old", "");
+    argList::addBoolOption
+    (
+        "new",
+        "output switches that are known from the libraries "
+        "but that do not seem to be known in the current etc/controlDict"
+    );
+    argList::addBoolOption
+    (
+        "old",
+        "output switches that appear to be unknown in "
+        "the current etc/controlDict"
+    );
 
-    Foam::argList args(argc, argv);
+    argList args(argc, argv);
 
     wordList currDebug(debug::debugSwitches().toc());
     wordList currInfo(debug::infoSwitches().toc());

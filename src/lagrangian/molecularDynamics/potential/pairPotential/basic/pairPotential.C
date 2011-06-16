@@ -100,7 +100,7 @@ Foam::scalar Foam::pairPotential::force(const scalar r) const
 
     if (k < 0)
     {
-        FatalErrorIn("pairPotential.C") << nl
+        FatalErrorIn("pairPotential::force(const scalar) const")
             << "r less than rMin in pair potential " << name_ << nl
             << abort(FatalError);
     }
@@ -137,7 +137,7 @@ Foam::scalar Foam::pairPotential::energy(const scalar r) const
 
     if (k < 0)
     {
-        FatalErrorIn("pairPotential.C") << nl
+        FatalErrorIn("pairPotential::energy(const scalar) const")
             << "r less than rMin in pair potential " << name_ << nl
             << abort(FatalError);
     }

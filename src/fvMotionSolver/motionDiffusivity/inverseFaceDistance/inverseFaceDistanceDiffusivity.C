@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,9 +76,9 @@ void Foam::inverseFaceDistanceDiffusivity::correct()
 
     label nPatchFaces = 0;
 
-    forAll (patchNames_, i)
+    forAll(patchNames_, i)
     {
-        label pID = bdry.findPatchID(patchNames_[i]);
+        const label pID = bdry.findPatchID(patchNames_[i]);
 
         if (pID > -1)
         {
@@ -96,7 +96,7 @@ void Foam::inverseFaceDistanceDiffusivity::correct()
     {
         const polyPatch& patch = bdry[iter.key()];
 
-        const vectorField::subField fc = patch.faceCentres();
+        const vectorField::subField fc(patch.faceCentres());
 
         forAll(fc, patchFaceI)
         {
@@ -115,7 +115,7 @@ void Foam::inverseFaceDistanceDiffusivity::correct()
         mesh,
         changedFaces,
         faceDist,
-        mesh.globalData().nTotalCells() // max iterations
+        mesh.globalData().nTotalCells()+1   // max iterations
     );
 
     const List<wallPoint>& faceInfo = waveInfo.allFaceInfo();
@@ -132,7 +132,7 @@ void Foam::inverseFaceDistanceDiffusivity::correct()
     {
         fvsPatchScalarField& bfld = faceDiffusivity_.boundaryField()[patchI];
 
-        const unallocLabelList& faceCells = bfld.patch().faceCells();
+        const labelUList& faceCells = bfld.patch().faceCells();
 
         if (patchSet.found(patchI))
         {
@@ -144,7 +144,7 @@ void Foam::inverseFaceDistanceDiffusivity::correct()
         }
         else
         {
-            label start = bfld.patch().patch().start();
+            const label start = bfld.patch().start();
 
             forAll(bfld, i)
             {

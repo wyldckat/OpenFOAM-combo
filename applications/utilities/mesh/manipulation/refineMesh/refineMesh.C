@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,6 +44,7 @@ Description
 #include "labelIOList.H"
 #include "wedgePolyPatch.H"
 #include "plane.H"
+#include "SubField.H"
 
 using namespace Foam;
 
@@ -271,7 +272,7 @@ label twoDNess(const polyMesh& mesh)
         {
             const vectorField& n = patch.faceAreas();
 
-            scalarField cosAngle = mag(n/mag(n) & cellPlane.normal());
+            const scalarField cosAngle(mag(n/mag(n) & cellPlane.normal()));
 
             if (mag(min(cosAngle) - max(cosAngle)) > 1E-6)
             {
@@ -290,24 +291,33 @@ label twoDNess(const polyMesh& mesh)
 
 int main(int argc, char *argv[])
 {
-    Foam::argList::validOptions.insert("dict", "");
-    Foam::argList::validOptions.insert("overwrite", "");
+    argList::addNote
+    (
+        "refine cells in multiple directions"
+    );
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "addOverwriteOption.H"
+    #include "addRegionOption.H"
+    argList::addBoolOption
+    (
+        "dict",
+        "refine according to system/refineMeshDict"
+    );
+
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
-#   include "createPolyMesh.H"
+    #include "createNamedPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
     printEdgeStats(mesh);
-
 
     //
     // Read/construct control dictionary
     //
 
-    bool readDict = args.optionFound("dict");
-    bool overwrite = args.optionFound("overwrite");
+    const bool readDict = args.optionFound("dict");
+    const bool overwrite = args.optionFound("overwrite");
 
     // List of cells to refine
     labelList refCells;
@@ -319,20 +329,19 @@ int main(int argc, char *argv[])
     {
         Info<< "Refining according to refineMeshDict" << nl << endl;
 
-        refineDict =
-            IOdictionary
+        refineDict = IOdictionary
+        (
+            IOobject
             (
-                IOobject
-                (
-                    "refineMeshDict",
-                    runTime.system(),
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE
-                )
-            );
+                "refineMeshDict",
+                runTime.system(),
+                mesh,
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE
+            )
+        );
 
-        word setName(refineDict.lookup("set"));
+        const word setName(refineDict.lookup("set"));
 
         cellSet cells(mesh, setName);
 

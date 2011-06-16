@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -115,7 +115,7 @@ void fftRenumber
     List<complex> renumData(data);
 
     label nnprod(1);
-    for (label i=0; i<nn.size(); i++)
+    forAll(nn, i)
     {
         nnprod *= nn[i];
     }

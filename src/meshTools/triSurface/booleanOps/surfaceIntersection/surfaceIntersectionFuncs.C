@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "surfaceIntersection.H"
@@ -32,12 +30,7 @@ Description
 #include "HashSet.H"
 #include "triSurface.H"
 #include "pointIndexHit.H"
-#include "octreeDataTriSurface.H"
-#include "octree.H"
 #include "meshTools.H"
-
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -97,9 +90,7 @@ Foam::label Foam::surfaceIntersection::getEdge
     const label fp
 )
 {
-    const labelledTri& f = surf.localFaces()[faceI];
-
-    edge faceEdge(f[fp], f[(fp+1) % 3]);
+    const edge faceEdge = surf.localFaces()[faceI].faceEdge(fp);
 
     const labelList& eLabels = surf.faceEdges()[faceI];
 
@@ -159,12 +150,12 @@ void Foam::surfaceIntersection::removeDuplicates
         // Insert first
         elems[elemI++] = map[oldElems[0]];
 
-        for(label vertI = 1; vertI < oldElems.size(); vertI++)
+        for (label vertI = 1; vertI < oldElems.size(); vertI++)
         {
             // Insert others only if they differ from one before
             label newVertI = map[oldElems[vertI]];
 
-            if (newVertI != elems[elems.size()-1])
+            if (newVertI != elems.last())
             {
                 elems[elemI++] = newVertI;
             }
@@ -298,13 +289,13 @@ void Foam::surfaceIntersection::writeIntersectedEdges
             os  << "l " << e.start()+1 << ' '
                 << extraVerts[0] + surf.nPoints() + 1 << endl;
 
-            for(label i = 1; i < extraVerts.size(); i++)
+            for (label i = 1; i < extraVerts.size(); i++)
             {
                 os  << "l " << extraVerts[i-1] + surf.nPoints() + 1  << ' '
                     << extraVerts[i] + surf.nPoints() + 1 << endl;
             }
 
-            os  << "l " << extraVerts[extraVerts.size()-1] + surf.nPoints() + 1
+            os  << "l " << extraVerts.last() + surf.nPoints() + 1
                 << ' ' << e.end()+1 << endl;
         }
     }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,11 +66,16 @@ class HashPtrTable
 :
     public HashTable<T*, Key, Hash>
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Read from Istream using given Istream constructor class
         template<class INew>
         void read(Istream&, const INew& inewt);
+
+        //- Read from dictionary using given dictionary constructor class
+        template<class INew>
+        void read(const dictionary& dict, const INew& inewt);
+
 
 
 public:
@@ -91,13 +96,16 @@ public:
         //- Construct from Istream using default Istream constructor class
         HashPtrTable(Istream&);
 
+        //- Construct from dictionary using default dictionary constructor
+        //  class
+        HashPtrTable(const dictionary&);
+
         //- Construct as copy
         HashPtrTable(const HashPtrTable<T, Key, Hash>&);
 
 
-    // Destructor
-
-        ~HashPtrTable();
+    //- Destructor
+    ~HashPtrTable();
 
 
     // Member Functions
@@ -112,6 +120,9 @@ public:
 
             //- Clear all entries from table
             void clear();
+
+            //- Write
+            void write(Ostream& os) const;
 
 
     // Member Operators

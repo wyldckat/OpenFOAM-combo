@@ -1,20 +1,44 @@
 #!/bin/sh
 cd ${0%/*} || exit 1    # run from this directory
-set -x
+makeType=${1:-libso}
 
-wmake libso dummy
+
+#
+# define how to create an mpi-versioned library of $makeType
+# compile into qualified directory
+# use sentinel file to handle version changes
+#
+wmakeMpiLib()
+{
+    set +x
+    for libName
+    do
+    (
+        WM_OPTIONS="$WM_OPTIONS$WM_MPLIB"
+        whichmpi="$libName/Make/$WM_OPTIONS/using:$FOAM_MPI"
+        [ -e "$whichmpi" ] || wclean $libName
+        echo "wmake $makeType $libName"
+        wmake $makeType $libName
+        touch "$whichmpi"
+    )
+    done
+    set -x
+}
+
+set -x
+wmake $makeType dummy
 
 case "$WM_MPLIB" in
 *MPI*)
     set +x
     echo
     echo "Note: ignore spurious warnings about missing mpicxx.h headers"
-    set -x
-    (WM_OPTIONS=${WM_OPTIONS}$WM_MPLIB; wmake libso mpi)
+    echo
+    wmakeMpiLib mpi
     ;;
 
 #GAMMA)
-#    wmake libso gamma
+#    wmake $makeType gamma
 #    ;;
 esac
 

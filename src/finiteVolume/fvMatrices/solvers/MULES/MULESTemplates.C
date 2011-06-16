@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,7 +34,7 @@ License
 #include "slicedSurfaceFields.H"
 #include "syncTools.H"
 
-#include "fvCFD.H"
+#include "fvm.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,7 +56,7 @@ void Foam::MULES::explicitSolve
     const fvMesh& mesh = psi.mesh();
     psi.correctBoundaryConditions();
 
-    surfaceScalarField phiBD = upwind<scalar>(psi.mesh(), phi).flux(psi);
+    surfaceScalarField phiBD(upwind<scalar>(psi.mesh(), phi).flux(psi));
 
     surfaceScalarField& phiCorr = phiPsi;
     phiCorr -= phiBD;
@@ -87,8 +87,8 @@ void Foam::MULES::explicitSolve
         psi,
         phiBD,
         phiCorr,
-        Sp.field(),
-        Su.field(),
+        Sp,
+        Su,
         psiMax,
         psiMin,
         3
@@ -98,7 +98,7 @@ void Foam::MULES::explicitSolve
 
     scalarField& psiIf = psi;
     const scalarField& psi0 = psi.oldTime();
-    const scalar deltaT = mesh.time().deltaT().value();
+    const scalar deltaT = mesh.time().deltaTValue();
 
     psiIf = 0.0;
     fvc::surfaceIntegrate(psiIf, phiPsi);
@@ -107,19 +107,20 @@ void Foam::MULES::explicitSolve
     {
         psiIf =
         (
-            mesh.Vsc0()*rho.oldTime()*psi0/(deltaT*mesh.Vsc())
+            mesh.Vsc0()().field()*rho.oldTime().field()
+           *psi0/(deltaT*mesh.Vsc()().field())
           + Su.field()
           - psiIf
-        )/(rho/deltaT - Sp.field());
+        )/(rho.field()/deltaT - Sp.field());
     }
     else
     {
         psiIf =
         (
-            rho.oldTime()*psi0/deltaT
+            rho.oldTime().field()*psi0/deltaT
           + Su.field()
           - psiIf
-        )/(rho/deltaT - Sp.field());
+        )/(rho.field()/deltaT - Sp.field());
     }
 
     psi.correctBoundaryConditions();
@@ -166,7 +167,7 @@ void Foam::MULES::implicitSolve
     scalarField allCoLambda(mesh.nFaces());
 
     {
-        surfaceScalarField Cof =
+        tmp<surfaceScalarField> Cof =
             mesh.time().deltaT()*mesh.surfaceInterpolation::deltaCoeffs()
            *mag(phi)/mesh.magSf();
 
@@ -224,7 +225,7 @@ void Foam::MULES::implicitSolve
       - Su
     );
 
-    surfaceScalarField phiBD = psiConvectionDiffusion.flux();
+    surfaceScalarField phiBD(psiConvectionDiffusion.flux());
 
     surfaceScalarField& phiCorr = phiPsi;
     phiCorr -= phiBD;
@@ -243,8 +244,8 @@ void Foam::MULES::implicitSolve
             psi,
             phiBD,
             phiCorr,
-            Sp.field(),
-            Su.field(),
+            Sp,
+            Su,
             psiMax,
             psiMin,
             nLimiterIter
@@ -323,11 +324,11 @@ void Foam::MULES::limiter
 
     const fvMesh& mesh = psi.mesh();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighb = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighb = mesh.neighbour();
     tmp<volScalarField::DimensionedInternalField> tVsc = mesh.Vsc();
     const scalarField& V = tVsc();
-    const scalar deltaT = mesh.time().deltaT().value();
+    const scalar deltaT = mesh.time().deltaTValue();
 
     const scalarField& phiBDIf = phiBD;
     const surfaceScalarField::GeometricBoundaryField& phiBDBf =
@@ -404,7 +405,7 @@ void Foam::MULES::limiter
 
         if (psiPf.coupled())
         {
-            scalarField psiPNf = psiPf.patchNeighbourField();
+            const scalarField psiPNf(psiPf.patchNeighbourField());
 
             forAll(phiCorrPf, pFacei)
             {
@@ -456,30 +457,48 @@ void Foam::MULES::limiter
         tmp<volScalarField::DimensionedInternalField> V0 = mesh.Vsc0();
 
         psiMaxn =
-            V*((rho/deltaT - Sp)*psiMaxn - Su)
-          - (V0()/deltaT)*rho.oldTime()*psi0
+            V
+           *(
+               (rho.field()/deltaT - Sp.field())*psiMaxn
+             - Su.field()
+            )
+          - (V0().field()/deltaT)*rho.oldTime().field()*psi0
           + sumPhiBD;
 
         psiMinn =
-            V*(Su - (rho/deltaT - Sp)*psiMinn)
-          + (V0/deltaT)*rho.oldTime()*psi0
+            V
+           *(
+               Su.field()
+             - (rho.field()/deltaT - Sp.field())*psiMinn
+            )
+          + (V0().field()/deltaT)*rho.oldTime().field()*psi0
           - sumPhiBD;
     }
     else
     {
         psiMaxn =
-            V*((rho/deltaT - Sp)*psiMaxn - Su - (rho.oldTime()/deltaT)*psi0)
+            V
+           *(
+               (rho.field()/deltaT - Sp.field())*psiMaxn
+             - Su.field()
+             - (rho.oldTime().field()/deltaT)*psi0
+            )
           + sumPhiBD;
 
         psiMinn =
-            V*(Su - (rho/deltaT - Sp)*psiMinn + (rho.oldTime()/deltaT)*psi0)
+            V
+           *(
+               Su.field()
+             - (rho.field()/deltaT - Sp.field())*psiMinn
+             + (rho.oldTime().field()/deltaT)*psi0
+            )
           - sumPhiBD;
     }
 
     scalarField sumlPhip(psiIf.size());
     scalarField mSumlPhim(psiIf.size());
 
-    for(int j=0; j<nLimiterIter; j++)
+    for (int j=0; j<nLimiterIter; j++)
     {
         sumlPhip = 0.0;
         mSumlPhim = 0.0;
@@ -527,7 +546,7 @@ void Foam::MULES::limiter
             }
         }
 
-        forAll (sumlPhip, celli)
+        forAll(sumlPhip, celli)
         {
             sumlPhip[celli] =
                 max(min
@@ -590,7 +609,7 @@ void Foam::MULES::limiter
             }
         }
 
-        syncTools::syncFaceList(mesh, allLambda, minEqOp<scalar>(), false);
+        syncTools::syncFaceList(mesh, allLambda, minEqOp<scalar>());
     }
 }
 

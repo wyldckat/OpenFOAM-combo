@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,34 +21,30 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "MeshWave.H"
 #include "polyMesh.H"
-#include "processorPolyPatch.H"
-#include "cyclicPolyPatch.H"
-#include "OPstream.H"
-#include "IPstream.H"
-#include "PstreamReduceOps.H"
-#include "debug.H"
-#include "typeInfo.H"
+
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+template <class Type, class TrackingData>
+Foam::label Foam::MeshWave<Type, TrackingData>::dummyTrackData_ = 12345;
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Iterate, propagating changedFacesInfo across mesh, until no change (or 
+// Iterate, propagating changedFacesInfo across mesh, until no change (or
 // maxIter reached).
-template <class Type>
-Foam::MeshWave<Type>::MeshWave
+template <class Type, class TrackingData>
+Foam::MeshWave<Type, TrackingData>::MeshWave
 (
     const polyMesh& mesh,
     const labelList& changedFaces,
     const List<Type>& changedFacesInfo,
-    const label maxIter
+    const label maxIter,
+    TrackingData& td
 )
 :
     allFaceInfo_(mesh.nFaces()),
@@ -60,21 +56,23 @@ Foam::MeshWave<Type>::MeshWave
         changedFacesInfo,
         allFaceInfo_,
         allCellInfo_,
-        maxIter
+        maxIter,
+        td
     )
 {}
 
 
-// Iterate, propagating changedFacesInfo across mesh, until no change (or 
+// Iterate, propagating changedFacesInfo across mesh, until no change (or
 // maxIter reached). Initial cell values specified.
-template <class Type>
-Foam::MeshWave<Type>::MeshWave
+template <class Type, class TrackingData>
+Foam::MeshWave<Type, TrackingData>::MeshWave
 (
     const polyMesh& mesh,
     const labelList& changedFaces,
     const List<Type>& changedFacesInfo,
     const List<Type>& allCellInfo,
-    const label maxIter
+    const label maxIter,
+    TrackingData& td
 )
 :
     allFaceInfo_(mesh.nFaces()),
@@ -86,7 +84,8 @@ Foam::MeshWave<Type>::MeshWave
         changedFacesInfo,
         allFaceInfo_,
         allCellInfo_,
-        maxIter
+        maxIter,
+        td
     )
 {}
 

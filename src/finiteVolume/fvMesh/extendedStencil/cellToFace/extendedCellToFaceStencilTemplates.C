@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -139,7 +139,7 @@ Foam::extendedCellToFaceStencil::weightedSum
 
         if (pSfCorr.coupled())
         {
-            label faceI = pSfCorr.patch().patch().start();
+            label faceI = pSfCorr.patch().start();
 
             forAll(pSfCorr, i)
             {

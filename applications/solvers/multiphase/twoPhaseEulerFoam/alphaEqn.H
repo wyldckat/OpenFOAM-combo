@@ -7,8 +7,8 @@
 
     if (g0.value() > 0.0)
     {
-        surfaceScalarField alphaf = fvc::interpolate(alpha);
-        surfaceScalarField phipp = ppMagf*fvc::snGrad(alpha)*mesh.magSf();
+        surfaceScalarField alphaf(fvc::interpolate(alpha));
+        surfaceScalarField phipp(ppMagf*fvc::snGrad(alpha)*mesh.magSf());
         phir += phipp;
         phic += fvc::interpolate(alpha)*phipp;
     }

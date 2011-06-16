@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -31,98 +31,161 @@
 # Bugs
 #     -solution singularity not handled
 #------------------------------------------------------------------------------
+Script=${0##*/}
+toolsDir=${0%/*}/tools
+siteDir=${WM_PROJECT_SITE:-${WM_PROJECT_INST_DIR:-<unknown>}/site}
+userDir=$HOME/.OpenFOAM
 
-PROGDIR=`dirname $0`
-PROGNAME=`basename $0`
+usage() {
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat <<USAGE
 
-if [ -r $HOME/.${PROGNAME}.db ]; then
-    DBFILE=$HOME/.${PROGNAME}.db
-else
-    DBFILE=$PROGDIR/$PROGNAME.db
-fi
+Usage: $Script [OPTIONS] <log>
+  -list             lists but does not extract
+  -n                create single column files with the extracted data only
+  -quiet            quiet operation
+  -help             print the usage
 
+$Script - extracts xy files from OpenFOAM logs.
 
-printUsage() {
-cat <<LABUSAGE
-$PROGNAME - extracts xy files from Foam logs.
-
-Usage: $PROGNAME [-n][-s] <log>
-           extracts xy files from log
-       $PROGNAME -l <log>
-           lists but does not extract
-       $PROGNAME -h
-           for a help message
-
-LABUSAGE
+USAGE
+    exit 1
 }
 
+#------------------------------------------------------------------------------
 
 printHelp() {
-printUsage
-cat <<LABHELP
-The default is to extract for all the 'Solved for' variables the
-initial residual, the final residual and the number of iterations. On
-top of this a (user editable) database of standard non-solved for
-variables is used to extract data like Courant number, execution time.
+cat <<HELP
+-----------------------------------------------------------------------------
+The default is to extract for all the 'Solved for' variables the initial
+residual, the final residual and the number of iterations. Additionally, a
+(user editable) database is used to extract data for standard non-solved for
+variables like Courant number, and execution time.
 
-$PROGNAME -l shows all the possible variables but does not extract them.
+$Script -l lists all the possible variables without extracting them.
 
-The program will generate and run an awk script which writes a set of
-files, logs/<var>_<subIter>, for every <var> specified, for every
-occurrence inside a time step.
+The program will generate and run an awk script which writes a set of files,
+logs/<var>_<subIter>, for every <var> specified, for every occurrence inside
+a time step.
 
-For variables that are 'Solved for' the initial residual name will 
-be <var>, the final residual will get name <var>FinalRes,
+For variables that are 'Solved for', the initial residual name will be
+<var>, the final residual receive the name <var>FinalRes,
 
-The files are a simple xy format with the first column Time (default)
+The files are output in a simple xy format with the first column Time (default)
 and the second the extracted values. Option -n creates single column
 files with the extracted data only.
 
 
-The query database is a simple text format with three entries per line, 
-separated with '/'. Column 1 is the name of the variable (cannot contain
-spaces), column 2 is the extended regular expression (egrep) to select
-the line and column 3 is the string (fgrep) to select the column inside the
-line. The value taken will be the first (non-space)word after this
-column. The database will either be \$HOME/.${PROGNAME}.db or if not
-found  $PROGDIR/${PROGNAME}.db.
+The query database is a simple text format with three entries per line,
+separated with '/' :
+  Column 1 is the name of the variable (cannot contain spaces).
+  Column 2 is the extended regular expression (egrep) to select the line.
+  Column 3 is the string (fgrep) to select the column inside the line.
+The value taken will be the first (non-space)word after this column.
+The database ($Script.db) will taken from these locations:
 
-Option -s suppresses the default information and only prints the extracted
+    .
+    $userDir/$WM_PROJECT_VERSION
+    $userDir
+    $siteDir/$WM_PROJECT_VERSION
+    $siteDir
+    $WM_PROJECT_DIR/etc
+    $toolsDir
+
+Option -q suppresses the default information and only prints the extracted
 variables.
+-----------------------------------------------------------------------------
+HELP
 
-LABHELP
+usage
 }
 
 
+timeName=Time
+unset listOpt quietOpt
 
-myEcho() {
-  if [ "$VERBOSE" ]; then
-      echo "$*"
-  fi
+# parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)
+        printHelp
+        exit 0
+        ;;
+    -n)
+        unset timeName
+        shift
+        ;;
+    -l | -list)
+        listOpt=true
+        shift
+        ;;
+    -q | -quiet | -s | -silent)
+        quietOpt=true
+        shift
+        ;;
+    -*)
+        usage "unknown option: '$*'"
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
+
+# find the database file
+DBFILE=$Script.db
+[ -f $DBFILE ] || DBFILE=`foamEtcFile $Script.db` || DBFILE=$toolsDir/$Script.db
+
+# need the database file
+[ -f $DBFILE ] || {
+    echo "$Script: Cannot read database $DBFILE"
+    exit 1
 }
+
+# single logFile
+if [ $# -eq 1 ]
+then
+    LOG=$1
+    [ -r "$LOG" ] && [ -f "$LOG" ] || usage "Cannot read log $LOG"
+else
+    usage
+fi
+
+
+myEcho()
+{
+   [ "$quietOpt" = true ] || echo "$*"
+}
+
 
 # getSolvedVars logFile
 # Prints names of all 'solved for' variables in the log file.
-getSolvedVars() {
+getSolvedVars()
+{
     fgrep ' Solving for ' $1 | fgrep ',' | sed -e 's/.* Solving for \([^,]*\)[,:].*/\1/' | sort -u
 }
 
 
 # getQueries dbFile queryName
 # Gets regular expressions for a certain queryName from the database
-getQueries() {
-    if [ ! -f "$1" ]; then
-        echo "Cannot find dbFile $1"
-        exit 1
-    fi
-
+getQueries()
+{
+    dbFile=$1
     queryName=$2
 
-    LINEQ=`grep -v '^#' $1 | awk -F '/' "/$queryName/ {if (\"$queryName\" "'!= $1) next; print $2}'`
-    NUMQ=`grep -v '^#' $1 | awk -F '/' "/$queryName/ {if (\"$queryName\" "'!= $1) next; print $3}'`
+    [ -f "$dbFile" ] || {
+        echo "Cannot find dbFile $dbFile"
+        exit 1
+    }
+
+    LINEQ=`grep -v '^#' $dbFile | awk -F '/' "/$queryName/ {if (\"$queryName\" "'!= $1) next; print $2}'`
+    NUMQ=`grep -v '^#' $dbFile | awk -F '/' "/$queryName/ {if (\"$queryName\" "'!= $1) next; print $3}'`
 
     #echo "For $queryName found line selection /$LINEQ/ , column selection /$NUMQ/" 1>&2
-    #if [ ! "$LINEQ" -o ! "$NUMQ" ]; then
+    #if [ ! "$LINEQ" -o ! "$NUMQ" ]
+    #then
     #    echo "Did not find query for $2 in database $1" 1>&2
     #fi
 }
@@ -130,14 +193,16 @@ getQueries() {
 
 # getDbQueryList dbFile
 # Echoes list of possible queries
-getDbQueryList() {
+getDbQueryList()
+{
     grep -v '^#' $1 | grep '[^ \t]' | awk -F '/' '{print $1}'
 }
 
 
 # getSolveQueryList logFile
 # Echoes list of queries from "solved for" variables in log file
-getSolveQueryList() {
+getSolveQueryList()
+{
     solvedVars=`getSolvedVars $1`
 
     for var in $solvedVars
@@ -148,9 +213,11 @@ getSolveQueryList() {
     done
 }
 
+
 # getAllQueries dbFile logFile
 # Gets all queries from database and from logfile
-getAllQueries() {
+getAllQueries()
+{
     #-- All solved for queries from log file
     queries=`getSolveQueryList $2`
 
@@ -163,9 +230,11 @@ getAllQueries() {
     do
         getQueries $1 "$var"
         line=`egrep "$LINEQ" $2`
-        if [ "$line" ]; then
+        if [ "$line" ]
+        then
             column=`echo "$line" | fgrep "$NUMQ"`
-            if [ "$column" ]; then
+            if [ "$column" ]
+            then
                 queries="$queries $var"
             fi
         fi
@@ -177,97 +246,38 @@ getAllQueries() {
     done | sort -u
 }
 
+
 #-----------------------------
 # Main
 #-----------------------------
 
-# sort arguments
-TIMENAME='Time'
-VERBOSE='yes'
-LISTONLY=''
-
-while getopts nslh flags
-do
-    case $flags in
-        n)  TIMENAME=""
-            ;;
-        h)  printHelp
-            exit 0
-            ;;
-        s)  VERBOSE=""
-            ;;
-        l)  LISTONLY='yes'
-            ;;
-	    \?) printUsage
-            exit 1
-            ;;
-    esac
-done
-
-
-# Shift options
-shift `expr $OPTIND - 1`
-
-if [ ! -f $DBFILE ]; then
-    echo "$PROGNAME: Cannot read database $DBFILE"
-    exit 1
-fi
-
-if [ "$LISTONLY" ]; then
-    if [ $# -ne 1 ]; then
-        printUsage
-        exit 1
-    fi
-    LOG=$1;
-    if [ ! -r $LOG ]; then
-        echo "$PROGNAME: Cannot read log $LOG"
-        exit 1
-    fi
+if [ "$listOpt" = true ]
+then
     getAllQueries $DBFILE $LOG
     exit 0
 fi
 
-if [ $# -ne 1 ]; then
-    printUsage
-    exit 1
-fi
+caseDir=.
+outputDir=$caseDir/logs
 
-CASEDIR=.
-LOG=$1
-if [ ! -r $LOG ]; then
-    echo "$PROGNAME: Cannot read log $LOG"
+[ -d "$caseDir" ] || {
+    echo "$Script: Cannot read $caseDir"
     exit 1
-fi
+}
 
 QUERYNAMES=`getAllQueries $DBFILE $LOG`
 
-
-if [ ! "$CASEDIR" ]; then
-    printUsage
-    exit 1
-fi
-
-if [ ! -d "$CASEDIR" ]; then
-    echo "$PROGNAME: Cannot read $CASEDIR"
-    exit 1
-fi
-
-if [ ! -f "$LOG" ]; then
-    echo "$PROGNAME: Cannot read log file $LOG"
-    exit 1
-fi
-
-
-#-- Make logs dir in case directory and put awk file there.
-
-mkdir -p $CASEDIR/logs
-AWKFILE=$CASEDIR/logs/$PROGNAME.awk
+#
+# Make logs dir in case directory and place awk file there
+#
+mkdir -p $outputDir
+AWKFILE=$outputDir/$Script.awk
 
 myEcho "Using:"
 myEcho "  log      : $LOG"
 myEcho "  database : $DBFILE"
 myEcho "  awk file : $AWKFILE"
-myEcho "  files to : $CASEDIR/logs"
+myEcho "  files to : $outputDir"
 myEcho ""
 
 
@@ -275,24 +285,25 @@ myEcho ""
 # Generate Awk program
 #-----------------------------
 
+rm -f $AWKFILE 2> /dev/null
+cat << AWK_CONTENTS > $AWKFILE
+# header
+BEGIN {
+    Iteration=0
+    resetCounters()
+}
 
+# reset counters used for variable postfix
+function resetCounters() {
+AWK_CONTENTS
+# ----------
 
-#-- header
-
-rm -f $AWKFILE; touch $AWKFILE
-echo "BEGIN {" >> $AWKFILE
-echo "    Iteration=0" >> $AWKFILE
-echo "    resetCounters()" >> $AWKFILE
-echo "}" >> $AWKFILE
-
-echo "" >> $AWKFILE
-echo "# reset counters used for variable postfix" >> $AWKFILE
-echo "function resetCounters() {" >> $AWKFILE
 for queryName in $QUERYNAMES
 do
     varName=${queryName}Cnt
     echo "    ${varName}=0" >> $AWKFILE
 done
+
 echo "    # Reset counters for general Solving for extraction" >> $AWKFILE
 echo "    for (varName in subIter)" >> $AWKFILE
 echo "    {" >> $AWKFILE
@@ -302,10 +313,9 @@ echo "}" >> $AWKFILE
 echo "" >> $AWKFILE
 
 
-cat <<LABEL >> $AWKFILE
+cat << AWK_CONTENTS >> $AWKFILE
 # Extract value after columnSel
-function extract(inLine,columnSel,outVar,
-                 a,b)
+function extract(inLine,columnSel,outVar,a,b)
 {
     a=index(inLine, columnSel)
     b=length(columnSel)
@@ -313,90 +323,99 @@ function extract(inLine,columnSel,outVar,
     gsub("[,:]","",outVar[1])
 }
 
-LABEL
+AWK_CONTENTS
+# ----------
 
-
-
-
-
-#-- Generate code for iteration separator (increments 'Iteration')
+#
+# Code for iteration separator (increments 'Iteration')
+#
 getQueries $DBFILE 'Separator'
-cat <<LABSEP >> $AWKFILE
-#-- Iteration separator (increments 'Iteration')
+cat << AWK_CONTENTS >> $AWKFILE
+# Iteration separator (increments 'Iteration')
 /$LINEQ/ {
     Iteration++
     resetCounters()
 }
 
-LABSEP
+AWK_CONTENTS
+# ----------
 
-
-#-- Generate code for extracting Time
+#
+# Code for extracting Time
+#
 getQueries $DBFILE 'Time'
-cat <<LABTIME >> $AWKFILE
-#-- Time extraction (sets 'Time')
+cat << AWK_CONTENTS >> $AWKFILE
+# Time extraction (sets 'Time')
 /$LINEQ/ {
     extract(\$0, "$NUMQ", val)
     Time=val[1]
 }
 
-LABTIME
+AWK_CONTENTS
+# ----------
 
-
-#-- Generate code for singularity handling.
-cat <<LABSING >> $AWKFILE
-#-- Skip whole line with singularity variable
+#
+# Code for singularity handling.
+#
+cat << AWK_CONTENTS >> $AWKFILE
+# Skip whole line with singularity variable
 /solution singularity/ {
     next;
 }
-LABSING
 
+AWK_CONTENTS
+# ----------
 
-#-- Generate code for extracting solved for quantities
-cat <<LABSOLVE >> $AWKFILE
-#-- Extraction of any solved for variable
+#
+# Code for extracting solved for quantities
+#
+cat << AWK_CONTENTS >> $AWKFILE
+# Extraction of any solved for variable
 /Solving for/ {
     extract(\$0, "Solving for ", varNameVal)
 
     varName=varNameVal[1]
     file=varName "_" subIter[varName]++
-    file="$CASEDIR/logs/" file 
+    file="$outputDir/" file
     extract(\$0, "Initial residual = ", val)
-    print $TIMENAME "\t" val[1] > file
+    print $timeName "\t" val[1] > file
 
     varName=varNameVal[1] "FinalRes"
     file=varName "_" subIter[varName]++
-    file="$CASEDIR/logs/" file 
+    file="$outputDir/" file
     extract(\$0, "Final residual = ", val)
-    print $TIMENAME "\t" val[1] > file
+    print $timeName "\t" val[1] > file
 
     varName=varNameVal[1] "Iters"
     file=varName "_" subIter[varName]++
-    file="$CASEDIR/logs/" file 
+    file="$outputDir/" file
     extract(\$0, "No Iterations ", val)
-    print $TIMENAME "\t" val[1] > file
+    print $timeName "\t" val[1] > file
 }
 
-LABSOLVE
+AWK_CONTENTS
+# ----------
 
-#-- generate code to process queries
+#
+# Code to process queries
+#
 for queryName in $QUERYNAMES
 do
     getQueries $DBFILE $queryName
-    if [ "$LINEQ" -a "$NUMQ" ]; then
+    if [ "$LINEQ" -a "$NUMQ" ]
+    then
         counter=${queryName}Cnt
 
-        echo "#-- Extraction of $queryName" >> $AWKFILE
+        echo "# Extraction of $queryName" >> $AWKFILE
         echo "/$LINEQ/ {" >> $AWKFILE
         echo "    extract(\$0, \"$NUMQ\", val)" >> $AWKFILE
-        echo "    file=\"$CASEDIR/logs/${queryName}_\" ${counter}" >> $AWKFILE
-        echo "    print $TIMENAME \"\\t\" val[1] > file" >> $AWKFILE
+        echo "    file=\"$outputDir/${queryName}_\" ${counter}" >> $AWKFILE
+        echo "    print $timeName \"\\t\" val[1] > file" >> $AWKFILE
         echo "    ${counter}++" >> $AWKFILE
         echo "}" >> $AWKFILE
         echo "" >> $AWKFILE
     fi
 done
-
 
 
 #-----------------------------
@@ -414,5 +433,6 @@ done
 #-----------------------------
 myEcho "Generated XY files for:"
 getAllQueries $DBFILE $LOG
+myEcho "End"
 
 #------------------------------------------------------------------------------

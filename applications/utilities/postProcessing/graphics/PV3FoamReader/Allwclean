@@ -1,8 +1,0 @@
-#!/bin/sh
-cd ${0%/*} || exit 1    # run from this directory
-set -x
-
-wclean libso vtkPV3Readers
-PV3FoamReader/Allwclean
-
-# ----------------------------------------------------------------- end-of-file

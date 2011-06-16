@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -404,6 +404,17 @@ inline Cmpt cmptAv
 )
 {
     return cmptSum(vs)/nCmpt;
+}
+
+template<class Form, class Cmpt, int nCmpt>
+inline Cmpt cmptProduct
+(
+    const VectorSpace<Form, Cmpt, nCmpt>& vs
+)
+{
+    Cmpt product = vs.v_[0];
+    VectorSpaceOps<nCmpt,1>::SeqOp(product, vs, multiplyEqOp<Cmpt>());
+    return product;
 }
 
 

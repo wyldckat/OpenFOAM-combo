@@ -8,10 +8,12 @@
 
     hsCombustionThermo& thermo = chemistry.thermo();
 
+    SLGThermo slgThermo(mesh, thermo);
+
     basicMultiComponentMixture& composition = thermo.composition();
     PtrList<volScalarField>& Y = composition.Y();
 
-    word inertSpecie(thermo.lookup("inertSpecie"));
+    const word inertSpecie(thermo.lookup("inertSpecie"));
 
     if (!composition.contains(inertSpecie))
     {

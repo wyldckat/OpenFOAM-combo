@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class upwindCPCCellToFaceStencilObject Declaration
+              Class upwindCPCCellToFaceStencilObject Declaration
 \*---------------------------------------------------------------------------*/
 
 class upwindCPCCellToFaceStencilObject
@@ -54,7 +54,7 @@ class upwindCPCCellToFaceStencilObject
 
 public:
 
-    TypeName("upwindCFCCellToFaceStencil");
+    TypeName("upwindCPCCellToFaceStencil");
 
     // Constructors
 
@@ -83,10 +83,9 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~upwindCPCCellToFaceStencilObject()
-        {}
+    //- Destructor
+    virtual ~upwindCPCCellToFaceStencilObject()
+    {}
 };
 
 

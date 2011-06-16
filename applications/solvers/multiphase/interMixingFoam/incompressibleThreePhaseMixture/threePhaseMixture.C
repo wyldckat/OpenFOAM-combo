@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Class
     threePhaseMixture
@@ -138,9 +137,9 @@ Foam::tmp<Foam::volScalarField> Foam::threePhaseMixture::mu() const
 
 Foam::tmp<Foam::surfaceScalarField> Foam::threePhaseMixture::muf() const
 {
-    surfaceScalarField alpha1f = fvc::interpolate(alpha1_);
-    surfaceScalarField alpha2f = fvc::interpolate(alpha2_);
-    surfaceScalarField alpha3f = fvc::interpolate(alpha3_);
+    surfaceScalarField alpha1f(fvc::interpolate(alpha1_));
+    surfaceScalarField alpha2f(fvc::interpolate(alpha2_));
+    surfaceScalarField alpha3f(fvc::interpolate(alpha3_));
 
     return tmp<surfaceScalarField>
     (
@@ -157,9 +156,9 @@ Foam::tmp<Foam::surfaceScalarField> Foam::threePhaseMixture::muf() const
 
 Foam::tmp<Foam::surfaceScalarField> Foam::threePhaseMixture::nuf() const
 {
-    surfaceScalarField alpha1f = fvc::interpolate(alpha1_);
-    surfaceScalarField alpha2f = fvc::interpolate(alpha2_);
-    surfaceScalarField alpha3f = fvc::interpolate(alpha3_);
+    surfaceScalarField alpha1f(fvc::interpolate(alpha1_));
+    surfaceScalarField alpha2f(fvc::interpolate(alpha2_));
+    surfaceScalarField alpha3f(fvc::interpolate(alpha3_));
 
     return tmp<surfaceScalarField>
     (

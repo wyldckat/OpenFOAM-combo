@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,6 +43,8 @@ SourceFiles
 #include "pointField.H"
 #include "volFieldsFwd.H"
 
+#include "wordReList.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -59,6 +61,8 @@ class mapPolyMesh;
 \*---------------------------------------------------------------------------*/
 
 class probes
+:
+    public pointField
 {
 protected:
 
@@ -68,31 +72,26 @@ protected:
         template<class Type>
         class fieldGroup
         :
-            public wordList
+            public DynamicList<word>
         {
         public:
             //- Construct null
             fieldGroup()
             :
-                wordList()
+                DynamicList<word>(0)
             {}
 
-            //- Construct for a list of field names
-            fieldGroup(const wordList& fieldNames)
-            :
-                wordList(fieldNames)
-            {}
         };
 
 
-    // Protected data
+    // Private data
 
         //- Name of this set of probes,
         //  Also used as the name of the probes directory.
         word name_;
 
-        //- Const reference to objectRegistry
-        const objectRegistry& obr_;
+        //- Const reference to fvMesh
+        const fvMesh& mesh_;
 
         //- Load fields from files (not from objectRegistry)
         bool loadFromFiles_;
@@ -101,11 +100,7 @@ protected:
         // Read from dictonary
 
             //- Names of fields to probe
-            wordList fieldNames_;
-
-            //- Locations to probe
-            vectorField probeLocations_;
-
+            wordReList fieldSelection_;
 
         // Calculated
 
@@ -125,20 +120,21 @@ protected:
 
     // Private Member Functions
 
-        //- Find element containing probes
+        //- Clear old field groups
+        void clearFieldGroups();
+
+        //- Append fieldName to the appropriate group
+        label appendFieldGroup(const word& fieldName, const word& fieldType);
+
+        //- Classify field types, returns the number of fields
+        label classifyFields();
+
+        //- Find cells containing probes
         virtual void findElements(const fvMesh&);
 
-        //- classify field types, return true if nFields > 0
-        bool checkFieldTypes();
-
-        //- Find the fields in the list of the given type, return count
-        template<class Type>
-        label countFields
-        (
-            fieldGroup<Type>& fieldList,
-            const wordList& fieldTypes
-        ) const;
-
+        //- Classify field type and Open/close file streams,
+        //  returns number of fields
+        label prepare();
 
 private:
 
@@ -150,7 +146,7 @@ private:
         );
 
         //- Sample and write all the fields of the given type
-        template <class Type>
+        template<class Type>
         void sampleAndWrite(const fieldGroup<Type>&);
 
         //- Disallow default bitwise copy construct
@@ -192,19 +188,25 @@ public:
         }
 
         //- Return names of fields to probe
-        virtual const wordList& fieldNames() const
+        virtual const wordReList& fieldNames() const
         {
-            return fieldNames_;
+            return fieldSelection_;
         }
 
         //- Return locations to probe
-        virtual const vectorField& probeLocations() const
+        virtual const pointField& probeLocations() const
         {
-            return probeLocations_;
+            return *this;
+        }
+
+        //- Return location for probe i
+        virtual const point& probe(const label i) const
+        {
+            return operator[](i);
         }
 
         //- Cells to be probed (obtained from the locations)
-        const labelList& elements() const
+        const labelList& elemets() const
         {
             return elementList_;
         }

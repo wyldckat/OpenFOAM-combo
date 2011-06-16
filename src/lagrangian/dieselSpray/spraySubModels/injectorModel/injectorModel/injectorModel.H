@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,14 +27,14 @@ Class
 
 Description
     The injectormodel is used to set initial droplet size and the
-    velocity direction 
+    velocity direction
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef injectorModel_H
 #define injectorModel_H
 
-#include "liquid.H"
+#include "liquidProperties.H"
 #include "injector.H"
 #include "PtrList.H"
 #include "IOdictionary.H"
@@ -48,7 +48,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class injectorModel Declaration
+                        Class injectorModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class injectorModel
@@ -61,13 +61,14 @@ protected:
         const dictionary& dict_;
         spray& sm_;
 
-        const PtrList<injector>& injectors_;    
-        Random& rndGen_;
+        const PtrList<injector>& injectors_;
+        cachedRandom& rndGen_;
+
 
 public:
 
     //-Runtime type information
-        TypeName("injectorModel");
+    TypeName("injectorModel");
 
     // Declare runtime constructor selection table
 
@@ -87,16 +88,11 @@ public:
     // Constructors
 
         //- Construct from components
-        injectorModel
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        injectorModel(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        virtual ~injectorModel();
+    //- Destructor
+    virtual ~injectorModel();
 
 
     // Selector
@@ -116,22 +112,15 @@ public:
         //- Return the spray angle of the injector
         virtual vector direction
         (
-            const label injector, 
+            const label injector,
             const label hole,
             const scalar time,
             const scalar d
         ) const = 0;
 
-        virtual scalar velocity
-        (
-            const label i,
-            const scalar time
-        ) const = 0;
-        
-        virtual scalar averageVelocity
-        (
-            const label i
-        ) const = 0;
+        virtual scalar velocity(const label i, const scalar time) const = 0;
+
+        virtual scalar averageVelocity(const label i) const = 0;
 };
 
 

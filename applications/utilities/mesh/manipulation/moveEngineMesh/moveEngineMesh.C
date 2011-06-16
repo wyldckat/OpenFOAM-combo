@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     moveEngineMesh
 
 Description
-    Solver for moving meshes for engine calculations. 
+    Solver for moving meshes for engine calculations.
 
 \*---------------------------------------------------------------------------*/
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         mesh.move();
 
         runTime.write();
- 
+
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"
             << nl << endl;

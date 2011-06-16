@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,7 @@ tmp<ddtScheme<Type> > ddtScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     typename IstreamConstructorTable::iterator cstrIter =
         IstreamConstructorTablePtr_->find(schemeName);
@@ -76,7 +76,7 @@ tmp<ddtScheme<Type> > ddtScheme<Type>::New
         (
             "ddtScheme<Type>::New(const fvMesh&, Istream&)",
             schemeData
-        )   << "unknown ddt scheme " << schemeName << endl << endl
+        )   << "Unknown ddt scheme " << schemeName << nl << nl
             << "Valid ddt schemes are :" << endl
             << IstreamConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
@@ -113,7 +113,7 @@ tmp<surfaceScalarField> ddtScheme<Type>::fvcDdtPhiCoeff
 
     surfaceScalarField& ddtCouplingCoeff = tddtCouplingCoeff();
 
-    forAll (U.boundaryField(), patchi)
+    forAll(U.boundaryField(), patchi)
     {
         if (U.boundaryField()[patchi].fixesValue())
         {
@@ -154,7 +154,7 @@ tmp<surfaceScalarField> ddtScheme<Type>::fvcDdtPhiCoeff
 
     surfaceScalarField& ddtCouplingCoeff = tddtCouplingCoeff();
 
-    forAll (U.boundaryField(), patchi)
+    forAll(U.boundaryField(), patchi)
     {
         if (U.boundaryField()[patchi].fixesValue())
         {
@@ -199,7 +199,7 @@ tmp<surfaceScalarField> ddtScheme<Type>::fvcDdtPhiCoeff
 
     surfaceScalarField& ddtCouplingCoeff = tddtCouplingCoeff();
 
-    forAll (rhoU.boundaryField(), patchi)
+    forAll(rhoU.boundaryField(), patchi)
     {
         if (rhoU.boundaryField()[patchi].fixesValue())
         {

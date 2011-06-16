@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "MapLagrangianFields.H"
-#include "Cloud.H"
-#include "passiveParticle.H"
+#include "passiveParticleCloud.H"
 #include "meshSearch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -38,12 +37,15 @@ static const scalar perturbFactor = 1E-6;
 
 // Special version of findCell that generates a cell guaranteed to be
 // compatible with tracking.
-static label findCell(const meshSearch& meshSearcher, const point& pt)
+static label findCell(const Cloud<passiveParticle>& cloud, const point& pt)
 {
-    const polyMesh& mesh = meshSearcher.mesh();
+    label cellI = -1;
+    label tetFaceI = -1;
+    label tetPtI = -1;
 
-    // Use tracking to find cell containing pt
-    label cellI = meshSearcher.findCell(pt);
+    const polyMesh& mesh = cloud.pMesh();
+
+    mesh.findCellFacePt(pt, cellI, tetFaceI, tetPtI);
 
     if (cellI >= 0)
     {
@@ -54,16 +56,22 @@ static label findCell(const meshSearch& meshSearcher, const point& pt)
         // See if particle on face by finding nearest face and shifting
         // particle.
 
+        meshSearch meshSearcher(mesh, false);
+
         label faceI = meshSearcher.findNearestBoundaryFace(pt);
 
         if (faceI >= 0)
         {
             const point& cc = mesh.cellCentres()[mesh.faceOwner()[faceI]];
+
             const point perturbPt = (1-perturbFactor)*pt+perturbFactor*cc;
 
-            return meshSearcher.findCell(perturbPt);
+            mesh.findCellFacePt(perturbPt, cellI, tetFaceI, tetPtI);
+
+            return cellI;
         }
     }
+
     return -1;
 }
 
@@ -115,7 +123,7 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
             Info<< nl << "    processing cloud " << cloudDirs[cloudI] << endl;
 
             // Read positions & cell
-            Cloud<passiveParticle> sourceParcels
+            passiveParticleCloud sourceParcels
             (
                 meshSource,
                 cloudDirs[cloudI],
@@ -125,12 +133,14 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
                 << " parcels from source mesh." << endl;
 
             // Construct empty target cloud
-            Cloud<passiveParticle> targetParcels
+            passiveParticleCloud targetParcels
             (
                 meshTarget,
                 cloudDirs[cloudI],
                 IDLList<passiveParticle>()
             );
+
+            particle::TrackingData<passiveParticleCloud> td(targetParcels);
 
             label sourceParticleI = 0;
 
@@ -167,15 +177,14 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
                         (
                             new passiveParticle
                             (
-                                targetParcels,
+                                meshTarget,
                                 targetCc[targetCells[i]],
                                 targetCells[i]
                             )
                         );
                         passiveParticle& newP = newPtr();
 
-                        scalar fraction = 0;
-                        label faceI = newP.track(iter().position(), fraction);
+                        label faceI = newP.track(iter().position(), td);
 
                         if (faceI < 0 && newP.cell() >= 0)
                         {
@@ -207,8 +216,6 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
 
             if (unmappedSource.size())
             {
-                meshSearch targetSearcher(meshTarget, false);
-
                 sourceParticleI = 0;
 
                 forAllIter(Cloud<passiveParticle>, sourceParcels, iter)
@@ -216,13 +223,13 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
                     if (unmappedSource.found(sourceParticleI))
                     {
                         label targetCell =
-                            findCell(targetSearcher, iter().position());
+                            findCell(targetParcels, iter().position());
 
                         if (targetCell >= 0)
                         {
                             unmappedSource.erase(sourceParticleI);
                             addParticles.append(sourceParticleI);
-			    iter().cell()=targetCell;
+                            iter().cell() = targetCell;
                             targetParcels.addParticle
                             (
                                 sourceParcels.remove(&iter())
@@ -239,7 +246,7 @@ void mapLagrangian(const meshToMesh& meshToMeshInterp)
 
             if (addParticles.size())
             {
-                IOPosition<passiveParticle>(targetParcels).write();
+                IOPosition<passiveParticleCloud>(targetParcels).write();
 
                 // addParticles now contains the indices of the sourceMesh
                 // particles that were appended to the target mesh.

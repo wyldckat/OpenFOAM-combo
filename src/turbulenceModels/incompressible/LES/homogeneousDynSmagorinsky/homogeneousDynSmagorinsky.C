@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,15 +57,18 @@ dimensionedScalar homogeneousDynSmagorinsky::cD
     const volSymmTensorField& D
 ) const
 {
-    volSymmTensorField LL = dev(filter_(sqr(U())) - (sqr(filter_(U()))));
-
-    volSymmTensorField MM =
-        sqr(delta())*(filter_(mag(D)*(D)) - 4*mag(filter_(D))*filter_(D));
+    const volSymmTensorField MM
+    (
+        sqr(delta())*(filter_(mag(D)*(D)) - 4*mag(filter_(D))*filter_(D))
+    );
 
     dimensionedScalar MMMM = average(magSqr(MM));
 
     if (MMMM.value() > VSMALL)
     {
+        tmp<volSymmTensorField> LL =
+            dev(filter_(sqr(U())) - (sqr(filter_(U()))));
+
         return average(LL && MM)/MMMM;
     }
     else
@@ -80,15 +83,18 @@ dimensionedScalar homogeneousDynSmagorinsky::cI
     const volSymmTensorField& D
 ) const
 {
-    volScalarField KK = 0.5*(filter_(magSqr(U())) - magSqr(filter_(U())));
-
-    volScalarField mm =
-        sqr(delta())*(4*sqr(mag(filter_(D))) - filter_(sqr(mag(D))));
+    const volScalarField mm
+    (
+        sqr(delta())*(4*sqr(mag(filter_(D))) - filter_(sqr(mag(D))))
+    );
 
     dimensionedScalar mmmm = average(magSqr(mm));
 
     if (mmmm.value() > VSMALL)
     {
+        tmp<volScalarField> KK =
+            0.5*(filter_(magSqr(U())) - magSqr(filter_(U())));
+
         return average(KK*mm)/mmmm;
     }
     else
@@ -104,10 +110,12 @@ homogeneousDynSmagorinsky::homogeneousDynSmagorinsky
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
     GenEddyVisc(U, phi, transport),
 
     k_
@@ -126,6 +134,8 @@ homogeneousDynSmagorinsky::homogeneousDynSmagorinsky
     filterPtr_(LESfilter::New(U.mesh(), coeffDict())),
     filter_(filterPtr_())
 {
+    bound(k_,  kMin_);
+
     updateSubGridScaleFields(dev(symm(fvc::grad(U))));
 
     printCoeffs();
@@ -138,9 +148,10 @@ void homogeneousDynSmagorinsky::correct(const tmp<volTensorField>& gradU)
 {
     LESModel::correct(gradU);
 
-    volSymmTensorField D = dev(symm(gradU));
+    const volSymmTensorField D(dev(symm(gradU)));
 
     k_ = cI(D)*sqr(delta())*magSqr(D);
+    bound(k_,  kMin_);
 
     updateSubGridScaleFields(D);
 }

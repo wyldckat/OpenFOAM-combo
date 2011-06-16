@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,7 +34,7 @@ Description
 #define LiquidEvaporation_H
 
 #include "PhaseChangeModel.H"
-#include "liquidMixture.H"
+#include "liquidMixtureProperties.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,7 +54,7 @@ protected:
     // Protected data
 
         //- Global liquid properties data
-        autoPtr<liquidMixture> liquids_;
+        const liquidMixtureProperties& liquids_;
 
         //- List of active liquid names
         List<word> activeLiquids_;
@@ -66,29 +66,37 @@ protected:
         List<label> liqToLiqMap_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Sherwood number as a function of Reynolds and Schmidt numbers
         scalar Sh(const scalar Re, const scalar Sc) const;
 
         //- Calculate the carrier phase component volume fractions at cellI
-        scalarField calcXc(const label cellI) const;
+        tmp<scalarField> calcXc(const label cellI) const;
 
 
 public:
 
     //- Runtime type information
-    TypeName("LiquidEvaporation");
+    TypeName("liquidEvaporation");
 
 
     // Constructors
 
         //- Construct from dictionary
-        LiquidEvaporation
-        (
-            const dictionary& dict,
-            CloudType& cloud
-        );
+        LiquidEvaporation(const dictionary& dict, CloudType& cloud);
+
+        //- Construct copy
+        LiquidEvaporation(const LiquidEvaporation<CloudType>& pcm);
+
+        //- Construct and return a clone
+        virtual autoPtr<PhaseChangeModel<CloudType> > clone() const
+        {
+            return autoPtr<PhaseChangeModel<CloudType> >
+            (
+                new LiquidEvaporation<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -96,9 +104,6 @@ public:
 
 
     // Member Functions
-
-        //- Flag to indicate whether model activates phase change model
-        virtual bool active() const;
 
         //- Update model
         virtual void calculate
@@ -112,6 +117,15 @@ public:
             const scalar Ts,
             const scalar pc,
             scalarField& dMassPC
+        ) const;
+
+        //- Return the enthalpy per unit mass
+        virtual scalar dh
+        (
+            const label idc,
+            const label idl,
+            const label p,
+            const label T
         ) const;
 };
 

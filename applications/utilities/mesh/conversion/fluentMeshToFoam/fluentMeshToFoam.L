@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     fluentMeshToFoam
 
 Description
-    Converts a Fluent mesh to FOAM format
+    Converts a Fluent mesh to OpenFOAM format
     including multiple region and region boundary handling.
 
 \*---------------------------------------------------------------------------*/
@@ -45,7 +45,6 @@ Description
 #include "emptyPolyPatch.H"
 #include "wallPolyPatch.H"
 #include "symmetryPolyPatch.H"
-#include "preservePatchTypes.H"
 #include "cellShape.H"
 #include "faceSet.H"
 #include "cellSet.H"
@@ -489,7 +488,7 @@ endOfSection               {space}")"{space}
         // set size of label list
         curFaceLabels.setSize(readLabel(mixedFaceStream));
 
-        forAll (curFaceLabels, i)
+        forAll(curFaceLabels, i)
         {
             curFaceLabels[i] = readHexLabel(mixedFaceStream) - 1;
         }
@@ -510,7 +509,7 @@ endOfSection               {space}")"{space}
         // for edge is 2, for triangle is 3 and for quad is 4
         curFaceLabels.setSize(faceGroupElementType);
 
-        forAll (curFaceLabels, i)
+        forAll(curFaceLabels, i)
         {
             curFaceLabels[i] = readHexLabel(mixedFaceStream) - 1;
         }
@@ -866,9 +865,22 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append("Fluent mesh file");
-    argList::validOptions.insert("scale", "scale factor");
-    argList::validOptions.insert("writeSets", "");
-    argList::validOptions.insert("writeZones", "");
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
+    argList::addBoolOption
+    (
+        "writeSets",
+        "write cell zones and patches as sets"
+    );
+    argList::addBoolOption
+    (
+        "writeZones",
+        "write cell zones as zones"
+    );
 
     argList args(argc, argv);
 
@@ -877,15 +889,14 @@ int main(int argc, char *argv[])
         FatalError.exit();
     }
 
-    scalar scaleFactor = 1.0;
-    args.optionReadIfPresent("scale", scaleFactor);
+    const scalar scaleFactor = args.optionLookupOrDefault("scale", 1.0);
 
-    bool writeSets  = args.optionFound("writeSets");
-    bool writeZones = args.optionFound("writeZones");
+    const bool writeSets  = args.optionFound("writeSets");
+    const bool writeZones = args.optionFound("writeZones");
 
 #   include "createTime.H"
 
-    fileName fluentFile(args.additionalArgs()[0]);
+    const fileName fluentFile = args[1];
     std::ifstream fluentStream(fluentFile.c_str());
 
     if (!fluentStream)
@@ -897,7 +908,7 @@ int main(int argc, char *argv[])
     }
 
     yyFlexLexer lexer(&fluentStream);
-    while(lexer.yylex() != 0)
+    while (lexer.yylex() != 0)
     {}
 
     Info<< "\n\nFINISHED LEXING\n\n\n";
@@ -914,14 +925,14 @@ int main(int argc, char *argv[])
 
     labelList nFacesInCell(nCells, 0);
 
-    forAll (cellFaces, celli)
+    forAll(cellFaces, celli)
     {
         cellFaces[celli].setSize(fluentModelNFaces[fluentCellModelID[celli] ]);
     }
 
     // fill in owner and neighbour
 
-    forAll (owner, faceI)
+    forAll(owner, faceI)
     {
         if (owner[faceI] > -1)
         {
@@ -932,7 +943,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    forAll (neighbour, faceI)
+    forAll(neighbour, faceI)
     {
         if (neighbour[faceI] > -1)
         {
@@ -975,7 +986,7 @@ int main(int argc, char *argv[])
         // points given by Fluent need to represent the FRONT plane of the
         // geometry. Therefore, the extrusion will be in -z direction
         //
-        forAll (oldPoints, pointI)
+        forAll(oldPoints, pointI)
         {
             points[nNewPoints] = oldPoints[pointI];
 
@@ -984,7 +995,7 @@ int main(int argc, char *argv[])
             nNewPoints++;
         }
 
-        forAll (oldPoints, pointI)
+        forAll(oldPoints, pointI)
         {
             points[nNewPoints] = oldPoints[pointI];
 
@@ -999,7 +1010,7 @@ int main(int argc, char *argv[])
         // Set the number of empty faces
         frontAndBackFaces.setSize(2*nCells);
 
-        forAll (fluentCellModelID, celli)
+        forAll(fluentCellModelID, celli)
         {
             switch (fluentCellModelID[celli])
             {
@@ -1052,7 +1063,7 @@ int main(int argc, char *argv[])
         }
 
         // Create new faces
-        forAll (faces, faceI)
+        forAll(faces, faceI)
         {
 
             if (faces[faceI].size() != 2)
@@ -1077,7 +1088,7 @@ int main(int argc, char *argv[])
     {
         // 3-D shape recognition
         Info<< "Creating shapes for 3-D cells"<< endl;
-        forAll (fluentCellModelID, celli)
+        forAll(fluentCellModelID, celli)
         {
             if
             (
@@ -1115,7 +1126,7 @@ int main(int argc, char *argv[])
     // area vector points into the domain. Turn them round before making patches
     // for Foam compatibility
 
-    forAll (faces, faceI)
+    forAll(faces, faceI)
     {
         if (owner[faceI] == -1)
         {
@@ -1231,7 +1242,7 @@ int main(int argc, char *argv[])
 
         faceList patchFaces(faceGroupEndIndexIter() - faceLabel);
 
-        forAll (patchFaces, faceI)
+        forAll(patchFaces, faceI)
         {
             if
             (
@@ -1387,7 +1398,7 @@ int main(int argc, char *argv[])
                 meshFaces[j] = cMeshFace;
                 pFaceSet.insert(cMeshFace);
             }
-            if(writeSets)
+            if (writeSets)
             {
                 Info<< "Writing patch " << patchNames[patchI]
                     << " of size " << sz << " to faceSet." << endl;
@@ -1403,7 +1414,11 @@ int main(int argc, char *argv[])
         //it will be put in a default wall boundary
         //internal boundaries are simply ignored
 
-        if(patchTypes[patchI] != "internal" && !pShapeMesh.isInternalFace(meshFaces[0]))
+        if
+        (
+            patchTypes[patchI] != "internal"
+         && !pShapeMesh.isInternalFace(meshFaces[0])
+        )
         {
             //first face is external and has valid non-internal type
 
@@ -1422,7 +1437,7 @@ int main(int argc, char *argv[])
                         << exit(FatalError);
                 }
 
-                if(facePatchID[faceI - pShapeMesh.nInternalFaces()]!= -1)
+                if (facePatchID[faceI - pShapeMesh.nInternalFaces()]!= -1)
                 {
                     FatalErrorIn(args.executable())
                         << "Face " << faceI << " on new patch "
@@ -1474,7 +1489,7 @@ int main(int argc, char *argv[])
         DynamicList<label> defaultBoundaryFaces(facePatchID.size());
         forAll(facePatchID, idI)
         {
-            if(facePatchID[idI] == -1)
+            if (facePatchID[idI] == -1)
             {
                 defaultBoundaryFaces.append(idI);
                 facePatchID[idI] = nBoundaries;
@@ -1526,17 +1541,6 @@ int main(int argc, char *argv[])
     }
     repatcher.repatch();
 
-    preservePatchTypes
-    (
-        runTime,
-        runTime.constant(),
-        polyMesh::defaultRegion,
-        patchNames,
-        patchTypes,
-        defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
-    );
 
     // Set the precision of the points data to 10
     IOstream::defaultPrecision(10);
@@ -1550,7 +1554,7 @@ int main(int argc, char *argv[])
     // interior boundaries are handled via faceSets
     // cell zones will only be written if there is more than one
 
-    if (writeZones && cellGroupZoneID.size()>1)
+    if (writeZones && cellGroupZoneID.size() > 1)
     {
         Info<< "Adding Zones" << endl;
         List<pointZone*> pz(0);
@@ -1574,50 +1578,50 @@ int main(int argc, char *argv[])
             boundaryZones[pI].append(bPatches[pI].name());
         }
 
-	    label cnt=0;
-	    SLList<label>::iterator cg = cellGroupZoneID.begin();
-	    SLList<label>::iterator start = cellGroupStartIndex.begin();
-	    SLList<label>::iterator end = cellGroupEndIndex.begin();
+        label cnt=0;
+        SLList<label>::iterator cg = cellGroupZoneID.begin();
+        SLList<label>::iterator start = cellGroupStartIndex.begin();
+        SLList<label>::iterator end = cellGroupEndIndex.begin();
 
-	    for (; cg != cellGroupZoneID.end(); ++cg, ++start, ++end)
-	    {
-	        const word& name = patchNameIDs[cg()];
-	        const word& type = patchTypeIDs[cg()];
+        for (; cg != cellGroupZoneID.end(); ++cg, ++start, ++end)
+        {
+            const word& name = patchNameIDs[cg()];
+            const word& type = patchTypeIDs[cg()];
 
-	        Info<< "Writing cell zone: " << name
+            Info<< "Writing cell zone: " << name
                 << " of type " << type << " starting at " << start() - 1
                 << " ending at " << end() - 1 << " to cellSet." << endl;
 
-	        labelList cls(end() - start() + 1);
+            labelList cls(end() - start() + 1);
 
             // Mark zone cells, used for finding faces
             boolList zoneCell(pShapeMesh.nCells(), false);
 
-	        // shift cell indizes by 1
-	        label nr=0;
-	        for (label celli = (start() - 1); celli < end(); celli++)
+            // shift cell indizes by 1
+            label nr=0;
+            for (label celli = (start() - 1); celli < end(); celli++)
             {
                 cls[nr]=celli;
                 zoneCell[celli] = true;
                 nr++;
-	        }
+            }
 
-	        cz[cnt] = new cellZone
-	        (
+            cz[cnt] = new cellZone
+            (
                 name,
                 cls,
                 cnt,
                 pShapeMesh.cellZones()
-	        );
+            );
 
             DynamicList<label> zoneFaces(pShapeMesh.nFaces());
             forAll(pShapeMesh.faceNeighbour(), faceI)
             {
                 label nei = pShapeMesh.faceNeighbour()[faceI];
                 label own = pShapeMesh.faceOwner()[faceI];
-                if(nei != -1)
+                if (nei != -1)
                 {
-                    if(zoneCell[nei] && zoneCell[own])
+                    if (zoneCell[nei] && zoneCell[own])
                     {
                         zoneFaces.append(faceI);
                     }
@@ -1640,7 +1644,7 @@ int main(int argc, char *argv[])
                 const labelList& faceCells = bPatches[pI].faceCells();
                 forAll(faceCells, fcI)
                 {
-                    if(zoneCell[faceCells[fcI] ])
+                    if (zoneCell[faceCells[fcI] ])
                     {
                         boundaryZones[pI].append(name);
                         break;
@@ -1648,8 +1652,8 @@ int main(int argc, char *argv[])
                 }
             }
 
-	        cnt++;
-	    }
+            cnt++;
+        }
 
         pShapeMesh.addZones(pz, fz, cz);
 
@@ -1714,7 +1718,7 @@ int main(int argc, char *argv[])
                 cellSet internal(pShapeMesh, name, end() - start());
 
                 // shift cell indizes by 1
-                for(label celli=start() - 1; celli<=end() - 1; celli++)
+                for (label celli = start() - 1; celli <= end() - 1; celli++)
                 {
                     internal.insert(celli);
                 }
@@ -1728,7 +1732,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info<< nl << "End" << endl;
+    Info<< "\nEnd\n" << endl;
     return 0;
 }
 

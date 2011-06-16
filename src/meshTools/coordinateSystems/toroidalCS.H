@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,7 +45,6 @@ SourceFiles
 namespace Foam
 {
 
-
 /*---------------------------------------------------------------------------*\
                         Class toroidalCS Declaration
 \*---------------------------------------------------------------------------*/
@@ -85,6 +84,7 @@ class toroidalCS
             bool translate
         ) const;
 
+
 public:
 
     //- Runtime type information
@@ -101,7 +101,6 @@ public:
             const coordinateRotation&,
             const scalar radius
         );
-
 
         //- Construct from dictionary
         toroidalCS(const word& name, const dictionary&);

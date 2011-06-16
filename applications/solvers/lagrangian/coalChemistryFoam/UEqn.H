@@ -5,13 +5,13 @@
       + turbulence->divDevRhoReff(U)
      ==
         rho.dimensionedInternalField()*g
-      + coalParcels.SU()
-      + limestoneParcels.SU()
+      + coalParcels.SU(U)
+      + limestoneParcels.SU(U)
     );
 
     UEqn.relax();
 
-    if (momentumPredictor)
+    if (pimple.momentumPredictor())
     {
         solve(UEqn == -fvc::grad(p));
     }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     basicPsiThermo.C
-    newBasicPsiThermo.C
+    basicPsiThermoNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -55,7 +55,7 @@ class basicPsiThermo
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Construct as copy (not implemented)
         basicPsiThermo(const basicPsiThermo&);

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -171,7 +171,7 @@ Foam::wallLayerCells::wallLayerCells
         {
             const wallNormalInfo& info = faceInfo[faceI];
 
-            if (info.valid())
+            if (info.valid(regionCalc.data()))
             {
                 const face& f = mesh.faces()[faceI];
 
@@ -215,7 +215,7 @@ Foam::wallLayerCells::wallLayerCells
     {
         const wallNormalInfo& info = cellInfo[cellI];
 
-        if (info.valid() && !usesCoupledPatch(cellI))
+        if (info.valid(regionCalc.data()) && !usesCoupledPatch(cellI))
         {
             refineCells.append(refineCell(cellI, info.normal()));
         }

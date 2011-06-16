@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,7 +58,7 @@ void writeFluentField
         << "1 " << phiInternal.size() // Start and end of list
         << ")(" << endl;
 
-    forAll (phiInternal, cellI)
+    forAll(phiInternal, cellI)
     {
         stream << phiInternal[cellI] << endl;
     }
@@ -69,7 +69,7 @@ void writeFluentField
     label nWrittenFaces = phiInternal.size();
 
     // Writing boundary faces
-    forAll (phi.boundaryField(), patchI)
+    forAll(phi.boundaryField(), patchI)
     {
         if (isType<emptyFvPatchScalarField>(phi.boundaryField()[patchI]))
         {
@@ -94,7 +94,7 @@ void writeFluentField
 
             nWrittenFaces += emptyFaceCells.size();
 
-            forAll (emptyFaceCells, faceI)
+            forAll(emptyFaceCells, faceI)
             {
                 stream << phiInternal[emptyFaceCells[faceI]] << endl;
             }
@@ -122,7 +122,7 @@ void writeFluentField
 
             nWrittenFaces += patchPhi.size();
 
-            forAll (patchPhi, faceI)
+            forAll(patchPhi, faceI)
             {
                 stream << patchPhi[faceI] << endl;
             }

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -12,20 +12,17 @@ FoamFile
     class       dictionary;
     object      selectCellsDict;
 }
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 
 // Whether to use surface. If false no surface will be read and only
 // outsidePoints/selectOutside will be used to determine cells to keep.
 useSurface      false;
 
 // Surface to keep to
-surface         "plexi.ftr";
+surface         "plexi.obj";
 
 // What is outside
 outsidePoints   ((-1 -1 -1));
-
 
 //
 // Selection of final set

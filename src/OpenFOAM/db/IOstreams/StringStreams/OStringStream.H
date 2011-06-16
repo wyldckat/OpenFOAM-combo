@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,7 +82,7 @@ public:
                     (
                         dynamic_cast<const std::ostringstream&>
                         (
-                            oss.stream()
+                            oss.stdStream()
                         ).str()
                     )
                 ),
@@ -93,12 +93,11 @@ public:
         {}
 
 
-    // Destructor
-
-        ~OStringStream()
-        {
-            delete &dynamic_cast<std::ostringstream&>(stream());
-        }
+    //- Destructor
+    ~OStringStream()
+    {
+        delete &dynamic_cast<std::ostringstream&>(stdStream());
+    }
 
 
     // Member functions
@@ -108,7 +107,10 @@ public:
             //- Return the string
             string str() const
             {
-                return dynamic_cast<const std::ostringstream&>(stream()).str();
+                return dynamic_cast<const std::ostringstream&>
+                (
+                    stdStream()
+                ).str();
             }
 
 
@@ -118,9 +120,9 @@ public:
             void rewind()
             {
 #               if __GNUC__ < 4 && __GNUC_MINOR__ < 4
-                stream().rdbuf()->pubsetbuf(" ", 1);
+                stdStream().rdbuf()->pubsetbuf(" ", 1);
 #               else
-                stream().rdbuf()->pubseekpos(0);
+                stdStream().rdbuf()->pubseekpos(0);
 #               endif
             }
 

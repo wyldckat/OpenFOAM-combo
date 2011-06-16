@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,12 +76,27 @@ void Foam::treeDataFace::update()
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::treeDataFace::treeDataFace
 (
     const bool cacheBb,
     const primitiveMesh& mesh,
-    const labelList& faceLabels
+    const labelUList& faceLabels
+)
+:
+    mesh_(mesh),
+    faceLabels_(faceLabels),
+    isTreeFace_(mesh.nFaces(), 0),
+    cacheBb_(cacheBb)
+{
+    update();
+}
+
+
+Foam::treeDataFace::treeDataFace
+(
+    const bool cacheBb,
+    const primitiveMesh& mesh,
+    const Xfer<labelList>& faceLabels
 )
 :
     mesh_(mesh),
@@ -129,7 +144,7 @@ Foam::treeDataFace::treeDataFace
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::pointField Foam::treeDataFace::points() const
+Foam::pointField Foam::treeDataFace::shapePoints() const
 {
     pointField cc(faceLabels_.size());
 
@@ -431,13 +446,9 @@ bool Foam::treeDataFace::overlaps
     label faceI = faceLabels_[index];
 
     const face& f = mesh_.faces()[faceI];
-
-    forAll(f, fp)
+    if (cubeBb.containsAny(points, f))
     {
-        if (cubeBb.contains(points[f[fp]]))
-        {
-            return true;
-        }
+        return true;
     }
 
     // 3. Difficult case: all points are outside but connecting edges might
@@ -467,7 +478,7 @@ bool Foam::treeDataFace::overlaps
 // nearestPoint.
 void Foam::treeDataFace::findNearest
 (
-    const labelList& indices,
+    const labelUList& indices,
     const point& sample,
 
     scalar& nearestDistSqr,
@@ -477,7 +488,7 @@ void Foam::treeDataFace::findNearest
 {
     forAll(indices, i)
     {
-        label index = indices[i];
+        const label index = indices[i];
 
         const face& f = mesh_.faces()[faceLabels_[index]];
 
@@ -514,7 +525,7 @@ bool Foam::treeDataFace::intersects
         }
     }
 
-    label faceI = faceLabels_[index];
+    const label faceI = faceLabels_[index];
 
     const vector dir(end - start);
 

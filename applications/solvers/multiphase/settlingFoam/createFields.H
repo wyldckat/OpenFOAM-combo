@@ -50,26 +50,17 @@
             "transportProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
 
 
-    dimensionedScalar rhoc
-    (
-        transportProperties.lookup("rhoc")
-    );
+    dimensionedScalar rhoc(transportProperties.lookup("rhoc"));
 
-    dimensionedScalar rhod
-    (
-        transportProperties.lookup("rhod")
-    );
+    dimensionedScalar rhod(transportProperties.lookup("rhod"));
 
-    dimensionedScalar muc
-    (
-        transportProperties.lookup("muc")
-    );
+    dimensionedScalar muc(transportProperties.lookup("muc"));
 
     dimensionedScalar plasticViscosityCoeff
     (
@@ -96,10 +87,7 @@
         transportProperties.lookup("yieldStressOffset")
     );
 
-    Switch BinghamPlastic
-    (
-        transportProperties.lookup("BinghamPlastic")
-    );
+    Switch BinghamPlastic(transportProperties.lookup("BinghamPlastic"));
 
     volScalarField rho
     (
@@ -142,8 +130,8 @@
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        muc +
-        plasticViscosity
+        muc
+      + plasticViscosity
         (
             plasticViscosityCoeff,
             plasticViscosityExponent,
@@ -171,10 +159,7 @@
 
     Info<< "Selecting Drift-Flux model " << endl;
 
-    word VdjModel
-    (
-        transportProperties.lookup("VdjModel")
-    );
+    const word VdjModel(transportProperties.lookup("VdjModel"));
 
     Info<< tab << VdjModel << " selected\n" << endl;
 
@@ -183,26 +168,13 @@
         transportProperties.subDict(VdjModel + "Coeffs")
     );
 
-    dimensionedVector V0
-    (
-        VdjModelCoeffs.lookup("V0")
-    );
+    dimensionedVector V0(VdjModelCoeffs.lookup("V0"));
 
-    dimensionedScalar a
-    (
-        VdjModelCoeffs.lookup("a")
-    );
+    dimensionedScalar a(VdjModelCoeffs.lookup("a"));
 
-    dimensionedScalar a1
-    (
-        VdjModelCoeffs.lookup("a1")
-    );
+    dimensionedScalar a1(VdjModelCoeffs.lookup("a1"));
 
-    dimensionedScalar alphaMin
-    (
-        VdjModelCoeffs.lookup("alphaMin")
-    );
-
+    dimensionedScalar alphaMin(VdjModelCoeffs.lookup("alphaMin"));
 
 
     IOdictionary RASProperties
@@ -212,21 +184,15 @@
             "RASProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
 
 
-    Switch turbulence
-    (
-        RASProperties.lookup("turbulence")
-    );
+    Switch turbulence(RASProperties.lookup("turbulence"));
 
-    dictionary kEpsilonDict
-    (
-        RASProperties.subDictPtr("kEpsilonCoeffs")
-    );
+    dictionary kEpsilonDict(RASProperties.subDictPtr("kEpsilonCoeffs"));
 
     dimensionedScalar Cmu
     (
@@ -268,30 +234,27 @@
         )
     );
 
-    dimensionedScalar alphak
+    dimensionedScalar sigmak
     (
         dimensionedScalar::lookupOrAddToDict
         (
-            "alphaEps",
+            "sigmak",
             kEpsilonDict,
             1.0
         )
     );
 
-    dimensionedScalar alphaEps
+    dimensionedScalar sigmaEps
     (
         dimensionedScalar::lookupOrAddToDict
         (
-            "alphaEps",
+            "sigmaEps",
             kEpsilonDict,
-            0.76923
+            1.3
         )
     );
 
-    dictionary wallFunctionDict
-    (
-        RASProperties.subDictPtr("wallFunctionCoeffs")
-    );
+    dictionary wallFunctionDict(RASProperties.subDictPtr("wallFunctionCoeffs"));
 
     dimensionedScalar kappa
     (
@@ -309,11 +272,11 @@
         (
             "E",
             wallFunctionDict,
-            9.0
+            9.8
         )
     );
 
-    if (RASProperties.lookupOrDefault<Switch>("printCoeffs", false))
+    if (RASProperties.lookupOrDefault("printCoeffs", false))
     {
         Info<< "kEpsilonCoeffs" << kEpsilonDict << nl
             << "wallFunctionCoeffs" << wallFunctionDict << endl;
@@ -382,7 +345,7 @@
 
     Info<< "Calculating field (g.h)f\n" << endl;
     volScalarField gh("gh", g & mesh.C());
-    surfaceScalarField ghf = surfaceScalarField("gh", g & mesh.Cf());
+    surfaceScalarField ghf(surfaceScalarField("gh", g & mesh.Cf()));
 
     volScalarField p
     (
@@ -403,7 +366,7 @@
     (
         p,
         p_rgh,
-        mesh.solutionDict().subDict("PISO"),
+        mesh.solutionDict().subDict("PIMPLE"),
         pRefCell,
         pRefValue
     );

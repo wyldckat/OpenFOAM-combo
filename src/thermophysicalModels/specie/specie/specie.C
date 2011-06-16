@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,18 +25,18 @@ License
 
 #include "specie.H"
 #include "IOstreams.H"
-#include "dimensionedConstants.H"
+#include "constants.H"
 
-/* * * * * * * * * * * * * public constants  * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * public constants  * * * * * * * * * * * * * * */
 
 //- Universal gas constant (default in [J/(kmol K)])
-const Foam::scalar Foam::specie::RR = dimensionedConstant("R", 8314.51);
+const Foam::scalar Foam::specie::RR = constant::physicoChemical::R.value()*1000;
 
 //- Standard pressure (default in [Pa])
-const Foam::scalar Foam::specie::Pstd = dimensionedConstant("Pstd", 1.0e5);
+const Foam::scalar Foam::specie::Pstd = constant::standard::Pstd.value();
 
 //- Standard temperature (default in [K])
-const Foam::scalar Foam::specie::Tstd = dimensionedConstant("Tstd", 298.15);
+const Foam::scalar Foam::specie::Tstd = constant::standard::Tstd.value();
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -48,6 +48,25 @@ Foam::specie::specie(Istream& is)
     molWeight_(readScalar(is))
 {
     is.check("specie::specie(Istream& is)");
+}
+
+
+Foam::specie::specie(const dictionary& dict)
+:
+    name_(dict.dictName()),
+    nMoles_(readScalar(dict.subDict("specie").lookup("nMoles"))),
+    molWeight_(readScalar(dict.subDict("specie").lookup("molWeight")))
+{}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::specie::write(Ostream& os) const
+{
+    dictionary dict("specie");
+    dict.add("nMoles", nMoles_);
+    dict.add("molWeight", molWeight_);
+    os  << dict;
 }
 
 

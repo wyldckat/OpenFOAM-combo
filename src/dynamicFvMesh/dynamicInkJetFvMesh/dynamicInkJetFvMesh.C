@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,8 +51,9 @@ Foam::dynamicInkJetFvMesh::dynamicInkJetFvMesh(const IOobject& io)
                 "dynamicMeshDict",
                 io.time().constant(),
                 *this,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
         ).subDict(typeName + "Coeffs")
     ),
@@ -89,7 +90,11 @@ Foam::dynamicInkJetFvMesh::~dynamicInkJetFvMesh()
 bool Foam::dynamicInkJetFvMesh::update()
 {
     scalar scalingFunction =
-        0.5*(::cos(2*mathematicalConstant::pi*frequency_*time().value()) - 1.0);
+        0.5*
+        (
+            ::cos(constant::mathematical::twoPi*frequency_*time().value())
+          - 1.0
+        );
 
     Info<< "Mesh scaling. Time = " << time().value() << " scaling: "
         << scalingFunction << endl;
@@ -112,7 +117,7 @@ bool Foam::dynamicInkJetFvMesh::update()
 
     fvMesh::movePoints(newPoints);
 
-    volVectorField& U = 
+    volVectorField& U =
         const_cast<volVectorField&>(lookupObject<volVectorField>("U"));
     U.correctBoundaryConditions();
 

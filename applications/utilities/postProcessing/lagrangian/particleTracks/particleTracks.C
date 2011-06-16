@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     {
         startIds[i+1] += startIds[i] + numIds[i];
     }
-    label nParticle = startIds[startIds.size()-1] + numIds[startIds.size()-1];
+    label nParticle = startIds.last() + numIds[startIds.size()-1];
 
 
 

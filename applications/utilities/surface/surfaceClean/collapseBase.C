@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -100,8 +100,8 @@ static void splitTri
     label oldNTris = tris.size();
 
     label fp = findIndex(f, e[0]);
-    label fp1 = (fp+1)%3;
-    label fp2 = (fp1+1)%3;
+    label fp1 = f.fcIndex(fp);
+    label fp2 = f.fcIndex(fp1);
 
     if (f[fp1] == e[1])
     {
@@ -127,7 +127,7 @@ static void splitTri
             labelledTri
             (
                 f[fp2],
-                splitPoints[splitPoints.size()-1],
+                splitPoints.last(),
                 f[fp1],
                 f.region()
             )
@@ -143,7 +143,7 @@ static void splitTri
             (
                 f[fp1],
                 f[fp2],
-                splitPoints[splitPoints.size()-1],
+                splitPoints.last(),
                 f.region()
             )
         );
@@ -196,7 +196,7 @@ static void splitTri
 // Insert scalar into sortedVerts/sortedWeights so the weights are in
 // incrementing order.
 static bool insertSorted
-(   
+(
     const label vertI,
     const scalar weight,
 
@@ -242,7 +242,7 @@ static bool insertSorted
         }
     }
 
-    
+
     label sz = sortedWeights.size();
 
     sortedWeights.setSize(sz + 1);
@@ -291,7 +291,7 @@ static void markCollapsedFaces
             // Check distance of vertex to edge.
             label opposite0 =
                 triSurfaceTools::oppositeVertex
-                (   
+                (
                     surf,
                     faceI,
                     edgeI
@@ -480,7 +480,7 @@ static label edgeType
     {
         if (usesRegion == -1)
         {
-            FatalErrorIn("edgeRegion") << abort(FatalError); 
+            FatalErrorIn("edgeRegion") << abort(FatalError);
             return -2;
         }
         else
@@ -749,9 +749,9 @@ label collapseBase(triSurface& surf, const scalar minLen)
         // Find regions of connected collapsed faces
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        // per face -1 or region 
+        // per face -1 or region
         labelList collapseRegion(surf.size(), -1);
-        
+
         label nRegions = markRegions(surf, faceToEdge, collapseRegion);
 
         Pout<< "Detected " << nRegions << " regions of faces to be collapsed"
@@ -782,7 +782,7 @@ label collapseBase(triSurface& surf, const scalar minLen)
             (
                 surf,
                 outsideVerts[regionI],
-                spanPoints[regionI], 
+                spanPoints[regionI],
                 orderedVertices[regionI],
                 orderedWeights[regionI]
             );
@@ -861,7 +861,7 @@ label collapseBase(triSurface& surf, const scalar minLen)
 
                 if (splitVerts.size())
                 {
-                    // Split edge using splitVerts. All non-collapsed triangles 
+                    // Split edge using splitVerts. All non-collapsed triangles
                     // using edge will get split.
 
 

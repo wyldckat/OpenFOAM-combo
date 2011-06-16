@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,93 +23,146 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "radiationConstants.H"
+#include "physicoChemicalConstants.H"
+
+using namespace Foam::constant;
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class ParcelType>
-inline const typename ParcelType::constantProperties&
-Foam::ThermoCloud<ParcelType>::constProps() const
+template<class CloudType>
+inline const Foam::ThermoCloud<CloudType>&
+Foam::ThermoCloud<CloudType>::cloudCopy() const
+{
+    return cloudCopyPtr_();
+}
+
+
+template<class CloudType>
+inline const typename CloudType::particleType::constantProperties&
+Foam::ThermoCloud<CloudType>::constProps() const
 {
     return constProps_;
 }
 
 
-template<class ParcelType>
-inline const Foam::basicThermo&
-Foam::ThermoCloud<ParcelType>::carrierThermo() const
+template<class CloudType>
+inline const Foam::SLGThermo& Foam::ThermoCloud<CloudType>::thermo() const
 {
-    return carrierThermo_;
+    return thermo_;
 }
 
 
-template<class ParcelType>
-inline Foam::basicThermo&
-Foam::ThermoCloud<ParcelType>::carrierThermo()
+template<class CloudType>
+inline const Foam::volScalarField& Foam::ThermoCloud<CloudType>::T() const
 {
-    return carrierThermo_;
+    return T_;
 }
 
 
-template<class ParcelType>
-inline const Foam::HeatTransferModel<Foam::ThermoCloud<ParcelType> >&
-Foam::ThermoCloud<ParcelType>::heatTransfer() const
+template<class CloudType>
+inline const Foam::volScalarField& Foam::ThermoCloud<CloudType>::p() const
+{
+    return p_;
+}
+
+
+template<class CloudType>
+inline const Foam::HeatTransferModel<Foam::ThermoCloud<CloudType> >&
+Foam::ThermoCloud<CloudType>::heatTransfer() const
 {
     return heatTransferModel_;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline const Foam::scalarIntegrationScheme&
-Foam::ThermoCloud<ParcelType>::TIntegrator() const
+Foam::ThermoCloud<CloudType>::TIntegrator() const
 {
     return TIntegrator_;
 }
 
 
-template<class ParcelType>
-inline bool Foam::ThermoCloud<ParcelType>::radiation() const
+template<class CloudType>
+inline bool Foam::ThermoCloud<CloudType>::radiation() const
 {
     return radiation_;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
-Foam::ThermoCloud<ParcelType>::hsTrans()
+Foam::ThermoCloud<CloudType>::hsTrans()
 {
-    return hsTrans_;
+    return hsTrans_();
 }
 
 
-template<class ParcelType>
-inline Foam::tmp<Foam::DimensionedField<Foam::scalar, Foam::volMesh> >
-Foam::ThermoCloud<ParcelType>::Sh() const
+template<class CloudType>
+inline const Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
+Foam::ThermoCloud<CloudType>::hsTrans() const
 {
-    tmp<DimensionedField<scalar, volMesh> > tSh
-    (
-        new DimensionedField<scalar, volMesh>
-        (
-            IOobject
-            (
-                this->name() + "Sh",
-                this->db().time().timeName(),
-                this->mesh(),
-                IOobject::NO_READ,
-                IOobject::AUTO_WRITE,
-                false
-            ),
-            hsTrans_/(this->mesh().V()*this->db().time().deltaT())
-        )
-    );
-
-    return tSh;
+    return hsTrans_();
 }
 
 
-template<class ParcelType>
-inline Foam::tmp<Foam::volScalarField>
-Foam::ThermoCloud<ParcelType>::Ep() const
+template<class CloudType>
+inline Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
+Foam::ThermoCloud<CloudType>::hsCoeff()
+{
+    return hsCoeff_();
+}
+
+
+template<class CloudType>
+inline const Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
+Foam::ThermoCloud<CloudType>::hsCoeff() const
+{
+    return hsCoeff_();
+}
+
+
+template<class CloudType>
+inline Foam::tmp<Foam::fvScalarMatrix>
+Foam::ThermoCloud<CloudType>::Sh(volScalarField& hs) const
+{
+    if (debug)
+    {
+        Info<< "hsTrans min/max = " << min(hsTrans()).value() << ", "
+            << max(hsTrans()).value() << nl
+            << "hsCoeff min/max = " << min(hsCoeff()).value() << ", "
+            << max(hsCoeff()).value() << endl;
+    }
+
+    if (this->solution().coupled())
+    {
+        if (this->solution().semiImplicit("hs"))
+        {
+            const volScalarField Cp(thermo_.thermo().Cp());
+            const DimensionedField<scalar, volMesh>
+                Vdt(this->mesh().V()*this->db().time().deltaT());
+
+            return
+                hsTrans()/Vdt
+              - fvm::SuSp(hsCoeff()/(Cp*Vdt), hs)
+              + hsCoeff()/(Cp*Vdt)*hs;
+        }
+        else
+        {
+            tmp<fvScalarMatrix> tfvm(new fvScalarMatrix(hs, dimEnergy/dimTime));
+            fvScalarMatrix& fvm = tfvm();
+
+            fvm.source() = -hsTrans()/(this->db().time().deltaT());
+
+            return tfvm;
+        }
+    }
+
+    return tmp<fvScalarMatrix>(new fvScalarMatrix(hs, dimEnergy/dimTime));
+}
+
+
+template<class CloudType>
+inline Foam::tmp<Foam::volScalarField> Foam::ThermoCloud<CloudType>::Ep() const
 {
     tmp<volScalarField> tEp
     (
@@ -130,29 +183,28 @@ Foam::ThermoCloud<ParcelType>::Ep() const
     );
 
     // Need to check if coupled as field is created on-the-fly
-    if (radiation_ && this->coupled())
+    if (radiation_ && this->solution().coupled())
     {
         scalarField& Ep = tEp().internalField();
         const scalarField& V = this->mesh().V();
         const scalar epsilon = constProps_.epsilon0();
 
-        forAllConstIter(typename ThermoCloud<ParcelType>, *this, iter)
+        forAllConstIter(typename ThermoCloud<CloudType>, *this, iter)
         {
-            const ParcelType& p = iter();
+            const parcelType& p = iter();
             const label cellI = p.cell();
             Ep[cellI] += p.nParticle()*p.areaP()*pow4(p.T());
         }
 
-        Ep *= epsilon*radiation::sigmaSB.value()/V;
+        Ep *= epsilon*physicoChemical::sigma.value()/V;
     }
 
     return tEp;
 }
 
 
-template<class ParcelType>
-inline Foam::tmp<Foam::volScalarField>
-Foam::ThermoCloud<ParcelType>::ap() const
+template<class CloudType>
+inline Foam::tmp<Foam::volScalarField> Foam::ThermoCloud<CloudType>::ap() const
 {
     tmp<volScalarField> tap
     (
@@ -173,15 +225,15 @@ Foam::ThermoCloud<ParcelType>::ap() const
     );
 
     // Need to check if coupled as field is created on-the-fly
-    if (radiation_ && this->coupled())
+    if (radiation_ && this->solution().coupled())
     {
         scalarField& ap = tap().internalField();
         const scalarField& V = this->mesh().V();
         const scalar epsilon = constProps_.epsilon0();
 
-        forAllConstIter(typename ThermoCloud<ParcelType>, *this, iter)
+        forAllConstIter(typename ThermoCloud<CloudType>, *this, iter)
         {
-            const ParcelType& p = iter();
+            const parcelType& p = iter();
             const label cellI = p.cell();
             ap[cellI] += p.nParticle()*p.areaP();
         }
@@ -193,9 +245,9 @@ Foam::ThermoCloud<ParcelType>::ap() const
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline Foam::tmp<Foam::volScalarField>
-Foam::ThermoCloud<ParcelType>::sigmap() const
+Foam::ThermoCloud<CloudType>::sigmap() const
 {
     tmp<volScalarField> tsigmap
     (
@@ -216,7 +268,7 @@ Foam::ThermoCloud<ParcelType>::sigmap() const
     );
 
     // Need to check if coupled as field is created on-the-fly
-    if (radiation_ && this->coupled())
+    if (radiation_ && this->solution().coupled())
     {
         scalarField& sigmap = tsigmap().internalField();
 
@@ -224,9 +276,9 @@ Foam::ThermoCloud<ParcelType>::sigmap() const
         const scalar epsilon = constProps_.epsilon0();
         const scalar f = constProps_.f0();
 
-        forAllConstIter(typename ThermoCloud<ParcelType>, *this, iter)
+        forAllConstIter(typename ThermoCloud<CloudType>, *this, iter)
         {
-            const ParcelType& p = iter();
+            const parcelType& p = iter();
             const label cellI = p.cell();
             sigmap[cellI] += p.nParticle()*p.areaP();
         }

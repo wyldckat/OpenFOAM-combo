@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,7 @@ Foam::SRF::SRFModel::SRFModel
             "SRFProperties",
             Urel.time().constant(),
             Urel.db(),
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -162,7 +162,10 @@ Foam::vectorField Foam::SRF::SRFModel::velocity
     const vectorField& positions
 ) const
 {
-    return omega_.value() ^ (positions - axis_*(axis_ & positions));
+    tmp<vectorField> tfld =
+        omega_.value() ^ (positions - axis_*(axis_ & positions));
+
+    return tfld();
 }
 
 
@@ -188,7 +191,7 @@ Foam::tmp<Foam::volVectorField> Foam::SRF::SRFModel::U() const
 
 Foam::tmp<Foam::volVectorField> Foam::SRF::SRFModel::Uabs() const
 {
-    const volVectorField Usrf = U();
+    tmp<volVectorField> Usrf = U();
 
     tmp<volVectorField> tUabs
     (

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,7 +68,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -87,6 +89,9 @@ public:
         {
             return tmp<volScalarField>(new volScalarField("muEff", mu()));
         }
+
+        //- Return the turbulence thermal diffusivity, i.e. 0 for laminar flow
+        virtual tmp<volScalarField> alphat() const;
 
         //- Return the effective turbulent thermal diffusivity,
         //  i.e. the laminar thermal diffusivity

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,6 +42,34 @@ inline bool Foam::UPtrList<T>::empty() const
 
 
 template<class T>
+inline T& Foam::UPtrList<T>::first()
+{
+    return this->operator[](0);
+}
+
+
+template<class T>
+inline const T& Foam::UPtrList<T>::first() const
+{
+    return this->operator[](0);
+}
+
+
+template<class T>
+inline T& Foam::UPtrList<T>::last()
+{
+    return this->operator[](this->size()-1);
+}
+
+
+template<class T>
+inline const T& Foam::UPtrList<T>::last() const
+{
+    return this->operator[](this->size()-1);
+}
+
+
+template<class T>
 inline void Foam::UPtrList<T>::resize(const label newSize)
 {
     this->setSize(newSize);
@@ -54,6 +82,7 @@ inline bool Foam::UPtrList<T>::set(const label i) const
     return ptrs_[i] != NULL;
 }
 
+
 template<class T>
 inline T* Foam::UPtrList<T>::set(const label i, T* ptr)
 {
@@ -61,6 +90,7 @@ inline T* Foam::UPtrList<T>::set(const label i, T* ptr)
     ptrs_[i] = ptr;
     return old;
 }
+
 
 template<class T>
 inline Foam::Xfer<Foam::UPtrList<T> > Foam::UPtrList<T>::xfer()
@@ -72,7 +102,7 @@ inline Foam::Xfer<Foam::UPtrList<T> > Foam::UPtrList<T>::xfer()
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
 template<class T>
-const T& Foam::UPtrList<T>::operator[](const label i) const
+inline const T& Foam::UPtrList<T>::operator[](const label i) const
 {
     if (!ptrs_[i])
     {
@@ -86,7 +116,7 @@ const T& Foam::UPtrList<T>::operator[](const label i) const
 
 
 template<class T>
-T& Foam::UPtrList<T>::operator[](const label i)
+inline T& Foam::UPtrList<T>::operator[](const label i)
 {
     if (!ptrs_[i])
     {
@@ -100,7 +130,7 @@ T& Foam::UPtrList<T>::operator[](const label i)
 
 
 template<class T>
-const T* Foam::UPtrList<T>::operator()(const label i) const
+inline const T* Foam::UPtrList<T>::operator()(const label i) const
 {
     return ptrs_[i];
 }

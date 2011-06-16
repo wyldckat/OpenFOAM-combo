@@ -1,4 +1,4 @@
-ParMGridGen = $(WM_THIRD_PARTY_DIR)/ParMGridGen-1.0
+/* Needs ParMGridGen environment variable set. (see Allwmake script) */
 
 TYPE_REAL=
 #if defined(WM_SP)
@@ -9,8 +9,7 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(ParMGridGen)/MGridGen/Lib/lnInclude \
     -I$(ParMGridGen)/MGridGen/IMlib/lnInclude \
-    -I../../dummyThirdParty/MGridGen/MGridGen /* location of dummy mgridgen.h */ \
     $(TYPE_REAL)
 
 LIB_LIBS = \
-    -lMGridGen
+    -L$(FOAM_EXT_LIBBIN) -lMGridGen

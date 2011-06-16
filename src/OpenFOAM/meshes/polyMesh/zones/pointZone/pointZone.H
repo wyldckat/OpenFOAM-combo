@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,19 +35,15 @@ Description
 
 SourceFiles
     pointZone.C
-    newPointZone.C
+    pointZoneNew.C
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef pointZone_H
 #define pointZone_H
 
-#include "labelList.H"
-#include "typeInfo.H"
-#include "dictionary.H"
+#include "zone.H"
 #include "pointZoneMeshFwd.H"
-#include "Map.H"
-#include "pointField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,44 +57,33 @@ Ostream& operator<<(Ostream&, const pointZone&);
 
 
 /*---------------------------------------------------------------------------*\
-                           Class pointZone Declaration
+                          Class pointZone Declaration
 \*---------------------------------------------------------------------------*/
 
 class pointZone
 :
-    public labelList
+    public zone
 {
-    // Private data
 
-        //- Name of zone
-        word name_;
+protected:
 
-        //- Index of zone
-        label index_;
+    // Protected data
 
         //- Reference to zone list
         const pointZoneMesh& zoneMesh_;
-
-
-        // Demand-driven private data
-
-            //- Map of point labels in zone for fast location lookup
-            mutable Map<label>* pointLookupMapPtr_;
-
 
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
         pointZone(const pointZone&);
 
-        //- Return map of local point indices
-        const Map<label>& pointLookupMap() const;
-
-        //- Build map of local point indices
-        void calcPointLookupMap() const;
-
-
 public:
+
+    // Static data members
+
+        //- The name associated with the zone-labels dictionary entry
+        static const char * const labelsName;
+
 
     //- Runtime type information
     TypeName("pointZone");
@@ -127,7 +112,7 @@ public:
         pointZone
         (
             const word& name,
-            const labelList& addr,
+            const labelUList& addr,
             const label index,
             const pointZoneMesh&
         );
@@ -155,7 +140,7 @@ public:
         pointZone
         (
             const pointZone&,
-            const labelList& addr,
+            const labelUList& addr,
             const label index,
             const pointZoneMesh&
         );
@@ -185,7 +170,7 @@ public:
         (
             const pointZoneMesh& zm,
             const label index,
-            const labelList& addr
+            const labelUList& addr
         ) const
         {
             return autoPtr<pointZone>
@@ -209,45 +194,27 @@ public:
 
 
     //- Destructor
-
-        virtual ~pointZone();
+    virtual ~pointZone();
 
 
     // Member Functions
 
-        //- Return name
-        const word& name() const
-        {
-            return name_;
-        }
-
-        //- Map storing the local point index for every global point
-        //  index.  Used to find out the index of point in the zone from
-        //  the known global point index.  If the point is not in the
-        //  zone, returns -1
-        label whichPoint(const label globalPointID) const;
-
-        //- Return the index of this zone in zone list
-        label index() const
-        {
-            return index_;
-        }
-
         //- Return zoneMesh reference
         const pointZoneMesh& zoneMesh() const;
 
-        //- Clear addressing
-        void clearAddressing();
+        //- Helper function to re-direct to zone::localID(...)
+        label whichPoint(const label globalPointID) const;
 
         //- Check zone definition. Return true if in error.
-        bool checkDefinition(const bool report = false) const;
+        virtual bool checkDefinition(const bool report = false) const;
+
+        //- Check whether zone is synchronised across coupled boundaries. Return
+        //  true if in error.
+        virtual bool checkParallelSync(const bool report = false) const;
 
         //- Correct patch after moving points
         virtual void movePoints(const pointField&)
         {}
-
-        //- Write
-        virtual void write(Ostream&) const;
 
         //- Write dictionary
         virtual void writeDict(Ostream&) const;
@@ -255,15 +222,19 @@ public:
 
     // Member Operators
 
-        //- Assign to zone clearing demand-driven data
+        //- Assign to zone, clearing demand-driven data
         void operator=(const pointZone&);
 
-        //- Assign addressing clearing demand-driven data
-        void operator=(const labelList&);
+        //- Assign addressing, clearing demand-driven data
+        void operator=(const labelUList&);
+
+        //- Assign addressing, clearing demand-driven data
+        void operator=(const Xfer<labelList>&);
 
 
-    // Ostream Operator
+    // I-O
 
+        //- Ostream Operator
         friend Ostream& operator<<(Ostream&, const pointZone&);
 };
 

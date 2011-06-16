@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,8 +67,11 @@ class distanceSurface
         //- Whether to coarsen
         const Switch regularise_;
 
-        //- zone name (if restricted to zones)
-        word zoneName_;
+        //- Whether to recalculate cell values as average of point values
+        const Switch average_;
+
+        //- If restricted to zones, name of this zone or a regular expression
+        keyType zoneKey_;
 
         //- Track if the surface needs an update
         mutable bool needsUpdate_;
@@ -81,6 +84,7 @@ class distanceSurface
         scalarField pointDistance_;
 
         //- Constructed iso surface
+        //autoPtr<isoSurfaceCell> isoSurfPtr_;
         autoPtr<isoSurface> isoSurfPtr_;
 
         //- triangles converted to faceList
@@ -122,9 +126,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~distanceSurface();
+    //- Destructor
+    virtual ~distanceSurface();
 
 
     // Member Functions
@@ -165,6 +168,7 @@ public:
         }
 
 
+        //const isoSurfaceCell& surface() const
         const isoSurface& surface() const
         {
             return isoSurfPtr_();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Translates FOAM data to Fluent format.
+    Translates OpenFOAM data to Fluent format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
         // Writing number of faces
         label nFaces = mesh.nFaces();
 
-        forAll (mesh.boundary(), patchI)
+        forAll(mesh.boundary(), patchI)
         {
             nFaces += mesh.boundary()[patchI].size();
         }
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
                 "foamDataToFluentDict",
                 runTime.system(),
                 mesh,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE
             )
         );
@@ -110,34 +110,21 @@ int main(int argc, char *argv[])
         // Search list of objects for volScalarFields
         IOobjectList scalarFields(objects.lookupClass("volScalarField"));
 
-        for
-        (
-            IOobjectList::iterator scalarFieldIter = scalarFields.begin();
-            scalarFieldIter != scalarFields.end();
-            ++scalarFieldIter
-        )
+        forAllIter(IOobjectList, scalarFields, iter)
         {
             // Read field
-            volScalarField field
+            volScalarField field(*iter(), mesh);
+
+            // lookup field from dictionary and convert field
+            label unitNumber;
+            if
             (
-                *scalarFieldIter(),
-                mesh
-            );
-
-            // lookup field from dictionary
-            if (foamDataToFluentDict.found(field.name()))
+                foamDataToFluentDict.readIfPresent(field.name(), unitNumber)
+             && unitNumber > 0
+            )
             {
-                label unitNumber
-                (
-                    readLabel(foamDataToFluentDict.lookup(field.name()))
-                );
-
-                // Convert field
-                if (unitNumber > 0)
-                {
-                    Info<< "    Converting field " << field.name() << endl;
-                    writeFluentField(field, unitNumber, fluentDataFile);
-                }
+                Info<< "    Converting field " << field.name() << endl;
+                writeFluentField(field, unitNumber, fluentDataFile);
             }
         }
 
@@ -148,41 +135,28 @@ int main(int argc, char *argv[])
         // Search list of objects for volVectorFields
         IOobjectList vectorFields(objects.lookupClass("volVectorField"));
 
-        for
-        (
-            IOobjectList::iterator vectorFieldIter = vectorFields.begin();
-            vectorFieldIter != vectorFields.end();
-            ++vectorFieldIter
-        )
+        forAllIter(IOobjectList, vectorFields, iter)
         {
             // Read field
-            volVectorField field
+            volVectorField field(*iter(), mesh);
+
+            // lookup field from dictionary and convert field
+            label unitNumber;
+            if
             (
-                *vectorFieldIter(),
-                mesh
-            );
-
-            // lookup field from dictionary
-            if (foamDataToFluentDict.found(field.name()))
+                foamDataToFluentDict.readIfPresent(field.name(), unitNumber)
+             && unitNumber > 0
+            )
             {
-                label unitNumber
-                (
-                    readLabel(foamDataToFluentDict.lookup(field.name()))
-                );
-
-                // Convert field
-                if (unitNumber > 0)
-                {
-                    Info<< "    Converting field " << field.name() << endl;
-                    writeFluentField(field, unitNumber, fluentDataFile);
-                }
+                Info<< "    Converting field " << field.name() << endl;
+                writeFluentField(field, unitNumber, fluentDataFile);
             }
         }
 
         Info<< endl;
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

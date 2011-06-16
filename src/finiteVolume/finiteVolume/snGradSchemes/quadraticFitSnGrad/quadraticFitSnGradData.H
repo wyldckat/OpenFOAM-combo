@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,7 +68,7 @@ class quadraticFitSnGradData
         List<scalarList> fit_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Find the normal direction and i, j and k directions for face faci
         static void findFaceDirs
@@ -97,10 +97,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~quadraticFitSnGradData()
-        {};
+    //- Destructor
+    virtual ~quadraticFitSnGradData()
+    {};
 
 
     // Member functions

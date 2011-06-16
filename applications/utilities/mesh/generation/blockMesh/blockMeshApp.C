@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,21 +28,21 @@ Description
     A multi-block mesh generator.
 
     Uses the block mesh description found in
-    @a constant/polyMesh/blockMeshDict
-    (or @a constant/\<region\>/polyMesh/blockMeshDict).
+    \a constant/polyMesh/blockMeshDict
+    (or \a constant/\<region\>/polyMesh/blockMeshDict).
 
 Usage
 
     - blockMesh [OPTION]
 
-    @param -blockTopology \n
+    \param -blockTopology \n
     Write the topology as a set of edges in OBJ format.
 
-    @param -region \<name\> \n
+    \param -region \<name\> \n
     Specify an alternative mesh region.
 
-    @param -dict \<dictionary\> \n
-    Specify an alternative dictionary for the block mesh description.
+    \param -dict \<filename\> \n
+    Specify alternative dictionary for the block mesh description.
 
 \*---------------------------------------------------------------------------*/
 
@@ -52,7 +52,6 @@ Usage
 
 #include "blockMesh.H"
 #include "attachPolyTopoChanger.H"
-#include "preservePatchTypes.H"
 #include "emptyPolyPatch.H"
 #include "cellSet.H"
 
@@ -71,8 +70,18 @@ using namespace Foam;
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validOptions.insert("blockTopology", "");
-    argList::validOptions.insert("dict", "dictionary");
+    argList::addBoolOption
+    (
+        "blockTopology",
+        "write block edges and centres as .obj files"
+    );
+    argList::addOption
+    (
+        "dict",
+        "file",
+        "specify alternative dictionary for the blockMesh description"
+    );
+
 #   include "addRegionOption.H"
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -82,10 +91,9 @@ int main(int argc, char *argv[])
     word regionName;
     fileName polyMeshDir;
 
-    if (args.optionFound("region"))
+    if (args.optionReadIfPresent("region", regionName, polyMesh::defaultRegion))
     {
         // constant/<region>/polyMesh/blockMeshDict
-        regionName  = args.option("region");
         polyMeshDir = regionName/polyMesh::meshSubDir;
 
         Info<< nl << "Generating mesh for region " << regionName << endl;
@@ -93,7 +101,6 @@ int main(int argc, char *argv[])
     else
     {
         // constant/polyMesh/blockMeshDict
-        regionName  = polyMesh::defaultRegion;
         polyMeshDir = polyMesh::meshSubDir;
     }
 
@@ -101,7 +108,7 @@ int main(int argc, char *argv[])
 
     if (args.optionFound("dict"))
     {
-        fileName dictPath(args.option("dict"));
+        const fileName dictPath = args["dict"];
 
         meshDictIoPtr.set
         (
@@ -113,7 +120,7 @@ int main(int argc, char *argv[])
                   : dictPath
                 ),
                 runTime,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE,
                 false
             )
@@ -129,7 +136,7 @@ int main(int argc, char *argv[])
                 runTime.constant(),
                 polyMeshDir,
                 runTime,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE,
                 false
             )
@@ -145,11 +152,13 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
-    Info<< nl << "Creating block mesh from\n    "
-        << meshDictIoPtr->objectPath() << nl << endl;
+    Info<< "Creating block mesh from\n    "
+        << meshDictIoPtr->objectPath() << endl;
+
+    blockMesh::verbose(true);
 
     IOdictionary meshDict(meshDictIoPtr());
-    blockMesh blocks(meshDict);
+    blockMesh blocks(meshDict, regionName);
 
 
     if (args.optionFound("blockTopology"))
@@ -194,27 +203,10 @@ int main(int argc, char *argv[])
     }
 
 
+    Info<< nl << "Creating polyMesh from blockMesh" << endl;
 
-    Info<< nl << "Creating mesh from block mesh" << endl;
-
-    wordList patchNames = blocks.patchNames();
-    wordList patchTypes = blocks.patchTypes();
     word defaultFacesName = "defaultFaces";
     word defaultFacesType = emptyPolyPatch::typeName;
-    wordList patchPhysicalTypes = blocks.patchPhysicalTypes();
-
-    preservePatchTypes
-    (
-        runTime,
-        runTime.constant(),
-        polyMeshDir,
-        patchNames,
-        patchTypes,
-        defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
-    );
-
     polyMesh mesh
     (
         IOobject
@@ -226,11 +218,10 @@ int main(int argc, char *argv[])
         xferCopy(blocks.points()),           // could we re-use space?
         blocks.cells(),
         blocks.patches(),
-        patchNames,
-        patchTypes,
+        blocks.patchNames(),
+        blocks.patchDicts(),
         defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
+        defaultFacesType
     );
 
 
@@ -338,7 +329,7 @@ int main(int argc, char *argv[])
     // Set the precision of the points data to 10
     IOstream::defaultPrecision(10);
 
-    Info << nl << "Writing polyMesh" << endl;
+    Info<< nl << "Writing polyMesh" << endl;
     mesh.removeFiles();
     if (!mesh.write())
     {
@@ -347,7 +338,39 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
-    Info<< nl << "End" << endl;
+
+    //
+    // write some information
+    //
+    {
+        const polyPatchList& patches = mesh.boundaryMesh();
+
+        Info<< "----------------" << nl
+            << "Mesh Information" << nl
+            << "----------------" << nl
+            << "  " << "boundingBox: " << boundBox(mesh.points()) << nl
+            << "  " << "nPoints: " << mesh.nPoints() << nl
+            << "  " << "nCells: " << mesh.nCells() << nl
+            << "  " << "nFaces: " << mesh.nFaces() << nl
+            << "  " << "nInternalFaces: " << mesh.nInternalFaces() << nl;
+
+        Info<< "----------------" << nl
+            << "Patches" << nl
+            << "----------------" << nl;
+
+        forAll(patches, patchI)
+        {
+            const polyPatch& p = patches[patchI];
+
+            Info<< "  " << "patch " << patchI
+                << " (start: " << p.start()
+                << " size: " << p.size()
+                << ") name: " << p.name()
+                << nl;
+        }
+    }
+
+    Info<< "\nEnd\n" << endl;
 
     return 0;
 }

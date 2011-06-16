@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,6 +49,7 @@ Description
 #include "mathematicalConstants.H"
 #include "PackedBoolList.H"
 #include "SortableList.H"
+#include "unitConversion.H"
 
 using namespace Foam;
 
@@ -451,8 +452,8 @@ label simplifyFaces
 
 int main(int argc, char *argv[])
 {
+#   include "addOverwriteOption.H"
     argList::noParallel();
-    argList::validOptions.insert("overwrite", "");
     argList::validArgs.append("edge length [m]");
     argList::validArgs.append("merge angle (degrees)");
 
@@ -462,11 +463,11 @@ int main(int argc, char *argv[])
 #   include "createPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
-    scalar minLen(readScalar(IStringStream(args.additionalArgs()[0])()));
-    scalar angle(readScalar(IStringStream(args.additionalArgs()[1])()));
-    bool overwrite = args.optionFound("overwrite");
+    const scalar minLen  = args.argRead<scalar>(1);
+    const scalar angle   = args.argRead<scalar>(2);
+    const bool overwrite = args.optionFound("overwrite");
 
-    scalar maxCos = Foam::cos(angle*mathematicalConstant::pi/180.0);
+    scalar maxCos = Foam::cos(degToRad(angle));
 
     Info<< "Merging:" << nl
         << "    edges with length less than " << minLen << " meters" << nl
@@ -594,7 +595,7 @@ int main(int argc, char *argv[])
         mesh.write();
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

@@ -9,16 +9,17 @@ cellDist/wallPoint/wallPoint.C
 
 cellFeatures/cellFeatures.C
 
-coordinateSystems/coordinateSystem.C
-coordinateSystems/coordinateSystemNew.C
-coordinateSystems/coordinateSystems.C
-coordinateSystems/cylindricalCS.C
-coordinateSystems/sphericalCS.C
-coordinateSystems/parabolicCylindricalCS.C
-coordinateSystems/toroidalCS.C
-coordinateSystems/coordinateRotation/coordinateRotation.C
-coordinateSystems/coordinateRotation/EulerCoordinateRotation.C
-coordinateSystems/coordinateRotation/STARCDCoordinateRotation.C
+csys = coordinateSystems
+$(csys)/coordinateSystem.C
+$(csys)/coordinateSystemNew.C
+$(csys)/coordinateSystems.C
+$(csys)/cylindricalCS.C
+$(csys)/sphericalCS.C
+$(csys)/parabolicCylindricalCS.C
+$(csys)/toroidalCS.C
+$(csys)/coordinateRotation/coordinateRotation.C
+$(csys)/coordinateRotation/EulerCoordinateRotation.C
+$(csys)/coordinateRotation/STARCDCoordinateRotation.C
 
 edgeFaceCirculator/edgeFaceCirculator.C
 
@@ -40,20 +41,16 @@ octree/octreeDataPointTreeLeaf.C
 octree/octreeDataEdges.C
 octree/octreeDataCell.C
 octree/octreeDataFace.C
-octree/treeBoundBox.C
 octree/treeNodeName.C
 octree/treeLeafName.C
-octree/pointIndexHitIOList.C
 
-indexedOctree/indexedOctreeName.C
-indexedOctree/treeDataCell.C
 indexedOctree/treeDataEdge.C
 indexedOctree/treeDataFace.C
 indexedOctree/treeDataPoint.C
+indexedOctree/treeDataPrimitivePatchName.C
 indexedOctree/treeDataTriSurface.C
 
 searchableSurface = searchableSurface
-$(searchableSurface)/distributedTriSurfaceMesh.C
 $(searchableSurface)/searchableBox.C
 $(searchableSurface)/searchableCylinder.C
 $(searchableSurface)/searchablePlane.C
@@ -128,6 +125,7 @@ $(cellZoneSources)/setToCellZone/setToCellZone.C
 pointZoneSources = sets/pointZoneSources
 $(pointZoneSources)/setToPointZone/setToPointZone.C
 
+momentOfInertia/momentOfInertia.C
 
 surfaceSets/surfaceSets.C
 
@@ -161,7 +159,10 @@ twoDPointCorrector/twoDPointCorrector.C
 directMapped/directMappedPolyPatch/directMappedPatchBase.C
 directMapped/directMappedPolyPatch/directMappedPolyPatch.C
 directMapped/directMappedPolyPatch/directMappedWallPolyPatch.C
+directMapped/directMappedPolyPatch/directMappedVariableThicknessWallPolyPatch.C
 directMapped/directMappedPointPatch/directMappedPointPatch.C
 directMapped/directMappedPointPatch/directMappedWallPointPatch.C
+
+
 
 LIB = $(FOAM_LIBBIN)/libmeshTools

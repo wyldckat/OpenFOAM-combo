@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     NSRDS function number 102
 
     Source:
-    @verbatim
+    \verbatim
                       NSRDS - AICHE
                  Data Compilation Tables
                     of Properties of
@@ -47,7 +47,7 @@ Description
             Department of Chemical Engineering
             The Pennsylvania State University
                 University Park, PA 16802
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -84,22 +84,19 @@ public:
     // Constructors
 
         //- Construct from components
-        NSRDSfunc2(scalar a, scalar b, scalar c, scalar d)
-        :
-            a_(a),
-            b_(b),
-            c_(c),
-            d_(d)
-        {}
+        NSRDSfunc2
+        (
+            const scalar a,
+            const scalar b,
+            const scalar c,
+            const scalar d
+        );
 
         //- Construct from Istream
-        NSRDSfunc2(Istream& is)
-        :
-            a_(readScalar(is)),
-            b_(readScalar(is)),
-            c_(readScalar(is)),
-            d_(readScalar(is))
-        {}
+        NSRDSfunc2(Istream& is);
+
+        //- Construct from dictionary
+        NSRDSfunc2(const dictionary& dict);
 
 
     // Member Functions
@@ -109,7 +106,6 @@ public:
         {
             return a_*pow(T, b_)/(1.0 + c_/T + d_/sqr(T));
         }
-
 
         //- Write the function coefficients
         void writeData(Ostream& os) const

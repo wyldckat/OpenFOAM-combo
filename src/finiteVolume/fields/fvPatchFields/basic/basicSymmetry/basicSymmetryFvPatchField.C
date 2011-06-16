@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,15 +26,11 @@ License
 #include "basicSymmetryFvPatchField.H"
 #include "symmTransformField.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class Type>
-basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
+Foam::basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF
@@ -45,7 +41,7 @@ basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 
 
 template<class Type>
-basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
+Foam::basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 (
     const basicSymmetryFvPatchField<Type>& ptf,
     const fvPatch& p,
@@ -58,7 +54,7 @@ basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 
 
 template<class Type>
-basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
+Foam::basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF,
@@ -72,7 +68,7 @@ basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 
 
 template<class Type>
-basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
+Foam::basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 (
     const basicSymmetryFvPatchField<Type>& ptf
 )
@@ -82,7 +78,7 @@ basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 
 
 template<class Type>
-basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
+Foam::basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 (
     const basicSymmetryFvPatchField<Type>& ptf,
     const DimensionedField<Type, volMesh>& iF
@@ -94,11 +90,12 @@ basicSymmetryFvPatchField<Type>::basicSymmetryFvPatchField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// return gradient at boundary
 template<class Type>
-tmp<Field<Type> > basicSymmetryFvPatchField<Type>::snGrad() const
+Foam::tmp<Foam::Field<Type> >
+Foam::basicSymmetryFvPatchField<Type>::snGrad() const
 {
-    vectorField nHat = this->patch().nf();
+    tmp<vectorField> nHat = this->patch().nf();
+
     return
     (
         transform(I - 2.0*sqr(nHat), this->patchInternalField())
@@ -107,16 +104,16 @@ tmp<Field<Type> > basicSymmetryFvPatchField<Type>::snGrad() const
 }
 
 
-// Evaluate the field on the patch
 template<class Type>
-void basicSymmetryFvPatchField<Type>::evaluate(const Pstream::commsTypes)
+void Foam::basicSymmetryFvPatchField<Type>::evaluate(const Pstream::commsTypes)
 {
     if (!this->updated())
     {
         this->updateCoeffs();
     }
 
-    vectorField nHat = this->patch().nf();
+    tmp<vectorField> nHat = this->patch().nf();
+
     Field<Type>::operator=
     (
         (
@@ -129,11 +126,12 @@ void basicSymmetryFvPatchField<Type>::evaluate(const Pstream::commsTypes)
 }
 
 
-// Return defining fields
 template<class Type>
-tmp<Field<Type> > basicSymmetryFvPatchField<Type>::snGradTransformDiag() const
+Foam::tmp<Foam::Field<Type> >
+Foam::basicSymmetryFvPatchField<Type>::snGradTransformDiag() const
 {
-    vectorField nHat = this->patch().nf();
+    const vectorField nHat(this->patch().nf());
+
     vectorField diag(nHat.size());
 
     diag.replace(vector::X, mag(nHat.component(vector::X)));
@@ -143,9 +141,5 @@ tmp<Field<Type> > basicSymmetryFvPatchField<Type>::snGradTransformDiag() const
     return transformFieldMask<Type>(pow<vector, pTraits<Type>::rank>(diag));
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

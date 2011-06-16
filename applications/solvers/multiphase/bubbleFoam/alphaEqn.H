@@ -1,7 +1,7 @@
 {
     word scheme("div(phi,alpha)");
 
-    surfaceScalarField phir = phia - phib;
+    surfaceScalarField phir(phia - phib);
 
     Info<< "Max Ur Courant Number = "
         << (
@@ -34,7 +34,13 @@
         betaEqn.relax();
         betaEqn.solve();
 
-        alpha = 0.5*(scalar(1) + sqr(scalar(1) - beta) - sqr(scalar(1) - alpha));
+        alpha =
+            0.5
+           *(
+                 scalar(1)
+               + sqr(scalar(1) - beta)
+               - sqr(scalar(1) - alpha)
+            );
         */
 
         beta = scalar(1) - alpha;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,22 +21,14 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Perfect gas equation of state.
-
 \*---------------------------------------------------------------------------*/
 
 #include "perfectGas.H"
 #include "IOstreams.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-perfectGas::perfectGas(Istream& is)
+Foam::perfectGas::perfectGas(Istream& is)
 :
     specie(is)
 {
@@ -44,9 +36,23 @@ perfectGas::perfectGas(Istream& is)
 }
 
 
+Foam::perfectGas::perfectGas(const dictionary& dict)
+:
+    specie(dict)
+{}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::perfectGas::write(Ostream& os) const
+{
+    specie::write(os);
+}
+
+
 // * * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * //
 
-Ostream& operator<<(Ostream& os, const perfectGas& pg)
+Foam::Ostream& Foam::operator<<(Ostream& os, const perfectGas& pg)
 {
     os  << static_cast<const specie&>(pg);
 
@@ -54,9 +60,5 @@ Ostream& operator<<(Ostream& os, const perfectGas& pg)
     return os;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

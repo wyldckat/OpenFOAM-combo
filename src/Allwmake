@@ -1,63 +1,74 @@
 #!/bin/sh
 cd ${0%/*} || exit 1    # run from this directory
+makeType=${1:-libso}
 
-if [ "$PWD" != "$WM_PROJECT_DIR/src" ]
-then
-    echo "Error: Current directory in not \$WM_PROJECT_DIR/src"
-    echo "    The environment variable are not consistent with the installation."
+wmakeCheckPwd "$WM_PROJECT_DIR/src" || {
+    echo "Error: Current directory is not \$WM_PROJECT_DIR/src"
+    echo "    The environment variables are inconsistent with the installation."
     echo "    Check the OpenFOAM entries in your dot-files and source them."
     exit 1
-fi
+}
+
+[ -n "$FOAM_EXT_LIBBIN" ] || {
+    echo "Error: FOAM_EXT_LIBBIN not set"
+    echo "    Check the OpenFOAM entries in your dot-files and source them."
+    exit 1
+}
 
 set -x
 
 # update OpenFOAM version strings if required
-wmakePrintBuild -check || /bin/rm -f OpenFOAM/Make/$WM_OPTIONS/global.? 2>/dev/null
+wmakePrintBuild -check || /bin/rm -f OpenFOAM/Make/*/global.? 2>/dev/null
 
 wmakeLnInclude OpenFOAM
-wmakeLnInclude OSspecific/$WM_OSTYPE
-Pstream/Allwmake
+wmakeLnInclude OSspecific/${WM_OSTYPE:-POSIX}
+Pstream/Allwmake $*
 
-wmake libo  OSspecific/$WM_OSTYPE
-wmake libso OpenFOAM
+OSspecific/${WM_OSTYPE:-POSIX}/Allwmake
+wmake $makeType OpenFOAM
 
-wmake libso lagrangian/basic
+wmake $makeType fileFormats
+wmake $makeType triSurface
+wmake $makeType meshTools
+wmake $makeType edgeMesh
+wmake $makeType surfMesh
 
-wmake libso triSurface
-wmake libso edgeMesh
-wmake libso surfMesh
+# Decomposition methods needed by dummyThirdParty
+parallel/decompose/AllwmakeLnInclude
+# dummyThirdParty (dummy metisDecomp, scotchDecomp etc) needed by e.g. meshTools
+dummyThirdParty/Allwmake $*
 
-# Decomposition methods needed by meshTools
-decompositionMethods/AllwmakeLnInclude
-dummyThirdParty/Allwmake
-decompositionMethods/Allwmake
+wmake $makeType finiteVolume
+wmake $makeType lagrangian/basic
+wmake $makeType lagrangian/distributionModels
+wmake $makeType genericPatchFields
 
-wmake libso meshTools
-wmake libso finiteVolume
-wmake libso genericPatchFields
+# Build the proper scotchDecomp, metisDecomp etc.
+parallel/Allwmake $*
 
-wmake libso sampling
+wmake $makeType conversion
 
-wmake libso dynamicMesh
-wmake libso dynamicFvMesh
-wmake libso topoChangerFvMesh
+wmake $makeType sampling
 
-wmake libso ODE
-wmake libso randomProcesses
+wmake $makeType dynamicMesh
+wmake $makeType dynamicFvMesh
+wmake $makeType topoChangerFvMesh
 
-thermophysicalModels/Allwmake
-transportModels/Allwmake
-turbulenceModels/Allwmake
-lagrangian/Allwmake
-postProcessing/Allwmake
-conversion/Allwmake
+wmake $makeType ODE
+wmake $makeType randomProcesses
 
-wmake libso autoMesh
-wmake libso errorEstimation
+thermophysicalModels/Allwmake $*
+transportModels/Allwmake $*
+turbulenceModels/Allwmake $*
+wmake $makeType combustionModels
+regionModels/Allwmake $*
+lagrangian/Allwmake $*
+postProcessing/Allwmake $*
+mesh/Allwmake $*
 
-fvAgglomerationMethods/Allwmake
+fvAgglomerationMethods/Allwmake $*
 
-wmake libso fvMotionSolver
-wmake libso engine
+wmake $makeType fvMotionSolver
+wmake $makeType engine
 
 # ----------------------------------------------------------------- end-of-file

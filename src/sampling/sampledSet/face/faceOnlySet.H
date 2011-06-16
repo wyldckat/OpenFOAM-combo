@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,18 +36,15 @@ SourceFiles
 
 #include "sampledSet.H"
 #include "DynamicList.H"
+#include "passiveParticleCloud.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-// Forward declaration of classes
-class passiveParticle;
-template<class Type> class Particle;
-
 /*---------------------------------------------------------------------------*\
-                           Class faceOnlySet Declaration
+                         Class faceOnlySet Declaration
 \*---------------------------------------------------------------------------*/
 
 class faceOnlySet
@@ -71,7 +68,7 @@ class faceOnlySet
         //  reached
         bool trackToBoundary
         (
-            Particle<passiveParticle>& singleParticle,
+            passiveParticle& singleParticle,
             DynamicList<point>& samplingPts,
             DynamicList<label>& samplingCells,
             DynamicList<label>& samplingFaces,
@@ -91,6 +88,7 @@ class faceOnlySet
 
         //- Uses calcSamples to obtain samples. Copies them into *this.
         void genSamples();
+
 
 public:
 
@@ -120,9 +118,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~faceOnlySet();
+    //- Destructor
+    virtual ~faceOnlySet();
 
 
     // Member Functions
@@ -136,9 +133,6 @@ public:
         {
             return end_;
         }
-
-        //- Get reference point
-        virtual point getRefPoint(const List<point>&) const;
 };
 
 

@@ -7,30 +7,16 @@ tmp<fvVectorMatrix> UEqn
   + turbulence->divDevReff(U)
 );
 
-if (oCorr == nOuterCorr-1)
+UEqn().relax();
+
+volScalarField rAU(1.0/UEqn().A());
+
+if (pimple.momentumPredictor())
 {
-    UEqn().relax(1);
+    solve(UEqn() == -fvc::grad(p));
 }
 else
 {
-    UEqn().relax();
-}
-
-volScalarField rUA = 1.0/UEqn().A();
-
-if (momentumPredictor)
-{
-    if (oCorr == nOuterCorr-1)
-    {
-        solve(UEqn() == -fvc::grad(p), mesh.solver("UFinal"));
-    }
-    else
-    {
-        solve(UEqn() == -fvc::grad(p));
-    }
-}
-else
-{
-    U = rUA*(UEqn().H() - fvc::grad(p));
+    U = rAU*(UEqn().H() - fvc::grad(p));
     U.correctBoundaryConditions();
 }

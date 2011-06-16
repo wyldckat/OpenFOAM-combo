@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,15 +30,10 @@ License
 #include "Ek.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// from components
-turbGen::turbGen(const Kmesh& k, const scalar EA, const scalar K0)
+Foam::turbGen::turbGen(const Kmesh& k, const scalar EA, const scalar K0)
 :
     K(k),
     Ea(EA),
@@ -49,11 +44,8 @@ turbGen::turbGen(const Kmesh& k, const scalar EA, const scalar K0)
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// generate and return a velocity field
-vectorField turbGen::U()
+Foam::vectorField Foam::turbGen::U()
 {
-    scalar pi2=2*mathematicalConstant::pi;
-
     vectorField s(K.size());
     scalarField rndPhases(K.size());
 
@@ -68,19 +60,18 @@ vectorField turbGen::U()
 
     s = Ek(Ea, k0, mag(K))*s;
 
-    complexVectorField up = fft::reverseTransform
+    complexVectorField up
     (
-        ComplexField(cos(pi2*rndPhases)*s, sin(pi2*rndPhases)*s),
-        K.nn()
+        fft::reverseTransform
+        (
+            ComplexField(cos(constant::mathematical::twoPi*rndPhases)*s,
+            sin(constant::mathematical::twoPi*rndPhases)*s),
+            K.nn()
+        )
     );
 
     return ReImSum(up);
 }
 
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
-
 // ************************************************************************* //
-

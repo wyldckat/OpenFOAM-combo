@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,10 +31,10 @@ Description
     All systems are defined by an origin point and a coordinateRotation.
     For convenience, the dictionary constructor forms allow a few shortcuts:
     - the default origin corresponds to <em>(0 0 0)</em>
-    - if the @c type is not otherwise specified, a Cartesian coordinateSystem
+    - if the \c type is not otherwise specified, a Cartesian coordinateSystem
       is implicit
 
-    @verbatim
+    \verbatim
         flipped
         {
             origin  (0 0 0);
@@ -44,12 +44,12 @@ Description
                 rotation    (0 0 90);
             }
         }
-    @endverbatim
+    \endverbatim
 
     - if an axes specification (eg, e3/e1) is used, the coordinateRotation
       sub-dictionary can be dropped.
 
-    @verbatim
+    \verbatim
         flipped     // the same, specified as axes
         {
             origin  (0 0 0);
@@ -65,14 +65,14 @@ Description
             e3      (1 0 0);
             e1      (0 0 -1);
         }
-    @endverbatim
+    \endverbatim
 
     - if a sub-dictionary coordinateSystem is found within the dictionary, it
       will be used. This provides a convenient means of embedding
       coordinateSystem information in another dictionary.
       This is used, for example, in the porousZones:
 
-    @verbatim
+    \verbatim
         1
         (
         cat1
@@ -94,12 +94,12 @@ Description
             }
         }
         )
-    @endverbatim
+    \endverbatim
 
     - additionally, if the coordinateSystem points to a plain entry,
       it can be used to reference one of the global coordinateSystems
 
-    @verbatim
+    \verbatim
         1
         (
         cat1
@@ -113,7 +113,7 @@ Description
             }
         }
         )
-    @endverbatim
+    \endverbatim
     For this to work correctly, the coordinateSystem constructor must be
     supplied with both a dictionary and an objectRegistry.
 
@@ -165,6 +165,7 @@ class coordinateSystem
         //- Global-to-Local transformation tensor
         tensor Rtr_;
 
+
 protected:
 
     // Protected Member Functions
@@ -192,6 +193,7 @@ protected:
             const vectorField&,
             bool translate
         ) const;
+
 
 public:
 
@@ -248,6 +250,7 @@ public:
             return autoPtr<coordinateSystem>(new coordinateSystem(*this));
         }
 
+
     // Declare run-time constructor selection table
 
         declareRunTimeSelectionTable
@@ -275,6 +278,7 @@ public:
             (name, origin, cr)
         );
 
+
     // Selectors
 
         //- Select constructed from dictionary
@@ -296,160 +300,174 @@ public:
         //- Select constructed from Istream
         static autoPtr<coordinateSystem> New(Istream& is);
 
-    // Destructor
 
-        virtual ~coordinateSystem();
+    //- Destructor
+    virtual ~coordinateSystem();
 
 
     // Member Functions
 
-      // Access
+        // Access
 
-        //- Return name
-        const word& name() const
-        {
-            return name_;
-        }
+            //- Return name
+            const word& name() const
+            {
+                return name_;
+            }
 
-        //- Return non-constant access to the optional note
-        string& note()
-        {
-            return note_;
-        }
+            //- Return non-constant access to the optional note
+            string& note()
+            {
+                return note_;
+            }
 
-        //- Return the optional note
-        const string& note() const
-        {
-            return note_;
-        }
+            //- Return the optional note
+            const string& note() const
+            {
+                return note_;
+            }
 
-        //- Return origin
-        const point& origin() const
-        {
-            return origin_;
-        }
+            //- Return origin
+            const point& origin() const
+            {
+                return origin_;
+            }
 
-        //- Return coordinate rotation
-        const coordinateRotation& rotation() const
-        {
-            return R_;
-        }
+            //- Return coordinate rotation
+            const coordinateRotation& rotation() const
+            {
+                return R_;
+            }
 
-        //- Return local-to-global transformation tensor
-        const tensor& R() const
-        {
-            return R_;
-        }
+            //- Return local-to-global transformation tensor
+            const tensor& R() const
+            {
+                return R_;
+            }
 
-        //- Return local Cartesian x-axis
-        const vector e1() const
-        {
-           return Rtr_.x();
-        }
+            //- Return local Cartesian x-axis
+            const vector e1() const
+            {
+                return Rtr_.x();
+            }
 
-        //- Return local Cartesian y-axis
-        const vector e2() const
-        {
-           return Rtr_.y();
-        }
+            //- Return local Cartesian y-axis
+            const vector e2() const
+            {
+                return Rtr_.y();
+            }
 
-        //- Return local Cartesian z-axis
-        const vector e3() const
-        {
-           return Rtr_.z();
-        }
+            //- Return local Cartesian z-axis
+            const vector e3() const
+            {
+                return Rtr_.z();
+            }
 
-        //- Return axis (e3: local Cartesian z-axis)
-        // @deprecated method e3 is preferred
-        const vector axis() const
-        {
-           return Rtr_.z();
-        }
+            //- Return axis (e3: local Cartesian z-axis)
+            // \deprecated method e3 is preferred (deprecated Apr 2008)
+            const vector axis() const
+            {
+                return Rtr_.z();
+            }
 
-        //- Return direction (e1: local Cartesian x-axis)
-        // @deprecated method e1 is preferred
-        const vector direction() const
-        {
-            return Rtr_.x();
-        }
+            //- Return direction (e1: local Cartesian x-axis)
+            // \deprecated method e1 is preferred (deprecated Apr 2008)
+            const vector direction() const
+            {
+                return Rtr_.x();
+            }
 
-        //- Return as dictionary of entries
-        //  @param [in] ignoreType drop type (cartesian, cylindrical, etc)
-        //  when generating the dictionary
-        virtual dictionary dict(bool ignoreType=false) const;
+            //- Return as dictionary of entries
+            //  \param [in] ignoreType drop type (cartesian, cylindrical, etc)
+            //  when generating the dictionary
+            virtual dictionary dict(bool ignoreType=false) const;
 
 
-      // Edit
+        // Edit
 
-        //- Rename
-        virtual void rename(const word& newName)
-        {
-            name_ = newName;
-        }
+            //- Rename
+            virtual void rename(const word& newName)
+            {
+                name_ = newName;
+            }
 
-        //- Edit access to origin
-        point& origin()
-        {
-            return origin_;
-        }
+            //- Edit access to origin
+            point& origin()
+            {
+                return origin_;
+            }
 
-      // Write
+            //- Reset origin and rotation to an identity coordinateSystem
+            //  Also resets the note
+            virtual void clear();
 
-        //- Write
-        virtual void write(Ostream&) const;
 
-        //- Write dictionary
-        virtual void writeDict(Ostream&, bool subDict=true) const;
+        // Write
 
-      // Transformations
+            //- Write
+            virtual void write(Ostream&) const;
 
-        //- Convert from position in local coordinate system to global Cartesian position
-        point globalPosition(const point& local) const
-        {
-            return localToGlobal(local, true);
-        }
+            //- Write dictionary
+            virtual void writeDict(Ostream&, bool subDict=true) const;
 
-        //- Convert from position in local coordinate system to global Cartesian position
-        tmp<pointField> globalPosition(const pointField& local) const
-        {
-            return localToGlobal(local, true);
-        }
 
-        //- Convert from vector components in local coordinate system to global Cartesian vector
-        vector globalVector(const vector& local) const
-        {
-            return localToGlobal(local, false);
-        }
+        // Transformations
 
-        //- Convert from vector components in local coordinate system to global Cartesian vector
-        tmp<vectorField> globalVector(const vectorField& local) const
-        {
-            return localToGlobal(local, false);
-        }
+            //- Convert from position in local coordinate system to global
+            //  Cartesian position
+            point globalPosition(const point& local) const
+            {
+                return localToGlobal(local, true);
+            }
 
-        //- Convert from global Cartesian position to position in local coordinate system
-        point localPosition(const point& global) const
-        {
-            return globalToLocal(global, true);
-        }
+            //- Convert from position in local coordinate system to global
+            //  Cartesian position
+            tmp<pointField> globalPosition(const pointField& local) const
+            {
+                return localToGlobal(local, true);
+            }
 
-        //- Convert from global Cartesian position to position in local coordinate system
-        tmp<pointField> localPosition(const pointField& global) const
-        {
-            return globalToLocal(global, true);
-        }
+            //- Convert from vector components in local coordinate system to
+            //  global Cartesian vector
+            vector globalVector(const vector& local) const
+            {
+                return localToGlobal(local, false);
+            }
 
-        //- Convert from global Cartesian vector to components in local coordinate system
-        vector localVector(const vector& global) const
-        {
-            return globalToLocal(global, false);
-        }
+            //- Convert from vector components in local coordinate system to
+            //  global Cartesian vector
+            tmp<vectorField> globalVector(const vectorField& local) const
+            {
+                return localToGlobal(local, false);
+            }
 
-        //- Convert from global Cartesian vector to components in local coordinate system
-        tmp<vectorField> localVector(const vectorField& global) const
-        {
-            return globalToLocal(global, false);
-        }
+            //- Convert from global Cartesian position to position in local
+            //  coordinate system
+            point localPosition(const point& global) const
+            {
+                return globalToLocal(global, true);
+            }
+
+            //- Convert from global Cartesian position to position in local
+            //  coordinate system
+            tmp<pointField> localPosition(const pointField& global) const
+            {
+                return globalToLocal(global, true);
+            }
+
+            //- Convert from global Cartesian vector to components in local
+            //  coordinate system
+            vector localVector(const vector& global) const
+            {
+                return globalToLocal(global, false);
+            }
+
+            //- Convert from global Cartesian vector to components in local
+            //  coordinate system
+            tmp<vectorField> localVector(const vectorField& global) const
+            {
+                return globalToLocal(global, false);
+            }
 
 
     // Member Operators
@@ -465,6 +483,7 @@ public:
             const coordinateSystem&,
             const coordinateSystem&
         );
+
 
     // IOstream Operators
 

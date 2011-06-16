@@ -25,7 +25,6 @@ License
 
 #include "cellSource.H"
 #include "volFields.H"
-#include "IOList.H"
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
@@ -120,12 +119,14 @@ bool Foam::fieldValues::cellSource::writeValues(const word& fieldName)
 
     if (ok)
     {
-        Field<Type> values = combineFields(setFieldValues<Type>(fieldName)());
+        Field<Type> values(setFieldValues<Type>(fieldName));
+        combineFields(values);
 
-        scalarField V = combineFields(filterField(mesh().V())());
+        scalarField V(filterField(mesh().V()));
+        combineFields(V);
 
-        scalarField weightField =
-            combineFields(setFieldValues<scalar>(weightFieldName_)());
+        scalarField weightField(setFieldValues<scalar>(weightFieldName_));
+        combineFields(weightField);
 
         if (Pstream::master())
         {
@@ -133,7 +134,7 @@ bool Foam::fieldValues::cellSource::writeValues(const word& fieldName)
 
             if (valueOutput_)
             {
-                IOList<Type>
+                IOField<Type>
                 (
                     IOobject
                     (

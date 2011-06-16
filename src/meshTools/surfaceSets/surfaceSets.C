@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -66,7 +64,7 @@ Description
 //}
 //
 //
-//// Returns true if cell uses at least one selected point 
+//// Returns true if cell uses at least one selected point
 //bool Foam::surfaceSets::usesPoint
 //(
 //    const primitiveMesh& mesh,
@@ -123,12 +121,7 @@ Description
 //    // Snap outside points to surface
 //    pointField newPoints(points);
 //
-//    for
-//    (
-//        labelHashSet::const_iterator iter = flatCandidates.begin();
-//        iter != flatCandidates.end();
-//        ++iter
-//    )
+//    forAllConstIter(labelHashSet, flatCandidates, iter)
 //    {
 //        const cell& cFaces = cells[iter.key()];
 //
@@ -148,21 +141,16 @@ Description
 //                    newPoints[pointI] = tnearest()[0];
 //                }
 //            }
-//        }               
+//        }
 //    }
 //
 //
 //    // Calculate new volume for mixed cells
 //    label nRemoved = 0;
-//    for
-//    (
-//        labelHashSet::const_iterator iter = flatCandidates.begin();
-//        iter != flatCandidates.end();
-//        ++iter
-//    )
+//    forAllConstIter(labelHashSet, flatCandidates, iter)
 //    {
 //        label cellI = iter.key();
-//    
+//
 //        const cell& cll = cells[cellI];
 //
 //        scalar newVol = cll.mag(newPoints, faces);
@@ -179,8 +167,9 @@ Description
 //}
 
 
-//// Select all points out of pointSet where the distance to the surface is less
-//// than a factor times a local length scale (minimum length of connected edges)
+//// Select all points out of pointSet where the distance to the surface
+//// is less than a factor times a local length scale (minimum length of
+//// connected edges)
 //void Foam::surfaceSets::getNearPoints
 //(
 //    const primitiveMesh& mesh,
@@ -264,7 +253,7 @@ void Foam::surfaceSets::getSurfaceSets
         cellType.trimCutCells
         (
             nCutLayers,
-            cellClassification::OUTSIDE, 
+            cellClassification::OUTSIDE,
             cellClassification::INSIDE
         );
     }
@@ -385,15 +374,9 @@ Foam::labelHashSet Foam::surfaceSets::getHangingCells
 
     labelHashSet mixedOnlyCells(internalCells.size());
 
-    for
-    (
-        labelHashSet::const_iterator iter = internalCells.begin();
-        iter != internalCells.end();
-        ++iter
-    )
+    forAllConstIter(labelHashSet, internalCells, iter)
     {
-        label cellI = iter.key();
-
+        const label cellI = iter.key();
         const cell& cFaces = cells[cellI];
 
         label usesMixedOnly = true;
@@ -483,7 +466,7 @@ Foam::labelHashSet Foam::surfaceSets::getHangingCells
 //        mesh,
 //        surfName,
 //        surf,
-//        querySurf, 
+//        querySurf,
 //        outsidePts,
 //        false,          // includeCut
 //        false,          // includeInside
@@ -606,7 +589,7 @@ Foam::labelHashSet Foam::surfaceSets::getHangingCells
 //            << endl;
 //    }
 //    while (nRemoved != 0);
-//    
+//
 //
 //    //
 //    // Write
@@ -622,7 +605,7 @@ Foam::labelHashSet Foam::surfaceSets::getHangingCells
 //    Pout<< "Writing outside cells (" << outside.size() << ") to cellSet "
 //        << outside.instance()/outside.local()/outside.name()
 //        << endl << endl;
-//    
+//
 //    outside.write();
 //}
 

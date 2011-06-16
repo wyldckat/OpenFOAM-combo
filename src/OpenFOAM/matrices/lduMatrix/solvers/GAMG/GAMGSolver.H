@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,7 +58,6 @@ SourceFiles
 #include "labelField.H"
 #include "primitiveFields.H"
 #include "LUscalarMatrix.H"
-#include "Switch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,7 +74,7 @@ class GAMGSolver
 {
     // Private data
 
-        Switch cacheAgglomeration_;
+        bool cacheAgglomeration_;
 
         //- Number of pre-smoothing sweeps
         label nPreSweeps_;
@@ -146,7 +145,7 @@ class GAMGSolver
         //- Calculate and return the scaling factor from Acf, coarseSource
         //  and coarseField.
         //  At the same time do a Jacobi iteration on the coarseField using
-        //  the Acf provided after the coarseField values are used for the 
+        //  the Acf provided after the coarseField values are used for the
         //  scaling factor.
         scalar scalingFactor
         (
@@ -223,9 +222,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~GAMGSolver();
+    //- Destructor
+    virtual ~GAMGSolver();
 
 
     // Member Functions

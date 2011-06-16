@@ -77,7 +77,7 @@ void Foam::calcTypes::interpolate::calc
     const fvMesh& mesh
 )
 {
-    const word& fieldName = args.additionalArgs()[1];
+    const word fieldName = args[2];
 
     IOobject fieldHeader
     (

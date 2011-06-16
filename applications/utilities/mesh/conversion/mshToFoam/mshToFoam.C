@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     purely a description of the internal mesh.
 
     Can read both linear-tet format (i.e. 4 verts per tet) and linear-hex
-    format (8 verts per hex) (if provided with the -hex option)
+    format (8 verts per hex) (if provided with the -hex (at your option)
     (Note: will bomb out if not supplied with the correct option for the
      file format)
 
@@ -56,26 +56,28 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append(".msh file");
-    argList::validOptions.insert("hex", "");
+    argList::addBoolOption
+    (
+        "hex",
+        "treat input as containing hex instead of tet cells"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
-    bool readHex = args.optionFound("hex");
-
-    fileName mshFile(args.additionalArgs()[0]);
-    IFstream mshStream(mshFile);
+    const bool readHex = args.optionFound("hex");
+    IFstream mshStream(args[1]);
 
     label nCells;
     mshStream >> nCells;
 
     if (readHex)
     {
-        Info<< "Trying to read " << nCells << " hexes." << endl << endl;
+        Info<< "Trying to read " << nCells << " hexes." << nl << endl;
     }
     else
     {
-        Info<< "Trying to read " << nCells << " tets." << endl << endl;
+        Info<< "Trying to read " << nCells << " tets." << nl << endl;
     }
 
     cellShapeList cells(nCells);

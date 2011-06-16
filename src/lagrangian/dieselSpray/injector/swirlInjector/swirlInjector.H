@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -104,15 +104,20 @@ private:
         scalar fractionOfInjection(const scalar time) const;
 
 
-/*
+        // //- Return the average injection velocity
+        // scalar averageInjectionVelocityTime
+        // (
+        //     const scalar liquidDensity
+        // ) const;
 
-        //- Return the average injection velocity
-        scalar averageInjectionVelocityTime(const scalar liquidDensity) const;
+        // //- Return the instantaneous injection velocity
+        // scalar injectionVelocity
+        // (
+        //     const scalar,
+        //     const scalar liquidDensity
+        // ) const;
 
-        //- Return the instantaneous injection velocity
-        scalar injectionVelocity(const scalar, const scalar liquidDensity) const;
 
-*/
 
 public:
 
@@ -123,16 +128,11 @@ public:
     // Constructors
 
         //- Construct from components
-        swirlInjector
-        (
-            const Time& t,
-            const dictionary& dict
-        );
+        swirlInjector(const Time& t, const dictionary& dict);
 
 
-    // Destructor
-
-        ~swirlInjector();
+    //- Destructor
+    virtual ~swirlInjector();
 
 
     // Member Functions
@@ -157,9 +157,9 @@ public:
             const vector& axisOfSymmetry,
             const vector& axisOfWedge,
             const vector& axisOfWedgeNormal,
-            Random& rndGen
+            cachedRandom& rndGen
         ) const;
-    
+
         //- Return the number of holes
         label nHoles() const;
 
@@ -203,7 +203,7 @@ public:
         //- Return the instantaneous velocity
         scalar velocity(const scalar time) const;
 
-        //- Return the discharge coefficient    
+        //- Return the discharge coefficient
         List<pair> CdProfile() const;
 
         //- Return the instantaneous discharge coefficient
@@ -232,10 +232,10 @@ public:
 
         void correctProfiles
         (
-            const liquidMixture& fuel,
+            const liquidMixtureProperties& fuel,
             const scalar referencePressure
         );
-        
+
         bool pressureIndependentVelocity() const
         {
             return pressureIndependentVelocity_;

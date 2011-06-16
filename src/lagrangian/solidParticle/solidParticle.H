@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,7 @@ SourceFiles
 #ifndef solidParticle_H
 #define solidParticle_H
 
-#include "Particle.H"
+#include "particle.H"
 #include "IOstream.H"
 #include "autoPtr.H"
 #include "interpolationCellPoint.H"
@@ -57,7 +57,7 @@ class solidParticleCloud;
 
 class solidParticle
 :
-    public Particle<solidParticle>
+    public particle
 {
     // Private member data
 
@@ -73,11 +73,10 @@ public:
     friend class Cloud<solidParticle>;
 
     //- Class used to pass tracking data to the trackToFace function
-    class trackData
+    class trackingData
+    :
+        public particle::TrackingData<solidParticleCloud>
     {
-        //- Reference to the cloud containing this particle
-        solidParticleCloud& spc_;
-
         // Interpolators for continuous phase fields
 
             const interpolationCellPoint<scalar>& rhoInterp_;
@@ -90,13 +89,9 @@ public:
 
     public:
 
-        bool switchProcessor;
-        bool keepParticle;
-
-
         // Constructors
 
-            inline trackData
+            inline trackingData
             (
                 solidParticleCloud& spc,
                 const interpolationCellPoint<scalar>& rhoInterp,
@@ -107,8 +102,6 @@ public:
 
 
         // Member functions
-
-            inline solidParticleCloud& spc();
 
             inline const interpolationCellPoint<scalar>& rhoInterp() const;
 
@@ -125,26 +118,50 @@ public:
         //- Construct from components
         inline solidParticle
         (
-            const Cloud<solidParticle>& c,
+            const polyMesh& mesh,
             const vector& position,
-            const label celli,
-            const scalar m,
+            const label cellI,
+            const label tetFaceI,
+            const label tetPtI,
+            const scalar d,
             const vector& U
         );
 
         //- Construct from Istream
         solidParticle
         (
-            const Cloud<solidParticle>& c,
+            const polyMesh& mesh,
             Istream& is,
             bool readFields = true
         );
 
         //- Construct and return a clone
-        autoPtr<solidParticle> clone() const
+        virtual autoPtr<particle> clone() const
         {
-            return autoPtr<solidParticle>(new solidParticle(*this));
+            return autoPtr<particle>(new solidParticle(*this));
         }
+
+        //- Factory class to read-construct particles used for
+        //  parallel transfer
+        class iNew
+        {
+            const polyMesh& mesh_;
+
+        public:
+
+            iNew(const polyMesh& mesh)
+            :
+                mesh_(mesh)
+            {}
+
+            autoPtr<solidParticle> operator()(Istream& is) const
+            {
+                return autoPtr<solidParticle>
+                (
+                    new solidParticle(mesh_, is, true)
+                );
+            }
+        };
 
 
     // Member Functions
@@ -157,15 +174,11 @@ public:
             //- Return velocity
             inline const vector& U() const;
 
-            //- The nearest distance to a wall that
-            //  the particle can be in the n direction
-            inline scalar wallImpactDistance(const vector& n) const;
-
 
         // Tracking
 
             //- Move
-            bool move(trackData&);
+            bool move(trackingData&, const scalar);
 
 
         // Patch interactions
@@ -175,17 +188,10 @@ public:
             bool hitPatch
             (
                 const polyPatch&,
-                solidParticle::trackData& td,
-                const label patchI
-            );
-
-            //- Overridable function to handle the particle hitting a patch
-            //  Executed before other patch-hitting functions without trackData
-            bool hitPatch
-            (
-                const polyPatch& p,
-                int& td,
-                const label patchI
+                trackingData& td,
+                const label patchI,
+                const scalar trackFraction,
+                const tetIndices& tetIs
             );
 
             //- Overridable function to handle the particle hitting a
@@ -193,60 +199,35 @@ public:
             void hitProcessorPatch
             (
                 const processorPolyPatch&,
-                solidParticle::trackData& td
-            );
-
-            //- Overridable function to handle the particle hitting a
-            //  processorPatch without trackData
-            void hitProcessorPatch
-            (
-                const processorPolyPatch&,
-                int&
+                trackingData& td
             );
 
             //- Overridable function to handle the particle hitting a wallPatch
             void hitWallPatch
             (
                 const wallPolyPatch&,
-                solidParticle::trackData& td
-            );
-
-            //- Overridable function to handle the particle hitting a wallPatch
-            //- without trackData
-            void hitWallPatch
-            (
-                const wallPolyPatch&,
-                int&
+                trackingData& td,
+                const tetIndices&
             );
 
             //- Overridable function to handle the particle hitting a polyPatch
             void hitPatch
             (
                 const polyPatch&,
-                solidParticle::trackData& td
-            );
-
-            //- Overridable function to handle the particle hitting a polyPatch
-            //- without trackData
-            void hitPatch
-            (
-                const polyPatch&,
-                int&
+                trackingData& td
             );
 
             //- Transform the physical properties of the particle
             //  according to the given transformation tensor
-            void transformProperties
-            (
-                const tensor& T
-            );
+            virtual void transformProperties(const tensor& T);
 
             //- Transform the physical properties of the particle
             //  according to the given separation vector
-            void transformProperties
-            (
-                const vector& separation
-            );
+            virtual void transformProperties(const vector& separation);
+
+            //- The nearest distance to a wall that
+            //  the particle can be in the n direction
+            virtual scalar wallImpactDistance(const vector& n) const;
 
 
     // I-O

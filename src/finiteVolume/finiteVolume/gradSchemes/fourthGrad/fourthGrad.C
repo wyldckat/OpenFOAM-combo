@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "fourthGrad.H"
@@ -34,27 +34,20 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace fv
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 template<class Type>
-tmp
+Foam::tmp
 <
-    GeometricField
+    Foam::GeometricField
     <
-        typename outerProduct<vector, Type>::type, fvPatchField, volMesh
+        typename Foam::outerProduct<Foam::vector, Type>::type,
+        Foam::fvPatchField,
+        Foam::volMesh
     >
 >
-fourthGrad<Type>::grad
+Foam::fv::fourthGrad<Type>::calcGrad
 (
-    const GeometricField<Type, fvPatchField, volMesh>& vsf
+    const GeometricField<Type, fvPatchField, volMesh>& vsf,
+    const word& name
 ) const
 {
     // The fourth-order gradient is calculated in two passes.  First,
@@ -79,7 +72,7 @@ fourthGrad<Type>::grad
         (
             IOobject
             (
-                "grad("+vsf.name()+')',
+                name,
                 vsf.instance(),
                 mesh,
                 IOobject::NO_READ,
@@ -100,8 +93,8 @@ fourthGrad<Type>::grad
     const surfaceVectorField& neiLs = lsv.nVectors();
 
     // owner/neighbour addressing
-    const unallocLabelList& own = mesh.owner();
-    const unallocLabelList& nei = mesh.neighbour();
+    const labelUList& own = mesh.owner();
+    const labelUList& nei = mesh.neighbour();
 
     // Assemble the fourth-order gradient
 
@@ -129,12 +122,14 @@ fourthGrad<Type>::grad
             const scalarField& lambdap = lambda.boundaryField()[patchi];
 
             // Build the d-vectors
-            vectorField pd = 
+            vectorField pd
+            (
                 mesh.Sf().boundaryField()[patchi]
-               /(
-                   mesh.magSf().boundaryField()[patchi]
-                  *mesh.deltaCoeffs().boundaryField()[patchi]
-                );
+              / (
+                    mesh.magSf().boundaryField()[patchi]
+                  * mesh.deltaCoeffs().boundaryField()[patchi]
+                )
+            );
 
             if (!mesh.orthogonal())
             {
@@ -142,11 +137,13 @@ fourthGrad<Type>::grad
                      /mesh.deltaCoeffs().boundaryField()[patchi];
             }
 
-            const unallocLabelList& faceCells =
+            const labelUList& faceCells =
                 fGrad.boundaryField()[patchi].patch().faceCells();
 
-            Field<GradType> neighbourSecondfGrad =
-                secondfGrad.boundaryField()[patchi].patchNeighbourField();
+            const Field<GradType> neighbourSecondfGrad
+            (
+                secondfGrad.boundaryField()[patchi].patchNeighbourField()
+            );
 
             forAll(faceCells, patchFaceI)
             {
@@ -169,13 +166,5 @@ fourthGrad<Type>::grad
     return tfGrad;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace fv
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class BiIndirectList Declaration
+                       Class BiIndirectList Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class T>
@@ -65,7 +65,15 @@ public:
         (
             const UList<T>& posList,
             const UList<T>& negList,
-            const UList<label>&
+            const labelUList&
+        );
+
+        //- Construct given the complete list and by transferring addressing
+        inline BiIndirectList
+        (
+            const UList<T>& posList,
+            const UList<T>& negList,
+            const Xfer<List<label> >&
         );
 
 
@@ -73,17 +81,27 @@ public:
 
         // Access
 
+            //- Return the number of elements in the list
             inline label size() const;
-            inline bool  empty() const;
+
+            //- Return true if the list is empty (ie, size() is zero).
+            inline bool empty() const;
 
             inline const UList<T>& posList() const;
             inline const UList<T>& negList() const;
+
+            //- Return the list addressing
             inline const List<label>& addressing() const;
-            inline List<label>& addressing();
 
             //- Calculate index given whether index is into posList or negList
             inline static label posIndex(const label);
             inline static label negIndex(const label);
+
+        // Edit
+
+            //- Reset addressing
+            inline void resetAddressing(const labelUList&);
+            inline void resetAddressing(const Xfer<List<label> >&);
 
 
         // Member Operators

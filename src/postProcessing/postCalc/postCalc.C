@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,13 +57,22 @@ namespace Foam
 int main(int argc, char *argv[])
 {
     Foam::timeSelector::addOptions();
-    Foam::argList::validOptions.insert("noWrite", "");
-    Foam::argList::validOptions.insert("dict", "dictionary name");
+    Foam::argList::addBoolOption
+    (
+        "noWrite",
+        "suppress writing results"
+    );
+    Foam::argList::addOption
+    (
+        "dict",
+        "name",
+        "dictionary to use"
+    );
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
     Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
-#   include "createMesh.H"
+    #include "createMesh.H"
 
     forAll(timeDirs, timeI)
     {

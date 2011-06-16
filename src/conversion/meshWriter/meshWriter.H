@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,11 +35,11 @@ Description
     write OpenFOAM meshes and/or results to another CFD format
     - currently just STAR-CD
 
-@par Files
+\par Files
 
     "constant/boundaryRegion" is an IOMap<dictionary> that contains
     the boundary type and names. eg,
-    @verbatim
+    \verbatim
         (
             0
             {
@@ -61,7 +61,7 @@ Description
                 Label           outlet;
             }
         )
-    @endverbatim
+    \endverbatim
 
 
 SourceFiles
@@ -84,7 +84,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class meshWriter Declaration
+                         Class meshWriter Declaration
 \*---------------------------------------------------------------------------*/
 
 class meshWriter
@@ -132,13 +132,12 @@ public:
 
     // Static data members
 
+        //- Specify a default mesh name
         static string defaultMeshName;
-        static string defaultSurfaceName;
-
 
     // Constructors
 
-        //- Ccreate a writer obejct
+        //- Create a writer obejct
         meshWriter
         (
             const polyMesh&,
@@ -166,26 +165,14 @@ public:
                 writeBoundary_ = false;
             }
 
-
         // Write
 
-            //- Write volume mesh
-            //  subclass must to supply this method
+            //- Write volume mesh. Subclass must supply this method
             virtual bool write
             (
                 const fileName& timeName = fileName::null
             ) const = 0;
 
-            //- Write surface mesh with optional triangulation
-            //  subclass could supply this information
-            virtual bool writeSurface
-            (
-                const fileName& timeName = fileName::null,
-                const bool& triangulate = false
-            ) const
-            {
-                return false;
-            }
 };
 
 

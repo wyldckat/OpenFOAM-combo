@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,10 +48,12 @@ kEpsilon::kEpsilon
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -127,7 +129,10 @@ kEpsilon::kEpsilon
         autoCreateNut("nut", mesh_)
     )
 {
-    nut_ = Cmu_*sqr(k_)/(epsilon_ + epsilonSmall_);
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
+
+    nut_ = Cmu_*sqr(k_)/epsilon_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -182,7 +187,7 @@ tmp<fvVectorMatrix> kEpsilon::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -216,7 +221,7 @@ void kEpsilon::correct()
 
     volScalarField G("RASModel::G", nut_*2*magSqr(symm(fvc::grad(U_))));
 
-    // Update espsilon and G at the wall
+    // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
 
     // Dissipation equation
@@ -236,7 +241,7 @@ void kEpsilon::correct()
     epsEqn().boundaryManipulate(epsilon_.boundaryField());
 
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -253,7 +258,7 @@ void kEpsilon::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

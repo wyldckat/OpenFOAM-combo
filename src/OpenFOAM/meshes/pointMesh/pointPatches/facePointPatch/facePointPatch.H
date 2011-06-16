@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,6 @@ Description
 
 SourceFiles
     facePointPatch.C
-    facePointPatchM.C
     newPointPatch.C
 
 \*---------------------------------------------------------------------------*/
@@ -64,33 +63,26 @@ protected:
         //- Reference to the underlying polyPatch
         const polyPatch& polyPatch_;
 
-        // Optional data used if the pointPatch has points not associated
-        // with faces, i.e. not accessible via polyPatch
-
-            mutable labelList meshPoints_;
-            mutable pointField localPoints_;
-            mutable vectorField pointNormals_;
-
 
     // Protected Member Functions
 
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry();
+        virtual void initGeometry(PstreamBuffers&);
 
         //- Calculate the patch geometry
-        virtual void calcGeometry();
+        virtual void calcGeometry(PstreamBuffers&);
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&);
+        virtual void initMovePoints(PstreamBuffers&, const pointField&);
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField&);
+        virtual void movePoints(PstreamBuffers&, const pointField&);
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh();
+        virtual void initUpdateMesh(PstreamBuffers&);
 
         //- Update of the patch topology
-        virtual void updateMesh();
+        virtual void updateMesh(PstreamBuffers&);
 
 
 private:
@@ -148,10 +140,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~facePointPatch()
-        {}
+    //- Destructor
+    virtual ~facePointPatch()
+    {}
 
 
     // Member Functions
@@ -181,13 +172,24 @@ public:
         }
 
         //- Return mesh points
-        virtual const labelList& meshPoints() const;
+        virtual const labelList& meshPoints() const
+        {
+            return polyPatch_.meshPoints();
+        }
+
 
         //- Return pointField of points in patch
-        virtual const pointField& localPoints() const;
+        virtual const pointField& localPoints() const
+        {
+            return polyPatch_.localPoints();
+        }
+
 
         //- Return point unit normals
-        virtual const vectorField& pointNormals() const;
+        virtual const vectorField& pointNormals() const
+        {
+            return polyPatch_.pointNormals();
+        }
 };
 
 

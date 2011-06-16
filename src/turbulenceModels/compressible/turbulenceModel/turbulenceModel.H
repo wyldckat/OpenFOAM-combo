@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,6 +68,8 @@ namespace compressible
 \*---------------------------------------------------------------------------*/
 
 class turbulenceModel
+:
+    public regIOobject
 {
 
 protected:
@@ -112,9 +114,10 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel
+                const basicThermo& thermoPhysicalModel,
+                const word& turbulenceModelName
             ),
-            (rho, U, phi, thermoPhysicalModel)
+            (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
         );
 
 
@@ -126,7 +129,8 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = typeName
         );
 
 
@@ -138,7 +142,8 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = typeName
         );
 
 
@@ -191,14 +196,24 @@ public:
         //- Return the effective viscosity
         virtual tmp<volScalarField> muEff() const = 0;
 
-        //- Return the effective turbulent thermal diffusivity
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const = 0;
+
+        //- Return the effective turbulence thermal diffusivity
         virtual tmp<volScalarField> alphaEff() const = 0;
+
+        //- Return the effective turbulence thermal diffusivity for a patch
+        virtual tmp<scalarField> alphaEff(const label patchI) const = 0;
 
         //- Return the turbulence kinetic energy
         virtual tmp<volScalarField> k() const = 0;
 
         //- Return the turbulence kinetic energy dissipation rate
         virtual tmp<volScalarField> epsilon() const = 0;
+
+        //- Return the laminar+turbulence kinetic energy dissipation rate
+        //  Used as the viscous contribution to the energy equations
+        virtual tmp<volScalarField> rhoEpsilonEff() const;
 
         //- Return the Reynolds stress tensor
         virtual tmp<volSymmTensorField> R() const = 0;
@@ -212,8 +227,15 @@ public:
         //- Solve the turbulence equations and correct the turbulence viscosity
         virtual void correct() = 0;
 
-        //- Read turbulenceProperties dictionary
+        //- Read LESProperties or RASProperties dictionary
         virtual bool read() = 0;
+
+        //- Default dummy write function
+        virtual bool writeData(Ostream&) const
+        {
+            return true;
+        }
+
 };
 
 

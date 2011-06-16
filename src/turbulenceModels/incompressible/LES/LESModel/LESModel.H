@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,12 +82,12 @@ protected:
         Switch printCoeffs_;
         dictionary coeffDict_;
 
-        dimensionedScalar k0_;
+        dimensionedScalar kMin_;
 
         autoPtr<LESdelta> delta_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Print model coefficients
         virtual void printCoeffs();
@@ -120,9 +120,10 @@ public:
             (
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                transportModel& lamTransportModel
+                transportModel& transport,
+                const word& turbulenceModelName
             ),
-            (U, phi, lamTransportModel)
+            (U, phi, transport, turbulenceModelName)
         );
 
 
@@ -134,7 +135,8 @@ public:
             const word& type,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& lamTransportModel
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
@@ -145,7 +147,8 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& lamTransportModel
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
@@ -156,38 +159,34 @@ public:
 
     // Member Functions
 
-        //- Const access to the coefficients dictionary,
-        //  which provides info. about choice of models,
-        //  and all related data (particularly model coefficients).
-        inline const dictionary& coeffDict() const
-        {
-            return coeffDict_;
-        }
+        // Access
 
-        //- Access function to filter width
-        virtual const volScalarField& delta() const
-        {
-            return delta_();
-        }
+            //- Const access to the coefficients dictionary,
+            //  which provides info. about choice of models,
+            //  and all related data (particularly model coefficients).
+            inline const dictionary& coeffDict() const
+            {
+                return coeffDict_;
+            }
 
-        //- Return the value of k0 which k is not allowed to be less than
-        const dimensionedScalar& k0() const
-        {
-            return k0_;
-        }
+            //- Return the lower allowable limit for k (default: SMALL)
+            const dimensionedScalar& kMin() const
+            {
+                return kMin_;
+            }
 
-        //- Allow k0 to be changed
-        dimensionedScalar& k0()
-        {
-            return k0_;
-        }
+            //- Allow kMin to be changed
+            dimensionedScalar& kMin()
+            {
+                return kMin_;
+            }
 
+            //- Access function to filter width
+            virtual const volScalarField& delta() const
+            {
+                return delta_();
+            }
 
-        //- Return the SGS turbulent kinetic energy.
-        virtual tmp<volScalarField> k() const = 0;
-
-        //- Return the SGS turbulent dissipation.
-        virtual tmp<volScalarField> epsilon() const = 0;
 
         //- Return the SGS viscosity.
         virtual tmp<volScalarField> nuSgs() const = 0;
@@ -243,13 +242,13 @@ public:
         //- Correct Eddy-Viscosity and related properties.
         //  This calls correct(const tmp<volTensorField>& gradU) by supplying
         //  gradU calculated locally.
-        void correct();
+        virtual void correct();
 
         //- Correct Eddy-Viscosity and related properties
         virtual void correct(const tmp<volTensorField>& gradU);
 
         //- Read LESProperties dictionary
-        virtual bool read() = 0;
+        virtual bool read();
 };
 
 

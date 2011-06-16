@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -138,24 +138,21 @@ emptyFvPatchField<Type>::emptyFvPatchField
 template<class Type>
 void emptyFvPatchField<Type>::updateCoeffs()
 {
-    if (debug)
-    {
-        if
-        (
-            this->dimensionedInternalField().mesh().nCells() > 0
-        && (
-                this->patch().patch().size()
-            % this->dimensionedInternalField().mesh().nCells()
-            )
-        )
-        {
-            WarningIn("emptyFvPatchField<Type>::updateCoeffs()")
-                << "This mesh contains patches of type empty but is not 1D or 2D\n"
-                "    by virtue of the fact that the number of faces of this\n"
-                "    empty patch is not divisible by the number of cells."
-                << endl;
-        }
-    }
+    //- Check moved to checkMesh. Test here breaks down if multiple empty
+    //  patches.
+    //if
+    //(
+    //    this->patch().patch().size()
+    //  % this->dimensionedInternalField().mesh().nCells()
+    //)
+    //{
+    //    FatalErrorIn("emptyFvPatchField<Type>::updateCoeffs()")
+    //        << "This mesh contains patches of type empty but is not"
+    //        << "1D or 2D\n"
+    //           "    by virtue of the fact that the number of faces of this\n"
+    //           "    empty patch is not divisible by the number of cells."
+    //        << exit(FatalError);
+    //}
 }
 
 

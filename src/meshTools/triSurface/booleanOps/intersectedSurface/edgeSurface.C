@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -214,7 +212,7 @@ Foam::edgeSurface::edgeSurface
             (
                 edge
                 (
-                    extraVerts[extraVerts.size()-1] + nSurfacePoints_,
+                    extraVerts.last() + nSurfacePoints_,
                     e.end()
                 )
             );
@@ -257,15 +255,10 @@ Foam::edgeSurface::edgeSurface
     // Add intersection edges to faceEdges
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    for
-    (
-        labelPairLookup::const_iterator iter = inter.facePairToEdge().begin();
-        iter != inter.facePairToEdge().end();
-        ++iter
-    )
+    forAllConstIter(labelPairLookup, inter.facePairToEdge(), iter)
     {
         // Edge label in intersection
-        label edgeI = iter();
+        const label edgeI = iter();
 
         // Get the face from the correct surface
         const FixedList<label, 2>& twoFaces = iter.key();
@@ -331,7 +324,7 @@ Foam::edgeSurface::edgeSurface
         labelList edgeLabels(edges_.size() - nSurfaceEdges_);
 
         label i = 0;
-        for(label edgeI = nSurfaceEdges_; edgeI < edges_.size(); edgeI++)
+        for (label edgeI = nSurfaceEdges_; edgeI < edges_.size(); edgeI++)
         {
             edgeLabels[i++] = edgeI;
         }

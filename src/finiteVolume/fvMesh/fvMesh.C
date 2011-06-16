@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -151,6 +151,9 @@ Foam::fvMesh::fvMesh(const IOobject& io)
 :
     polyMesh(io),
     surfaceInterpolation(*this),
+    fvSchemes(static_cast<const objectRegistry&>(*this)),
+    fvSolution(static_cast<const objectRegistry&>(*this)),
+    data(static_cast<const objectRegistry&>(*this)),
     boundary_(*this, boundaryMesh()),
     lduPtr_(NULL),
     curTimeIndex_(time().timeIndex()),
@@ -243,6 +246,9 @@ Foam::fvMesh::fvMesh
 :
     polyMesh(io, points, faces, allOwner, allNeighbour, syncPar),
     surfaceInterpolation(*this),
+    fvSchemes(static_cast<const objectRegistry&>(*this)),
+    fvSolution(static_cast<const objectRegistry&>(*this)),
+    data(static_cast<const objectRegistry&>(*this)),
     boundary_(*this),
     lduPtr_(NULL),
     curTimeIndex_(time().timeIndex()),
@@ -273,6 +279,9 @@ Foam::fvMesh::fvMesh
 :
     polyMesh(io, points, faces, cells, syncPar),
     surfaceInterpolation(*this),
+    fvSchemes(static_cast<const objectRegistry&>(*this)),
+    fvSolution(static_cast<const objectRegistry&>(*this)),
+    data(static_cast<const objectRegistry&>(*this)),
     boundary_(*this),
     lduPtr_(NULL),
     curTimeIndex_(time().timeIndex()),
@@ -355,7 +364,7 @@ Foam::polyMesh::readUpdateState Foam::fvMesh::readUpdate()
     {
         if (debug)
         {
-            Info << "Boundary and topological update" << endl;
+            Info<< "Boundary and topological update" << endl;
         }
 
         boundary_.readUpdate(boundaryMesh());
@@ -367,7 +376,7 @@ Foam::polyMesh::readUpdateState Foam::fvMesh::readUpdate()
     {
         if (debug)
         {
-            Info << "Topological update" << endl;
+            Info<< "Topological update" << endl;
         }
 
         clearOut();
@@ -376,7 +385,7 @@ Foam::polyMesh::readUpdateState Foam::fvMesh::readUpdate()
     {
         if (debug)
         {
-            Info << "Point motion update" << endl;
+            Info<< "Point motion update" << endl;
         }
 
         clearGeom();
@@ -385,7 +394,7 @@ Foam::polyMesh::readUpdateState Foam::fvMesh::readUpdate()
     {
         if (debug)
         {
-            Info << "No update" << endl;
+            Info<< "No update" << endl;
         }
     }
 
@@ -575,7 +584,7 @@ Foam::tmp<Foam::scalarField> Foam::fvMesh::movePoints(const pointField& p)
 
     // Move the polyMesh and set the mesh motion fluxes to the swept-volumes
 
-    scalar rDeltaT = 1.0/time().deltaT().value();
+    scalar rDeltaT = 1.0/time().deltaTValue();
 
     tmp<scalarField> tsweptVols = polyMesh::movePoints(p);
     scalarField& sweptVols = tsweptVols();
@@ -585,7 +594,7 @@ Foam::tmp<Foam::scalarField> Foam::fvMesh::movePoints(const pointField& p)
 
     const fvPatchList& patches = boundary();
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         phi.boundaryField()[patchI] = patches[patchI].patchSlice(sweptVols);
         phi.boundaryField()[patchI] *= rDeltaT;

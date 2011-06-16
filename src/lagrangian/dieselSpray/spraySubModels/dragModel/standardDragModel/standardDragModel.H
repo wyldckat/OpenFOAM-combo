@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,24 +59,21 @@ private:
         scalar CdLimiter_;
         scalar Cdistort_;
 
+
 public:
 
     //- Runtime type information
-        TypeName("standardDragModel");
+    TypeName("standardDragModel");
 
 
     // Constructors
 
         //- Construct from components
-        standardDragModel
-        (
-            const dictionary& dict
-        );
+        standardDragModel(const dictionary& dict);
 
 
-    // Destructor
-
-        ~standardDragModel();
+    //- Destructor
+    virtual ~standardDragModel();
 
 
     // Member Functions
@@ -96,7 +93,6 @@ public:
             const scalar nu,
             const scalar deviation
         ) const;
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

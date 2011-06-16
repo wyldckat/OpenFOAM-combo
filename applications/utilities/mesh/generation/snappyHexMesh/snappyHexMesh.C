@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,7 @@ Description
 #include "autoLayerDriver.H"
 #include "searchableSurfaces.H"
 #include "refinementSurfaces.H"
+#include "refinementFeatures.H"
 #include "shellSurfaces.H"
 #include "decompositionMethod.H"
 #include "fvMeshDistribute.H"
@@ -55,11 +56,6 @@ scalar getMergeDistance(const polyMesh& mesh, const scalar mergeTol)
 {
     const boundBox& meshBb = mesh.bounds();
     scalar mergeDist = mergeTol * meshBb.mag();
-    scalar writeTol = std::pow
-    (
-        scalar(10.0),
-       -scalar(IOstream::defaultPrecision())
-    );
 
     Info<< nl
         << "Overall mesh bounding box  : " << meshBb << nl
@@ -67,17 +63,27 @@ scalar getMergeDistance(const polyMesh& mesh, const scalar mergeTol)
         << "Absolute matching distance : " << mergeDist << nl
         << endl;
 
-    if (mesh.time().writeFormat() == IOstream::ASCII && mergeTol < writeTol)
+    // check writing tolerance
+    if (mesh.time().writeFormat() == IOstream::ASCII)
     {
-        FatalErrorIn("getMergeDistance(const polyMesh&, const scalar)")
-            << "Your current settings specify ASCII writing with "
-            << IOstream::defaultPrecision() << " digits precision." << endl
-            << "Your merging tolerance (" << mergeTol << ") is finer than this."
-            << endl
-            << "Please change your writeFormat to binary"
-            << " or increase the writePrecision" << endl
-            << "or adjust the merge tolerance (-mergeTol)."
-            << exit(FatalError);
+        const scalar writeTol = std::pow
+        (
+            scalar(10.0),
+            -scalar(IOstream::defaultPrecision())
+        );
+
+        if (mergeTol < writeTol)
+        {
+            FatalErrorIn("getMergeDistance(const polyMesh&, const dictionary&)")
+                << "Your current settings specify ASCII writing with "
+                << IOstream::defaultPrecision() << " digits precision." << nl
+                << "Your merging tolerance (" << mergeTol
+                << ") is finer than this." << nl
+                << "Change to binary writeFormat, "
+                << "or increase the writePrecision" << endl
+                << "or adjust the merge tolerance (mergeTol)."
+                << exit(FatalError);
+        }
     }
 
     return mergeDist;
@@ -106,7 +112,7 @@ void writeMesh
             mesh.time().path()/meshRefiner.timeName()
         );
     }
-    Info<< "Written mesh in = "
+    Info<< "Wrote mesh in = "
         << mesh.time().cpuTimeIncrement() << " s." << endl;
 }
 
@@ -114,7 +120,8 @@ void writeMesh
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("overwrite", "");
+#   include "addOverwriteOption.H"
+
 #   include "setRootCase.H"
 #   include "createTime.H"
     runTime.functionObjects().off();
@@ -124,7 +131,6 @@ int main(int argc, char *argv[])
         << runTime.cpuTimeIncrement() << " s" << endl;
 
     const bool overwrite = args.optionFound("overwrite");
-
 
     // Check patches and faceZones are synchronised
     mesh.boundaryMesh().checkParallelSync(true);
@@ -139,7 +145,7 @@ int main(int argc, char *argv[])
             "decomposeParDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -152,7 +158,7 @@ int main(int argc, char *argv[])
             "snappyHexMeshDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
        )
     );
@@ -172,7 +178,7 @@ int main(int argc, char *argv[])
     // layer addition parameters
     const dictionary& layerDict = meshDict.subDict("addLayersControls");
 
-
+    // absolute merge distance
     const scalar mergeDist = getMergeDistance
     (
         mesh,
@@ -180,17 +186,16 @@ int main(int argc, char *argv[])
     );
 
 
-
     // Debug
     // ~~~~~
 
-    const label debug(readLabel(meshDict.lookup("debug")));
+    const label debug = meshDict.lookupOrDefault<label>("debug", 0);
     if (debug > 0)
     {
-        meshRefinement::debug = debug;
+        meshRefinement::debug   = debug;
         autoRefineDriver::debug = debug;
-        autoSnapDriver::debug = debug;
-        autoLayerDriver::debug = debug;
+        autoSnapDriver::debug   = debug;
+        autoLayerDriver::debug  = debug;
     }
 
 
@@ -246,6 +251,20 @@ int main(int argc, char *argv[])
         << mesh.time().cpuTimeIncrement() << " s" << nl << endl;
 
 
+    // Read feature meshes
+    // ~~~~~~~~~~~~~~~~~~~
+
+    Info<< "Reading features." << endl;
+    refinementFeatures features
+    (
+        mesh,
+        refineDict.lookup("features")
+    );
+    Info<< "Read features in = "
+        << mesh.time().cpuTimeIncrement() << " s" << nl << endl;
+
+
+
     // Refinement engine
     // ~~~~~~~~~~~~~~~~~
 
@@ -261,6 +280,7 @@ int main(int argc, char *argv[])
         mergeDist,          // tolerance used in sorting coordinates
         overwrite,          // overwrite mesh files?
         surfaces,           // for surface intersection refinement
+        features,           // for feature edges/point based refinement
         shells              // for volume (inside/outside) refinement
     );
     Info<< "Calculated surface intersections in = "
@@ -271,7 +291,7 @@ int main(int argc, char *argv[])
 
     meshRefiner.write
     (
-        debug&meshRefinement::OBJINTERSECTIONS,
+        debug & meshRefinement::OBJINTERSECTIONS,
         mesh.time().path()/meshRefiner.timeName()
     );
 
@@ -289,11 +309,13 @@ int main(int argc, char *argv[])
         // From global region number to mesh patch.
         globalToPatch.setSize(surfaces.nRegions(), -1);
 
-        Info<< "Patch\tRegion" << nl
-            << "-----\t------"
+        Info<< "Patch\tType\tRegion" << nl
+            << "-----\t----\t------"
             << endl;
 
         const labelList& surfaceGeometry = surfaces.surfaces();
+        const PtrList<dictionary>& surfacePatchInfo = surfaces.patchInfo();
+
         forAll(surfaceGeometry, surfI)
         {
             label geomI = surfaceGeometry[surfI];
@@ -304,15 +326,34 @@ int main(int argc, char *argv[])
 
             forAll(regNames, i)
             {
-                label patchI = meshRefiner.addMeshedPatch
-                (
-                    regNames[i],
-                    wallPolyPatch::typeName
-                );
+                label globalRegionI = surfaces.globalRegion(surfI, i);
 
-                Info<< patchI << '\t' << regNames[i] << nl;
+                label patchI;
 
-                globalToPatch[surfaces.globalRegion(surfI, i)] = patchI;
+                if (surfacePatchInfo.set(globalRegionI))
+                {
+                    patchI = meshRefiner.addMeshedPatch
+                    (
+                        regNames[i],
+                        surfacePatchInfo[globalRegionI]
+                    );
+                }
+                else
+                {
+                    dictionary patchInfo;
+                    patchInfo.set("type", wallPolyPatch::typeName);
+
+                    patchI = meshRefiner.addMeshedPatch
+                    (
+                        regNames[i],
+                        patchInfo
+                    );
+                }
+
+                Info<< patchI << '\t' << mesh.boundaryMesh()[patchI].type()
+                    << '\t' << regNames[i] << nl;
+
+                globalToPatch[globalRegionI] = patchI;
             }
 
             Info<< nl;
@@ -330,8 +371,7 @@ int main(int argc, char *argv[])
     (
         decompositionMethod::New
         (
-            decomposeDict,
-            mesh
+            decomposeDict
         )
     );
     decompositionMethod& decomposer = decomposerPtr();
@@ -342,7 +382,7 @@ int main(int argc, char *argv[])
             << "You have selected decomposition method "
             << decomposer.typeName
             << " which is not parallel aware." << endl
-            << "Please select one that is (hierarchical, parMetis)"
+            << "Please select one that is (hierarchical, ptscotch)"
             << exit(FatalError);
     }
 
@@ -356,9 +396,9 @@ int main(int argc, char *argv[])
     // Now do the real work -refinement -snapping -layers
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Switch wantRefine(meshDict.lookup("castellatedMesh"));
-    Switch wantSnap(meshDict.lookup("snap"));
-    Switch wantLayers(meshDict.lookup("addLayers"));
+    const Switch wantRefine(meshDict.lookup("castellatedMesh"));
+    const Switch wantSnap(meshDict.lookup("snap"));
+    const Switch wantLayers(meshDict.lookup("addLayers"));
 
     if (wantRefine)
     {
@@ -405,13 +445,19 @@ int main(int argc, char *argv[])
 
         // Snap parameters
         snapParameters snapParams(snapDict);
+        // Temporary hack to get access to resolveFeatureAngle
+        scalar curvature;
+        {
+            refinementParameters refineParams(refineDict);
+            curvature = refineParams.curvature();
+        }
 
         if (!overwrite)
         {
             const_cast<Time&>(mesh.time())++;
         }
 
-        snapDriver.doSnap(snapDict, motionDict, snapParams);
+        snapDriver.doSnap(snapDict, motionDict, curvature, snapParams);
 
         writeMesh
         (
@@ -428,7 +474,7 @@ int main(int argc, char *argv[])
     {
         cpuTime timer;
 
-        autoLayerDriver layerDriver(meshRefiner);
+        autoLayerDriver layerDriver(meshRefiner, globalToPatch);
 
         // Layer addition parameters
         layerParameters layerParams(layerDict, mesh.boundaryMesh());
@@ -478,7 +524,7 @@ int main(int argc, char *argv[])
 
     Info<< "End\n" << endl;
 
-    return(0);
+    return 0;
 }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -79,7 +79,7 @@ void Foam::primitiveMesh::makeFaceCentresAndAreas
 {
     const faceList& fs = faces();
 
-    forAll (fs, facei)
+    forAll(fs, facei)
     {
         const labelList& f = fs[facei];
         label nPoints = f.size();

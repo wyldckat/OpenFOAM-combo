@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,8 +40,8 @@ namespace Foam
 void triSurface::writeOBJ(const bool writeSorted, Ostream& os) const
 {
     // Write header
-    os  << "# Wavefront OBJ file" << endl
-        << "# Regions:" << endl;
+    os  << "# Wavefront OBJ file" << nl
+        << "# Regions:" << nl;
 
     labelList faceMap;
 
@@ -53,13 +53,13 @@ void triSurface::writeOBJ(const bool writeSorted, Ostream& os) const
     forAll(myPatches, patchI)
     {
         os  << "#     " << patchI << "    "
-            << myPatches[patchI].name() << endl;
+            << myPatches[patchI].name() << nl;
     }
-    os  << "#" << endl;
+    os  << "#" << nl;
 
-    os  << "# points    : " << ps.size() << endl
-        << "# triangles : " << size() << endl
-        << "#" << endl;
+    os  << "# points    : " << ps.size() << nl
+        << "# triangles : " << size() << nl
+        << "#" << nl;
 
 
     // Write vertex coords
@@ -68,7 +68,7 @@ void triSurface::writeOBJ(const bool writeSorted, Ostream& os) const
         os  << "v "
             << ps[pointi].x() << ' '
             << ps[pointi].y() << ' '
-            << ps[pointi].z() << endl;
+            << ps[pointi].z() << nl;
     }
 
     if (writeSorted)
@@ -79,7 +79,7 @@ void triSurface::writeOBJ(const bool writeSorted, Ostream& os) const
         {
             // Print all faces belonging to this patch
 
-            os << "g " << myPatches[patchI].name() << endl;
+            os  << "g " << myPatches[patchI].name() << nl;
 
             for
             (
@@ -95,20 +95,39 @@ void triSurface::writeOBJ(const bool writeSorted, Ostream& os) const
                     << operator[](faceI)[1] + 1 << ' '
                     << operator[](faceI)[2] + 1
                     //<< "  # " << operator[](faceI).region()
-                    << endl;
+                    << nl;
             }
         }
     }
     else
     {
+        // Get patch (=compact region) per face
+        labelList patchIDs(size());
+        forAll(myPatches, patchI)
+        {
+            label faceI = myPatches[patchI].start();
+
+            forAll(myPatches[patchI], i)
+            {
+                patchIDs[faceMap[faceI++]] = patchI;
+            }
+        }
+
+
+        label prevPatchI = -1;
+
         forAll(*this, faceI)
         {
+            if (prevPatchI != patchIDs[faceI])
+            {
+                prevPatchI = patchIDs[faceI];
+                os  << "g " << myPatches[patchIDs[faceI]].name() << nl;
+            }
             os  << "f "
                 << operator[](faceI)[0] + 1 << ' '
                 << operator[](faceI)[1] + 1 << ' '
                 << operator[](faceI)[2] + 1
-                //<< "  # " << operator[](faceI).region()
-                << endl;
+                << nl;
         }
     }
 }

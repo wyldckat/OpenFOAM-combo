@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,7 +69,26 @@ public:
         ITstream
         (
             const string& name,
-            const tokenList& tokens,
+            const UList<token>& tokens,
+            streamFormat format=ASCII,
+            versionNumber version=currentVersion
+        )
+        :
+            Istream(format, version),
+            tokenList(tokens),
+            name_(name),
+            tokenIndex_(0)
+        {
+            setOpened();
+            setGood();
+        }
+
+
+        //- Construct from components, transferring the tokens
+        ITstream
+        (
+            const string& name,
+            const Xfer<List<token> >& tokens,
             streamFormat format=ASCII,
             versionNumber version=currentVersion
         )
@@ -97,8 +116,7 @@ public:
         }
 
 
-    // Destructor
-
+        //- Destructor
         virtual ~ITstream()
         {}
 

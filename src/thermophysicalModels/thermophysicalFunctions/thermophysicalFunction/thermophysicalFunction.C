@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,15 +32,18 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(thermophysicalFunction, 0);
+    defineRunTimeSelectionTable(thermophysicalFunction, Istream);
+    defineRunTimeSelectionTable(thermophysicalFunction, dictionary);
+}
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(thermophysicalFunction, 0);
-defineRunTimeSelectionTable(thermophysicalFunction, Istream);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-autoPtr<thermophysicalFunction> thermophysicalFunction::New(Istream& is)
+Foam::autoPtr<Foam::thermophysicalFunction> Foam::thermophysicalFunction::New
+(
+    Istream& is
+)
 {
     if (debug)
     {
@@ -49,7 +52,7 @@ autoPtr<thermophysicalFunction> thermophysicalFunction::New(Istream& is)
             << endl;
     }
 
-    word thermophysicalFunctionType(is);
+    const word thermophysicalFunctionType(is);
 
     IstreamConstructorTable::iterator cstrIter =
         IstreamConstructorTablePtr_->find(thermophysicalFunctionType);
@@ -59,7 +62,7 @@ autoPtr<thermophysicalFunction> thermophysicalFunction::New(Istream& is)
         FatalErrorIn("thermophysicalFunction::New(Istream&)")
             << "Unknown thermophysicalFunction type "
             << thermophysicalFunctionType
-            << endl << endl
+            << nl << nl
             << "Valid thermophysicalFunction types are :" << endl
             << IstreamConstructorTablePtr_->sortedToc()
             << abort(FatalError);
@@ -69,8 +72,36 @@ autoPtr<thermophysicalFunction> thermophysicalFunction::New(Istream& is)
 }
 
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Foam::autoPtr<Foam::thermophysicalFunction> Foam::thermophysicalFunction::New
+(
+    const dictionary& dict
+)
+{
+    if (debug)
+    {
+        Info<< "thermophysicalFunction::New(const dictionary&) : "
+            << "constructing thermophysicalFunction"
+            << endl;
+    }
 
-} // End namespace Foam
+    const word thermophysicalFunctionType(dict.lookup("functionType"));
+
+    dictionaryConstructorTable::iterator cstrIter =
+        dictionaryConstructorTablePtr_->find(thermophysicalFunctionType);
+
+    if (cstrIter == IstreamConstructorTablePtr_->end())
+    {
+        FatalErrorIn("thermophysicalFunction::New(const dictionary&)")
+            << "Unknown thermophysicalFunction type "
+            << thermophysicalFunctionType
+            << nl << nl
+            << "Valid thermophysicalFunction types are :" << endl
+            << dictionaryConstructorTablePtr_->sortedToc()
+            << abort(FatalError);
+    }
+
+    return autoPtr<thermophysicalFunction>(cstrIter()(dict));
+}
+
 
 // ************************************************************************* //

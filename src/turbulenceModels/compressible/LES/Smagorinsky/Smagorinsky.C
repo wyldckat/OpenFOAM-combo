@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,15 +45,15 @@ addToRunTimeSelectionTable(LESModel, Smagorinsky, dictionary);
 
 void Smagorinsky::updateSubGridScaleFields(const volTensorField& gradU)
 {
-    volSymmTensorField D = symm(gradU);
+    volSymmTensorField D(symm(gradU));
 
-    volScalarField a = ce_/delta();
-    volScalarField b = (2.0/3.0)*tr(D);
-    volScalarField c = 2*ck_*delta()*(dev(D) && D);
+    volScalarField a(ce_/delta());
+    volScalarField b((2.0/3.0)*tr(D));
+    volScalarField c(2*ck_*delta()*(dev(D) && D));
 
-    k_ = sqr((-b + sqrt(sqr(b) + 4*a*c))/(2*a));
+    volScalarField k(sqr((-b + sqrt(sqr(b) + 4*a*c))/(2*a)));
 
-    muSgs_ = ck_*rho()*delta()*sqrt(k_);
+    muSgs_ = ck_*rho()*delta()*sqrt(k);
     muSgs_.correctBoundaryConditions();
 
     alphaSgs_ = muSgs_/Prt_;
@@ -68,10 +68,12 @@ Smagorinsky::Smagorinsky
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, rho, U, phi, thermoPhysicalModel),
+    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
     GenEddyVisc(rho, U, phi, thermoPhysicalModel),
 
     ck_

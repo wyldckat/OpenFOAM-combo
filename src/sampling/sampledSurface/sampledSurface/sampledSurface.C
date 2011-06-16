@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -113,16 +113,15 @@ void Foam::sampledSurface::makeCf() const
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-
-Foam::autoPtr<Foam::sampledSurface>
-Foam::sampledSurface::New
+Foam::autoPtr<Foam::sampledSurface> Foam::sampledSurface::New
 (
     const word& name,
     const polyMesh& mesh,
     const dictionary& dict
 )
 {
-    word sampleType(dict.lookup("type"));
+    const word sampleType(dict.lookup("type"));
+
     if (debug)
     {
         Info<< "Selecting sampledType " << sampleType << endl;
@@ -137,8 +136,8 @@ Foam::sampledSurface::New
         (
             "sampledSurface::New"
             "(const word&, const polyMesh&, const dictionary&)"
-        )   << "Unknown sample type " << sampleType
-            << endl << endl
+        )   << "Unknown sample type "
+            << sampleType << nl << nl
             << "Valid sample types : " << endl
             << wordConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -146,6 +145,7 @@ Foam::sampledSurface::New
 
     return autoPtr<sampledSurface>(cstrIter()(name, mesh, dict));
 }
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -165,7 +165,6 @@ Foam::sampledSurface::sampledSurface
 {}
 
 
-// Construct from dictionary
 Foam::sampledSurface::sampledSurface
 (
     const word& name,
@@ -191,6 +190,7 @@ Foam::sampledSurface::~sampledSurface()
 {
     clearGeom();
 }
+
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -239,7 +239,6 @@ Foam::scalar Foam::sampledSurface::area() const
 }
 
 
-// do not project scalar - just copy values
 Foam::tmp<Foam::Field<Foam::scalar> >
 Foam::sampledSurface::project(const Field<scalar>& field) const
 {
@@ -296,6 +295,7 @@ void Foam::sampledSurface::print(Ostream& os) const
     os << type();
 }
 
+
 // * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
 Foam::Ostream& Foam::operator<<(Ostream &os, const sampledSurface& s)
@@ -304,5 +304,6 @@ Foam::Ostream& Foam::operator<<(Ostream &os, const sampledSurface& s)
     os.check("Ostream& operator<<(Ostream&, const sampledSurface&");
     return os;
 }
+
 
 // ************************************************************************* //

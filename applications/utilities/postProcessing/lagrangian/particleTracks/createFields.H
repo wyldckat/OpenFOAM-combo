@@ -5,11 +5,11 @@ IOdictionary propsDict
         "particleTrackProperties",
         runTime.constant(),
         mesh,
-        IOobject::MUST_READ
+        IOobject::MUST_READ_IF_MODIFIED
     )
 );
 
-word cloudName(propsDict.lookup("cloudName"));
+const word cloudName(propsDict.lookup("cloudName"));
 
 label sampleFrequency(readLabel(propsDict.lookup("sampleFrequency")));
 

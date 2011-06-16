@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,13 +39,8 @@ SourceFiles
 #ifndef ThermoParcel_H
 #define ThermoParcel_H
 
-#include "IOstream.H"
-#include "autoPtr.H"
-#include "interpolationCellPoint.H"
-#include "contiguous.H"
-
-#include "KinematicParcel.H"
-#include "ThermoCloud.H"
+#include "particle.H"
+#include "SLGThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -69,41 +64,71 @@ Ostream& operator<<
 template<class ParcelType>
 class ThermoParcel
 :
-    public KinematicParcel<ParcelType>
+    public ParcelType
 {
 public:
 
     //- Class to hold thermo particle constant properties
     class constantProperties
     :
-        public KinematicParcel<ParcelType>::constantProperties
+        public ParcelType::constantProperties
     {
 
         // Private data
 
             //- Particle initial temperature [K]
-            const scalar T0_;
+            scalar T0_;
 
             //- Minimum temperature [K]
-            const scalar TMin_;
+            scalar TMin_;
 
             //- Particle specific heat capacity [J/(kg.K)]
-            const scalar cp0_;
+            scalar Cp0_;
 
             //- Particle emissivity [] (radiation)
-            const scalar epsilon0_;
+            scalar epsilon0_;
 
             //- Particle scattering factor [] (radiation)
-            const scalar f0_;
+            scalar f0_;
 
             //- Default carrier Prandtl number []
-            const scalar Pr_;
+            scalar Pr_;
 
 
     public:
 
         // Constructors
-        constantProperties(const dictionary& parentDict);
+
+            //- Null constructor
+            constantProperties();
+
+            //- Copy constructor
+            constantProperties(const constantProperties& cp);
+
+            //- Constructor from dictionary
+            constantProperties
+            (
+                const dictionary& parentDict,
+                const bool readFields = true
+            );
+
+            //- Construct from components
+            constantProperties
+            (
+                const label parcelTypeId,
+                const scalar rhoMin,
+                const scalar rho0,
+                const scalar minParticleMass,
+                const scalar youngsModulus,
+                const scalar poissonsRatio,
+                const scalar T0,
+                const scalar TMin,
+                const scalar Cp0,
+                const scalar epsilon0,
+                const scalar f0,
+                const scalar Pr
+            );
+
 
         // Member functions
 
@@ -117,7 +142,7 @@ public:
 
                 //- Return const access to the particle specific heat capacity
                 //  [J/(kg.K)]
-                inline scalar cp0() const;
+                inline scalar Cp0() const;
 
                 //- Return const access to the particle emissivity []
                 //  Active for radiation only
@@ -132,54 +157,53 @@ public:
     };
 
 
-    //- Class used to pass thermo tracking data to the trackToFace function
-    class trackData
+    template<class CloudType>
+    class TrackingData
     :
-        public KinematicParcel<ParcelType>::trackData
+        public ParcelType::template TrackingData<CloudType>
     {
+    private:
 
         // Private data
 
-            //- Reference to the cloud containing this particle
-            ThermoCloud<ParcelType>& cloud_;
+            //- Local copy of carrier specific heat field
+            //  Cp not stored on carrier thermo, but returned as tmp<...>
+            const volScalarField Cp_;
 
-            //- Particle constant properties
-            const constantProperties& constProps_;
 
             // Interpolators for continuous phase fields
 
                 //- Temperature field interpolator
-                const interpolation<scalar>& TInterp_;
+                autoPtr<interpolation<scalar> > TInterp_;
 
                 //- Specific heat capacity field interpolator
-                const interpolation<scalar>& cpInterp_;
+                autoPtr<interpolation<scalar> > CpInterp_;
+
+                //- Radiation field interpolator
+                autoPtr<interpolation<scalar> > GInterp_;
+
 
 
     public:
 
+        typedef typename ParcelType::template TrackingData<CloudType>::trackPart
+            trackPart;
+
         // Constructors
 
             //- Construct from components
-            inline trackData
+            inline TrackingData
             (
-                ThermoCloud<ParcelType>& cloud,
-                const constantProperties& constProps,
-                const interpolation<scalar>& rhoInterp,
-                const interpolation<vector>& UInterp,
-                const interpolation<scalar>& muInterp,
-                const interpolation<scalar>& TInterp,
-                const interpolation<scalar>& cpInterp,
-                const vector& g
+                CloudType& cloud,
+                trackPart part = ParcelType::template
+                    TrackingData<CloudType>::tpLinearTrack
             );
 
 
         // Member functions
 
-            //- Return access to the owner cloud
-            inline ThermoCloud<ParcelType>& cloud();
-
-            //- Return const access to the owner cloud
-            inline const constantProperties& constProps() const;
+            //- Return access to the locally stored carrier Cp field
+            inline const volScalarField& Cp() const;
 
             //- Return const access to the interpolator for continuous
             //  phase temperature field
@@ -187,7 +211,11 @@ public:
 
             //- Return const access to the interpolator for continuous
             //  phase specific heat capacity field
-            inline const interpolation<scalar>& cpInterp() const;
+            inline const interpolation<scalar>& CpInterp() const;
+
+            //- Return const access to the interpolator for continuous
+            //  radiation field
+            inline const interpolation<scalar>& GInterp() const;
     };
 
 
@@ -201,7 +229,7 @@ protected:
             scalar T_;
 
             //- Specific heat capacity [J/(kg.K)]
-            scalar cp_;
+            scalar Cp_;
 
 
         // Cell-based quantities
@@ -210,10 +238,10 @@ protected:
             scalar Tc_;
 
             //- Specific heat capacity [J/(kg.K)]
-            scalar cpc_;
+            scalar Cpc_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Calculate new particle temperature
         template<class TrackData>
@@ -225,13 +253,10 @@ protected:
             const scalar Re,           // Reynolds number
             const scalar Pr,           // Prandtl number - surface
             const scalar kappa,        // Thermal conductivity - surface
-            const scalar d,            // diameter
-            const scalar rho,          // density
-            const scalar T,            // temperature
-            const scalar cp,           // specific heat capacity
             const scalar NCpW,         // Sum of N*Cp*W of emission species
             const scalar Sh,           // explicit particle enthalpy source
-            scalar& dhsTrans           // sensible enthalpy transfer to carrier
+            scalar& dhsTrans,          // sensible enthalpy transfer to carrier
+            scalar& Sph                // linearised heat transfer coefficient
         );
 
 
@@ -246,37 +271,42 @@ public:
         TypeName("ThermoParcel");
 
 
-    friend class Cloud<ParcelType>;
-
-
     // Constructors
 
         //- Construct from owner, position, and cloud owner
         //  Other properties initialised as null
         inline ThermoParcel
         (
-            ThermoCloud<ParcelType>& owner,
+            const polyMesh& mesh,
             const vector& position,
-            const label cellI
+            const label cellI,
+            const label tetFaceI,
+            const label tetPtI
         );
 
         //- Construct from components
         inline ThermoParcel
         (
-            ThermoCloud<ParcelType>& owner,
+            const polyMesh& mesh,
             const vector& position,
             const label cellI,
+            const label tetFaceI,
+            const label tetPtI,
             const label typeId,
             const scalar nParticle0,
             const scalar d0,
+            const scalar dTarget0,
             const vector& U0,
+            const vector& f0,
+            const vector& angularMomentum0,
+            const vector& torque0,
             const constantProperties& constProps
         );
 
         //- Construct from Istream
         ThermoParcel
         (
-            const Cloud<ParcelType>& c,
+            const polyMesh& mesh,
             Istream& is,
             bool readFields = true
         );
@@ -284,11 +314,42 @@ public:
         //- Construct as a copy
         ThermoParcel(const ThermoParcel& p);
 
-        //- Construct and return a clone
-        autoPtr<ThermoParcel> clone() const
+        //- Construct as a copy
+        ThermoParcel(const ThermoParcel& p, const polyMesh& mesh);
+
+        //- Construct and return a (basic particle) clone
+        virtual autoPtr<particle> clone() const
         {
-            return autoPtr<ThermoParcel>(new ThermoParcel(*this));
+            return autoPtr<particle>(new ThermoParcel(*this));
         }
+
+        //- Construct and return a (basic particle) clone
+        virtual autoPtr<particle> clone(const polyMesh& mesh) const
+        {
+            return autoPtr<particle>(new ThermoParcel(*this, mesh));
+        }
+
+        //- Factory class to read-construct particles used for
+        //  parallel transfer
+        class iNew
+        {
+            const polyMesh& mesh_;
+
+        public:
+
+            iNew(const polyMesh& mesh)
+            :
+                mesh_(mesh)
+            {}
+
+            autoPtr<ThermoParcel<ParcelType> > operator()(Istream& is) const
+            {
+                return autoPtr<ThermoParcel<ParcelType> >
+                (
+                    new ThermoParcel<ParcelType>(mesh_, is, true)
+                );
+            }
+        };
 
 
     // Member Functions
@@ -299,7 +360,16 @@ public:
             inline scalar T() const;
 
             //- Return const access to specific heat capacity
-            inline scalar cp() const;
+            inline scalar Cp() const;
+
+            //- Return the parcel sensible enthalpy
+            inline scalar hs() const;
+
+            //- Return const access to carrier temperature
+            inline scalar Tc() const;
+
+            //- Return const access to carrier specific heat capacity
+            inline scalar Cpc() const;
 
 
         // Edit
@@ -308,7 +378,7 @@ public:
             inline scalar& T();
 
             //- Return access to specific heat capacity
-            inline scalar& cp();
+            inline scalar& Cp();
 
 
         // Main calculation loop
@@ -342,7 +412,7 @@ public:
                 scalar& rhos,
                 scalar& mus,
                 scalar& Pr,
-                scalar& kappa
+                scalar& kappas
             ) const;
 
             //- Update parcel properties over the time interval
@@ -358,10 +428,12 @@ public:
         // I-O
 
             //- Read
-            static void readFields(Cloud<ParcelType>& c);
+            template<class CloudType>
+            static void readFields(CloudType& c);
 
             //- Write
-            static void writeFields(const Cloud<ParcelType>& c);
+            template<class CloudType>
+            static void writeFields(const CloudType& c);
 
 
     // Ostream Operator
@@ -381,6 +453,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "ThermoParcelI.H"
+#include "ThermoParcelTrackingDataI.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

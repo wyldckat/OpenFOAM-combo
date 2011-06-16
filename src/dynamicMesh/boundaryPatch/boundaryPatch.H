@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -84,14 +84,13 @@ public:
 
         //- Construct as copy, resetting the index
         boundaryPatch(const boundaryPatch&, const label index);
-   
+
         //- Clone
         autoPtr<boundaryPatch> clone() const;
 
 
-    // Destructor
-
-        ~boundaryPatch();
+    //- Destructor
+    ~boundaryPatch();
 
 
     // Member Functions

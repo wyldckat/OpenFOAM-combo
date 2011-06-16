@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "faceMDLimitedGrad.H"
@@ -36,28 +36,25 @@ License
 
 namespace Foam
 {
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 namespace fv
 {
+    makeFvGradScheme(faceMDLimitedGrad)
+}
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makeFvGradScheme(faceMDLimitedGrad)
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// FaceLimited scalar gradient
 template<>
-tmp<volVectorField> faceMDLimitedGrad<scalar>::grad
+Foam::tmp<Foam::volVectorField>
+Foam::fv::faceMDLimitedGrad<Foam::scalar>::calcGrad
 (
-    const volScalarField& vsf
+    const volScalarField& vsf,
+    const word& name
 ) const
 {
     const fvMesh& mesh = vsf.mesh();
 
-    tmp<volVectorField> tGrad = basicGradScheme_().grad(vsf);
+    tmp<volVectorField> tGrad = basicGradScheme_().calcGrad(vsf, name);
 
     if (k_ < SMALL)
     {
@@ -66,8 +63,8 @@ tmp<volVectorField> faceMDLimitedGrad<scalar>::grad
 
     volVectorField& g = tGrad();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     const volVectorField& C = mesh.C();
     const surfaceVectorField& Cf = mesh.Cf();
@@ -117,12 +114,12 @@ tmp<volVectorField> faceMDLimitedGrad<scalar>::grad
     {
         const fvPatchScalarField& psf = bsf[patchi];
 
-        const unallocLabelList& pOwner = mesh.boundary()[patchi].faceCells();
+        const labelUList& pOwner = mesh.boundary()[patchi].faceCells();
         const vectorField& pCf = Cf.boundaryField()[patchi];
 
         if (psf.coupled())
         {
-            scalarField psfNei = psf.patchNeighbourField();
+            const scalarField psfNei(psf.patchNeighbourField());
 
             forAll(pOwner, pFacei)
             {
@@ -188,14 +185,16 @@ tmp<volVectorField> faceMDLimitedGrad<scalar>::grad
 
 
 template<>
-tmp<volTensorField> faceMDLimitedGrad<vector>::grad
+Foam::tmp<Foam::volTensorField>
+Foam::fv::faceMDLimitedGrad<Foam::vector>::calcGrad
 (
-    const volVectorField& vvf
+    const volVectorField& vvf,
+    const word& name
 ) const
 {
     const fvMesh& mesh = vvf.mesh();
 
-    tmp<volTensorField> tGrad = basicGradScheme_().grad(vvf);
+    tmp<volTensorField> tGrad = basicGradScheme_().calcGrad(vvf, name);
 
     if (k_ < SMALL)
     {
@@ -204,8 +203,8 @@ tmp<volTensorField> faceMDLimitedGrad<vector>::grad
 
     volTensorField& g = tGrad();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     const volVectorField& C = mesh.C();
     const surfaceVectorField& Cf = mesh.Cf();
@@ -257,12 +256,12 @@ tmp<volTensorField> faceMDLimitedGrad<vector>::grad
     {
         const fvPatchVectorField& psf = bvf[patchi];
 
-        const unallocLabelList& pOwner = mesh.boundary()[patchi].faceCells();
+        const labelUList& pOwner = mesh.boundary()[patchi].faceCells();
         const vectorField& pCf = Cf.boundaryField()[patchi];
 
         if (psf.coupled())
         {
-            vectorField psfNei = psf.patchNeighbourField();
+            const vectorField psfNei(psf.patchNeighbourField());
 
             forAll(pOwner, pFacei)
             {
@@ -325,13 +324,5 @@ tmp<volTensorField> faceMDLimitedGrad<vector>::grad
     return tGrad;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace fv
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

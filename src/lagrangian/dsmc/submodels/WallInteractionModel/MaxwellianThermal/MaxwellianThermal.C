@@ -24,6 +24,9 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "MaxwellianThermal.H"
+#include "constants.H"
+
+using namespace Foam::constant;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -34,7 +37,7 @@ Foam::MaxwellianThermal<CloudType>::MaxwellianThermal
     CloudType& cloud
 )
 :
-    WallInteractionModel<CloudType>(dict, cloud, typeName)
+    WallInteractionModel<CloudType>(cloud)
 {}
 
 
@@ -50,27 +53,28 @@ Foam::MaxwellianThermal<CloudType>::~MaxwellianThermal()
 template <class CloudType>
 void Foam::MaxwellianThermal<CloudType>::correct
 (
-    const wallPolyPatch& wpp,
-    const label faceId,
-    vector& U,
-    scalar& Ei,
-    label typeId
+    typename CloudType::parcelType& p,
+    const wallPolyPatch& wpp
 )
 {
+    vector& U = p.U();
+
+    scalar& Ei = p.Ei();
+
+    label typeId = p.typeId();
+
     label wppIndex = wpp.index();
 
-    label wppLocalFace = wpp.whichFace(faceId);
+    label wppLocalFace = wpp.whichFace(p.face());
 
-    vector nw = wpp.faceAreas()[wppLocalFace];
-
-    // Normal unit vector
+    vector nw = p.normal();
     nw /= mag(nw);
 
     // Normal velocity magnitude
-    scalar magUn = U & nw;
+    scalar U_dot_nw = U & nw;
 
     // Wall tangential velocity (flow direction)
-    vector Ut = U - magUn*nw;
+    vector Ut = U - U_dot_nw*nw;
 
     CloudType& cloud(this->owner());
 
@@ -89,9 +93,9 @@ void Foam::MaxwellianThermal<CloudType>::correct
             U.z()*(0.8 + 0.2*rndGen.scalar01())
         );
 
-        magUn = U & nw;
+        U_dot_nw = U & nw;
 
-        Ut = U - magUn*nw;
+        Ut = U - U_dot_nw*nw;
     }
 
     // Wall tangential unit vector
@@ -107,7 +111,7 @@ void Foam::MaxwellianThermal<CloudType>::correct
     scalar iDof = cloud.constProps(typeId).internalDegreesOfFreedom();
 
     U =
-        sqrt(CloudType::kb*T/mass)
+        sqrt(physicoChemical::k.value()*T/mass)
        *(
             rndGen.GaussNormal()*tw1
           + rndGen.GaussNormal()*tw2

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     dynamicFvMesh.C
-    newDynamicFvMesh.C
+    dynamicFvMeshNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -115,9 +115,8 @@ public:
         static autoPtr<dynamicFvMesh> New(const IOobject& io);
 
 
-    // Destructor
-
-        virtual ~dynamicFvMesh();
+    //- Destructor
+    virtual ~dynamicFvMesh();
 
 
     // Member Functions

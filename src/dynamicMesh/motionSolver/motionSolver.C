@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ Foam::motionSolver::motionSolver(const polyMesh& mesh)
             "dynamicMeshDict",
             mesh.time().constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -67,7 +67,7 @@ Foam::autoPtr<Foam::motionSolver> Foam::motionSolver::New(const polyMesh& mesh)
             "dynamicMeshDict",
             mesh.time().constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -75,11 +75,11 @@ Foam::autoPtr<Foam::motionSolver> Foam::motionSolver::New(const polyMesh& mesh)
 
     Istream& msData = solverDict.lookup("solver");
 
-    word solverTypeName(msData);
+    const word solverTypeName(msData);
 
-    Info << "Selecting motion solver: " << solverTypeName << endl;
+    Info<< "Selecting motion solver: " << solverTypeName << endl;
 
-    dlLibraryTable::open
+    const_cast<Time&>(mesh.time()).libs().open
     (
         solverDict,
         "motionSolverLibs",
@@ -103,9 +103,9 @@ Foam::autoPtr<Foam::motionSolver> Foam::motionSolver::New(const polyMesh& mesh)
         FatalErrorIn
         (
             "motionSolver::New(const polyMesh& mesh)"
-        )   << "Unknown solver type " << solverTypeName
-            << endl << endl
-            << "Valid solver types are: " << endl
+        )   << "Unknown solver type "
+            << solverTypeName << nl << nl
+            << "Valid solver types are:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }

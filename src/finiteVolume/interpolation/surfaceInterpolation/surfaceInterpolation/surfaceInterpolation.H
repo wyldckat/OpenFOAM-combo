@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,8 +37,6 @@ SourceFiles
 
 #include "tmp.H"
 #include "scalar.H"
-#include "fvSchemes.H"
-#include "fvSolution.H"
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "className.H"
@@ -53,9 +51,6 @@ namespace Foam
 \*---------------------------------------------------------------------------*/
 
 class surfaceInterpolation
-:
-    public fvSchemes,
-    public fvSolution
 {
     // Private data
 
@@ -77,7 +72,7 @@ class surfaceInterpolation
             mutable surfaceVectorField* correctionVectors_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Construct central-differencing weighting factors
         void makeWeights() const;
@@ -91,7 +86,7 @@ class surfaceInterpolation
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         // Storage management
 
@@ -111,9 +106,8 @@ public:
         explicit surfaceInterpolation(const fvMesh&);
 
 
-    // Destructor
-
-        ~surfaceInterpolation();
+    //- Destructor
+    ~surfaceInterpolation();
 
 
     // Member functions

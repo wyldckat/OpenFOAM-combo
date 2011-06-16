@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,10 @@ class primitiveEntry
     public entry,
     public ITstream
 {
-    // Private member functions
+    // Private Member Functions
+
+        //- Append the given tokens starting at the current tokenIndex
+        void append(const UList<token>&);
 
         //- Append the given token to this entry
         void append
@@ -74,9 +77,6 @@ class primitiveEntry
             const dictionary&,
             Istream&
         );
-
-        //- Append the given tokens starting at the current tokenIndex
-        void append(const tokenList&);
 
         //- Expand the given variable (keyword starts with $)
         bool expandVariable(const word&, const dictionary&);
@@ -92,9 +92,6 @@ class primitiveEntry
         //- Read the complete entry from the given stream
         void readEntry(const dictionary&, Istream&);
 
-        //- Insert the given tokens at token posI
-        void insert(const tokenList&, const label posI);
-
 
 public:
 
@@ -109,11 +106,14 @@ public:
         //- Construct from keyword and a ITstream
         primitiveEntry(const keyType&, const ITstream&);
 
-        //- Construct from keyword and a token
+        //- Construct from keyword and a single token
         primitiveEntry(const keyType&, const token&);
 
-        //- Construct from keyword and a tokenList
-        primitiveEntry(const keyType&, const tokenList&);
+        //- Construct from keyword and a list of tokens
+        primitiveEntry(const keyType&, const UList<token>&);
+
+        //- Construct from keyword and by transferring a list of tokens
+        primitiveEntry(const keyType&, const Xfer<List<token> >&);
 
         //- Construct from keyword and a T
         template<class T>
@@ -165,8 +165,11 @@ public:
         //- Read tokens from the given stream
         bool read(const dictionary&, Istream&);
 
-        // Write
+        //- Write
         void write(Ostream&) const;
+
+        //- Write, optionally with contents only (no keyword, etc)
+        void write(Ostream&, const bool contentsOnly) const;
 
         //- Return info proxy.
         //  Used to print token information to a stream

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ SourceFiles
 #define rawTopoChangerFvMesh_H
 
 #include "topoChangerFvMesh.H"
-#include "PackedList.H"
+#include "PackedBoolList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,12 +63,12 @@ class rawTopoChangerFvMesh
         static void setUnmappedValues
         (
             GeometricField<Type, PatchField, GeoMesh>& fld,
-            const PackedList<1>& mappedFace,
+            const PackedBoolList& mappedFace,
             const GeometricField<Type, PatchField, GeoMesh>& baseFld
         );
 
         template<class Type, template<class> class PatchField, class GeoMesh>
-        void zeroUnmappedValues(const PackedList<1>&) const;
+        void zeroUnmappedValues(const PackedBoolList&) const;
 
         //- Disallow default bitwise copy construct
         rawTopoChangerFvMesh(const rawTopoChangerFvMesh&);
@@ -87,9 +87,8 @@ public:
         //- Construct from database
         explicit rawTopoChangerFvMesh(const IOobject& io);
 
-    // Destructor
-
-        virtual ~rawTopoChangerFvMesh();
+    //- Destructor
+    virtual ~rawTopoChangerFvMesh();
 
 
     // Member Functions

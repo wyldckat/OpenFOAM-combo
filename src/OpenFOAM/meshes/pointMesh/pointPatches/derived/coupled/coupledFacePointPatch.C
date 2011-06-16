@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,19 +26,14 @@ License
 #include "coupledFacePointPatch.H"
 #include "pointBoundaryMesh.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(coupledFacePointPatch, 0);
+defineTypeNameAndDebug(Foam::coupledFacePointPatch, 0);
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-coupledFacePointPatch::coupledFacePointPatch
+Foam::coupledFacePointPatch::coupledFacePointPatch
 (
     const polyPatch& patch,
     const pointBoundaryMesh& bm
@@ -52,31 +47,8 @@ coupledFacePointPatch::coupledFacePointPatch
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-coupledFacePointPatch::~coupledFacePointPatch()
+Foam::coupledFacePointPatch::~coupledFacePointPatch()
 {}
 
-
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-const labelList& coupledFacePointPatch::nonGlobalPatchPoints() const
-{
-    return nonGlobalPatchPoints_;
-}
-
-const labelList& coupledFacePointPatch::loneMeshPoints() const
-{
-    return loneMeshPoints_;
-}
-
-const vectorField& coupledFacePointPatch::pointNormals() const
-{
-    notImplemented("coupledFacePointPatch::pointNormals() const");
-    return Field<vector>::null();
-}
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

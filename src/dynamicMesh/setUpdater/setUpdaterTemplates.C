@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,29 +29,19 @@ License
 #include "mapPolyMesh.H"
 #include "IOobjectList.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-void setUpdater::updateSets(const mapPolyMesh& morphMap) const
+void Foam::setUpdater::updateSets(const mapPolyMesh& morphMap) const
 {
     //
     // Update all sets in memory.
     //
 
-    HashTable<const Type*> memSets = 
+    HashTable<const Type*> memSets =
         morphMap.mesh().objectRegistry::lookupClass<Type>();
 
-    for
-    (
-        typename HashTable<const Type*>::iterator iter = memSets.begin();
-        iter != memSets.end();
-        ++iter
-    )
+    forAllIter(typename HashTable<const Type*>, memSets, iter)
     {
         Type& set = const_cast<Type&>(*iter());
 
@@ -76,22 +66,13 @@ void setUpdater::updateSets(const mapPolyMesh& morphMap) const
     IOobjectList Objects
     (
         morphMap.mesh().time(),
-        morphMap.mesh().time().findInstance
-        (
-            morphMap.mesh().meshDir(),
-            "faces"
-        ),
+        morphMap.mesh().facesInstance(),
         "polyMesh/sets"
     );
 
     IOobjectList fileSets(Objects.lookupClass(Type::typeName));
 
-    for
-    (
-        IOobjectList::const_iterator iter = fileSets.begin();
-        iter != fileSets.end();
-        ++iter
-    )
+    forAllConstIter(IOobjectList, fileSets, iter)
     {
         if (!memSets.found(iter.key()))
         {
@@ -119,9 +100,5 @@ void setUpdater::updateSets(const mapPolyMesh& morphMap) const
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

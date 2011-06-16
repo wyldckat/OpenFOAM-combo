@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class pureMixture Declaration
+                         Class pureMixture Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class ThermoType>
@@ -75,9 +75,8 @@ public:
         pureMixture(const dictionary&, const fvMesh&);
 
 
-    // Destructor
-
-        ~pureMixture();
+    //- Destructor
+    virtual ~pureMixture();
 
 
     // Member functions

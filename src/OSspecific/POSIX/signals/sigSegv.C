@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,8 +23,8 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
 #include "sigSegv.H"
+#include "error.H"
 #include "JobInfo.H"
 #include "IOstreams.H"
 
@@ -32,18 +32,19 @@ License
 
 struct sigaction Foam::sigSegv::oldAction_;
 
+
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::sigSegv::sigSegvHandler(int)
+void Foam::sigSegv::sigHandler(int)
 {
     // Reset old handling
     if (sigaction(SIGSEGV, &oldAction_, NULL) < 0)
     {
         FatalErrorIn
         (
-            "Foam::sigSegv::sigSegvHandler()"
+            "Foam::sigSegv::sigHandler()"
         )   << "Cannot reset SIGSEGV trapping"
-            << abort(FatalError);    
+            << abort(FatalError);
     }
 
     // Update jobInfo file
@@ -75,14 +76,14 @@ Foam::sigSegv::~sigSegv()
         (
             "Foam::sigSegv::~sigSegv()"
         )   << "Cannot reset SIGSEGV trapping"
-            << abort(FatalError);    
+            << abort(FatalError);
     }
 }
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::sigSegv::set(const bool verbose)
+void Foam::sigSegv::set(const bool)
 {
     if (oldAction_.sa_handler)
     {
@@ -94,7 +95,7 @@ void Foam::sigSegv::set(const bool verbose)
     }
 
     struct sigaction newAction;
-    newAction.sa_handler = sigSegvHandler;
+    newAction.sa_handler = sigHandler;
     newAction.sa_flags = SA_NODEFER;
     sigemptyset(&newAction.sa_mask);
     if (sigaction(SIGSEGV, &newAction, &oldAction_) < 0)
@@ -103,7 +104,7 @@ void Foam::sigSegv::set(const bool verbose)
         (
             "Foam::sigSegv::set()"
         )   << "Cannot set SIGSEGV trapping"
-            << abort(FatalError);    
+            << abort(FatalError);
     }
 }
 

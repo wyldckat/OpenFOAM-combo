@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,8 +32,7 @@ License
 template<class Type>
 void Foam::sampledSurfaces::sampleAndWrite
 (
-    const GeometricField<Type, fvPatchField, volMesh>& vField,
-    const surfaceWriter<Type>& formatter
+    const GeometricField<Type, fvPatchField, volMesh>& vField
 )
 {
     // interpolator for this field
@@ -96,14 +95,15 @@ void Foam::sampledSurfaces::sampleAndWrite
                 // skip surface without faces (eg, a failed cut-plane)
                 if (mergeList_[surfI].faces.size())
                 {
-                    formatter.write
+                    formatter_->write
                     (
                         outputDir,
                         s.name(),
                         mergeList_[surfI].points,
                         mergeList_[surfI].faces,
                         fieldName,
-                        allValues
+                        allValues,
+                        s.interpolate()
                     );
                 }
             }
@@ -114,14 +114,15 @@ void Foam::sampledSurfaces::sampleAndWrite
             // skip surface without faces (eg, a failed cut-plane)
             if (s.faces().size())
             {
-                formatter.write
+                formatter_->write
                 (
                     outputDir,
                     s.name(),
                     s.points(),
                     s.faces(),
                     fieldName,
-                    values
+                    values,
+                    s.interpolate()
                 );
             }
         }
@@ -137,12 +138,6 @@ void Foam::sampledSurfaces::sampleAndWrite
 {
     if (fields.size())
     {
-        // create or use existing surfaceWriter
-        if (fields.formatter.empty())
-        {
-            fields.formatter = surfaceWriter<Type>::New(writeFormat_);
-        }
-
         forAll(fields, fieldI)
         {
             if (Pstream::master() && verbose_)
@@ -166,8 +161,7 @@ void Foam::sampledSurfaces::sampleAndWrite
                             false
                         ),
                         mesh_
-                    ),
-                    fields.formatter()
+                    )
                 );
             }
             else
@@ -177,7 +171,7 @@ void Foam::sampledSurfaces::sampleAndWrite
 
                 if
                 (
-                    iter != mesh_.objectRegistry::end()
+                    iter != objectRegistry::end()
                  && iter()->type()
                  == GeometricField<Type, fvPatchField, volMesh>::typeName
                 )
@@ -188,8 +182,7 @@ void Foam::sampledSurfaces::sampleAndWrite
                        <GeometricField<Type, fvPatchField, volMesh> >
                        (
                            fields[fieldI]
-                       ),
-                       fields.formatter()
+                       )
                    );
                 }
             }

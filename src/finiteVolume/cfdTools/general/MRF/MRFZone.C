@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -247,7 +247,8 @@ Foam::MRFZone::MRFZone(const fvMesh& mesh, Istream& is)
         WarningIn("MRFZone(const fvMesh&, Istream&)")
             << "Ignoring entry 'patches'\n"
             << "    By default all patches within the rotating region rotate.\n"
-            << "    Optionally supply excluded patches using 'nonRotatingPatches'."
+            << "    Optionally supply excluded patches "
+            << "using 'nonRotatingPatches'."
             << endl;
     }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,15 +83,7 @@ public:
         {}
 
         //- Construct from UList of Key
-        HashSet(const UList<Key>& lst)
-        :
-            HashTable<nil, Key, Hash>(2*lst.size())
-        {
-            forAll(lst, i)
-            {
-                insert(lst[i]);
-            }
-        }
+        HashSet(const UList<Key>&);
 
         //- Construct as copy
         HashSet(const HashSet<Key, Hash>& hs)
@@ -127,10 +119,26 @@ public:
             return HashTable<nil, Key, Hash>::insert(key, nil());
         }
 
+        //- Insert keys from a UList of Key
+        //  Return the number of new elements inserted
+        label insert(const UList<Key>&);
+
         //- Same as insert (cannot overwrite nil content)
         bool set(const Key& key)
         {
-            return HashTable<nil, Key, Hash>::insert(key, nil());
+            return insert(key);
+        }
+
+        //- Same as insert (cannot overwrite nil content)
+        label set(const UList<Key>& lst)
+        {
+            return insert(lst);
+        }
+
+        //- Unset the specified key - same as erase
+        bool unset(const Key& key)
+        {
+            return HashTable<nil, Key, Hash>::erase(key);
         }
 
 

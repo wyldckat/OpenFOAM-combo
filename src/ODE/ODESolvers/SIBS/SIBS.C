@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,7 +42,7 @@ namespace Foam
         SIBS::redMax = 1.0e-5,
         SIBS::redMin = 0.7,
         SIBS::scaleMX = 0.1;
-};
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -123,7 +123,7 @@ void Foam::SIBS::solve
         kMax_ = kOpt_;
     }
 
-    label k=0;
+    label k = 0;
     scalar h = hTry;
     yTemp_ = y;
 
@@ -215,7 +215,7 @@ void Foam::SIBS::solve
 
     x = xNew_;
     hDid = h;
-    first_=0;
+    first_ = 0;
     scalar wrkmin = GREAT;
     scalar scale = 1.0;
 

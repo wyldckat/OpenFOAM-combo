@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,31 +28,28 @@ License
 #include "noCollision.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noCollision, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(noCollision, 0);
-
-addToRunTimeSelectionTable
-(
-    collisionModel,
-    noCollision,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        collisionModel,
+        noCollision,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noCollision::noCollision
+Foam::noCollision::noCollision
 (
     const dictionary& dict,
     spray& sm,
-    Random& rndGen
+    cachedRandom& rndGen
 )
 :
     collisionModel(dict, sm, rndGen)
@@ -61,20 +58,16 @@ noCollision::noCollision
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noCollision::~noCollision()
+Foam::noCollision::~noCollision()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void noCollision::collideParcels(const scalar) const
+void Foam::noCollision::collideParcels(const scalar) const
 {
     // Do nothing
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

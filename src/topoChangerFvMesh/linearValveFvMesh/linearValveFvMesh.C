@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -84,12 +84,11 @@ void Foam::linearValveFvMesh::addZonesAndModifiers()
 
     // Inner slider
     const word innerSliderName(motionDict_.subDict("slider").lookup("inside"));
-    const polyPatch& innerSlider =
-        boundaryMesh()[boundaryMesh().findPatchID(innerSliderName)];
+    const polyPatch& innerSlider = boundaryMesh()[innerSliderName];
 
     labelList isf(innerSlider.size());
 
-    forAll (isf, i)
+    forAll(isf, i)
     {
         isf[i] = innerSlider.start() + i;
     }
@@ -105,12 +104,11 @@ void Foam::linearValveFvMesh::addZonesAndModifiers()
 
     // Outer slider
     const word outerSliderName(motionDict_.subDict("slider").lookup("outside"));
-    const polyPatch& outerSlider =
-        boundaryMesh()[boundaryMesh().findPatchID(outerSliderName)];
+    const polyPatch& outerSlider = boundaryMesh()[outerSliderName];
 
     labelList osf(outerSlider.size());
 
-    forAll (osf, i)
+    forAll(osf, i)
     {
         osf[i] = outerSlider.start() + i;
     }
@@ -136,11 +134,11 @@ void Foam::linearValveFvMesh::addZonesAndModifiers()
 
     List<cellZone*> cz(0);
 
-    Info << "Adding point, face and cell zones" << endl;
+    Info<< "Adding point, face and cell zones" << endl;
     addZones(pz, fz, cz);
 
     // Add a topology modifier
-    Info << "Adding topology modifiers" << endl;
+    Info<< "Adding topology modifiers" << endl;
     topoChanger_.setSize(1);
     topoChanger_.set
     (
@@ -172,7 +170,7 @@ void Foam::linearValveFvMesh::makeSlidersDead()
     const polyTopoChanger& topoChanges = topoChanger_;
 
     // Enable layering
-    forAll (topoChanges, modI)
+    forAll(topoChanges, modI)
     {
         if (isA<slidingInterface>(topoChanges[modI]))
         {
@@ -194,7 +192,7 @@ void Foam::linearValveFvMesh::makeSlidersLive()
     const polyTopoChanger& topoChanges = topoChanger_;
 
     // Enable sliding interface
-    forAll (topoChanges, modI)
+    forAll(topoChanges, modI)
     {
         if (isA<slidingInterface>(topoChanges[modI]))
         {
@@ -217,7 +215,7 @@ bool Foam::linearValveFvMesh::attached() const
 
     bool result = false;
 
-    forAll (topoChanges, modI)
+    forAll(topoChanges, modI)
     {
         if (isA<slidingInterface>(topoChanges[modI]))
         {
@@ -228,7 +226,7 @@ bool Foam::linearValveFvMesh::attached() const
     }
 
     // Check thal all sliders are in sync (debug only)
-    forAll (topoChanges, modI)
+    forAll(topoChanges, modI)
     {
         if (isA<slidingInterface>(topoChanges[modI]))
         {
@@ -239,7 +237,8 @@ bool Foam::linearValveFvMesh::attached() const
             )
             {
                 FatalErrorIn("bool linearValveFvMesh::attached() const")
-                    << "Slider " << modI << " named " << topoChanges[modI].name()
+                    << "Slider " << modI
+                    << " named " << topoChanges[modI].name()
                     << " out of sync: Should be" << result
                     << abort(FatalError);
             }
@@ -248,11 +247,11 @@ bool Foam::linearValveFvMesh::attached() const
 
     if (result)
     {
-        Info << "linearValveFvMesh: attached!" << endl;
+        Info<< "linearValveFvMesh: attached!" << endl;
     }
     else
     {
-        Info << "linearValveFvMesh: detached!" << endl;
+        Info<< "linearValveFvMesh: detached!" << endl;
     }
 
     return result;
@@ -274,8 +273,9 @@ Foam::linearValveFvMesh::linearValveFvMesh(const IOobject& io)
                 "dynamicMeshDict",
                 time().constant(),
                 *this,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
         ).subDict(typeName + "Coeffs")
     ),
@@ -298,7 +298,7 @@ void Foam::linearValveFvMesh::update()
     // Detaching the interface
     if (attached())
     {
-        Info << "Decoupling sliding interfaces" << endl;
+        Info<< "Decoupling sliding interfaces" << endl;
         makeSlidersLive();
 
         // Changing topology by hand
@@ -310,7 +310,7 @@ void Foam::linearValveFvMesh::update()
     }
     else
     {
-        Info << "Sliding interfaces decoupled" << endl;
+        Info<< "Sliding interfaces decoupled" << endl;
     }
 
     // Perform mesh motion
@@ -327,7 +327,7 @@ void Foam::linearValveFvMesh::update()
     {
         if (topoChangeMap().hasMotionPoints())
         {
-            Info << "Topology change; executing pre-motion" << endl;
+            Info<< "Topology change; executing pre-motion" << endl;
             movePoints(topoChangeMap().preMotionPoints());
         }
     }
@@ -338,17 +338,17 @@ void Foam::linearValveFvMesh::update()
     movePoints(msPtr_->curPoints());
 
     // Attach the interface
-    Info << "Coupling sliding interfaces" << endl;
+    Info<< "Coupling sliding interfaces" << endl;
     makeSlidersLive();
     resetMorph();
     setMorphTimeIndex(3*time().timeIndex() + 2);
     updateMesh();
 
-    Info << "Moving points post slider attach" << endl;
+    Info<< "Moving points post slider attach" << endl;
 
     msPtr_->updateMesh();
 
-    Info << "Sliding interfaces coupled: " << attached() << endl;
+    Info<< "Sliding interfaces coupled: " << attached() << endl;
 }
 
 

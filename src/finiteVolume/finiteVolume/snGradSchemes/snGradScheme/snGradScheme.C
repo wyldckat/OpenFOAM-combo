@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,7 +68,7 @@ tmp<snGradScheme<Type> > snGradScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     typename MeshConstructorTable::iterator constructorIter =
         MeshConstructorTablePtr_->find(schemeName);
@@ -79,8 +79,8 @@ tmp<snGradScheme<Type> > snGradScheme<Type>::New
         (
             "snGradScheme<Type>::New(const fvMesh&, Istream&)",
             schemeData
-        )   << "Unknown discretisation scheme " << schemeName
-            << endl << endl
+        )   << "Unknown discretisation scheme "
+            << schemeName << nl << nl
             << "Valid schemes are :" << endl
             << MeshConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
@@ -133,8 +133,8 @@ snGradScheme<Type>::snGrad
     const scalarField& deltaCoeffs = tdeltaCoeffs().internalField();
 
     // owner/neighbour addressing
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     forAll(owner, faceI)
     {

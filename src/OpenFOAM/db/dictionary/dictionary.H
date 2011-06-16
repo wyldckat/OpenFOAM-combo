@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,8 +38,7 @@ Description
     dictionaries since, unlike the IOdictionary class, it does not use an
     objectRegistry itself to work.
 
-ToDo
-    A merge() member function with a non-const dictionary parameter.
+    To add - a merge() member function with a non-const dictionary parameter?
     This would avoid unnecessary cloning in the add(entry*, bool) method.
 
 SourceFiles
@@ -111,6 +110,23 @@ public:
         fileName& name()
         {
             return name_;
+        }
+
+        //- Return the local dictionary name (final part of scoped name)
+        const word dictName() const
+        {
+            const word scopedName = name_.name();
+
+            string::size_type i = scopedName.rfind(':');
+
+            if (i == scopedName.npos)
+            {
+                return scopedName;
+            }
+            else
+            {
+                return scopedName.substr(i + 1, scopedName.npos);
+            }
         }
 };
 
@@ -191,9 +207,13 @@ public:
             Istream&
         );
 
-        //- Construct top-level dictionary from Istream, reading entries
-        //  until EOF
+        //- Construct top-level dictionary from Istream,
+        //  reading entries until EOF
         dictionary(Istream&);
+
+        //- Construct top-level dictionary from Istream,
+        //  reading entries until EOF, optionally keeping the header
+        dictionary(Istream&, const bool keepHeader);
 
         //- Construct as copy given the parent dictionary
         dictionary(const dictionary& parentDict, const dictionary&);
@@ -218,9 +238,8 @@ public:
         static autoPtr<dictionary> New(Istream&);
 
 
-    // Destructor
-
-        ~dictionary();
+    //- Destructor
+    virtual ~dictionary();
 
 
     // Member functions
@@ -245,7 +264,13 @@ public:
 
             //- Search dictionary for given keyword
             //  If recursive, search parent dictionaries
-            bool found(const word&, bool recursive=false) const;
+            //  If patternMatch, use regular expressions
+            bool found
+            (
+                const word&,
+                bool recursive=false,
+                bool patternMatch = true
+            ) const;
 
             //- Find and return an entry data stream pointer if present
             //  otherwise return NULL.
@@ -343,7 +368,11 @@ public:
 
             //- Find and return a sub-dictionary as a copy, or
             //  return an empty dictionary if the sub-dictionary does not exist
-            dictionary subOrEmptyDict(const word&) const;
+            dictionary subOrEmptyDict
+            (
+                const word&,
+                const bool mustRead = false
+            ) const;
 
             //- Return the table of contents
             wordList toc() const;
@@ -442,10 +471,14 @@ public:
             //- Read dictionary from Istream
             bool read(Istream&);
 
+            //- Read dictionary from Istream, optionally keeping the header
+            bool read(Istream&, const bool keepHeader);
+
 
         // Write
 
-            void write(Ostream&, bool subDict=true) const;
+            //- Write dictionary, normally with sub-dictionary formatting
+            void write(Ostream&, const bool subDict=true) const;
 
 
     // Member Operators

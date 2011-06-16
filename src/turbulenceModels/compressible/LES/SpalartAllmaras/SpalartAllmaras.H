@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,7 +82,7 @@ class SpalartAllmaras
         volScalarField alphaSgs_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Update sub-grid scale fields
         void updateSubGridScaleFields();
@@ -111,7 +111,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -146,15 +148,6 @@ public:
         virtual tmp<volScalarField> alphaSgs() const
         {
             return alphaSgs_;
-        }
-
-        //- Return thermal conductivity
-        virtual tmp<volScalarField> alphaEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphaSgs_ + alpha())
-            );
         }
 
         //- Return the sub-grid stress tensor.

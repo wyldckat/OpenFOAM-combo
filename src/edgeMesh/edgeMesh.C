@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,9 +25,79 @@ License
 
 #include "edgeMesh.H"
 #include "mergePoints.H"
-#include "StaticHashTable.H"
+#include "addToRunTimeSelectionTable.H"
+#include "addToMemberFunctionSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+namespace Foam
+{
+    defineTypeNameAndDebug(edgeMesh, 0);
+    defineRunTimeSelectionTable(edgeMesh, fileExtension);
+    defineMemberFunctionSelectionTable(edgeMesh,write,fileExtension);
+}
+
+
+Foam::wordHashSet Foam::edgeMesh::readTypes()
+{
+    return wordHashSet(*fileExtensionConstructorTablePtr_);
+}
+
+
+Foam::wordHashSet Foam::edgeMesh::writeTypes()
+{
+    return wordHashSet(*writefileExtensionMemberFunctionTablePtr_);
+}
+
+
+// * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
+
+bool Foam::edgeMesh::canReadType
+(
+    const word& ext,
+    const bool verbose
+)
+{
+    return checkSupport
+    (
+        readTypes(),
+        ext,
+        verbose,
+        "reading"
+   );
+}
+
+
+bool Foam::edgeMesh::canWriteType
+(
+    const word& ext,
+    const bool verbose
+)
+{
+    return checkSupport
+    (
+        writeTypes(),
+        ext,
+        verbose,
+        "writing"
+    );
+}
+
+
+bool Foam::edgeMesh::canRead
+(
+    const fileName& name,
+    const bool verbose
+)
+{
+    word ext = name.ext();
+    if (ext == "gz")
+    {
+        ext = name.lessExt().ext();
+    }
+    return canReadType(ext, verbose);
+}
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -65,10 +135,10 @@ void Foam::edgeMesh::calcPointEdges() const
     forAll(edges_, edgeI)
     {
         const edge& e = edges_[edgeI];
+        const label p0 = e[0];
+        const label p1 = e[1];
 
-        label p0 = e[0];
         pointEdges[p0][nEdgesPerPoint[p0]++] = edgeI;
-        label p1 = e[1];
         pointEdges[p1][nEdgesPerPoint[p1]++] = edgeI;
     }
 }
@@ -76,24 +146,93 @@ void Foam::edgeMesh::calcPointEdges() const
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// construct from components
-Foam::edgeMesh::edgeMesh(const pointField& points, const edgeList& edges)
+Foam::edgeMesh::edgeMesh()
 :
-    points_(points),
-    edges_(edges)
-{}
-
-
-// construct as copy
-Foam::edgeMesh::edgeMesh(const edgeMesh& em)
-:
-    points_(em.points_),
-    edges_(em.edges_),
+    points_(0),
+    edges_(0),
     pointEdgesPtr_(NULL)
 {}
 
 
+Foam::edgeMesh::edgeMesh
+(
+    const pointField& points,
+    const edgeList& edges
+)
+:
+    points_(points),
+    edges_(edges),
+    pointEdgesPtr_(NULL)
+{}
+
+
+Foam::edgeMesh::edgeMesh
+(
+    const Xfer<pointField>& pointLst,
+    const Xfer<edgeList>& edgeLst
+)
+:
+    points_(0),
+    edges_(0),
+    pointEdgesPtr_(NULL)
+{
+    points_.transfer(pointLst());
+    edges_.transfer(edgeLst());
+}
+
+
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
+
+Foam::edgeMesh::~edgeMesh()
+{}
+
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::edgeMesh::clear()
+{
+    points_.clear();
+    edges_.clear();
+    pointEdgesPtr_.clear();
+}
+
+
+void Foam::edgeMesh::reset
+(
+    const Xfer<pointField>& pointLst,
+    const Xfer<edgeList>& edgeLst
+)
+{
+    // Take over new primitive data.
+    // Optimized to avoid overwriting data at all
+    if (&pointLst)
+    {
+        points_.transfer(pointLst());
+    }
+
+    if (&edgeLst)
+    {
+        edges_.transfer(edgeLst());
+
+        // connectivity likely changed
+        pointEdgesPtr_.clear();
+    }
+}
+
+
+void Foam::edgeMesh::transfer(edgeMesh& mesh)
+{
+    points_.transfer(mesh.points_);
+    edges_.transfer(mesh.edges_);
+    pointEdgesPtr_ = mesh.pointEdgesPtr_;
+}
+
+
+Foam::Xfer<Foam::edgeMesh> Foam::edgeMesh::xfer()
+{
+    return xferMove(*this);
+}
+
 
 Foam::label Foam::edgeMesh::regions(labelList& edgeRegion) const
 {
@@ -101,7 +240,6 @@ Foam::label Foam::edgeMesh::regions(labelList& edgeRegion) const
     edgeRegion = -1;
 
     label startEdgeI = 0;
-
     label currentRegion = 0;
 
     while (true)
@@ -161,6 +299,16 @@ Foam::label Foam::edgeMesh::regions(labelList& edgeRegion) const
 }
 
 
+void Foam::edgeMesh::scalePoints(const scalar scaleFactor)
+{
+    // avoid bad scaling
+    if (scaleFactor > 0 && scaleFactor != 1.0)
+    {
+        points_ *= scaleFactor;
+    }
+}
+
+
 void Foam::edgeMesh::mergePoints(const scalar mergeDist)
 {
     pointField newPoints;
@@ -182,7 +330,7 @@ void Foam::edgeMesh::mergePoints(const scalar mergeDist)
 
         points_.transfer(newPoints);
 
-        // Renumber and make sure e[0] < e[1] (not really nessecary)
+        // Renumber and make sure e[0] < e[1] (not really necessary)
         forAll(edges_, edgeI)
         {
             edge& e = edges_[edgeI];
@@ -203,7 +351,7 @@ void Foam::edgeMesh::mergePoints(const scalar mergeDist)
         }
 
         // Compact using a hashtable and commutative hash of edge.
-        StaticHashTable<label, edge, Hash<edge> > edgeToLabel
+        HashTable<label, edge, Hash<edge> > edgeToLabel
         (
             2*edges_.size()
         );
@@ -227,7 +375,7 @@ void Foam::edgeMesh::mergePoints(const scalar mergeDist)
 
         for
         (
-            StaticHashTable<label, edge, Hash<edge> >::const_iterator iter =
+            HashTable<label, edge, Hash<edge> >::const_iterator iter =
                 edgeToLabel.begin();
             iter != edgeToLabel.end();
             ++iter
@@ -236,16 +384,6 @@ void Foam::edgeMesh::mergePoints(const scalar mergeDist)
             edges_[iter()] = iter.key();
         }
     }
-}
-
-
-// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
-
-void Foam::edgeMesh::operator=(const edgeMesh& rhs)
-{
-    points_ = rhs.points_;
-    edges_ = rhs.edges_;
-    pointEdgesPtr_.reset(NULL);
 }
 
 

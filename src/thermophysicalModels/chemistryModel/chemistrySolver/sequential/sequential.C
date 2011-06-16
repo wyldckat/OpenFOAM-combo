@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,31 +28,32 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::sequential<CompType, ThermoType>::sequential
+template<class ODEChemistryType>
+Foam::sequential<ODEChemistryType>::sequential
 (
-    ODEChemistryModel<CompType, ThermoType>& model,
-    const word& modelName
+    const fvMesh& mesh,
+    const word& ODEModelName,
+    const word& thermoType
 )
 :
-    chemistrySolver<CompType, ThermoType>(model, modelName),
-    coeffsDict_(model.subDict(modelName + "Coeffs")),
+    chemistrySolver<ODEChemistryType>(mesh, ODEModelName, thermoType),
+    coeffsDict_(this->subDict("sequentialCoeffs")),
     cTauChem_(readScalar(coeffsDict_.lookup("cTauChem"))),
-    equil_(coeffsDict_.lookup("equilibriumRateLimiter"))
+    eqRateLimiter_(coeffsDict_.lookup("equilibriumRateLimiter"))
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::sequential<CompType, ThermoType>::~sequential()
+template<class ODEChemistryType>
+Foam::sequential<ODEChemistryType>::~sequential()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::scalar Foam::sequential<CompType, ThermoType>::solve
+template<class ODEChemistryType>
+Foam::scalar Foam::sequential<ODEChemistryType>::solve
 (
     scalarField &c,
     const scalar T,
@@ -66,52 +67,26 @@ Foam::scalar Foam::sequential<CompType, ThermoType>::solve
     scalar pf, cf, pb, cb;
     label lRef, rRef;
 
-    for (label i=0; i<this->model_.reactions().size(); i++)
+    forAll(this->reactions(), i)
     {
-        const Reaction<ThermoType>& R = this->model_.reactions()[i];
+        scalar omega = this->omegaI(i, c, T, p, pf, cf, lRef, pb, cb, rRef);
 
-        scalar om0 = this->model_.omega
-        (
-            R, c, T, p, pf, cf, lRef, pb, cb, rRef
-        );
-
-        scalar omeg = 0.0;
-        if (!equil_)
+        if (eqRateLimiter_)
         {
-            omeg = om0;
-        }
-        else
-        {
-            if (om0<0.0)
+            if (omega < 0.0)
             {
-                omeg = om0/(1.0 + pb*dt);
+                omega /= 1.0 + pb*dt;
             }
             else
             {
-                omeg = om0/(1.0 + pf*dt);
+                omega /= 1.0 + pf*dt;
             }
         }
-        tChemInv = max(tChemInv, mag(omeg));
 
+        tChemInv = max(tChemInv, mag(omega));
 
-        // update species
-        for (label s=0; s<R.lhs().size(); s++)
-        {
-            label si = R.lhs()[s].index;
-            scalar sl = R.lhs()[s].stoichCoeff;
-            c[si] -= dt*sl*omeg;
-            c[si] = max(0.0, c[si]);
-        }
-
-        for (label s=0; s<R.rhs().size(); s++)
-        {
-            label si = R.rhs()[s].index;
-            scalar sr = R.rhs()[s].stoichCoeff;
-            c[si] += dt*sr*omeg;
-            c[si] = max(0.0, c[si]);
-        }
-
-    } // end for (label i...
+        this->updateConcsInReactionI(i, dt, omega, c);
+    }
 
     return cTauChem_/tChemInv;
 }

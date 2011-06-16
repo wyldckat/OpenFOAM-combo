@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -327,7 +327,7 @@ label findCell(const primitiveMesh& mesh, const point& nearPoint)
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("overwrite", "");
+#   include "addOverwriteOption.H"
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 #   include "createPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
-    bool overwrite = args.optionFound("overwrite");
+    const bool overwrite = args.optionFound("overwrite");
 
     Info<< "Reading modifyMeshDict\n" << endl;
 
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
             "modifyMeshDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -374,8 +374,8 @@ int main(int argc, char *argv[])
 
     bool cellsToSplit = cellsToPyramidise.size();
 
-    //List<Tuple<pointField,point> >
-    //  cellsToCreate(dict.lookup("cellsToCreate"));
+    // List<Tuple2<pointField,point> >
+    //     cellsToCreate(dict.lookup("cellsToCreate"));
 
     Info<< "Read from " << dict.name() << nl
         << "  Boundary cutting module:" << nl
@@ -559,7 +559,7 @@ int main(int argc, char *argv[])
         }
 
         // Write resulting mesh
-        Info << "Writing modified mesh to time " << runTime.timeName() << endl;
+        Info<< "Writing modified mesh to time " << runTime.timeName() << endl;
         mesh.write();
     }
     else if (edgeToPos.size())
@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
         }
 
         // Write resulting mesh
-        Info << "Writing modified mesh to time " << runTime.timeName() << endl;
+        Info<< "Writing modified mesh to time " << runTime.timeName() << endl;
         mesh.write();
     }
     else
@@ -655,13 +655,12 @@ int main(int argc, char *argv[])
         }
 
         // Write resulting mesh
-        Info << "Writing modified mesh to time " << runTime.timeName() << endl;
+        Info<< "Writing modified mesh to time " << runTime.timeName() << endl;
         mesh.write();
     }
 
 
-    Info << nl << "End" << endl;
-
+    Info<< "\nEnd\n" << endl;
     return 0;
 }
 

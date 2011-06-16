@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,9 +36,9 @@ Foam::StaticHashTable<T, Key, Hash>::StaticHashTable
     const label size
 )
 :
-    StaticHashTableName(),
-    keys_(size),
-    objects_(size),
+    StaticHashTableCore(),
+    keys_(StaticHashTableCore::canonicalSize(size)),
+    objects_(StaticHashTableCore::canonicalSize(size)),
     nElmts_(0),
     endIter_(*this, keys_.size(), 0),
     endConstIter_(*this, keys_.size(), 0)

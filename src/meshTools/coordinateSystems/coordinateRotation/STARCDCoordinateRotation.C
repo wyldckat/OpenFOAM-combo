@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,6 @@ License
 
 #include "STARCDCoordinateRotation.H"
 
-#include "Switch.H"
 #include "mathematicalConstants.H"
 #include "addToRunTimeSelectionTable.H"
 
@@ -59,9 +58,9 @@ void Foam::STARCDCoordinateRotation::calcTransform
 
     if (inDegrees)
     {
-        x *= mathematicalConstant::pi/180.0;
-        y *= mathematicalConstant::pi/180.0;
-        z *= mathematicalConstant::pi/180.0;
+        x *= constant::mathematical::pi/180.0;
+        y *= constant::mathematical::pi/180.0;
+        z *= constant::mathematical::pi/180.0;
     }
 
     tensor::operator=
@@ -138,7 +137,7 @@ Foam::STARCDCoordinateRotation::STARCDCoordinateRotation
         rotation.component(vector::X),
         rotation.component(vector::Y),
         rotation.component(vector::Z),
-        dict.lookupOrDefault<Switch>("degrees", true)
+        dict.lookupOrDefault("degrees", true)
     );
 }
 

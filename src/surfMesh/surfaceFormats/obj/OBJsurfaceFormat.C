@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -174,7 +174,7 @@ bool Foam::fileFormats::OBJsurfaceFormat<Face>::read
             }
             dynVertices.shrink();
 
-            UList<label>& f = static_cast<UList<label>&>(dynVertices);
+            labelUList& f = static_cast<labelUList&>(dynVertices);
 
             if (mustTriangulate && f.size() > 3)
             {
@@ -202,7 +202,7 @@ bool Foam::fileFormats::OBJsurfaceFormat<Face>::read
     // transfer to normal lists
     this->storedPoints().transfer(dynPoints);
 
-    sortFacesAndStore(dynFaces.xfer(), dynZones.xfer(), sorted);
+    this->sortFacesAndStore(dynFaces.xfer(), dynZones.xfer(), sorted);
 
     // add zones, culling empty ones
     this->addZones(dynSizes, dynNames, true);
@@ -224,9 +224,9 @@ void Foam::fileFormats::OBJsurfaceFormat<Face>::write
     // for no zones, suppress the group name
     const List<surfZone>& zones =
     (
-        surf.surfZones().size() > 1
-      ? surf.surfZones()
-      : oneZone(faceLst, "")
+        surf.surfZones().empty()
+      ? surfaceFormatsCore::oneZone(faceLst, "")
+      : surf.surfZones()
     );
 
     const bool useFaceMap = (surf.useFaceMap() && zones.size() > 1);

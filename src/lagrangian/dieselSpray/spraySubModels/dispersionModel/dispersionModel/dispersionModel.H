@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class dispersionModel Declaration
+                        Class dispersionModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class dispersionModel
@@ -81,16 +81,11 @@ public:
     // Constructors
 
         //- Construct from components
-        dispersionModel
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        dispersionModel(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        virtual ~dispersionModel();
+    //- Destructor
+    virtual ~dispersionModel();
 
 
     // Selector

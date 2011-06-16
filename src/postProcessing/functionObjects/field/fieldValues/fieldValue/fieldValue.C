@@ -32,11 +32,6 @@ License
 namespace Foam
 {
     defineTypeNameAndDebug(fieldValue, 0);
-
-    defineTemplateTypeNameAndDebug(IOList<vector>, 0);
-    defineTemplateTypeNameAndDebug(IOList<sphericalTensor>, 0);
-    defineTemplateTypeNameAndDebug(IOList<symmTensor>, 0);
-    defineTemplateTypeNameAndDebug(IOList<tensor>, 0);
 }
 
 
@@ -56,7 +51,7 @@ void Foam::fieldValue::movePoints(const Field<point>&)
 
 void Foam::fieldValue::makeFile()
 {
-    // Create the forces file if not already created
+    // Create the output file if not already created
     if (outputFilePtr_.empty())
     {
         if (debug)
@@ -135,7 +130,7 @@ Foam::fieldValue::fieldValue
     obr_(obr),
     active_(true),
     log_(false),
-    sourceName_(dict.lookup("sourceName")),
+    sourceName_(dict.lookupOrDefault<word>("sourceName", "sampledSurface")),
     fields_(dict.lookup("fields")),
     valueOutput_(dict.lookup("valueOutput")),
     outputFilePtr_(NULL)

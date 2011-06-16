@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     The Enhanced %TAB model.
 
     Described in the papers below.
-    @verbatim
+    \verbatim
     F.X. Tanner
         "Liquid Jet Atomization and Droplet Breakup Modeling of
         Non-Evaporating Diesel Fuel Sprays"
@@ -40,7 +40,7 @@ Description
         Fuel Sprays by Means of Cascade Drop Breakup Model"
         SAE 980808
         SAE Technical Paper Series
-    @endverbatim
+    \endverbatim
 
 See Also
     The TAB model
@@ -86,6 +86,7 @@ private:
         scalar WeTransition_;
         scalar AWe_;
 
+
 public:
 
 
@@ -96,16 +97,11 @@ public:
     // Constructors
 
         //- Construct from components
-        ETAB
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        ETAB(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~ETAB();
+    //- Destructor
+    virtual ~ETAB();
 
 
     // Member Functions
@@ -115,9 +111,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& Ug,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
 };
 
 

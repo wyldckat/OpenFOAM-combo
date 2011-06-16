@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,34 +25,30 @@ License
 
 #include "fvFieldDecomposer.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-fvFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
+Foam::fvFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
 (
-    const unallocLabelList& addressingSlice,
+    const labelUList& addressingSlice,
     const label addressingOffset
 )
 :
     directAddressing_(addressingSlice)
 {
-    forAll (directAddressing_, i)
+    forAll(directAddressing_, i)
     {
-        // Subtract one to align addressing.  
+        // Subtract one to align addressing.
         directAddressing_[i] -= addressingOffset + 1;
     }
 }
 
 
-fvFieldDecomposer::processorVolPatchFieldDecomposer::
+Foam::fvFieldDecomposer::processorVolPatchFieldDecomposer::
 processorVolPatchFieldDecomposer
 (
     const fvMesh& mesh,
-    const unallocLabelList& addressingSlice
+    const labelUList& addressingSlice
 )
 :
     directAddressing_(addressingSlice.size())
@@ -60,9 +56,9 @@ processorVolPatchFieldDecomposer
     const labelList& own = mesh.faceOwner();
     const labelList& neighb = mesh.faceNeighbour();
 
-    forAll (directAddressing_, i)
+    forAll(directAddressing_, i)
     {
-        // Subtract one to align addressing.  
+        // Subtract one to align addressing.
         label ai = mag(addressingSlice[i]) - 1;
 
         if (ai < neighb.size())
@@ -96,16 +92,16 @@ processorVolPatchFieldDecomposer
 }
 
 
-fvFieldDecomposer::processorSurfacePatchFieldDecomposer::
+Foam::fvFieldDecomposer::processorSurfacePatchFieldDecomposer::
 processorSurfacePatchFieldDecomposer
 (
-    const unallocLabelList& addressingSlice
+    const labelUList& addressingSlice
 )
 :
     addressing_(addressingSlice.size()),
     weights_(addressingSlice.size())
 {
-    forAll (addressing_, i)
+    forAll(addressing_, i)
     {
         addressing_[i].setSize(1);
         weights_[i].setSize(1);
@@ -116,7 +112,7 @@ processorSurfacePatchFieldDecomposer
 }
 
 
-fvFieldDecomposer::fvFieldDecomposer
+Foam::fvFieldDecomposer::fvFieldDecomposer
 (
     const fvMesh& completeMesh,
     const fvMesh& procMesh,
@@ -146,9 +142,13 @@ fvFieldDecomposer::fvFieldDecomposer
         static_cast<processorSurfacePatchFieldDecomposer*>(NULL)
     )
 {
-    forAll (boundaryAddressing_, patchi)
+    forAll(boundaryAddressing_, patchi)
     {
-        if (boundaryAddressing_[patchi] >= 0)
+        if
+        (
+            boundaryAddressing_[patchi] >= 0
+        && !isA<processorLduInterface>(procMesh.boundary()[patchi])
+        )
         {
             patchFieldDecomposerPtrs_[patchi] = new patchFieldDecomposer
             (
@@ -161,17 +161,17 @@ fvFieldDecomposer::fvFieldDecomposer
         }
         else
         {
-            processorVolPatchFieldDecomposerPtrs_[patchi] = 
+            processorVolPatchFieldDecomposerPtrs_[patchi] =
                 new processorVolPatchFieldDecomposer
                 (
                     completeMesh_,
                     procMesh_.boundary()[patchi].patchSlice(faceAddressing_)
                 );
 
-            processorSurfacePatchFieldDecomposerPtrs_[patchi] = 
+            processorSurfacePatchFieldDecomposerPtrs_[patchi] =
                 new processorSurfacePatchFieldDecomposer
                 (
-                    static_cast<const unallocLabelList&>
+                    static_cast<const labelUList&>
                     (
                         procMesh_.boundary()[patchi].patchSlice
                         (
@@ -186,9 +186,9 @@ fvFieldDecomposer::fvFieldDecomposer
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-fvFieldDecomposer::~fvFieldDecomposer()
+Foam::fvFieldDecomposer::~fvFieldDecomposer()
 {
-    forAll (patchFieldDecomposerPtrs_, patchi)
+    forAll(patchFieldDecomposerPtrs_, patchi)
     {
         if (patchFieldDecomposerPtrs_[patchi])
         {
@@ -196,7 +196,7 @@ fvFieldDecomposer::~fvFieldDecomposer()
         }
     }
 
-    forAll (processorVolPatchFieldDecomposerPtrs_, patchi)
+    forAll(processorVolPatchFieldDecomposerPtrs_, patchi)
     {
         if (processorVolPatchFieldDecomposerPtrs_[patchi])
         {
@@ -204,7 +204,7 @@ fvFieldDecomposer::~fvFieldDecomposer()
         }
     }
 
-    forAll (processorSurfacePatchFieldDecomposerPtrs_, patchi)
+    forAll(processorSurfacePatchFieldDecomposerPtrs_, patchi)
     {
         if (processorSurfacePatchFieldDecomposerPtrs_[patchi])
         {
@@ -212,10 +212,5 @@ fvFieldDecomposer::~fvFieldDecomposer()
         }
     }
 }
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

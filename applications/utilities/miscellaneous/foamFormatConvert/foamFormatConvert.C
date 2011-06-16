@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -144,9 +144,34 @@ bool writeZones(const word& name, const fileName& meshDir, Time& runTime)
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
+    argList::addBoolOption
+    (
+        "noConstant",
+        "exclude the 'constant/' dir in the times list"
+    );
+
 #   include "addRegionOption.H"
 #   include "setRootCase.H"
+
+    // enable noConstant by switching
+    if (!args.optionFound("noConstant"))
+    {
+        args.setOption("constant", "");
+    }
+    else
+    {
+        args.unsetOption("constant");
+        Info<< "Excluding the constant directory." << nl << endl;
+    }
+
+
 #   include "createTime.H"
+
+
+    // Make sure we do not use the master-only reading since we read
+    // fields (different per processor) as dictionaries.
+    regIOobject::fileModificationChecking = regIOobject::timeStamp;
+
 
     fileName meshDir = polyMesh::meshSubDir;
     fileName regionPrefix = "";
@@ -166,10 +191,10 @@ int main(int argc, char *argv[])
         Info<< "Time = " << runTime.timeName() << endl;
 
         // Convert all the standard mesh files
-        writeMeshObject<cellIOList>("cells", meshDir, runTime);
+        writeMeshObject<cellCompactIOList>("cells", meshDir, runTime);
         writeMeshObject<labelIOList>("owner", meshDir, runTime);
         writeMeshObject<labelIOList>("neighbour", meshDir, runTime);
-        writeMeshObject<faceIOList>("faces", meshDir, runTime);
+        writeMeshObject<faceCompactIOList>("faces", meshDir, runTime);
         writeMeshObject<pointIOField>("points", meshDir, runTime);
         writeMeshObject<labelIOList>("pointProcAddressing", meshDir, runTime);
         writeMeshObject<labelIOList>("faceProcAddressing", meshDir, runTime);

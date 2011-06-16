@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,7 @@ SourceFiles
 #define DynamicField_H
 
 #include "Field.H"
+#include "StaticAssert.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,6 +55,7 @@ Ostream& operator<<
     Ostream&,
     const DynamicField<T, SizeInc, SizeMult, SizeDiv>&
 );
+
 template<class T, unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
 Istream& operator>>
 (
@@ -71,6 +73,9 @@ class DynamicField
 :
     public Field<T>
 {
+    //- Avoid invalid sizing parameters
+    StaticAssert((SizeInc || SizeMult) && SizeDiv);
+
     // Private data
 
         //- The capacity (allocated size) of the underlying field.
@@ -230,23 +235,6 @@ public:
 
             //- Assignment from UList
             inline void operator=(const UList<T>&);
-
-
-        // IOstream operators
-
-            // Write DynamicField to Ostream.
-            friend Ostream& operator<< <T, SizeInc, SizeMult, SizeDiv>
-            (
-                Ostream&,
-                const DynamicField<T, SizeInc, SizeMult, SizeDiv>&
-            );
-
-            //- Read from Istream, discarding contents of existing DynamicField.
-            friend Istream& operator>> <T, SizeInc, SizeMult, SizeDiv>
-            (
-                Istream&,
-                DynamicField<T, SizeInc, SizeMult, SizeDiv>&
-            );
 };
 
 

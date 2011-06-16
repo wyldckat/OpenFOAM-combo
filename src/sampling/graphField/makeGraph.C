@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,17 @@ void makeGraph
     const word& graphFormat
 )
 {
-    makeGraph(x, vsf.internalField(), name, vsf.path(), graphFormat);
+    fileName path(vsf.rootPath()/vsf.caseName()/"graphs"/vsf.instance());
+    mkDir(path);
+
+    makeGraph
+    (
+        x,
+        vsf.internalField(),
+        name,
+        path,
+        graphFormat
+    );
 }
 
 

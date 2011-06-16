@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,6 +45,7 @@ Description
 #include "IOPtrList.H"
 #include "polyTopoChange.H"
 #include "polyModifyFace.H"
+#include "wordReList.H"
 
 using namespace Foam;
 
@@ -54,23 +55,6 @@ namespace Foam
 {
     defineTemplateTypeNameAndDebug(IOPtrList<dictionary>, 0);
 }
-
-// Combine operator to synchronise points. We choose point nearest to origin so
-// we can use e.g. great,great,great as null value.
-class nearestEqOp
-{
-
-public:
-
-    void operator()(vector& x, const vector& y) const
-    {
-        if (magSqr(y) < magSqr(x))
-        {
-            x = y;
-        }
-    }
-};
-
 
 void changePatchID
 (
@@ -197,69 +181,55 @@ void dumpCyclicMatch(const fileName& prefix, const polyMesh& mesh)
 
     forAll(patches, patchI)
     {
-        if (isA<cyclicPolyPatch>(patches[patchI]))
+        if
+        (
+            isA<cyclicPolyPatch>(patches[patchI])
+         && refCast<const cyclicPolyPatch>(patches[patchI]).owner()
+        )
         {
             const cyclicPolyPatch& cycPatch =
                 refCast<const cyclicPolyPatch>(patches[patchI]);
 
-            label halfSize = cycPatch.size()/2;
-
-            // Dump halves
+            // Dump patches
             {
-                OFstream str(prefix+cycPatch.name()+"_half0.obj");
+                OFstream str(prefix+cycPatch.name()+".obj");
                 Pout<< "Dumping " << cycPatch.name()
-                    << " half0 faces to " << str.name() << endl;
+                    << " faces to " << str.name() << endl;
                 meshTools::writeOBJ
                 (
                     str,
-                    static_cast<faceList>
-                    (
-                        SubList<face>
-                        (
-                            cycPatch,
-                            halfSize
-                        )
-                    ),
+                    cycPatch,
                     cycPatch.points()
                 );
             }
+
+            const cyclicPolyPatch& nbrPatch = cycPatch.neighbPatch();
             {
-                OFstream str(prefix+cycPatch.name()+"_half1.obj");
-                Pout<< "Dumping " << cycPatch.name()
-                    << " half1 faces to " << str.name() << endl;
+                OFstream str(prefix+nbrPatch.name()+".obj");
+                Pout<< "Dumping " << nbrPatch.name()
+                    << " faces to " << str.name() << endl;
                 meshTools::writeOBJ
                 (
                     str,
-                    static_cast<faceList>
-                    (
-                        SubList<face>
-                        (
-                            cycPatch,
-                            halfSize,
-                            halfSize
-                        )
-                    ),
-                    cycPatch.points()
+                    nbrPatch,
+                    nbrPatch.points()
                 );
             }
 
 
             // Lines between corresponding face centres
-            OFstream str(prefix+cycPatch.name()+"_match.obj");
+            OFstream str(prefix+cycPatch.name()+nbrPatch.name()+"_match.obj");
             label vertI = 0;
 
             Pout<< "Dumping cyclic match as lines between face centres to "
                 << str.name() << endl;
 
-            for (label faceI = 0; faceI < halfSize; faceI++)
+            forAll(cycPatch, faceI)
             {
                 const point& fc0 = mesh.faceCentres()[cycPatch.start()+faceI];
                 meshTools::writeOBJ(str, fc0);
                 vertI++;
-
-                label nbrFaceI = halfSize + faceI;
-                const point& fc1 =
-                    mesh.faceCentres()[cycPatch.start()+nbrFaceI];
+                const point& fc1 = mesh.faceCentres()[nbrPatch.start()+faceI];
                 meshTools::writeOBJ(str, fc1);
                 vertI++;
 
@@ -426,13 +396,19 @@ void syncPoints
     {
         const polyPatch& pp = patches[patchI];
 
-        if (isA<cyclicPolyPatch>(pp))
+        if
+        (
+            isA<cyclicPolyPatch>(pp)
+         && refCast<const cyclicPolyPatch>(pp).owner()
+        )
         {
             const cyclicPolyPatch& cycPatch =
                 refCast<const cyclicPolyPatch>(pp);
 
             const edgeList& coupledPoints = cycPatch.coupledPoints();
             const labelList& meshPts = cycPatch.meshPoints();
+            const cyclicPolyPatch& nbrPatch = cycPatch.neighbPatch();
+            const labelList& nbrMeshPts = nbrPatch.meshPoints();
 
             pointField half0Values(coupledPoints.size());
 
@@ -451,14 +427,13 @@ void syncPoints
             else if (cycPatch.separated())
             {
                 hasTransformation = true;
-                const vectorField& v = cycPatch.coupledPolyPatch::separation();
-                separateList(v, half0Values);
+                separateList(cycPatch.separation(), half0Values);
             }
 
             forAll(coupledPoints, i)
             {
                 const edge& e = coupledPoints[i];
-                label point1 = meshPts[e[1]];
+                label point1 = nbrMeshPts[e[1]];
                 points[point1] = half0Values[i];
             }
         }
@@ -515,8 +490,8 @@ void syncPoints
 
 int main(int argc, char *argv[])
 {
+#   include "addOverwriteOption.H"
 #   include "addRegionOption.H"
-    argList::validOptions.insert("overwrite", "");
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -541,7 +516,7 @@ int main(int argc, char *argv[])
               : word::null
             ),
             runTime,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -550,13 +525,6 @@ int main(int argc, char *argv[])
 
     // Whether to synchronise points
     const Switch pointSync(dict.lookup("pointSync"));
-
-
-    // Set the matching tolerance so we can read illegal meshes
-    scalar tol = readScalar(dict.lookup("matchTolerance"));
-    Info<< "Using relative tolerance " << tol
-        << " to match up faces and points" << nl << endl;
-    coupledPolyPatch::matchTol = tol;
 
 #   include "createNamedPolyMesh.H"
 
@@ -571,7 +539,7 @@ int main(int argc, char *argv[])
     dumpCyclicMatch("initial_", mesh);
 
     // Read patch construct info from dictionary
-    PtrList<dictionary> patchSources(dict.lookup("patchInfo"));
+    PtrList<dictionary> patchSources(dict.lookup("patches"));
 
 
 
@@ -616,7 +584,7 @@ int main(int argc, char *argv[])
 
             if (destPatchI == -1)
             {
-                dictionary patchDict(dict.subDict("dictionary"));
+                dictionary patchDict(dict.subDict("patchInfo"));
 
                 destPatchI = allPatches.size();
 
@@ -681,21 +649,27 @@ int main(int argc, char *argv[])
     {
         const dictionary& dict = patchSources[addedI];
 
-        word patchName(dict.lookup("name"));
-
+        const word patchName(dict.lookup("name"));
         label destPatchI = patches.findPatchID(patchName);
 
         if (destPatchI == -1)
         {
-            FatalErrorIn(args.executable()) << "patch " << patchName
-                << " not added. Problem." << abort(FatalError);
+            FatalErrorIn(args.executable())
+                << "patch " << patchName << " not added. Problem."
+                << abort(FatalError);
         }
 
-        word sourceType(dict.lookup("constructFrom"));
+        const word sourceType(dict.lookup("constructFrom"));
 
         if (sourceType == "patches")
         {
-            labelHashSet patchSources(patches.patchSet(dict.lookup("patches")));
+            labelHashSet patchSources
+            (
+                patches.patchSet
+                (
+                    wordReList(dict.lookup("patches"))
+                )
+            );
 
             // Repatch faces of the patches.
             forAllConstIter(labelHashSet, patchSources, iter)
@@ -719,7 +693,7 @@ int main(int argc, char *argv[])
         }
         else if (sourceType == "set")
         {
-            word setName(dict.lookup("set"));
+            const word setName(dict.lookup("set"));
 
             faceSet faces(mesh, setName);
 
@@ -785,13 +759,8 @@ int main(int argc, char *argv[])
         // current separation also includes the normal
         // ( separation_ = (nf&(Cr - Cf))*nf ).
 
-        // For processor patches:
-        // - disallow multiple separation/transformation. This basically
-        //   excludes decomposed cyclics. Use the (probably 0) separation
-        //   to align the points.
         // For cyclic patches:
-        // - for separated ones use our own recalculated offset vector
-        // - for rotational ones use current one.
+        // - for separated ones use user specified offset vector
 
         forAll(mesh.boundaryMesh(), patchI)
         {
@@ -808,13 +777,14 @@ int main(int argc, char *argv[])
                         << " separation[0] was "
                         << cpp.separation()[0] << endl;
 
-                    if (isA<cyclicPolyPatch>(pp))
+                    if (isA<cyclicPolyPatch>(pp) && pp.size())
                     {
                         const cyclicPolyPatch& cycpp =
                             refCast<const cyclicPolyPatch>(pp);
 
                         if (cycpp.transform() == cyclicPolyPatch::TRANSLATIONAL)
                         {
+                            // Force to wanted separation
                             Info<< "On cyclic translation patch " << pp.name()
                                 << " forcing uniform separation of "
                                 << cycpp.separationVector() << endl;
@@ -823,19 +793,15 @@ int main(int argc, char *argv[])
                         }
                         else
                         {
+                            const cyclicPolyPatch& nbr = cycpp.neighbPatch();
                             const_cast<vectorField&>(cpp.separation()) =
                                 pointField
                                 (
                                     1,
-                                    pp[pp.size()/2].centre(mesh.points())
-                                  - pp[0].centre(mesh.points())
+                                    nbr[0].centre(mesh.points())
+                                  - cycpp[0].centre(mesh.points())
                                 );
                         }
-                    }
-                    else
-                    {
-                        const_cast<vectorField&>(cpp.separation())
-                        .setSize(1);
                     }
                     Info<< "On coupled patch " << pp.name()
                         << " forcing uniform separation of "
@@ -871,7 +837,7 @@ int main(int argc, char *argv[])
         (
             mesh,
             newPoints,
-            nearestEqOp(),
+            minMagSqrEqOp<vector>(),
             point(GREAT, GREAT, GREAT)
         );
 

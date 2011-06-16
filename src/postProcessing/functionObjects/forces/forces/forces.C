@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ License
 #include "volFields.H"
 #include "dictionary.H"
 #include "Time.H"
+#include "wordReList.H"
 
 #include "incompressible/singlePhaseTransportModel/singlePhaseTransportModel.H"
 #include "incompressible/RAS/RASModel/RASModel.H"
@@ -39,10 +40,8 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(forces, 0);
-}
+defineTypeNameAndDebug(Foam::forces, 0);
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -190,7 +189,7 @@ Foam::forces::forces
     fDName_(""),
     rhoRef_(VGREAT),
     pRef_(0),
-    CofR_(vector::zero),
+    coordSys_(),
     forcesFilePtr_(NULL)
 {
     // Check if the available mesh is an fvMesh otherise deactivate
@@ -227,13 +226,14 @@ void Foam::forces::read(const dictionary& dict)
     if (active_)
     {
         log_ = dict.lookupOrDefault<Switch>("log", false);
+        directForceDensity_ = dict.lookupOrDefault("directForceDensity", false);
 
         const fvMesh& mesh = refCast<const fvMesh>(obr_);
 
-        patchSet_ =
-            mesh.boundaryMesh().patchSet(wordList(dict.lookup("patches")));
-
-        dict.readIfPresent("directForceDensity", directForceDensity_);
+        patchSet_ = mesh.boundaryMesh().patchSet
+        (
+            wordReList(dict.lookup("patches"))
+        );
 
         if (directForceDensity_)
         {
@@ -247,8 +247,8 @@ void Foam::forces::read(const dictionary& dict)
             )
             {
                 active_ = false;
-                WarningIn("void forces::read(const dictionary& dict)")
-                << "Could not find " << fDName_ << " in database." << nl
+                WarningIn("void forces::read(const dictionary&)")
+                    << "Could not find " << fDName_ << " in database." << nl
                     << "    De-activating forces."
                     << endl;
             }
@@ -274,7 +274,7 @@ void Foam::forces::read(const dictionary& dict)
             {
                 active_ = false;
 
-                WarningIn("void forces::read(const dictionary& dict)")
+                WarningIn("void forces::read(const dictionary&)")
                     << "Could not find " << UName_ << ", " << pName_;
 
                 if (rhoName_ != "rhoInf")
@@ -282,8 +282,8 @@ void Foam::forces::read(const dictionary& dict)
                     Info<< " or " << rhoName_;
                 }
 
-                Info<< " in database." << nl << "    De-activating forces."
-                    << endl;
+                Info<< " in database." << nl
+                    << "    De-activating forces." << endl;
             }
 
             // Reference density needed for incompressible calculations
@@ -293,8 +293,14 @@ void Foam::forces::read(const dictionary& dict)
             pRef_ = dict.lookupOrDefault<scalar>("pRef", 0.0);
         }
 
+        coordSys_.clear();
+
         // Centre of rotation for moment calculations
-        CofR_ = dict.lookup("CofR");
+        // specified directly, from coordinate system, or implicitly (0 0 0)
+        if (!dict.readIfPresent<point>("CofR", coordSys_.origin()))
+        {
+            coordSys_ = coordinateSystem(dict, obr_);
+        }
     }
 }
 
@@ -347,6 +353,8 @@ void Foam::forces::writeFileHeader()
         forcesFilePtr_()
             << "# Time" << tab
             << "forces(pressure, viscous) moment(pressure, viscous)"
+            << tab
+            << "local forces(pressure, viscous) local moment(pressure, viscous)"
             << endl;
     }
 }
@@ -375,13 +383,32 @@ void Foam::forces::write()
 
         if (Pstream::master())
         {
-            forcesFilePtr_() << obr_.time().value() << tab << fm << endl;
+            forcesMoments fmLocal;
+
+            fmLocal.first().first() =
+                coordSys_.localVector(fm.first().first());
+
+            fmLocal.first().second() =
+                coordSys_.localVector(fm.first().second());
+
+            fmLocal.second().first() =
+                coordSys_.localVector(fm.second().first());
+
+            fmLocal.second().second() =
+                coordSys_.localVector(fm.second().second());
+
+            forcesFilePtr_() << obr_.time().value()
+                << tab << fm
+                << tab << fmLocal << endl;
 
             if (log_)
             {
                 Info<< "forces output:" << nl
                     << "    forces(pressure, viscous)" << fm.first() << nl
                     << "    moment(pressure, viscous)" << fm.second() << nl
+                    << "  local:" << nl
+                    << "    forces(pressure, viscous)" << fmLocal.first() << nl
+                    << "    moment(pressure, viscous)" << fmLocal.second() << nl
                     << endl;
             }
         }
@@ -410,22 +437,27 @@ Foam::forces::forcesMoments Foam::forces::calcForcesMoment() const
         {
             label patchi = iter.key();
 
-            vectorField Md = mesh.C().boundaryField()[patchi] - CofR_;
+            vectorField Md
+            (
+                mesh.C().boundaryField()[patchi] - coordSys_.origin()
+            );
 
-            scalarField sA = mag(Sfb[patchi]);
+            scalarField sA(mag(Sfb[patchi]));
 
             // Normal force = surfaceUnitNormal * (surfaceNormal & forceDensity)
-            vectorField fN =
+            vectorField fN
+            (
                 Sfb[patchi]/sA
                *(
                     Sfb[patchi] & fD.boundaryField()[patchi]
-                );
+                )
+            );
 
             fm.first().first() += sum(fN);
             fm.second().first() += sum(Md ^ fN);
 
             // Tangential force (total force minus normal fN)
-            vectorField fT = sA*fD.boundaryField()[patchi] - fN;
+            vectorField fT(sA*fD.boundaryField()[patchi] - fN);
 
             fm.first().second() += sum(fT);
             fm.second().second() += sum(Md ^ fT);
@@ -452,14 +484,17 @@ Foam::forces::forcesMoments Foam::forces::calcForcesMoment() const
         {
             label patchi = iter.key();
 
-            vectorField Md = mesh.C().boundaryField()[patchi] - CofR_;
+            vectorField Md
+            (
+                mesh.C().boundaryField()[patchi] - coordSys_.origin()
+            );
 
-            vectorField pf = Sfb[patchi]*(p.boundaryField()[patchi] - pRef);
+            vectorField pf(Sfb[patchi]*(p.boundaryField()[patchi] - pRef));
 
             fm.first().first() += rho(p)*sum(pf);
             fm.second().first() += rho(p)*sum(Md ^ pf);
 
-            vectorField vf = Sfb[patchi] & devRhoReffb[patchi];
+            vectorField vf(Sfb[patchi] & devRhoReffb[patchi]);
 
             fm.first().second() += sum(vf);
             fm.second().second() += sum(Md ^ vf);

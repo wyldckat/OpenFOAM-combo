@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -86,6 +86,7 @@ protected:
     //  Use with care.
     inline void size(const label);
 
+
 public:
 
     // Static Member Functions
@@ -108,13 +109,13 @@ public:
         List(const List<T>&);
 
         //- Construct by transferring the parameter contents
-        List(const Xfer< List<T> >&);
+        List(const Xfer<List<T> >&);
 
         //- Construct as copy or re-use as specified.
         List(List<T>&, bool reUse);
 
         //- Construct as subset.
-        List(const UList<T>&, const unallocLabelList& mapAddressing);
+        List(const UList<T>&, const labelUList& mapAddressing);
 
         //- Construct given start and end iterators.
         template<class InputIterator>
@@ -122,22 +123,19 @@ public:
 
         //- Construct as copy of FixedList<T, Size>
         template<unsigned Size>
-        List(const FixedList<T, Size>&);
+        explicit List(const FixedList<T, Size>&);
 
         //- Construct as copy of PtrList<T>
-        List(const PtrList<T>&);
+        explicit List(const PtrList<T>&);
 
         //- Construct as copy of SLList<T>
-        List(const SLList<T>&);
-
-        //- Construct as copy of IndirectList<T>
-        List(const IndirectList<T>&);
+        explicit List(const SLList<T>&);
 
         //- Construct as copy of UIndirectList<T>
-        List(const UIndirectList<T>&);
+        explicit List(const UIndirectList<T>&);
 
         //- Construct as copy of BiIndirectList<T>
-        List(const BiIndirectList<T>&);
+        explicit List(const BiIndirectList<T>&);
 
         //- Construct from Istream.
         List(Istream&);
@@ -146,9 +144,8 @@ public:
         inline autoPtr<List<T> > clone() const;
 
 
-    // Destructor
-
-        ~List();
+    //- Destructor
+    ~List();
 
 
     // Related types
@@ -180,6 +177,9 @@ public:
             //- Clear the list, i.e. set size to zero.
             void clear();
 
+            //- Append an element at the end of the list
+            inline void append(const T&);
+
             //- Append a List at the end of this list
             inline void append(const UList<T>&);
 
@@ -187,20 +187,20 @@ public:
             inline void append(const UIndirectList<T>&);
 
             //- Transfer the contents of the argument List into this list
-            //  and annull the argument list.
+            //  and annul the argument list.
             void transfer(List<T>&);
 
             //- Transfer the contents of the argument List into this list
-            //  and annull the argument list.
+            //  and annul the argument list.
             template<unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
             void transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>&);
 
             //- Transfer the contents of the argument List into this list
-            //  and annull the argument list.
+            //  and annul the argument list.
             void transfer(SortableList<T>&);
 
             //- Transfer contents to the Xfer container
-            inline Xfer< List<T> > xfer();
+            inline Xfer<List<T> > xfer();
 
             //- Return subscript-checked element of UList.
             inline T& newElmt(const label);
@@ -215,9 +215,6 @@ public:
 
         //- Assignment from SLList operator. Takes linear time.
         void operator=(const SLList<T>&);
-
-        //- Assignment from IndirectList operator. Takes linear time.
-        void operator=(const IndirectList<T>&);
 
         //- Assignment from UIndirectList operator. Takes linear time.
         void operator=(const UIndirectList<T>&);
@@ -239,10 +236,10 @@ public:
 
 //- Read a bracket-delimited list, or handle a single value as list of size 1.
 //  For example,
-//  @code
+//  \code
 //      wList = readList<word>(IStringStream("(patch1 patch2 patch3)")());
 //      wList = readList<word>(IStringStream("patch0")());
-//  @endcode
+//  \endcode
 //  Mostly useful for handling command-line arguments.
 template<class T>
 List<T> readList(Istream&);

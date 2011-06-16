@@ -15,4 +15,3 @@ EXE_LIBS = \
     -lincompressibleLESModels \
     -lfiniteVolume \
     -lmeshTools
-

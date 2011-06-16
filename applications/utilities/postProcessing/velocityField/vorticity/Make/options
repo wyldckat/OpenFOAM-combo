@@ -6,3 +6,4 @@ EXE_LIBS = \
     $(FOAM_LIBBIN)/postCalc.o \
     -lfiniteVolume \
     -lgenericPatchFields
+

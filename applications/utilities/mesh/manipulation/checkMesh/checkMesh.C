@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,9 +48,21 @@ int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
 #   include "addRegionOption.H"
-    argList::validOptions.insert("noTopology", "");
-    argList::validOptions.insert("allGeometry", "");
-    argList::validOptions.insert("allTopology", "");
+    argList::addBoolOption
+    (
+        "noTopology",
+        "skip checking the mesh topology"
+    );
+    argList::addBoolOption
+    (
+        "allGeometry",
+        "include bounding box checks"
+    );
+    argList::addBoolOption
+    (
+        "allTopology",
+        "include extra topology checks"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -119,7 +131,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                Info << "\nMesh OK.\n" << endl;
+                Info<< "\nMesh OK.\n" << endl;
             }
         }
     }

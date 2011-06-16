@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,11 +29,12 @@ License
 
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
-void Foam::bound(volScalarField& vsf, const dimensionedScalar& vsf0)
+Foam::volScalarField&
+Foam::bound(volScalarField& vsf, const dimensionedScalar& lowerBound)
 {
-    scalar minVsf = min(vsf).value();
+    const scalar minVsf = min(vsf).value();
 
-    if (minVsf < vsf0.value())
+    if (minVsf < lowerBound.value())
     {
         Info<< "bounding " << vsf.name()
             << ", min: " << minVsf
@@ -46,14 +47,16 @@ void Foam::bound(volScalarField& vsf, const dimensionedScalar& vsf0)
             max
             (
                 vsf.internalField(),
-                fvc::average(max(vsf, vsf0))().internalField()
-                *pos(-vsf.internalField())
+                fvc::average(max(vsf, lowerBound))().internalField()
+              * pos(-vsf.internalField())
             ),
-            vsf0.value()
+            lowerBound.value()
         );
 
-        vsf.boundaryField() = max(vsf.boundaryField(), vsf0.value());
+        vsf.boundaryField() = max(vsf.boundaryField(), lowerBound.value());
     }
+
+    return vsf;
 }
 
 

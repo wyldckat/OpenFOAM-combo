@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,7 @@ SourceFiles
 #ifndef SRFVelocityFvPatchVectorField_H
 #define SRFVelocityFvPatchVectorField_H
 
+#include "fvPatchFields.H"
 #include "fixedValueFvPatchFields.H"
 #include "Switch.H"
 
@@ -53,7 +54,7 @@ class SRFVelocityFvPatchVectorField
 {
     // Private data
 
-        //- Is the supplied inlet value already in the SRF
+        //- Is the supplied inlet value relative to the SRF
         Switch relative_;
 
         //- Inlet value
@@ -161,8 +162,10 @@ public:
             virtual void updateCoeffs();
 
 
-        //- Write
-        virtual void write(Ostream&) const;
+        // I-O
+
+            //- Write
+            virtual void write(Ostream&) const;
 };
 
 

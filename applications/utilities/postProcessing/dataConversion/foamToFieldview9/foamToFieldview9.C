@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -176,15 +176,21 @@ static void writeFaceData
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validOptions.insert("noWall", "");
+    argList::addBoolOption
+    (
+        "noWall",
+        "skip setting wall information"
+    );
     timeSelector::addOptions(true, false);
+
+#   include "addRegionOption.H"
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
     instantList timeDirs = timeSelector::select0(runTime, args);
 
-#   include "createMesh.H"
+#   include "createNamedMesh.H"
 
     // Initialize name mapping table
     FieldviewNames.insert("alpha", "aalpha");
@@ -256,9 +262,22 @@ int main(int argc, char *argv[])
     // make a directory called FieldView in the case
     fileName fvPath(runTime.path()/"Fieldview");
 
+    if (regionName != polyMesh::defaultRegion)
+    {
+        fvPath = fvPath/regionName;
+    }
+
     if (isDir(fvPath))
     {
-        rmDir(fvPath);
+        if (regionName != polyMesh::defaultRegion)
+        {
+            Info<< "Keeping old FieldView files in " << fvPath << nl << endl;
+        }
+        else
+        {
+            Info<< "Deleting old FieldView files in " << fvPath << nl << endl;
+            rmDir(fvPath);
+        }
     }
 
     mkDir(fvPath);
@@ -378,7 +397,7 @@ int main(int argc, char *argv[])
         // num patches
         writeInt(fvFile, mesh.boundary().size());
 
-        forAll (mesh.boundary(), patchI)
+        forAll(mesh.boundary(), patchI)
         {
             const fvPatch& currPatch = mesh.boundary()[patchI];
 
@@ -693,7 +712,7 @@ int main(int argc, char *argv[])
             {
                 const volScalarField& vsf = *volFieldPtrs[fieldI];
 
-                forAll (mesh.boundary(), patchI)
+                forAll(mesh.boundary(), patchI)
                 {
                     writeFaceData
                     (
@@ -708,7 +727,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                forAll (mesh.boundaryMesh(), patchI)
+                forAll(mesh.boundaryMesh(), patchI)
                 {
                     // Dummy value.
                     floatField fField
@@ -734,7 +753,7 @@ int main(int argc, char *argv[])
             {
                 const surfaceScalarField& ssf = *surfFieldPtrs[fieldI];
 
-                forAll (mesh.boundary(), patchI)
+                forAll(mesh.boundary(), patchI)
                 {
                     writeFaceData
                     (
@@ -749,7 +768,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                forAll (mesh.boundaryMesh(), patchI)
+                forAll(mesh.boundaryMesh(), patchI)
                 {
                     // Dummy value.
                     floatField fField
@@ -783,7 +802,7 @@ int main(int argc, char *argv[])
                 const volScalarField& vsf = *volFieldPtrs[fieldI];
 
                 // All non-empty patches
-                forAll (mesh.boundary(), patchI)
+                forAll(mesh.boundary(), patchI)
                 {
                     writeFaceData
                     (
@@ -798,7 +817,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                forAll (mesh.boundary(), patchI)
+                forAll(mesh.boundary(), patchI)
                 {
                     // Dummy value.
                     floatField fField(topo.nPolyFaces()[patchI], 0.0);
@@ -835,7 +854,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                forAll (mesh.boundaryMesh(), patchI)
+                forAll(mesh.boundaryMesh(), patchI)
                 {
                     // Dummy value.
                     floatField fField
@@ -981,7 +1000,7 @@ int main(int argc, char *argv[])
         rm(fvParticleFileName);
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

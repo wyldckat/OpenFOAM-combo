@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,14 +32,14 @@ Description
 #ifndef spray_H
 #define spray_H
 
+#include "autoPtr.H"
 #include "parcel.H"
 #include "injector.H"
 #include "IOPtrList.H"
 #include "interpolation.H"
-#include "liquid.H"
-#include "autoPtr.H"
-#include "liquidMixture.H"
-#include "Random.H"
+#include "liquidProperties.H"
+#include "liquidMixtureProperties.H"
+#include "cachedRandom.H"
 #include "thermoPhysicsTypes.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -76,7 +76,7 @@ class spray
             const fvMesh& mesh_;
 
             //- Random number generator
-            Random rndGen_;
+            cachedRandom rndGen_;
 
         //- Acceleration due to gravity
         const vector& g_;
@@ -115,7 +115,7 @@ class spray
             autoPtr<breakupModel> breakupModel_;
             autoPtr<collisionModel> collisionModel_;
             autoPtr<dispersionModel> dispersionModel_;
-            autoPtr<liquidMixture> fuels_;
+            autoPtr<liquidMixtureProperties> fuels_;
             autoPtr<injectorModel> injectorModel_;
 
 
@@ -198,9 +198,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~spray();
+    //- Destructor
+    ~spray();
 
 
     // Member Functions
@@ -251,11 +250,11 @@ public:
             inline tmp<volScalarField> evaporationSource(const label i) const;
             inline tmp<volScalarField> heatTransferSource() const;
 
-            inline Random& rndGen();
+            inline cachedRandom& rndGen();
             inline label subCycles() const;
             inline const vector& g() const;
 
-            inline const liquidMixture& fuels() const;
+            inline const liquidMixtureProperties& fuels() const;
             inline const PtrList<gasThermoPhysics>& gasProperties() const;
             inline const basicMultiComponentMixture& composition() const;
 
@@ -263,11 +262,11 @@ public:
             inline const List<label>& gasToLiquidIndex() const;
             inline const List<bool>& isLiquidFuel() const;
 
-            inline const bool& twoD() const;
+            inline bool twoD() const;
             inline const vector& axisOfSymmetry() const;
             inline const vector& axisOfWedge() const;
             inline const vector& axisOfWedgeNormal() const;
-            inline const scalar& angleOfWedge() const;
+            inline scalar angleOfWedge() const;
 
             inline const interpolation<vector>& UInterpolator() const;
             inline const interpolation<scalar>& rhoInterpolator() const;
@@ -283,9 +282,9 @@ public:
             inline PtrList<scalarField>& srhos();
             inline const PtrList<scalarField>& srhos() const;
 
-            inline const scalar& ambientPressure() const;
+            inline scalar ambientPressure() const;
 
-            inline const scalar& ambientTemperature() const;
+            inline scalar ambientTemperature() const;
 
 
         // Check

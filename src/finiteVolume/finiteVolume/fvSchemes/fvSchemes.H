@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -78,13 +78,14 @@ class fvSchemes
         dictionary fluxRequired_;
         bool defaultFluxRequired_;
 
-        dictionary cacheFields_;
-
 
     // Private Member Functions
 
         //- Clear the dictionaries and streams before reading
         void clear();
+
+        //- Read settings from the dictionary
+        void read(const dictionary&);
 
         //- Disallow default bitwise copy construct
         fvSchemes(const fvSchemes&);
@@ -126,8 +127,6 @@ public:
             ITstream& laplacianScheme(const word& name) const;
 
             bool fluxRequired(const word& name) const;
-
-            bool cache(const word& name) const;
 
 
         // Read

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -96,7 +96,8 @@ void Foam::plane::calcPntAndVec
             "    const point&,\n"
             "    const point&\n"
             ")\n"
-        ) << "Bad points." << abort(FatalError);
+        )   << "Bad points:" << point1 << ' ' << point2 << ' ' << point3
+            << abort(FatalError);
     }
 
     unitVector_ = line12 ^ line23;
@@ -112,7 +113,8 @@ void Foam::plane::calcPntAndVec
             "    const point&,\n"
             "    const point&\n"
             ")\n"
-        )   << "Plane normal defined with zero length"
+        )   << "Plane normal defined with zero length" << nl
+            << "Bad points:" << point1 << ' ' << point2 << ' ' << point3
             << abort(FatalError);
     }
 
@@ -127,7 +129,20 @@ Foam::plane::plane(const vector& normalVector)
 :
     unitVector_(normalVector),
     basePoint_(vector::zero)
-{}
+{
+    scalar magUnitVector(mag(unitVector_));
+
+    if (magUnitVector > VSMALL)
+    {
+        unitVector_ /= magUnitVector;
+    }
+    else
+    {
+        FatalErrorIn("plane::plane(const vector&)")
+            << "plane normal has zero length. basePoint:" << basePoint_
+            << abort(FatalError);
+    }
+}
 
 
 // Construct from point and normal vector
@@ -145,7 +160,7 @@ Foam::plane::plane(const point& basePoint, const vector& normalVector)
     else
     {
         FatalErrorIn("plane::plane(const point&, const vector&)")
-            << "plane normal has zero length"
+            << "plane normal has zero length. basePoint:" << basePoint_
             << abort(FatalError);
     }
 }
@@ -176,7 +191,7 @@ Foam::plane::plane(const dictionary& dict)
     unitVector_(vector::zero),
     basePoint_(point::zero)
 {
-    word planeType(dict.lookup("planeType"));
+    const word planeType(dict.lookup("planeType"));
 
     if (planeType == "planeEquation")
     {
@@ -215,8 +230,7 @@ Foam::plane::plane(const dictionary& dict)
         (
             "plane::plane(const dictionary&)",
             dict
-        )
-            << "Invalid plane type: " << planeType
+        )   << "Invalid plane type: " << planeType
             << abort(FatalIOError);
     }
 }
@@ -237,7 +251,7 @@ Foam::plane::plane(Istream& is)
     else
     {
         FatalErrorIn("plane::plane(Istream& is)")
-            << "plane normal has zero length"
+            << "plane normal has zero length. basePoint:" << basePoint_
             << abort(FatalError);
     }
 }

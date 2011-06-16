@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,19 +28,14 @@ Description
 
 #include "lagrangianFieldDecomposer.H"
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Construct from components
-lagrangianFieldDecomposer::lagrangianFieldDecomposer
+Foam::lagrangianFieldDecomposer::lagrangianFieldDecomposer
 (
     const polyMesh& mesh,
     const polyMesh& procMesh,
+    const labelList& faceProcAddressing,
     const labelList& cellProcAddressing,
     const word& cloudName,
     const Cloud<indexedParticle>& lagrangianPositions,
@@ -53,6 +48,14 @@ lagrangianFieldDecomposer::lagrangianFieldDecomposer
 {
     label pi = 0;
 
+    // faceProcAddressing not required currently
+    // labelList decodedProcFaceAddressing(faceProcAddressing.size());
+
+    // forAll(faceProcAddressing, i)
+    // {
+    //     decodedProcFaceAddressing[i] = mag(faceProcAddressing[i]) - 1;
+    // }
+
     forAll(cellProcAddressing, procCelli)
     {
         label celli = cellProcAddressing[procCelli];
@@ -61,18 +64,46 @@ lagrangianFieldDecomposer::lagrangianFieldDecomposer
         {
             SLList<indexedParticle*>& particlePtrs = *cellParticles[celli];
 
-            forAllIter(SLList<indexedParticle*>, particlePtrs, iter)
+            forAllConstIter(SLList<indexedParticle*>, particlePtrs, iter)
             {
                 const indexedParticle& ppi = *iter();
                 particleIndices_[pi++] = ppi.index();
+
+                // label mappedTetFace = findIndex
+                // (
+                //     decodedProcFaceAddressing,
+                //     ppi.tetFace()
+                // );
+
+                // if (mappedTetFace == -1)
+                // {
+                //     FatalErrorIn
+                //     (
+                //         "Foam::lagrangianFieldDecomposer"
+                //         "::lagrangianFieldDecomposer"
+                //         "("
+                //             "const polyMesh& mesh, "
+                //             "const polyMesh& procMesh, "
+                //             "const labelList& faceProcAddressing, "
+                //             "const labelList& cellProcAddressing, "
+                //             "const word& cloudName, "
+                //             "const Cloud<indexedParticle>& "
+                //             "lagrangianPositions, "
+                //             "const List<SLList<indexedParticle*>*>& "
+                //             "cellParticles"
+                //         ")"
+                //     )   << "Face lookup failure." << nl
+                //         << abort(FatalError);
+                // }
 
                 positions_.append
                 (
                     new passiveParticle
                     (
-                        positions_,
+                        procMesh,
                         ppi.position(),
-                        procCelli
+                        procCelli,
+                        false
                     )
                 );
             }
@@ -81,12 +112,8 @@ lagrangianFieldDecomposer::lagrangianFieldDecomposer
 
     particleIndices_.setSize(pi);
 
-    IOPosition<passiveParticle>(positions_).write();
+    IOPosition<Cloud<passiveParticle> >(positions_).write();
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

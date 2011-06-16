@@ -36,7 +36,7 @@ void Foam::patchProbes::sampleAndWrite
     const GeometricField<Type, fvPatchField, volMesh>& vField
 )
 {
-    Field<Type> values = sample(vField);
+    Field<Type> values(sample(vField));
 
     if (Pstream::master())
     {
@@ -71,30 +71,30 @@ void Foam::patchProbes::sampleAndWrite
                     IOobject
                     (
                         fields[fieldI],
-                        obr_.time().timeName(),
-                        refCast<const polyMesh>(obr_),
+                        mesh_.time().timeName(),
+                        mesh_,
                         IOobject::MUST_READ,
                         IOobject::NO_WRITE,
                         false
                     ),
-                    refCast<const fvMesh>(obr_)
+                    mesh_
                 )
             );
         }
         else
         {
-            objectRegistry::const_iterator iter = obr_.find(fields[fieldI]);
+            objectRegistry::const_iterator iter = mesh_.find(fields[fieldI]);
 
             if
             (
-                iter != obr_.end()
+                iter != objectRegistry::end()
              && iter()->type()
              == GeometricField<Type, fvPatchField, volMesh>::typeName
             )
             {
                 sampleAndWrite
                 (
-                    obr_.lookupObject
+                    mesh_.lookupObject
                     <GeometricField<Type, fvPatchField, volMesh> >
                     (
                         fields[fieldI]
@@ -119,14 +119,14 @@ Foam::patchProbes::sample
 
     tmp<Field<Type> > tValues
     (
-        new Field<Type>(probeLocations_.size(), unsetVal)
+        new Field<Type>(this->size(), unsetVal)
     );
 
     Field<Type>& values = tValues();
 
-    const polyBoundaryMesh& patches = vField.mesh().boundaryMesh();
+    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
-    forAll(probeLocations_, probeI)
+    forAll(*this, probeI)
     {
         label faceI = elementList_[probeI];
 
@@ -151,7 +151,7 @@ Foam::patchProbes::sample(const word& fieldName) const
 {
     return sample
     (
-        obr_.lookupObject<GeometricField<Type, fvPatchField, volMesh> >
+        mesh_.lookupObject<GeometricField<Type, fvPatchField, volMesh> >
         (
             fieldName
         )

@@ -55,6 +55,32 @@ void epsilonWallFunctionFvPatchScalarField::checkType()
 }
 
 
+scalar epsilonWallFunctionFvPatchScalarField::calcYPlusLam
+(
+    const scalar kappa,
+    const scalar E
+) const
+{
+    scalar ypl = 11.0;
+
+    for (int i=0; i<10; i++)
+    {
+        ypl = log(E*ypl)/kappa;
+    }
+
+    return ypl;
+}
+
+
+void epsilonWallFunctionFvPatchScalarField::writeLocalEntries(Ostream& os) const
+{
+    writeEntryIfDifferent<word>(os, "G", "RASModel::G", GName_);
+    os.writeKeyword("Cmu") << Cmu_ << token::END_STATEMENT << nl;
+    os.writeKeyword("kappa") << kappa_ << token::END_STATEMENT << nl;
+    os.writeKeyword("E") << E_ << token::END_STATEMENT << nl;
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
@@ -64,14 +90,13 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(p, iF),
-    UName_("U"),
-    kName_("k"),
     GName_("RASModel::G"),
-    muName_("mu"),
-    mutName_("mut"),
     Cmu_(0.09),
     kappa_(0.41),
-    E_(9.8)
+    E_(9.8),
+    yPlusLam_(calcYPlusLam(kappa_, E_))
+
+
 {
     checkType();
 }
@@ -86,14 +111,12 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ptf, p, iF, mapper),
-    UName_(ptf.UName_),
-    kName_(ptf.kName_),
     GName_(ptf.GName_),
-    muName_(ptf.muName_),
-    mutName_(ptf.mutName_),
     Cmu_(ptf.Cmu_),
     kappa_(ptf.kappa_),
-    E_(ptf.E_)
+    E_(ptf.E_),
+    yPlusLam_(ptf.yPlusLam_)
+
 {
     checkType();
 }
@@ -107,14 +130,12 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(p, iF, dict),
-    UName_(dict.lookupOrDefault<word>("U", "U")),
-    kName_(dict.lookupOrDefault<word>("k", "k")),
     GName_(dict.lookupOrDefault<word>("G", "RASModel::G")),
-    muName_(dict.lookupOrDefault<word>("mu", "mu")),
-    mutName_(dict.lookupOrDefault<word>("mut", "mut")),
     Cmu_(dict.lookupOrDefault<scalar>("Cmu", 0.09)),
     kappa_(dict.lookupOrDefault<scalar>("kappa", 0.41)),
-    E_(dict.lookupOrDefault<scalar>("E", 9.8))
+    E_(dict.lookupOrDefault<scalar>("E", 9.8)),
+    yPlusLam_(calcYPlusLam(kappa_, E_))
+
 {
     checkType();
 }
@@ -126,14 +147,11 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ewfpsf),
-    UName_(ewfpsf.UName_),
-    kName_(ewfpsf.kName_),
     GName_(ewfpsf.GName_),
-    muName_(ewfpsf.muName_),
-    mutName_(ewfpsf.mutName_),
     Cmu_(ewfpsf.Cmu_),
     kappa_(ewfpsf.kappa_),
-    E_(ewfpsf.E_)
+    E_(ewfpsf.E_),
+    yPlusLam_(ewfpsf.yPlusLam_)
 {
     checkType();
 }
@@ -146,14 +164,11 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ewfpsf, iF),
-    UName_(ewfpsf.UName_),
-    kName_(ewfpsf.kName_),
     GName_(ewfpsf.GName_),
-    muName_(ewfpsf.muName_),
-    mutName_(ewfpsf.mutName_),
     Cmu_(ewfpsf.Cmu_),
     kappa_(ewfpsf.kappa_),
-    E_(ewfpsf.E_)
+    E_(ewfpsf.E_),
+    yPlusLam_(ewfpsf.yPlusLam_)
 {
     checkType();
 }
@@ -168,31 +183,36 @@ void epsilonWallFunctionFvPatchScalarField::updateCoeffs()
         return;
     }
 
+    const label patchI = patch().index();
+
     const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
 
-    const scalar Cmu25 = pow(Cmu_, 0.25);
+    const scalar Cmu25 = pow025(Cmu_);
     const scalar Cmu75 = pow(Cmu_, 0.75);
 
-    const scalarField& y = rasModel.y()[patch().index()];
+    const scalarField& y = rasModel.y()[patchI];
 
-    volScalarField& G = const_cast<volScalarField&>
-        (db().lookupObject<volScalarField>(GName_));
+    volScalarField& G =
+        const_cast<volScalarField&>(db().lookupObject<volScalarField>(GName_));
 
-    volScalarField& epsilon = const_cast<volScalarField&>
-        (db().lookupObject<volScalarField>(dimensionedInternalField().name()));
+    DimensionedField<scalar, volMesh>& epsilon =
+        const_cast<DimensionedField<scalar, volMesh>&>
+        (
+            dimensionedInternalField()
+        );
 
-    const volScalarField& k = db().lookupObject<volScalarField>(kName_);
+    const tmp<volScalarField> tk = rasModel.k();
+    const volScalarField& k = tk();
 
-    const scalarField& muw =
-        patch().lookupPatchField<volScalarField, scalar>(muName_);
+    const scalarField& muw = rasModel.mu().boundaryField()[patchI];
 
-    const scalarField& mutw =
-        patch().lookupPatchField<volScalarField, scalar>(mutName_);
+    const tmp<volScalarField> tmut = rasModel.mut();
+    const volScalarField& mut = tmut();
+    const scalarField& mutw = mut.boundaryField()[patchI];
 
-    const fvPatchVectorField& Uw =
-        patch().lookupPatchField<volVectorField, vector>(UName_);
+    const fvPatchVectorField& Uw = rasModel.U().boundaryField()[patchI];
 
-    const scalarField magGradUw = mag(Uw.snGrad());
+    const scalarField magGradUw(mag(Uw.snGrad()));
 
     // Set epsilon and G
     forAll(mutw, faceI)
@@ -208,9 +228,9 @@ void epsilonWallFunctionFvPatchScalarField::updateCoeffs()
            /(kappa_*y[faceI]);
     }
 
-    // TODO: perform averaging for cells sharing more than one boundary face
-
     fixedInternalValueFvPatchField<scalar>::updateCoeffs();
+
+    // TODO: perform averaging for cells sharing more than one boundary face
 }
 
 
@@ -226,14 +246,7 @@ void epsilonWallFunctionFvPatchScalarField::evaluate
 void epsilonWallFunctionFvPatchScalarField::write(Ostream& os) const
 {
     fixedInternalValueFvPatchField<scalar>::write(os);
-    writeEntryIfDifferent<word>(os, "U", "U", UName_);
-    writeEntryIfDifferent<word>(os, "k", "k", kName_);
-    writeEntryIfDifferent<word>(os, "G", "RASModel::G", GName_);
-    writeEntryIfDifferent<word>(os, "mu", "mu", muName_);
-    writeEntryIfDifferent<word>(os, "mut", "mut", mutName_);
-    os.writeKeyword("Cmu") << Cmu_ << token::END_STATEMENT << nl;
-    os.writeKeyword("kappa") << kappa_ << token::END_STATEMENT << nl;
-    os.writeKeyword("E") << E_ << token::END_STATEMENT << nl;
+    writeLocalEntries(os);
     writeEntry("value", os);
 }
 

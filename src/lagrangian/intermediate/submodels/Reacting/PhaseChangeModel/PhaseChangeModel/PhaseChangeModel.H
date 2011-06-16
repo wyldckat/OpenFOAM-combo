@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     PhaseChangeModel.C
-    NewPhaseChangeModel.C
+    PhaseChangeModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -39,6 +39,7 @@ SourceFiles
 #include "IOdictionary.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
+#include "SubModelBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,6 +52,8 @@ namespace Foam
 
 template<class CloudType>
 class PhaseChangeModel
+:
+    public SubModelBase<CloudType>
 {
 public:
 
@@ -71,20 +74,11 @@ protected:
 
     // Protected data
 
-        //- The cloud dictionary
-        const dictionary& dict_;
-
-        //- Reference to the owner cloud class
-        CloudType& owner_;
-
-        //- The coefficient dictionary
-        const dictionary coeffDict_;
-
         //- Enthalpy transfer type enumeration
         enthalpyTransferType enthalpyTransfer_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Convert word to enthalpy transfer type
         enthalpyTransferType wordToEnthalpyTransfer(const word& etName) const;
@@ -96,7 +90,7 @@ protected:
 public:
 
     //- Runtime type information
-    TypeName("PhaseChangeModel");
+    TypeName("phaseChangeModel");
 
     //- Declare runtime constructor selection table
     declareRunTimeSelectionTable
@@ -125,6 +119,18 @@ public:
             const word& type
         );
 
+        //- Construct copy
+        PhaseChangeModel(const PhaseChangeModel<CloudType>& pcm);
+
+        //- Construct and return a clone
+        virtual autoPtr<PhaseChangeModel<CloudType> > clone() const
+        {
+            return autoPtr<PhaseChangeModel<CloudType> >
+            (
+                new PhaseChangeModel<CloudType>(*this)
+            );
+        }
+
 
     //- Destructor
     virtual ~PhaseChangeModel();
@@ -140,23 +146,11 @@ public:
 
     // Access
 
-        //- Return the owner cloud object
-        const CloudType& owner() const;
-
-        //- Return the cloud dictionary
-        const dictionary& dict() const;
-
-        //- Return the coefficient dictionary
-        const dictionary& coeffDict() const;
-
         //- Return the enthalpy transfer type enumeration
         const enthalpyTransferType& enthalpyTransfer() const;
 
 
     // Member Functions
-
-        //- Flag to indicate whether model activates phase change model
-        virtual bool active() const = 0;
 
         //- Update model
         virtual void calculate
@@ -170,7 +164,16 @@ public:
             const scalar Ts,
             const scalar pc,
             scalarField& dMassPC
-        ) const = 0;
+        ) const;
+
+        //- Return the enthalpy per unit mass
+        virtual scalar dh
+        (
+            const label idc,
+            const label idl,
+            const label p,
+            const label T
+        ) const;
 };
 
 
@@ -182,27 +185,27 @@ public:
 
 #define makePhaseChangeModel(CloudType)                                       \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(PhaseChangeModel<CloudType>, 0);      \
-                                                                              \
+    typedef CloudType::reactingCloudType reactingCloudType;                   \
+    defineNamedTemplateTypeNameAndDebug                                       \
+    (                                                                         \
+        PhaseChangeModel<reactingCloudType>,                                  \
+        0                                                                     \
+    );                                                                        \
     defineTemplateRunTimeSelectionTable                                       \
     (                                                                         \
-        PhaseChangeModel<CloudType>,                                          \
+        PhaseChangeModel<reactingCloudType>,                                  \
         dictionary                                                            \
     );
 
 
-#define makePhaseChangeModelThermoType(SS, CloudType, ParcelType, ThermoType) \
+#define makePhaseChangeModelType(SS, CloudType)                               \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug                                       \
-    (                                                                         \
-        SS<CloudType<ParcelType<ThermoType> > >,                              \
-        0                                                                     \
-    );                                                                        \
+    typedef CloudType::reactingCloudType reactingCloudType;                   \
+    defineNamedTemplateTypeNameAndDebug(SS<reactingCloudType>, 0);            \
                                                                               \
-    PhaseChangeModel<CloudType<ParcelType<ThermoType> > >::                   \
-        adddictionaryConstructorToTable                                       \
-            <SS<CloudType<ParcelType<ThermoType> > > >                        \
-            add##SS##CloudType##ParcelType##ThermoType##ConstructorToTable_;
+    PhaseChangeModel<reactingCloudType>::                                     \
+        adddictionaryConstructorToTable<SS<reactingCloudType> >               \
+            add##SS##CloudType##reactingCloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

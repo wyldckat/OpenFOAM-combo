@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,7 +50,7 @@ namespace Foam
 class OFstream;
 
 /*---------------------------------------------------------------------------*\
-                       Class OFstreamAllocator Declaration
+                      Class OFstreamAllocator Declaration
 \*---------------------------------------------------------------------------*/
 
 //- A std::ostream with ability to handle compressed files
@@ -69,22 +69,14 @@ class OFstreamAllocator
             IOstream::compressionType compression=IOstream::UNCOMPRESSED
         );
 
-    // Destructor
+    //- Destructor
+    ~OFstreamAllocator();
 
-        ~OFstreamAllocator();
-
-
-public:
-
-    // Member functions
-
-        //- Access to underlying std::ostream
-        ostream& stdStream();
 };
 
 
 /*---------------------------------------------------------------------------*\
-                           Class OFstream Declaration
+                          Class OFstream Declaration
 \*---------------------------------------------------------------------------*/
 
 class OFstream
@@ -115,9 +107,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~OFstream();
+    //- Destructor
+    ~OFstream();
 
 
     // Member functions
@@ -137,6 +128,15 @@ public:
             }
 
 
+        // STL stream
+
+            //- Access to underlying std::ostream
+            virtual ostream& stdStream();
+
+            //- Const access to underlying std::ostream
+            virtual const ostream& stdStream() const;
+
+
         // Print
 
             //- Print description of IOstream to Ostream
@@ -145,8 +145,8 @@ public:
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Global predefined null output stream
 
+//- Global predefined null output stream "/dev/null"
 extern OFstream Snull;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

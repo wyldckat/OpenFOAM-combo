@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,6 @@ License
 
 #include "volPointInterpolation.H"
 #include "sampledCuttingPlane.H"
-#include "isoSurface.H"
 #include "volFieldsFwd.H"
 #include "pointFields.H"
 #include "volPointInterpolation.H"
@@ -66,7 +65,15 @@ Foam::sampledCuttingPlane::interpolateField
             volPointInterpolation::New(volSubFld.mesh()).interpolate(volSubFld);
 
         // Sample.
-        return surface().interpolate(volSubFld, tpointSubFld());
+        return surface().interpolate
+        (
+            (
+                average_
+              ? pointAverage(tpointSubFld())()
+              : volSubFld
+            ),
+            tpointSubFld()
+        );
     }
     else
     {
@@ -76,7 +83,15 @@ Foam::sampledCuttingPlane::interpolateField
         );
 
         // Sample.
-        return surface().interpolate(volFld, tpointFld());
+        return surface().interpolate
+        (
+            (
+                average_
+              ? pointAverage(tpointFld())()
+              : volFld
+            ),
+            tpointFld()
+        );
     }
 }
 

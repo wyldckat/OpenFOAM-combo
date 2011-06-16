@@ -38,7 +38,7 @@ SourceFiles
 #ifndef compressibleMutLowReWallFunctionFvPatchScalarField_H
 #define compressibleMutLowReWallFunctionFvPatchScalarField_H
 
-#include "mutWallFunctionFvPatchScalarField.H"
+#include "mutkWallFunctionFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -55,11 +55,11 @@ namespace RASModels
 
 class mutLowReWallFunctionFvPatchScalarField
 :
-    public mutWallFunctionFvPatchScalarField
+    public mutkWallFunctionFvPatchScalarField
 {
 protected:
 
-    // Private member functions
+    // Private Member Functions
 
         //- Calculate the turbulence viscosity
         virtual tmp<scalarField> calcMut() const;

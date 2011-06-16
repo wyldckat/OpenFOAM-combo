@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,6 +36,38 @@ int Foam::regIOobject::fileModificationSkew
     Foam::debug::optimisationSwitch("fileModificationSkew", 30)
 );
 
+namespace Foam
+{
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::regIOobject::fileCheckTypes,
+        4
+    >::names[] =
+    {
+        "timeStamp",
+        "timeStampMaster",
+        "inotify",
+        "inotifyMaster"
+    };
+}
+
+
+const Foam::NamedEnum<Foam::regIOobject::fileCheckTypes, 4>
+    Foam::regIOobject::fileCheckTypesNames;
+
+// Default fileCheck type
+Foam::regIOobject::fileCheckTypes Foam::regIOobject::fileModificationChecking
+(
+    fileCheckTypesNames.read
+    (
+        debug::optimisationSwitches().lookup
+        (
+            "fileModificationChecking"
+        )
+    )
+);
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -45,7 +77,7 @@ Foam::regIOobject::regIOobject(const IOobject& io, const bool isTime)
     IOobject(io),
     registered_(false),
     ownedByRegistry_(false),
-    lastModified_(0),
+    watchIndex_(-1),
     eventNo_                // Do not get event for top level Time database
     (
         isTime
@@ -68,7 +100,7 @@ Foam::regIOobject::regIOobject(const regIOobject& rio)
     IOobject(rio),
     registered_(false),
     ownedByRegistry_(false),
-    lastModified_(rio.lastModified_),
+    watchIndex_(rio.watchIndex_),
     eventNo_(db().getEvent()),
     isPtr_(NULL)
 {
@@ -83,7 +115,7 @@ Foam::regIOobject::regIOobject(const regIOobject& rio, bool registerCopy)
     IOobject(rio),
     registered_(false),
     ownedByRegistry_(false),
-    lastModified_(rio.lastModified_),
+    watchIndex_(-1),
     eventNo_(db().getEvent()),
     isPtr_(NULL)
 {
@@ -133,6 +165,31 @@ bool Foam::regIOobject::checkIn()
         // any mapping
         registered_ = db().checkIn(*this);
 
+        if
+        (
+            registered_
+         && readOpt() == MUST_READ_IF_MODIFIED
+         && time().runTimeModifiable()
+        )
+        {
+            if (watchIndex_ != -1)
+            {
+                FatalErrorIn("regIOobject::checkIn()")
+                    << "Object " << objectPath()
+                    << " already watched with index " << watchIndex_
+                    << abort(FatalError);
+            }
+
+            fileName f = filePath();
+            if (!f.size())
+            {
+                // We don't have this file but would like to re-read it.
+                // Possibly if master-only reading mode.
+                f = objectPath();
+            }
+            watchIndex_ = time().addWatch(f);
+        }
+
         // check-in on defaultRegion is allowed to fail, since subsetted meshes
         // are created with the same name as their originating mesh
         if (!registered_ && debug && name() != polyMesh::defaultRegion)
@@ -165,6 +222,12 @@ bool Foam::regIOobject::checkOut()
     if (registered_)
     {
         registered_ = false;
+
+        if (watchIndex_ != -1)
+        {
+            time().removeWatch(watchIndex_);
+            watchIndex_ = -1;
+        }
         return db().checkOut(*this);
     }
 
@@ -172,9 +235,9 @@ bool Foam::regIOobject::checkOut()
 }
 
 
-bool Foam::regIOobject::upToDate(const word& a) const
+bool Foam::regIOobject::upToDate(const regIOobject& a) const
 {
-    if (db().lookupObject<regIOobject>(a).eventNo() >= eventNo_)
+    if (a.eventNo() >= eventNo_)
     {
         return false;
     }
@@ -185,12 +248,16 @@ bool Foam::regIOobject::upToDate(const word& a) const
 }
 
 
-bool Foam::regIOobject::upToDate(const word& a, const word& b) const
+bool Foam::regIOobject::upToDate
+(
+    const regIOobject& a,
+    const regIOobject& b
+) const
 {
     if
     (
-        db().lookupObject<regIOobject>(a).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(b).eventNo() >= eventNo_
+        a.eventNo() >= eventNo_
+     || b.eventNo() >= eventNo_
     )
     {
         return false;
@@ -204,16 +271,16 @@ bool Foam::regIOobject::upToDate(const word& a, const word& b) const
 
 bool Foam::regIOobject::upToDate
 (
-    const word& a,
-    const word& b,
-    const word& c
+    const regIOobject& a,
+    const regIOobject& b,
+    const regIOobject& c
 ) const
 {
     if
     (
-        db().lookupObject<regIOobject>(a).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(b).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(c).eventNo() >= eventNo_
+        a.eventNo() >= eventNo_
+     || b.eventNo() >= eventNo_
+     || c.eventNo() >= eventNo_
     )
     {
         return false;
@@ -227,18 +294,18 @@ bool Foam::regIOobject::upToDate
 
 bool Foam::regIOobject::upToDate
 (
-    const word& a,
-    const word& b,
-    const word& c,
-    const word& d
+    const regIOobject& a,
+    const regIOobject& b,
+    const regIOobject& c,
+    const regIOobject& d
 ) const
 {
     if
     (
-        db().lookupObject<regIOobject>(a).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(b).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(c).eventNo() >= eventNo_
-     || db().lookupObject<regIOobject>(d).eventNo() >= eventNo_
+        a.eventNo() >= eventNo_
+     || b.eventNo() >= eventNo_
+     || c.eventNo() >= eventNo_
+     || d.eventNo() >= eventNo_
     )
     {
         return false;

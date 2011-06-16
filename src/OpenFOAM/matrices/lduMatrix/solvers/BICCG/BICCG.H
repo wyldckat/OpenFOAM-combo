@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Description
 
 Deprecated
     This solver is present for backward-compatibility and the PBiCG solver
-    should be used instead.
+    should be used instead. (deprecated Apr 2008)
 
 SourceFiles
     BICCG.C
@@ -109,10 +109,9 @@ public:
             const scalar relTol = 0.0
         );
 
-    // Destructor
-
-        virtual ~BICCG()
-        {}
+    //- Destructor
+    virtual ~BICCG()
+    {}
 
 };
 

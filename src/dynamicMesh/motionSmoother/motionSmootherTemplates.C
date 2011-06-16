@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ License
 #include "motionSmoother.H"
 #include "meshTools.H"
 #include "processorPointPatchFields.H"
-#include "globalPointPatchFields.H"
 #include "pointConstraint.H"
 #include "syncTools.H"
 
@@ -50,7 +49,7 @@ void Foam::motionSmoother::checkConstraints
 
     forAll(bm, patchi)
     {
-        if(!isA<emptyPolyPatch>(bm[patchi]))
+        if (!isA<emptyPolyPatch>(bm[patchi]))
         {
             nPatchPatchPoints += bm[patchi].boundaryPoints().size();
         }
@@ -80,7 +79,7 @@ void Foam::motionSmoother::checkConstraints
 
     forAll(bm, patchi)
     {
-        if(!isA<emptyPolyPatch>(bm[patchi]))
+        if (!isA<emptyPolyPatch>(bm[patchi]))
         {
             const labelList& bp = bm[patchi].boundaryPoints();
             const labelList& meshPoints = bm[patchi].meshPoints();
@@ -92,7 +91,7 @@ void Foam::motionSmoother::checkConstraints
             }
         }
     }
-    
+
 
     // Forward evaluation
 
@@ -105,7 +104,7 @@ void Foam::motionSmoother::checkConstraints
 
     forAll(bm, patchi)
     {
-        if(!isA<emptyPolyPatch>(bm[patchi]))
+        if (!isA<emptyPolyPatch>(bm[patchi]))
         {
             const labelList& bp = bm[patchi].boundaryPoints();
             const labelList& meshPoints = bm[patchi].meshPoints();
@@ -156,11 +155,10 @@ void Foam::motionSmoother::applyCornerConstraints
 // Average of connected points.
 template <class Type>
 Foam::tmp<Foam::GeometricField<Type, Foam::pointPatchField, Foam::pointMesh> >
- Foam::motionSmoother::avg
+Foam::motionSmoother::avg
 (
     const GeometricField<Type, pointPatchField, pointMesh>& fld,
-    const scalarField& edgeWeight,
-    const bool separation
+    const scalarField& edgeWeight
 ) const
 {
     tmp<GeometricField<Type, pointPatchField, pointMesh> > tres
@@ -173,7 +171,8 @@ Foam::tmp<Foam::GeometricField<Type, Foam::pointPatchField, Foam::pointMesh> >
                 fld.time().timeName(),
                 fld.db(),
                 IOobject::NO_READ,
-                IOobject::NO_WRITE
+                IOobject::NO_WRITE,
+                false
             ),
             fld.mesh(),
             dimensioned<Type>("zero", fld.dimensions(), pTraits<Type>::zero)
@@ -218,17 +217,14 @@ Foam::tmp<Foam::GeometricField<Type, Foam::pointPatchField, Foam::pointMesh> >
         mesh,
         res,
         plusEqOp<Type>(),
-        pTraits<Type>::zero,    // null value
-        separation              // separation
+        pTraits<Type>::zero     // null value
     );
-
     syncTools::syncPointList
     (
         mesh,
         sumWeight,
         plusEqOp<scalar>(),
-        scalar(0),              // null value
-        false                   // separation
+        scalar(0)               // null value
     );
 
 
@@ -261,16 +257,10 @@ void Foam::motionSmoother::smooth
 (
     const GeometricField<Type, pointPatchField, pointMesh>& fld,
     const scalarField& edgeWeight,
-    const bool separation,
     GeometricField<Type, pointPatchField, pointMesh>& newFld
 ) const
 {
-    tmp<pointVectorField> tavgFld = avg
-    (
-        fld,
-        edgeWeight, // weighting
-        separation  // whether to apply separation vector
-    );
+    tmp<pointVectorField> tavgFld = avg(fld, edgeWeight);
     const pointVectorField& avgFld = tavgFld();
 
     forAll(fld, pointI)
@@ -286,14 +276,13 @@ void Foam::motionSmoother::smooth
 }
 
 
-//- Test synchronisation of pointField
+//- Test synchronisation of generic field (not positions!) on points
 template<class Type, class CombineOp>
 void Foam::motionSmoother::testSyncField
 (
     const Field<Type>& fld,
     const CombineOp& cop,
     const Type& zero,
-    const bool separation,
     const scalar maxMag
 ) const
 {
@@ -310,8 +299,7 @@ void Foam::motionSmoother::testSyncField
         mesh_,
         syncedFld,
         cop,
-        zero,       // null value
-        separation  // separation
+        zero
     );
 
     forAll(syncedFld, i)

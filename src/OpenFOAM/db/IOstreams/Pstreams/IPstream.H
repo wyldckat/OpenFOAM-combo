@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,7 +37,7 @@ SourceFiles
 #ifndef IPstream_H
 #define IPstream_H
 
-#include "Istream.H"
+#include "UIPstream.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,26 +51,11 @@ namespace Foam
 class IPstream
 :
     public Pstream,
-    public Istream
+    public UIPstream
 {
-    // Private data
 
-        int fromProcNo_;
-        label messageSize_;
-
-
-    // Private member functions
-
-        //- Check the bufferPosition_ against messageSize_ for EOF
-        inline void checkEof();
-
-        //- Read a T from the transfer buffer
-        template<class T>
-        inline void readFromBuffer(T&);
-
-        //- Read data from the transfer buffer
-        inline void readFromBuffer(void* data, size_t count, size_t align);
-
+    //- Receive index
+    label externalBufPosition_;
 
 public:
 
@@ -87,82 +72,6 @@ public:
             versionNumber version=currentVersion
         );
 
-
-    // Destructor
-
-        ~IPstream();
-
-
-    // Member functions
-
-        // Inquiry
-
-            //- Return flags of output stream
-            ios_base::fmtflags flags() const
-            {
-                return ios_base::fmtflags(0);
-            }
-
-
-        // Read functions
-
-            //- Read into given buffer from given processor and return the
-            //  message size
-            static label read
-            (
-                const commsTypes commsType,
-                const int fromProcNo,
-                char* buf,
-                const std::streamsize bufSize
-            );
-
-            //- Non-blocking receives: wait until all have finished.
-            static void waitRequests();
-
-            //- Non-blocking receives: has request i finished?
-            static bool finishedRequest(const label i);
-
-            //- Return next token from stream
-            Istream& read(token&);
-
-            //- Read a character
-            Istream& read(char&);
-
-            //- Read a word
-            Istream& read(word&);
-
-            // Read a string (including enclosing double-quotes)
-            Istream& read(string&);
-
-            //- Read a label
-            Istream& read(label&);
-
-            //- Read a floatScalar
-            Istream& read(floatScalar&);
-
-            //- Read a doubleScalar
-            Istream& read(doubleScalar&);
-
-            //- Read binary block
-            Istream& read(char*, std::streamsize);
-
-            //- Rewind and return the stream so that it may be read again
-            Istream& rewind();
-
-
-        // Edit
-
-            //- Set flags of stream
-            ios_base::fmtflags flags(const ios_base::fmtflags)
-            {
-                return ios_base::fmtflags(0);
-            }
-
-
-        // Print
-
-            //- Print description of IOstream to Ostream
-            void print(Ostream&) const;
 };
 
 

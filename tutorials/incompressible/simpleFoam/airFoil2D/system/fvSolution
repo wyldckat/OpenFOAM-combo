@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -55,6 +55,13 @@ SIMPLE
     nNonOrthogonalCorrectors 0;
     pRefCell        0;
     pRefValue       0;
+
+    residualControl
+    {
+        p               1e-5;
+        U               1e-5;
+        nuTilda         1e-5;
+    }
 }
 
 relaxationFactors

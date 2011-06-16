@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,10 +29,10 @@ Description
     type in the field and polyMesh/boundary files.
 
     Reads dictionaries (fields) and entries to change from a dictionary.
-    E.g. to make the @em movingWall a @em fixedValue for @em p but all other
-    @em Walls a zeroGradient boundary condition, the
-    @c system/changeDictionaryDict would contain the following:
-    @verbatim
+    E.g. to make the \em movingWall a \em fixedValue for \em p but all other
+    \em Walls a zeroGradient boundary condition, the
+    \c system/changeDictionaryDict would contain the following:
+    \verbatim
     dictionaryReplacement
     {
         p                           // field to change
@@ -51,15 +51,17 @@ Description
             }
         }
     }
-    @endverbatim
+    \endverbatim
 
 Usage
 
     - changeDictionary [OPTION]
 
-    @param -literalRE \n
+    \param -literalRE \n
     Do not interpret regular expressions; treat them as any other keyword.
 
+    \param -enableFunctionEntries \n
+    By default all dictionary preprocessing of fields is disabled
 
 \*---------------------------------------------------------------------------*/
 
@@ -135,8 +137,6 @@ bool merge
     const bool literalRE
 )
 {
-    static bool wildCardInMergeDict = false;
-
     bool changed = false;
 
     // Save current (non-wildcard) keys before adding items.
@@ -209,19 +209,6 @@ bool merge
             {
                 // Find all matching entries in the original thisDict
 
-                if (!wildCardInMergeDict)
-                {
-                    wildCardInMergeDict = true;
-                    WarningIn("changeDictionary()")
-                        << "Detected wildcard " << key
-                        << " in changeDictionaryDict" << endl
-                        << "The behaviour of wildcards has changed -"
-                        << " they are now interpreted by changeDictionary."
-                        << endl << "Please take care or use the -literalRE"
-                        << " command line option to revert to"
-                        << " previous behaviour." << endl;
-                }
-
                 labelList matches = findStrings(key, thisKeys);
 
                 forAll(matches, i)
@@ -259,15 +246,29 @@ bool merge
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("instance", "instance");
-    argList::validOptions.insert("literalRE", "");
+    argList::addOption
+    (
+        "instance",
+        "name",
+        "specify alternate time instance - default is latest time"
+    );
+    argList::addBoolOption
+    (
+        "literalRE",
+        "treat regular expressions literally (ie, as a keyword)"
+    );
+    argList::addBoolOption
+    (
+        "enableFunctionEntries",
+        "enable expansion of dictionary directives - #include, #codeStream etc"
+    );
     #include "addRegionOption.H"
 
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createNamedMesh.H"
 
-    bool literalRE = args.optionFound("literalRE");
+    const bool literalRE = args.optionFound("literalRE");
 
     if (literalRE)
     {
@@ -275,6 +276,20 @@ int main(int argc, char *argv[])
             << " in the changeDictionaryDict." << endl
             << "Instead they are handled as any other entry, i.e. added if"
             << " not present." << endl;
+    }
+
+    const bool enableEntries = args.optionFound("enableFunctionEntries");
+    if (enableEntries)
+    {
+        Info<< "Allowing dictionary preprocessing ('#include', '#codeStream')."
+            << endl;
+    }
+
+    int oldFlag = entry::disableFunctionEntries;
+    if (!enableEntries)
+    {
+        // By default disable dictionary expansion for fields
+        entry::disableFunctionEntries = 1;
     }
 
 
@@ -290,6 +305,11 @@ int main(int argc, char *argv[])
         instance = args.options()["instance"];
     }
 
+    // Make sure we do not use the master-only reading since we read
+    // fields (different per processor) as dictionaries.
+    regIOobject::fileModificationChecking = regIOobject::timeStamp;
+
+
     // Get the replacement rules from a dictionary
     IOdictionary dict
     (
@@ -298,7 +318,7 @@ int main(int argc, char *argv[])
             "changeDictionaryDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -411,11 +431,12 @@ int main(int argc, char *argv[])
                     fieldName,
                     instance,
                     mesh,
-                    IOobject::MUST_READ,
+                    IOobject::MUST_READ_IF_MODIFIED,
                     IOobject::NO_WRITE,
                     false
                 )
             );
+
             const_cast<word&>(IOdictionary::typeName) = oldTypeName;
             // Fake type back to what was in field
             const_cast<word&>(fieldDict.type()) = fieldDict.headerClassName();
@@ -434,6 +455,8 @@ int main(int argc, char *argv[])
             fieldDict.regIOobject::write();
         }
     }
+
+    entry::disableFunctionEntries = oldFlag;
 
     Info<< endl;
 

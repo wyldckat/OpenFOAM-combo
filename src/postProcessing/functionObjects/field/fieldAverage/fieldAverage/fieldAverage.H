@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ Class
 Description
     Calculates the field averages given list of fieldAverageItems, e.g.
 
-    @verbatim
+    \verbatim
     fieldAverage1
     {
         // Type of functionObject
@@ -61,7 +61,7 @@ Description
                 base            time;
             }
         );
-    @endverbatim
+    \endverbatim
 
     Member function calcAverages() calculates the averages.
 
@@ -119,6 +119,7 @@ protected:
         //- Prime-squared average
         static const word EXT_PRIME2MEAN;
 
+
     // Private data
 
         //- Name of this set of field averages.
@@ -142,6 +143,7 @@ protected:
         //- List of field average items, describing what averages to be
         //  calculated and output
         List<fieldAverageItem> faItems_;
+
 
         // Lists of averages
 
@@ -219,7 +221,7 @@ protected:
             ) const;
 
 
-        // IO
+        // I-O
 
             //- Write averages
             virtual void writeAverages() const;
@@ -271,8 +273,7 @@ public:
 
 
     //- Destructor
-
-        virtual ~fieldAverage();
+    virtual ~fieldAverage();
 
 
     // Member Functions

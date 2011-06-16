@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,12 +28,13 @@ License
 #include "dictionary.H"
 #include "dsmcCloud.H"
 
+#include "constants.H"
+
+using namespace Foam::constant;
+
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(dsmcFields, 0);
-}
+defineTypeNameAndDebug(Foam::dsmcFields, 0);
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -57,7 +58,12 @@ Foam::dsmcFields::dsmcFields
         WarningIn
         (
             "dsmcFields::dsmcFields"
-            "(const objectRegistry&, const dictionary&)"
+            "("
+                "const word&, "
+                "const objectRegistry&, "
+                "const dictionary&, "
+                "const bool"
+            ")"
         )   << "No fvMesh available, deactivating." << nl
             << endl;
     }
@@ -137,7 +143,7 @@ void Foam::dsmcFields::write()
             iDofMeanName
         );
 
-        volVectorField fDMean =  obr_.lookupObject<volVectorField>
+        const volVectorField& fDMean = obr_.lookupObject<volVectorField>
         (
             fDMeanName
         );
@@ -169,8 +175,9 @@ void Foam::dsmcFields::write()
                     obr_,
                     IOobject::NO_READ
                 ),
-                2.0/(3.0*dsmcCloud::kb*rhoNMean)
-                *(linearKEMean - 0.5*rhoMMean*(UMean & UMean))
+
+                2.0/(3.0*physicoChemical::k.value()*rhoNMean)
+               *(linearKEMean - 0.5*rhoMMean*(UMean & UMean))
             );
 
             Info<< "    Calculating internalT field." << endl;
@@ -183,7 +190,7 @@ void Foam::dsmcFields::write()
                     obr_,
                     IOobject::NO_READ
                 ),
-                (2.0/dsmcCloud::kb)*(internalEMean/iDofMean)
+                (2.0/physicoChemical::k.value())*(internalEMean/iDofMean)
             );
 
             Info<< "    Calculating overallT field." << endl;
@@ -196,7 +203,7 @@ void Foam::dsmcFields::write()
                     obr_,
                     IOobject::NO_READ
                 ),
-                2.0/(dsmcCloud::kb*(3.0*rhoNMean + iDofMean))
+                2.0/(physicoChemical::k.value()*(3.0*rhoNMean + iDofMean))
                *(linearKEMean - 0.5*rhoMMean*(UMean & UMean) + internalEMean)
             );
 
@@ -210,7 +217,7 @@ void Foam::dsmcFields::write()
                     obr_,
                     IOobject::NO_READ
                 ),
-                dsmcCloud::kb*rhoNMean*translationalT
+                physicoChemical::k.value()*rhoNMean*translationalT
             );
 
             const fvMesh& mesh = fDMean.mesh();

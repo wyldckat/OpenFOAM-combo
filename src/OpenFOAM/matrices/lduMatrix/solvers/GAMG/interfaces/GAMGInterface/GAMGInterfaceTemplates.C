@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,7 @@ Foam::tmp<Foam::Field<Type> > Foam::GAMGInterface::interfaceInternalField
     tmp<Field<Type> > tresult(new Field<Type>(size()));
     Field<Type>& result = tresult();
 
-    forAll (result, elemI)
+    forAll(result, elemI)
     {
         result[elemI] = iF[faceCells_[elemI]];
     }

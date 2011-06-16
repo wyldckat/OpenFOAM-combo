@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,10 +40,9 @@ Description
 #include "cellSet.H"
 #include "faceSet.H"
 #include "DynamicList.H"
-#include "triSurface.H"
-#include "SortableList.H"
 
 #include <cassert>
+#include "MeshedSurfaces.H"
 
 using namespace Foam;
 
@@ -114,7 +113,7 @@ void readHeader(IFstream& is)
         }
         else
         {
-            Sout<< line << endl;
+            Info<< line << endl;
         }
     }
 }
@@ -123,7 +122,7 @@ void readHeader(IFstream& is)
 // Skip
 void skipSection(IFstream& is)
 {
-    Sout<< "Skipping section at line " << is.lineNumber() << '.' << endl;
+    Info<< "Skipping section at line " << is.lineNumber() << '.' << endl;
 
     string line;
 
@@ -160,19 +159,19 @@ void readUnits
     scalar& tempOffset
 )
 {
-    Sout<< "Starting reading units at line " << is.lineNumber() << '.' << endl;
+    Info<< "Starting reading units at line " << is.lineNumber() << '.' << endl;
 
     string line;
     is.getLine(line);
 
     label l = readLabel(IStringStream(line.substr(0, 10))());
-    Sout<< "l:" << l << endl;
+    Info<< "l:" << l << endl;
 
     string units(line.substr(10, 20));
-    Sout<< "units:" << units << endl;
+    Info<< "units:" << units << endl;
 
     label unitType = readLabel(IStringStream(line.substr(30, 10))());
-    Sout<< "unitType:" << unitType << endl;
+    Info<< "unitType:" << unitType << endl;
 
     // Read lengthscales
     is.getLine(line);
@@ -184,7 +183,7 @@ void readUnits
     is.getLine(line);
     tempOffset = readUnvScalar(line.substr(0, 25));
 
-    Sout<< "Unit factors:" << nl
+    Info<< "Unit factors:" << nl
         << "    Length scale       : " << lengthScale << nl
         << "    Force scale        : " << forceScale << nl
         << "    Temperature scale  : " << tempScale << nl
@@ -201,7 +200,7 @@ void readPoints
     DynamicList<label>& unvPointID  // unv index
 )
 {
-    Sout<< "Starting reading points at line " << is.lineNumber() << '.' << endl;
+    Info<< "Starting reading points at line " << is.lineNumber() << '.' << endl;
 
     static bool hasWarned = false;
 
@@ -244,7 +243,7 @@ void readPoints
     points.shrink();
     unvPointID.shrink();
 
-    Sout<< "Read " << points.size() << " points." << endl;
+    Info<< "Read " << points.size() << " points." << endl;
 }
 
 void addAndExtend
@@ -275,7 +274,7 @@ void readCells
     DynamicList<label>& unvPointID  // unv index
 )
 {
-    Sout<< "Starting reading cells at line " << is.lineNumber() << '.' << endl;
+    Info<< "Starting reading cells at line " << is.lineNumber() << '.' << endl;
 
     // Invert point numbering.
     label maxUnvPoint = 0;
@@ -304,9 +303,11 @@ void readCells
             break;
         }
 
-        IStringStream lineStr(line);
         label cellI, feID, physProp, matProp, colour, nNodes;
-        lineStr >> cellI >> feID >> physProp >> matProp >> colour >> nNodes;
+
+        IStringStream lineStr(line);
+        lineStr
+            >> cellI >> feID >> physProp >> matProp >> colour >> nNodes;
 
         if (foundFeType.insert(feID))
         {
@@ -333,7 +334,8 @@ void readCells
 
             face cVerts(3);
             IStringStream lineStr(line);
-            lineStr >> cVerts[0] >> cVerts[1] >> cVerts[2];
+            lineStr
+                >> cVerts[0] >> cVerts[1] >> cVerts[2];
             boundaryFaces.append(cVerts);
             boundaryFaceIndices.append(cellI);
         }
@@ -344,7 +346,8 @@ void readCells
 
             face cVerts(4);
             IStringStream lineStr(line);
-            lineStr >> cVerts[0] >> cVerts[1] >> cVerts[2] >> cVerts[3];
+            lineStr
+                >> cVerts[0] >> cVerts[1] >> cVerts[2] >> cVerts[3];
             boundaryFaces.append(cVerts);
             boundaryFaceIndices.append(cellI);
         }
@@ -355,19 +358,20 @@ void readCells
 
             labelList cVerts(4);
             IStringStream lineStr(line);
-            lineStr >> cVerts[0] >> cVerts[1] >> cVerts[2] >> cVerts[3];
+            lineStr
+                >> cVerts[0] >> cVerts[1] >> cVerts[2] >> cVerts[3];
 
             cellVerts.append(cellShape(tet, cVerts, true));
             cellMaterial.append(physProp);
             addAndExtend(cellCorrespondence,cellI,cellMaterial.size()-1);
 
-            if (cellVerts[cellVerts.size()-1].size() != cVerts.size())
+            if (cellVerts.last().size() != cVerts.size())
             {
-                Pout<< "Line:" << is.lineNumber()
+                Info<< "Line:" << is.lineNumber()
                     << " element:" << cellI
                     << " type:" << feID
                     << " collapsed from " << cVerts << nl
-                    << " to:" << cellVerts[cellVerts.size()-1]
+                    << " to:" << cellVerts.last()
                     << endl;
             }
         }
@@ -378,20 +382,21 @@ void readCells
 
             labelList cVerts(6);
             IStringStream lineStr(line);
-            lineStr >> cVerts[0] >> cVerts[1] >> cVerts[2] >> cVerts[3]
-                    >> cVerts[4] >> cVerts[5];
+            lineStr
+                >> cVerts[0] >> cVerts[1] >> cVerts[2]
+                >> cVerts[3] >> cVerts[4] >> cVerts[5];
 
             cellVerts.append(cellShape(prism, cVerts, true));
             cellMaterial.append(physProp);
             addAndExtend(cellCorrespondence,cellI,cellMaterial.size()-1);
 
-            if (cellVerts[cellVerts.size()-1].size() != cVerts.size())
+            if (cellVerts.last().size() != cVerts.size())
             {
-                Pout<< "Line:" << is.lineNumber()
+                Info<< "Line:" << is.lineNumber()
                     << " element:" << cellI
                     << " type:" << feID
                     << " collapsed from " << cVerts << nl
-                    << " to:" << cellVerts[cellVerts.size()-1]
+                    << " to:" << cellVerts.last()
                     << endl;
             }
         }
@@ -410,20 +415,19 @@ void readCells
             cellMaterial.append(physProp);
             addAndExtend(cellCorrespondence,cellI,cellMaterial.size()-1);
 
-            if (cellVerts[cellVerts.size()-1].size() != cVerts.size())
+            if (cellVerts.last().size() != cVerts.size())
             {
-                Pout<< "Line:" << is.lineNumber()
+                Info<< "Line:" << is.lineNumber()
                     << " element:" << cellI
                     << " type:" << feID
                     << " collapsed from " << cVerts << nl
-                    << " to:" << cellVerts[cellVerts.size()-1]
+                    << " to:" << cellVerts.last()
                     << endl;
             }
         }
         else if (feID == 118)
         {
             // Parabolic Tet
-
             is.getLine(line);
 
             labelList cVerts(4);
@@ -431,8 +435,7 @@ void readCells
             {
                 IStringStream lineStr(line);
                 lineStr
-                    >> cVerts[0] >> dummy >> cVerts[1] >> dummy
-                    >> cVerts[2];
+                    >> cVerts[0] >> dummy >> cVerts[1] >> dummy >> cVerts[2];
             }
             is.getLine(line);
             {
@@ -444,13 +447,13 @@ void readCells
             cellMaterial.append(physProp);
             addAndExtend(cellCorrespondence,cellI,cellMaterial.size()-1);
 
-            if (cellVerts[cellVerts.size()-1].size() != cVerts.size())
+            if (cellVerts.last().size() != cVerts.size())
             {
-                Pout<< "Line:" << is.lineNumber()
+                Info<< "Line:" << is.lineNumber()
                     << " element:" << cellI
                     << " type:" << feID
                     << " collapsed from " << cVerts << nl
-                    << " to:" << cellVerts[cellVerts.size()-1]
+                    << " to:" << cellVerts.last()
                     << endl;
             }
         }
@@ -461,7 +464,7 @@ void readCells
                 IOWarningIn("readCells(IFstream&, label&)", is)
                     << "Cell type " << feID << " not supported" << endl;
             }
-            is.getLine(line);  //Do nothing
+            is.getLine(line);  // Do nothing
         }
     }
 
@@ -471,7 +474,7 @@ void readCells
     boundaryFaceIndices.shrink();
     cellCorrespondence.shrink();
 
-    Sout<< "Read " << cellVerts.size() << " cells"
+    Info<< "Read " << cellVerts.size() << " cells"
         << " and " << boundaryFaces.size() << " boundary faces." << endl;
 }
 
@@ -483,10 +486,10 @@ void readSets
     DynamicList<labelList>& patchFaceIndices
 )
 {
-    Sout<< "Starting reading patches at line " << is.lineNumber() << '.'
+    Info<< "Starting reading patches at line " << is.lineNumber() << '.'
         << endl;
 
-    while(true)
+    while (true)
     {
         string line;
         is.getLine(line);
@@ -567,7 +570,7 @@ void readDOFS
     DynamicList<labelList>& dofVertices
 )
 {
-    Sout<< "Starting reading contraints at line " << is.lineNumber() << '.'
+    Info<< "Starting reading contraints at line " << is.lineNumber() << '.'
         << endl;
 
     string line;
@@ -585,7 +588,7 @@ void readDOFS
     }
 
     Info<< "For DOF set " << group
-        << " named " << patchNames[patchNames.size()-1]
+        << " named " << patchNames.last()
         << " trying to read vertex indices."
         << endl;
 
@@ -608,7 +611,7 @@ void readDOFS
     }
 
     Info<< "For DOF set " << group
-        << " named " << patchNames[patchNames.size()-1]
+        << " named " << patchNames.last()
         << " read " << vertices.size() << " vertex indices." << endl;
 
     dofVertices.append(vertices.shrink());
@@ -646,8 +649,6 @@ label findPatch(const List<labelHashSet>& dofGroups, const face& f)
     return -1;
 }
 
-// Additional output while we're unsure
-const bool verbose=false;
 
 // Main program:
 
@@ -655,14 +656,17 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append(".unv file");
-    argList::validOptions.insert("dump", "");
+    argList::addBoolOption
+    (
+        "dump",
+        "dump boundary faces as boundaryFaces.obj (for debugging)"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
-    fileName ideasName(args.additionalArgs()[0]);
-
-    IFstream inFile(ideasName.c_str());
+    const fileName ideasName = args[1];
+    IFstream inFile(ideasName);
 
     if (!inFile.good())
     {
@@ -671,6 +675,9 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
+
+    // Switch on additional debug info
+    const bool verbose = false; //true;
 
     // Unit scale factors
     scalar lengthScale = 1;
@@ -707,7 +714,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        Sout<< "Processing tag:" << tag << endl;
+        Info<< "Processing tag:" << tag << endl;
 
         switch (tag)
         {
@@ -763,12 +770,12 @@ int main(int argc, char *argv[])
             break;
 
             default:
-                Sout<< "Skipping tag " << tag << " on line "
+                Info<< "Skipping tag " << tag << " on line "
                     << inFile.lineNumber() << endl;
                 skipSection(inFile);
             break;
         }
-        Sout<< endl;
+        Info<< endl;
     }
 
 
@@ -842,17 +849,17 @@ int main(int argc, char *argv[])
 
     {
         HashTable<label, face, Hash<face> > faceToFaceID(boundaryFaces.size());
-        forAll(boundaryFaces,faceI)
+        forAll(boundaryFaces, faceI)
         {
             SortableList<label> foo(boundaryFaces[faceI]);
             face theFace(foo);
             faceToFaceID.insert(theFace,faceI);
         }
 
-        forAll(cellVerts,cellI)
+        forAll(cellVerts, cellI)
         {
             faceList faces = cellVerts[cellI].faces();
-            forAll(faces,i)
+            forAll(faces, i)
             {
                 SortableList<label> foo(faces[i]);
                 face theFace(foo);
@@ -999,7 +1006,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (cnt!=patchFaces.size() || duplicateFaces)
+            if (cnt != patchFaces.size() || duplicateFaces)
             {
                 isAPatch[patchI] = false;
 
@@ -1078,40 +1085,25 @@ int main(int argc, char *argv[])
     polyPoints /= lengthScale;
 
 
-    // For debugging: dump boundary faces as triSurface
+    // For debugging: dump boundary faces as OBJ surface mesh
     if (args.optionFound("dump"))
     {
-        DynamicList<labelledTri> triangles(boundaryFaces.size());
-
-        forAll(boundaryFaces, i)
-        {
-            const face& f = boundaryFaces[i];
-
-            faceList triFaces(f.nTriangles(polyPoints));
-            label nTri = 0;
-            f.triangles(polyPoints, nTri, triFaces);
-
-            forAll(triFaces, triFaceI)
-            {
-                const face& f = triFaces[triFaceI];
-                triangles.append(labelledTri(f[0], f[1], f[2], 0));
-            }
-        }
-
-        // Create globally numbered tri surface
-        triSurface rawSurface(triangles.shrink(), polyPoints);
-
-        // Create locally numbered tri surface
-        triSurface surface
-        (
-            rawSurface.localFaces(),
-            rawSurface.localPoints()
-        );
-
-        Info<< "Writing boundary faces to STL file boundaryFaces.stl"
+        Info<< "Writing boundary faces to OBJ file boundaryFaces.obj"
             << nl << endl;
 
-        surface.write(runTime.path()/"boundaryFaces.stl");
+        // Create globally numbered surface
+        meshedSurface rawSurface
+        (
+            xferCopy(polyPoints),
+            xferCopyTo< faceList >(boundaryFaces)
+        );
+
+        // Write locally numbered surface
+        meshedSurface
+        (
+            xferCopy(rawSurface.localPoints()),
+            xferCopy(rawSurface.localFaces())
+        ).write(runTime.path()/"boundaryFaces.obj");
     }
 
 
@@ -1121,7 +1113,8 @@ int main(int argc, char *argv[])
 
     forAll(patchNames, patchI)
     {
-        if (isAPatch[patchI]) {
+        if (isAPatch[patchI])
+        {
             Info<< "    " << patchNames[patchI] << '\t'
                 << patchFaceVerts[patchI].size() << nl;
             usedPatchNames.append(patchNames[patchI]);
@@ -1155,7 +1148,7 @@ int main(int argc, char *argv[])
     );
 
 
-    if (faceZones.size()>0 || cellZones.size()>0)
+    if (faceZones.size() > 0 || cellZones.size() > 0)
     {
         Info << "Adding cell and face zones" << endl;
 
@@ -1163,9 +1156,9 @@ int main(int argc, char *argv[])
         List<faceZone*> fZones(faceZones.size());
         List<cellZone*> cZones(cellZones.size());
 
-        if (cellZones.size()>0)
+        if (cellZones.size() > 0)
         {
-            forAll(cellZones.toc(),cnt)
+            forAll(cellZones.toc(), cnt)
             {
                 word name = cellZones.toc()[cnt];
                 Info<< " Cell Zone " << name << " " << tab
@@ -1209,7 +1202,7 @@ int main(int argc, char *argv[])
                     {
                         c2 = faceToCell[1][old];
                     }
-                    if (c1<c2)
+                    if (c1 < c2)
                     {
                         label tmp = c1;
                         c1 = c2;
@@ -1223,7 +1216,7 @@ int main(int argc, char *argv[])
                             if (own[j] == c1)
                             {
                                 const face& f = boundaryFaces[old];
-                                if (mag(centers[j]-f.centre(points))<SMALL)
+                                if (mag(centers[j]- f.centre(points)) < SMALL)
                                 {
                                     noveau = j;
                                     break;
@@ -1246,7 +1239,7 @@ int main(int argc, char *argv[])
                             }
                         }
                     }
-                    assert(noveau>-1);
+                    assert(noveau > -1);
                     indizes[i] = noveau;
                 }
                 fZones[cnt] = new faceZone

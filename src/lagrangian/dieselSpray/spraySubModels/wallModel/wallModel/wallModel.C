@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,27 +23,20 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
 #include "wallModel.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(wallModel, 0);
-
-defineRunTimeSelectionTable(wallModel, dictionary);
+namespace Foam
+{
+    defineTypeNameAndDebug(wallModel, 0);
+    defineRunTimeSelectionTable(wallModel, dictionary);
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-
-// Construct from components
-
-wallModel::wallModel
+Foam::wallModel::wallModel
 (
     const dictionary& dict,
     const volVectorField& U,
@@ -58,11 +51,8 @@ wallModel::wallModel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-wallModel::~wallModel()
+Foam::wallModel::~wallModel()
 {}
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

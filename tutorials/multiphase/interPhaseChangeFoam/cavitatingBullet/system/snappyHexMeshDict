@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -224,7 +224,8 @@ addLayersControls
     //- If points get not extruded do nGrow layers of connected faces that are
     //  also not grown. This helps convergence of the layer addition process
     //  close to features.
-    nGrow 1;
+    // Note: changed(corrected) w.r.t 17x! (didn't do anything in 17x)
+    nGrow 0;
 
 
     // Advanced settings
@@ -254,7 +255,8 @@ addLayersControls
     maxThicknessToMedialRatio 0.3;
 
     // Angle used to pick up medial axis points
-    minMedianAxisAngle 130;
+    // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
+    minMedianAxisAngle 90;
 
     // Create buffer region for new layer terminations
     nBufferCellsNoExtrude 0;
@@ -288,12 +290,18 @@ meshQualityControls
     //  Set to 180 to disable.
     maxConcave 80;
 
-    //- Minimum projected area v.s. actual area. Set to -1 to disable.
-    minFlatness 0.5;
-
     //- Minimum pyramid volume. Is absolute volume of cell pyramid.
     //  Set to very negative number (e.g. -1E30) to disable.
     minVol 1e-20;
+
+    //- Minimum quality of the tet formed by the face-centre
+    //  and variable base point minimum decomposition triangles and
+    //  the cell centre.  Set to very negative number (e.g. -1E30) to
+    //  disable.
+    //     <0 = inside out tet,
+    //      0 = flat tet
+    //      1 = regular tet
+    minTetQuality 1e-30;
 
     //- Minimum face area. Set to <0 to disable.
     minArea -1;
@@ -337,7 +345,7 @@ debug 0;
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.
-mergeTolerance 1E-6;
+mergeTolerance 1e-6;
 
 
 // ************************************************************************* //

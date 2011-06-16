@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,8 @@ License
 #include "ReactingMultiphaseParcel.H"
 #include "mathematicalConstants.H"
 
+using namespace Foam::constant::mathematical;
+
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 template<class ParcelType>
@@ -42,7 +44,7 @@ const Foam::label Foam::ReactingMultiphaseParcel<ParcelType>::SLD(2);
 
 template<class ParcelType>
 template<class TrackData>
-Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::cpEff
+Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::CpEff
 (
     TrackData& td,
     const scalar p,
@@ -53,15 +55,15 @@ Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::cpEff
 ) const
 {
     return
-        this->Y_[GAS]*td.cloud().composition().cp(idG, YGas_, p, T)
-      + this->Y_[LIQ]*td.cloud().composition().cp(idL, YLiquid_, p, T)
-      + this->Y_[SLD]*td.cloud().composition().cp(idS, YSolid_, p, T);
+        this->Y_[GAS]*td.cloud().composition().Cp(idG, YGas_, p, T)
+      + this->Y_[LIQ]*td.cloud().composition().Cp(idL, YLiquid_, p, T)
+      + this->Y_[SLD]*td.cloud().composition().Cp(idS, YSolid_, p, T);
 }
 
 
 template<class ParcelType>
 template<class TrackData>
-Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::HEff
+Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::HsEff
 (
     TrackData& td,
     const scalar p,
@@ -72,9 +74,9 @@ Foam::scalar Foam::ReactingMultiphaseParcel<ParcelType>::HEff
 ) const
 {
     return
-        this->Y_[GAS]*td.cloud().composition().H(idG, YGas_, p, T)
-      + this->Y_[LIQ]*td.cloud().composition().H(idL, YLiquid_, p, T)
-      + this->Y_[SLD]*td.cloud().composition().H(idS, YSolid_, p, T);
+        this->Y_[GAS]*td.cloud().composition().Hs(idG, YGas_, p, T)
+      + this->Y_[LIQ]*td.cloud().composition().Hs(idL, YLiquid_, p, T)
+      + this->Y_[SLD]*td.cloud().composition().Hs(idS, YSolid_, p, T);
 }
 
 
@@ -136,7 +138,7 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::setCellValues
     const label cellI
 )
 {
-    ReactingParcel<ParcelType>::setCellValues(td, dt, cellI);
+    ParcelType::setCellValues(td, dt, cellI);
 }
 
 
@@ -149,33 +151,8 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::cellValueSourceCorrection
     const label cellI
 )
 {
-    scalar massCell = this->massCell(cellI);
-
-    scalar addedMass = 0.0;
-    forAll(td.cloud().rhoTrans(), i)
-    {
-        addedMass += td.cloud().rhoTrans(i)[cellI];
-    }
-
-    this->rhoc_ += addedMass/td.cloud().pMesh().cellVolumes()[cellI];
-
-    scalar massCellNew = massCell + addedMass;
-    this->Uc_ += td.cloud().UTrans()[cellI]/massCellNew;
-
-    scalar cpEff = 0;
-    if (addedMass > ROOTVSMALL)
-    {
-        forAll(td.cloud().rhoTrans(), i)
-        {
-            scalar Y = td.cloud().rhoTrans(i)[cellI]/addedMass;
-            cpEff +=
-                Y*td.cloud().mcCarrierThermo().speciesData()[i].Cp(this->Tc_);
-        }
-    }
-    const scalar cpc = td.cpInterp().psi()[cellI];
-    this->cpc_ = (massCell*cpc + addedMass*cpEff)/massCellNew;
-
-    this->Tc_ += td.cloud().hsTrans()[cellI]/(this->cpc_*massCellNew);
+    // Re-use correction from reacting parcel
+    ParcelType::cellValueSourceCorrection(td, dt, cellI);
 }
 
 
@@ -188,32 +165,32 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
     const label cellI
 )
 {
+    typedef typename TrackData::cloudType::reactingCloudType reactingCloudType;
+    const CompositionModel<reactingCloudType>& composition =
+        td.cloud().composition();
+
+
     // Define local properties at beginning of timestep
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     const scalar np0 = this->nParticle_;
     const scalar d0 = this->d_;
     const vector& U0 = this->U_;
-    const scalar rho0 = this->rho_;
     const scalar T0 = this->T_;
-    const scalar cp0 = this->cp_;
     const scalar mass0 = this->mass();
 
     const scalar pc = this->pc_;
 
     const scalarField& YMix = this->Y_;
-    const label idG = td.cloud().composition().idGas();
-    const label idL = td.cloud().composition().idLiquid();
-    const label idS = td.cloud().composition().idSolid();
+    const label idG = composition.idGas();
+    const label idL = composition.idLiquid();
+    const label idS = composition.idSolid();
 
 
     // Calc surface values
-    // ~~~~~~~~~~~~~~~~~~~
-    scalar Ts, rhos, mus, Pr, kappa;
-    ThermoParcel<ParcelType>::
-        calcSurfaceValues(td, cellI, T0, Ts, rhos, mus, Pr, kappa);
-
-    // Reynolds number
-    scalar Re = this->Re(U0, d0, rhos, mus);
+    scalar Ts, rhos, mus, Prs, kappas;
+    this->calcSurfaceValues(td, cellI, T0, Ts, rhos, mus, Prs, kappas);
+    scalar Res = this->Re(U0, d0, rhos, mus);
 
 
     // Sources
@@ -222,15 +199,24 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
     // Explicit momentum source for particle
     vector Su = vector::zero;
 
+    // Linearised momentum source coefficient
+    scalar Spu = 0.0;
+
     // Momentum transfer from the particle to the carrier phase
     vector dUTrans = vector::zero;
 
     // Explicit enthalpy source for particle
     scalar Sh = 0.0;
 
+    // Linearised enthalpy source coefficient
+    scalar Sph = 0.0;
+
     // Sensible enthalpy transfer from the particle to the carrier phase
     scalar dhsTrans = 0.0;
 
+
+    // 1. Compute models that contribute to mass transfer - U, T held constant
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     // Phase change in liquid phase
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -245,15 +231,15 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
     scalar NCpW = 0.0;
 
     // Surface concentrations of emitted species
-    scalarField Cs(td.cloud().mcCarrierThermo().species().size(), 0.0);
+    scalarField Cs(composition.carrier().species().size(), 0.0);
 
     // Calc mass and enthalpy transfer due to phase change
-    calcPhaseChange
+    this->calcPhaseChange
     (
         td,
         dt,
         cellI,
-        Re,
+        Res,
         Ts,
         mus/rhos,
         d0,
@@ -286,9 +272,7 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
         T0,
         mass0,
         this->mass0_,
-        idG,
-        YMix[GAS],
-        YGas_,
+        YMix[GAS]*YGas_,
         canCombust_,
         dMassDV,
         Sh,
@@ -296,9 +280,6 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
         NCpW,
         Cs
     );
-
-    // Correct surface values due to emitted species
-    correctSurfaceValues(td, cellI, Ts, Cs, rhos, mus, Pr, kappa);
 
 
     // Surface reactions
@@ -308,14 +289,9 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
     scalarField dMassSRGas(YGas_.size(), 0.0);
     scalarField dMassSRLiquid(YLiquid_.size(), 0.0);
     scalarField dMassSRSolid(YSolid_.size(), 0.0);
-    scalarField
-        dMassSRCarrier
-        (
-            td.cloud().mcCarrierThermo().species().size(),
-            0.0
-        );
+    scalarField dMassSRCarrier(composition.carrier().species().size(), 0.0);
 
-    // Clac mass and enthalpy transfer due to surface reactions
+    // Calc mass and enthalpy transfer due to surface reactions
     calcSurfaceReactions
     (
         td,
@@ -339,145 +315,156 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calc
     );
 
 
-    // Update component mass fractions
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // 2. Update the parcel properties due to change in mass
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    scalarField dMassGas = dMassDV + dMassSRGas;
-    scalarField dMassLiquid = dMassPC + dMassSRLiquid;
-    scalarField dMassSolid = dMassSRSolid;
-
+    scalarField dMassGas(dMassDV + dMassSRGas);
+    scalarField dMassLiquid(dMassPC + dMassSRLiquid);
+    scalarField dMassSolid(dMassSRSolid);
     scalar mass1 =
         updateMassFractions(mass0, dMassGas, dMassLiquid, dMassSolid);
 
+    this->Cp_ = CpEff(td, pc, T0, idG, idL, idS);
+
+    // Update particle density or diameter
+    if (td.cloud().constProps().constantVolume())
+    {
+        this->rho_ = mass1/this->volume();
+    }
+    else
+    {
+        this->d_ = cbrt(mass1/this->rho_*6.0/pi);
+    }
+
+    // Remove the particle when mass falls below minimum threshold
+    if (np0*mass1 < td.cloud().constProps().minParticleMass())
+    {
+        td.keepParticle = false;
+
+        if (td.cloud().solution().coupled())
+        {
+            scalar dm = np0*mass1;
+
+            // Absorb parcel into carrier phase
+            forAll(YGas_, i)
+            {
+                label gid = composition.localToGlobalCarrierId(GAS, i);
+                td.cloud().rhoTrans(gid)[cellI] += dm*YMix[GAS]*YGas_[i];
+            }
+            forAll(YLiquid_, i)
+            {
+                label gid = composition.localToGlobalCarrierId(LIQ, i);
+                td.cloud().rhoTrans(gid)[cellI] += dm*YMix[LIQ]*YLiquid_[i];
+            }
+/*
+            // No mapping between solid components and carrier phase
+            forAll(YSolid_, i)
+            {
+                label gid = composition.localToGlobalCarrierId(SLD, i);
+                td.cloud().rhoTrans(gid)[cellI] += dm*YMix[SLD]*YSolid_[i];
+            }
+*/
+            td.cloud().UTrans()[cellI] += dm*U0;
+
+            td.cloud().hsTrans()[cellI] += dm*HsEff(td, pc, T0, idG, idL, idS);
+
+            td.cloud().addToMassPhaseChange(dm);
+        }
+
+        return;
+    }
+
+    // Correct surface values due to emitted species
+    this->correctSurfaceValues(td, cellI, Ts, Cs, rhos, mus, Prs, kappas);
+    Res = this->Re(U0, this->d_, rhos, mus);
+
+
+    // 3. Compute heat- and momentum transfers
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     // Heat transfer
     // ~~~~~~~~~~~~~
 
     // Calculate new particle temperature
-    scalar T1 =
-        calcHeatTransfer
+    this->T_ =
+        this->calcHeatTransfer
         (
             td,
             dt,
             cellI,
-            Re,
-            Pr,
-            kappa,
-            d0,
-            rho0,
-            T0,
-            cp0,
+            Res,
+            Prs,
+            kappas,
             NCpW,
             Sh,
-            dhsTrans
+            dhsTrans,
+            Sph
         );
+
+
+    this->Cp_ = CpEff(td, pc, this->T_, idG, idL, idS);
 
 
     // Motion
     // ~~~~~~
 
     // Calculate new particle velocity
-    vector U1 =
-        calcVelocity(td, dt, cellI, Re, mus, d0, U0, rho0, mass0, Su, dUTrans);
-
-    dUTrans += 0.5*(mass0 - mass1)*(U0 + U1);
+    this->U_ =
+        this->calcVelocity(td, dt, cellI, Res, mus, mass1, Su, dUTrans, Spu);
 
 
-    // Accumulate carrier phase source terms
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // 4. Accumulate carrier phase source terms
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    if (td.cloud().coupled())
+    if (td.cloud().solution().coupled())
     {
-        // Transfer mass lost from particle to carrier mass source
+        // Transfer mass lost to carrier mass, momentum and enthalpy sources
         forAll(YGas_, i)
         {
-            label gid = td.cloud().composition().localToGlobalCarrierId(GAS, i);
-            td.cloud().rhoTrans(gid)[cellI] += np0*dMassGas[i];
+            scalar dm = np0*dMassGas[i];
+            label gid = composition.localToGlobalCarrierId(GAS, i);
+            scalar hs = composition.carrier().Hs(gid, T0);
+            td.cloud().rhoTrans(gid)[cellI] += dm;
+            td.cloud().UTrans()[cellI] += dm*U0;
+            td.cloud().hsTrans()[cellI] += dm*hs;
         }
         forAll(YLiquid_, i)
         {
-            label gid = td.cloud().composition().localToGlobalCarrierId(LIQ, i);
-            td.cloud().rhoTrans(gid)[cellI] += np0*dMassLiquid[i];
+            scalar dm = np0*dMassLiquid[i];
+            label gid = composition.localToGlobalCarrierId(LIQ, i);
+            scalar hs = composition.carrier().Hs(gid, T0);
+            td.cloud().rhoTrans(gid)[cellI] += dm;
+            td.cloud().UTrans()[cellI] += dm*U0;
+            td.cloud().hsTrans()[cellI] += dm*hs;
         }
 /*
         // No mapping between solid components and carrier phase
         forAll(YSolid_, i)
         {
-            label gid = td.cloud().composition().localToGlobalCarrierId(SLD, i);
-            td.cloud().rhoTrans(gid)[cellI] += np0*dMassSolid[i];
+            scalar dm = np0*dMassSolid[i];
+            label gid = composition.localToGlobalCarrierId(SLD, i);
+            scalar hs = composition.carrier().Hs(gid, T0);
+            td.cloud().rhoTrans(gid)[cellI] += dm;
+            td.cloud().UTrans()[cellI] += dm*U0;
+            td.cloud().hsTrans()[cellI] += dm*hs;
         }
 */
         forAll(dMassSRCarrier, i)
         {
-            td.cloud().rhoTrans(i)[cellI] += np0*dMassSRCarrier[i];
+            scalar dm = np0*dMassSRCarrier[i];
+            scalar hs = composition.carrier().Hs(i, T0);
+            td.cloud().rhoTrans(i)[cellI] += dm;
+            td.cloud().UTrans()[cellI] += dm*U0;
+            td.cloud().hsTrans()[cellI] += dm*hs;
         }
 
         // Update momentum transfer
         td.cloud().UTrans()[cellI] += np0*dUTrans;
+        td.cloud().UCoeff()[cellI] += np0*Spu;
 
         // Update sensible enthalpy transfer
         td.cloud().hsTrans()[cellI] += np0*dhsTrans;
-    }
-
-
-    // Remove the particle when mass falls below minimum threshold
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    if (mass1 < td.constProps().minParticleMass())
-    {
-        td.keepParticle = false;
-
-        if (td.cloud().coupled())
-        {
-            // Absorb parcel into carrier phase
-            forAll(YGas_, i)
-            {
-                label gid =
-                    td.cloud().composition().localToGlobalCarrierId(GAS, i);
-                td.cloud().rhoTrans(gid)[cellI] += np0*mass1*YMix[GAS]*YGas_[i];
-            }
-            forAll(YLiquid_, i)
-            {
-                label gid =
-                    td.cloud().composition().localToGlobalCarrierId(LIQ, i);
-                td.cloud().rhoTrans(gid)[cellI] +=
-                    np0*mass1*YMix[LIQ]*YLiquid_[i];
-            }
-/*
-            // No mapping between solid components and carrier phase
-            forAll(YSolid_, i)
-            {
-                label gid =
-                    td.cloud().composition().localToGlobalCarrierId(SLD, i);
-                td.cloud().rhoTrans(gid)[cellI] +=
-                    np0*mass1*YMix[SLD]*YSolid_[i];
-            }
-*/
-            td.cloud().UTrans()[cellI] += np0*mass1*U1;
-            td.cloud().hsTrans()[cellI] +=
-                np0*mass1*HEff(td, pc, T1, idG, idL, idS); // using total h
-        }
-    }
-
-
-    // Set new particle properties
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    else
-    {
-        this->cp_ = cpEff(td, pc, T1, idG, idL, idS);
-        this->T_ = T1;
-        this->U_ = U1;
-
-        // Update particle density or diameter
-        if (td.constProps().constantVolume())
-        {
-            this->rho_ = mass1/this->volume();
-        }
-        else
-        {
-            this->d_ = cbrt(mass1/this->rho_*6.0/mathematicalConstant::pi);
-        }
+        td.cloud().hsCoeff()[cellI] += np0*Sph;
     }
 }
 
@@ -493,9 +480,7 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcDevolatilisation
     const scalar T,
     const scalar mass,
     const scalar mass0,
-    const label idVolatile,
-    const scalar YVolatileTot,
-    const scalarField& YVolatile,
+    const scalarField& YGasEff,
     bool& canCombust,
     scalarField& dMassDV,
     scalar& Sh,
@@ -509,54 +494,64 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcDevolatilisation
     if
     (
         !td.cloud().devolatilisation().active()
-     || T < td.constProps().Tvap()
+     || T < td.cloud().constProps().Tvap()
     )
     {
         return;
     }
 
+    typedef typename TrackData::cloudType::reactingCloudType reactingCloudType;
+    const CompositionModel<reactingCloudType>& composition =
+        td.cloud().composition();
+
+
     // Total mass of volatiles evolved
-    const scalar dMassTot = td.cloud().devolatilisation().calculate
+    td.cloud().devolatilisation().calculate
     (
         dt,
         mass0,
         mass,
         T,
-        td.cloud().composition().YMixture0()[idVolatile],
-        YVolatileTot,
-        canCombust
+        YGasEff,
+        canCombust,
+        dMassDV
     );
 
-    // Volatile mass transfer - equal components of each volatile specie
-    dMassDV = YVolatile*dMassTot;
+    scalar dMassTot = sum(dMassDV);
 
     td.cloud().addToMassDevolatilisation(this->nParticle_*dMassTot);
 
-    Sh -= dMassTot*td.constProps().LDevol()/dt;
-
-    // Molar average molecular weight of carrier mix
-    const scalar Wc = this->rhoc_*specie::RR*this->Tc_/this->pc_;
+    Sh -= dMassTot*td.cloud().constProps().LDevol()/dt;
 
     // Update molar emissions
-    forAll(dMassDV, i)
+    if (td.cloud().heatTransfer().BirdCorrection())
     {
+        // Molar average molecular weight of carrier mix
+        const scalar Wc =
+            max(SMALL, this->rhoc_*specie::RR*this->Tc_/this->pc_);
+
         // Note: hardcoded gaseous diffusivities for now
         // TODO: add to carrier thermo
         const scalar beta = sqr(cbrt(15.0) + cbrt(15.0));
-        const label id =
-            td.cloud().composition().localToGlobalCarrierId(GAS, i);
-        const scalar Cp = td.cloud().mcCarrierThermo().speciesData()[id].Cp(Ts);
-        const scalar W = td.cloud().mcCarrierThermo().speciesData()[id].W();
-        const scalar Ni = dMassDV[i]/(this->areaS(d)*dt*W);
 
-        // Dab calc'd using API vapour mass diffusivity function
-        const scalar Dab =
-            3.6059e-3*(pow(1.8*Ts, 1.75))*sqrt(1.0/W + 1.0/Wc)/(this->pc_*beta);
+        forAll(dMassDV, i)
+        {
+            const label id = composition.localToGlobalCarrierId(GAS, i);
+            const scalar Cp = composition.carrier().Cp(id, Ts);
+            const scalar W = composition.carrier().W(id);
+            const scalar Ni = dMassDV[i]/(this->areaS(d)*dt*W);
 
-        N += Ni;
-        NCpW += Ni*Cp*W;
-        Cs[id] += Ni*d/(2.0*Dab);
-     }
+            // Dab calc'd using API vapour mass diffusivity function
+            const scalar Dab =
+                3.6059e-3*(pow(1.8*Ts, 1.75))
+               *sqrt(1.0/W + 1.0/Wc)
+               /(this->pc_*beta);
+
+            N += Ni;
+            NCpW += Ni*Cp*W;
+            Cs[id] += Ni*d/(2.0*Dab);
+        }
+    }
 }
 
 
@@ -619,24 +614,38 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcSurfaceReactions
     );
 
     const scalar xsi = min(T/5000.0, 1.0);
-    const scalar hRetentionCoeffMod =
-        (1.0 - xsi*xsi)*td.constProps().hRetentionCoeff();
+    const scalar coeff =
+        (1.0 - xsi*xsi)*td.cloud().constProps().hRetentionCoeff();
 
-    Sh += hRetentionCoeffMod*hReaction/dt;
+    Sh += coeff*hReaction/dt;
 
-    dhsTrans += (1.0 - hRetentionCoeffMod)*hReaction;
+    dhsTrans += (1.0 - coeff)*hReaction;
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
 (
     const ReactingMultiphaseParcel<ParcelType>& p
 )
 :
-    ReactingParcel<ParcelType>(p),
+    ParcelType(p),
+    YGas_(p.YGas_),
+    YLiquid_(p.YLiquid_),
+    YSolid_(p.YSolid_)
+{}
+
+
+template<class ParcelType>
+Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
+(
+    const ReactingMultiphaseParcel<ParcelType>& p,
+    const polyMesh& mesh
+)
+:
+    ParcelType(p, mesh),
     YGas_(p.YGas_),
     YLiquid_(p.YLiquid_),
     YSolid_(p.YSolid_)

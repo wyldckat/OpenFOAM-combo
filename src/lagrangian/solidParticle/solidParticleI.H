@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-inline Foam::solidParticle::trackData::trackData
+inline Foam::solidParticle::trackingData::trackingData
 (
     solidParticleCloud& spc,
     const interpolationCellPoint<scalar>& rhoInterp,
@@ -34,7 +34,7 @@ inline Foam::solidParticle::trackData::trackData
     const vector& g
 )
 :
-    spc_(spc),
+    particle::TrackingData<solidParticleCloud>(spc),
     rhoInterp_(rhoInterp),
     UInterp_(UInterp),
     nuInterp_(nuInterp),
@@ -44,14 +44,16 @@ inline Foam::solidParticle::trackData::trackData
 
 inline Foam::solidParticle::solidParticle
 (
-    const Cloud<solidParticle>& c,
+    const polyMesh& mesh,
     const vector& position,
-    const label celli,
+    const label cellI,
+    const label tetFaceI,
+    const label tetPtI,
     const scalar d,
     const vector& U
 )
 :
-    Particle<solidParticle>(c, position, celli),
+    particle(mesh, position, cellI, tetFaceI, tetPtI),
     d_(d),
     U_(U)
 {}
@@ -59,30 +61,27 @@ inline Foam::solidParticle::solidParticle
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-inline Foam::solidParticleCloud& Foam::solidParticle::trackData::spc()
-{
-    return spc_;
-}
-
 inline const Foam::interpolationCellPoint<Foam::scalar>&
-Foam::solidParticle::trackData::rhoInterp() const
+Foam::solidParticle::trackingData::rhoInterp() const
 {
     return rhoInterp_;
 }
 
+
 inline const Foam::interpolationCellPoint<Foam::vector>&
-Foam::solidParticle::trackData::UInterp() const
+Foam::solidParticle::trackingData::UInterp() const
 {
     return UInterp_;
 }
 
+
 inline const Foam::interpolationCellPoint<Foam::scalar>&
-Foam::solidParticle::trackData::nuInterp() const
+Foam::solidParticle::trackingData::nuInterp() const
 {
     return nuInterp_;
 }
 
-inline const Foam::vector& Foam::solidParticle::trackData::g() const
+inline const Foam::vector& Foam::solidParticle::trackingData::g() const
 {
     return g_;
 }
@@ -93,10 +92,6 @@ inline Foam::scalar Foam::solidParticle::d() const
     return d_;
 }
 
-inline Foam::scalar Foam::solidParticle::wallImpactDistance(const vector&) const
-{
-    return 0.5*d_;
-}
 
 inline const Foam::vector& Foam::solidParticle::U() const
 {

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,76 +15,55 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Tolerance used in matching faces. Absolute tolerance is span of
-// face times this factor. To load incorrectly matches meshes set this
-// to a higher value.
-matchTolerance 1E-3;
+// This application/dictionary controls:
+// - optional: create new patches from boundary faces (either given as
+//   a set of patches or as a faceSet)
+// - always: order faces on coupled patches such that they are opposite. This
+//   is done for all coupled faces, not just for any patches created.
+// - optional: synchronise points on coupled patches.
+
+// 1. Create cyclic:
+// - specify where the faces should come from
+// - specify the type of cyclic. If a rotational specify the rotationAxis
+//   and centre to make matching easier
+// - always create both halves in one invocation with correct 'neighbourPatch'
+//   setting.
+// - optionally pointSync true to guarantee points to line up.
+
+// 2. Correct incorrect cyclic:
+// This will usually fail upon loading:
+//  "face 0 area does not match neighbour 2 by 0.0100005%"
+//  " -- possible face ordering problem."
+// - in polyMesh/boundary file:
+//      - loosen matchTolerance of all cyclics to get case to load
+//      - or change patch type from 'cyclic' to 'patch'
+//        and regenerate cyclic as above
+
 
 // Do a synchronisation of coupled points after creation of any patches.
 // Note: this does not work with points that are on multiple coupled patches
-//       with transformations.
-pointSync true;
+//       with transformations (i.e. cyclics).
+pointSync false;
 
 // Patches to create.
-patchInfo
+patches
 (
     {
-        name topAndBottom;
-        dictionary
-        {
-            type patch;
-        }
-        constructFrom patches;
-        patches ( auto0 auto2 );
-    }
-
-    {
-        name inlet;
-        dictionary
-        {
-            type patch;
-        }
-        constructFrom patches;
-        patches ( auto1 );
-    }
-
-    {
-        name outlet;
-        dictionary
-        {
-            type patch;
-        }
-        constructFrom patches;
-        patches ( auto3 );
-    }
-
-    {
+        // Name of new patch
         name wing;
-        dictionary
+
+        // Type of new patch
+        patchInfo
         {
             type wall;
         }
-        constructFrom patches;
-        patches ( auto4 );
-    }
 
-    {
-        name back;
-        dictionary
-        {
-            type empty;
-        }
+        // How to construct: either from 'patches' or 'set'
         constructFrom patches;
-        patches ( auto5 );
-    }
 
-    {
-        name front;
-        dictionary
-        {
-            type empty;
-        }
-        constructFrom patches;
-        patches ( auto6 );
+        // If constructFrom = patches : names of patches. Wildcards allowed.
+        patches ( wing_5degrees.obj_WALL10 );
     }
 );
+
+// ************************************************************************* //

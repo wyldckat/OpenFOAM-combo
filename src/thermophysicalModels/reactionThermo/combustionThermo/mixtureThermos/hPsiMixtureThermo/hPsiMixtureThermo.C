@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -279,7 +279,7 @@ Foam::hPsiMixtureThermo<MixtureType>::Cp() const
                 IOobject::NO_WRITE
             ),
             mesh,
-            dimensionSet(0, 2, -2, -1, 0)
+            dimEnergy/dimMass/dimTemperature
         )
     );
 

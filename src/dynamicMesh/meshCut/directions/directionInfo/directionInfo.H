@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ Description
              processors whereas f[0] should correspond to f[0] on other side)
 
     The rule is that if the label is set (-1 or higher) it is used
-    (topological information only), otherwise the vector is used. This makes 
+    (topological information only), otherwise the vector is used. This makes
     sure that we use topological information as much as possible and so a
     hex mesh is cut purely topologically. All other shapes are cut
     geometrically.
@@ -83,14 +83,8 @@ class directionInfo
         // Local n axis
         vector n_;
 
-        
+
     // Private Member Functions
-
-        //- edge uses two labels
-        static bool equal(const edge& e, const label, const label);
-
-        //- Calculate mid point of edge.
-        static point eMid(const primitiveMesh& mesh, const label edgeI);
 
         //- Find edge among edgeLabels that uses v0 and v1
         static label findEdge
@@ -158,70 +152,89 @@ public:
 
             //- Check whether origin has been changed at all or
             //  still contains original (invalid) value.
-            inline bool valid() const;
+            template<class TrackingData>
+            inline bool valid(TrackingData& td) const;
 
             //- Check for identical geometrical data. Used for cyclics checking.
+            template<class TrackingData>
             inline bool sameGeometry
             (
                 const polyMesh&,
                 const directionInfo&,
-                const scalar
+                const scalar,
+                TrackingData& td
             ) const;
 
             //- Convert any absolute coordinates into relative to (patch)face
             //  centre
+            template<class TrackingData>
             inline void leaveDomain
             (
                 const polyMesh&,
                 const polyPatch&,
                 const label patchFaceI,
-                const point& faceCentre
+                const point& faceCentre,
+                TrackingData& td
             );
 
             //- Reverse of leaveDomain
+            template<class TrackingData>
             inline void enterDomain
             (
                 const polyMesh&,
                 const polyPatch&,
                 const label patchFaceI,
-                const point& faceCentre
+                const point& faceCentre,
+                TrackingData& td
             );
 
             //- Apply rotation matrix to any coordinates
+            template<class TrackingData>
             inline void transform
             (
                 const polyMesh&,
-                const tensor&
+                const tensor&,
+                TrackingData& td
             );
 
             //- Influence of neighbouring face.
-            bool updateCell
+            template<class TrackingData>
+            inline bool updateCell
             (
                 const polyMesh&,
                 const label thisCellI,
                 const label neighbourFaceI,
                 const directionInfo& neighbourInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
 
             //- Influence of neighbouring cell.
-            bool updateFace
+            template<class TrackingData>
+            inline bool updateFace
             (
                 const polyMesh&,
                 const label thisFaceI,
                 const label neighbourCellI,
                 const directionInfo& neighbourInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
 
             //- Influence of different value on same face.
-            bool updateFace
+            template<class TrackingData>
+            inline bool updateFace
             (
                 const polyMesh&,
                 const label thisFaceI,
                 const directionInfo& neighbourInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
+
+            //- Same (like operator==)
+            template<class TrackingData>
+            inline bool equal(const directionInfo&, TrackingData& td) const;
 
     // Member Operators
 
@@ -236,6 +249,14 @@ public:
         friend Ostream& operator<<(Ostream&, const directionInfo&);
         friend Istream& operator>>(Istream&, directionInfo&);
 };
+
+
+//- Data associated with directionInfo type are contiguous
+template<>
+inline bool contiguous<directionInfo>()
+{
+    return true;
+}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

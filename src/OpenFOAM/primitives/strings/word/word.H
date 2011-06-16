@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,9 +27,8 @@ Class
 Description
     A class for handling words, derived from string.
 
-    A word is a string of characters containing no whitespace and may be
-    constructed from a string by removing whitespace. Words are delimited
-    by whitespace.
+    A word is a string of characters without whitespace, quotes, slashes,
+    semicolons or brace brackets. Words are delimited by whitespace.
 
 SourceFiles
     word.C
@@ -62,7 +61,7 @@ class word
 :
     public string
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Strip invalid characters from this word
         inline void stripInvalid();
@@ -74,6 +73,8 @@ public:
 
         static const char* const typeName;
         static int debug;
+
+        //- An empty word
         static const word null;
 
 

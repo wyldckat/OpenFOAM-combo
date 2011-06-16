@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -108,16 +108,11 @@ public:
     // Constructors
 
         //- Construct from components
-        unitInjector
-        (
-            const Time& t,
-            const dictionary& dict
-        );
+        unitInjector(const Time& t, const dictionary& dict);
 
 
-    // Destructor
-
-        ~unitInjector();
+    //- Destructor
+    virtual ~unitInjector();
 
 
     // Member Functions
@@ -142,9 +137,9 @@ public:
             const vector& axisOfSymmetry,
             const vector& axisOfWedge,
             const vector& axisOfWedgeNormal,
-            Random& rndGen
+            cachedRandom& rndGen
         ) const;
-    
+
         //- Return the number of holes
         label nHoles() const;
 
@@ -199,14 +194,14 @@ public:
         {
             return injectionPressureProfile_;
         }
-    
+
         scalar injectionPressure(const scalar time) const;
 
         List<pair> velocityProfile() const
         {
             return velocityProfile_;
         }
-        
+
         scalar velocity(const scalar time) const;
 
         List<pair> CdProfile() const;
@@ -217,7 +212,7 @@ public:
 
         void correctProfiles
         (
-            const liquidMixture& fuel,
+            const liquidMixtureProperties& fuel,
             const scalar referencePressure
         );
 
@@ -225,7 +220,6 @@ public:
         {
             return pressureIndependentVelocity_;
         }
-
 };
 
 

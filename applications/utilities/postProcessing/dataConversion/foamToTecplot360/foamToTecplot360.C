@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,40 +31,40 @@ Usage
 
     - foamToTecplot360 [OPTION]
 
-    @param -fields \<fields\>\n
+    \param -fields \<names\>\n
     Convert selected fields only. For example,
-    @verbatim
+    \verbatim
          -fields '( p T U )'
-    @endverbatim
+    \endverbatim
     The quoting is required to avoid shell expansions and to pass the
     information as a single argument.
 
-    @param -cellSet \<name\>\n
-    @param -faceSet \<name\>\n
+    \param -cellSet \<name\>\n
+    \param -faceSet \<name\>\n
     Restrict conversion to the cellSet, faceSet.
 
-    @param -nearCellValue \n
+    \param -nearCellValue \n
     Output cell value on patches instead of patch value itself
 
-    @param -noInternal \n
+    \param -noInternal \n
     Do not generate file for mesh, only for patches
 
-    @param -noPointValues \n
+    \param -noPointValues \n
     No pointFields
 
-    @param -noFaceZones \n
+    \param -noFaceZones \n
     No faceZones
 
-    @param -excludePatches \<patchNames\>\n
+    \param -excludePatches \<patchNames\>\n
     Specify patches (wildcards) to exclude. For example,
-    @verbatim
+    \verbatim
          -excludePatches '( inlet_1 inlet_2 "proc.*")'
-    @endverbatim
+    \endverbatim
     The quoting is required to avoid shell expansions and to pass the
     information as a single argument. The double quotes denote a regular
     expression.
 
-    @param -useTimeName \n
+    \param -useTimeName \n
     use the time index in the VTK file name instead of the time index
 
 \*---------------------------------------------------------------------------*/
@@ -99,12 +99,12 @@ void print(const char* msg, Ostream& os, const PtrList<GeoField>& flds)
 {
     if (flds.size())
     {
-        os << msg;
+        os  << msg;
         forAll(flds, i)
         {
-            os<< ' ' << flds[i].name();
+            os  << ' ' << flds[i].name();
         }
-        os << endl;
+        os  << endl;
     }
 }
 
@@ -113,9 +113,9 @@ void print(Ostream& os, const wordList& flds)
 {
     forAll(flds, i)
     {
-        os<< ' ' << flds[i];
+        os  << ' ' << flds[i];
     }
-    os << endl;
+    os  << endl;
 }
 
 
@@ -163,30 +163,65 @@ labelList getSelectedPatches
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "Tecplot binary file format writer"
+    );
+
     timeSelector::addOptions();
+    #include "addRegionOption.H"
 
-#   include "addRegionOption.H"
-
-    argList::validOptions.insert("fields", "fields");
-    argList::validOptions.insert("cellSet", "cellSet name");
-    argList::validOptions.insert("faceSet", "faceSet name");
-    argList::validOptions.insert("nearCellValue","");
-    argList::validOptions.insert("noInternal","");
-    argList::validOptions.insert("noPointValues","");
-    argList::validOptions.insert
+    argList::addOption
+    (
+        "fields",
+        "names",
+        "convert selected fields only. eg, '(p T U)'"
+    );
+    argList::addOption
+    (
+        "cellSet",
+        "name",
+        "restrict conversion to the specified cellSet"
+    );
+    argList::addOption
+    (
+        "faceSet",
+        "name",
+        "restrict conversion to the specified cellSet"
+    );
+    argList::addBoolOption
+    (
+        "nearCellValue",
+        "output cell value on patches instead of patch value itself"
+    );
+    argList::addBoolOption
+    (
+        "noInternal",
+        "do not generate file for mesh, only for patches"
+    );
+    argList::addBoolOption
+    (
+        "noPointValues",
+        "no pointFields"
+    );
+    argList::addOption
     (
         "excludePatches",
         "patches (wildcards) to exclude"
     );
-    argList::validOptions.insert("noFaceZones","");
+    argList::addBoolOption
+    (
+        "noFaceZones",
+        "no faceZones"
+    );
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
 
-    bool doWriteInternal = !args.optionFound("noInternal");
-    bool doFaceZones     = !args.optionFound("noFaceZones");
-
-    bool nearCellValue = args.optionFound("nearCellValue");
+    const bool doWriteInternal = !args.optionFound("noInternal");
+    const bool doFaceZones     = !args.optionFound("noFaceZones");
+    const bool nearCellValue = args.optionFound("nearCellValue");
+    const bool noPointValues = args.optionFound("noPointValues");
 
     if (nearCellValue)
     {
@@ -194,8 +229,6 @@ int main(int argc, char *argv[])
             << "Using neighbouring cell value instead of patch value"
             << nl << endl;
     }
-
-    bool noPointValues = args.optionFound("noPointValues");
 
     if (noPointValues)
     {
@@ -214,9 +247,8 @@ int main(int argc, char *argv[])
     word cellSetName;
     string vtkName;
 
-    if (args.optionFound("cellSet"))
+    if (args.optionReadIfPresent("cellSet", cellSetName))
     {
-        cellSetName = args.option("cellSet");
         vtkName = cellSetName;
     }
     else if (Pstream::parRun())
@@ -339,9 +371,9 @@ int main(int argc, char *argv[])
         if (noPointValues)
         {
             Info<< "    pointScalarFields : switched off"
-                << " (\"-noPointValues\" option)\n";
+                << " (\"-noPointValues\" (at your option)\n";
             Info<< "    pointVectorFields : switched off"
-                << " (\"-noPointValues\" option)\n";
+                << " (\"-noPointValues\" (at your option)\n";
         }
 
         PtrList<pointScalarField> psf;
@@ -737,7 +769,7 @@ int main(int argc, char *argv[])
         if (args.optionFound("faceSet"))
         {
             // Load the faceSet
-            word setName(args.option("faceSet"));
+            const word setName = args["faceSet"];
             labelList faceLabels(faceSet(mesh, setName).toc());
 
             // Filename as if patch with same name.
@@ -1240,7 +1272,10 @@ int main(int argc, char *argv[])
                 //Info<< "        symm tensors      :";
                 //print(Info, symmNames);
                 //
-                //wordList tensorNames(sprayObjs.names(tensorIOField::typeName));
+                //wordList tensorNames
+                //(
+                //    sprayObjs.names(tensorIOField::typeName)
+                //);
                 //Info<< "        tensors           :";
                 //print(Info, tensorNames);
 

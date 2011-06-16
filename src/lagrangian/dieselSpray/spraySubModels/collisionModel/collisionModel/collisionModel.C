@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,42 +26,35 @@ License
 #include "error.H"
 #include "collisionModel.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(collisionModel, 0);
+    defineRunTimeSelectionTable(collisionModel, dictionary);
+}
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(collisionModel, 0);
-
-defineRunTimeSelectionTable(collisionModel, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-collisionModel::collisionModel
+Foam::collisionModel::collisionModel
 (
     const dictionary& dict,
     spray& sm,
-    Random& rndGen
+    cachedRandom& rndGen
 )
 :
     dict_(dict),
     spray_(sm),
     rndGen_(rndGen)
-    //coeffsDict_(dict.subDict(typeName + "Coeffs"))
+    // coeffsDict_(dict.subDict(typeName + "Coeffs"))
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-collisionModel::~collisionModel()
+Foam::collisionModel::~collisionModel()
 {}
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

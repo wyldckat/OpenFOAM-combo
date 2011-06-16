@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -180,7 +180,7 @@ public:
                 treeBoundBox& tightest
             ) const;
 
-            //- Given index get unit normal and calculate (numerical) sign 
+            //- Given index get unit normal and calculate (numerical) sign
             //  of sample.
             //  Used to determine accuracy of calcNearest or inside/outside.
             scalar calcSign

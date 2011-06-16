@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,10 @@ License
 #include "pointBoundaryMesh.H"
 #include "polyBoundaryMesh.H"
 #include "facePointPatch.H"
-#include "globalPointPatch.H"
+#include "pointMesh.H"
+#include "PstreamBuffers.H"
+#include "lduSchedule.H"
+#include "globalMeshData.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -57,71 +60,138 @@ Foam::pointBoundaryMesh::pointBoundaryMesh
 
 void Foam::pointBoundaryMesh::calcGeometry()
 {
-    forAll(*this, patchi)
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
+
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        operator[](patchi).initGeometry();
-    }
-
-    forAll(*this, patchi)
-    {
-        operator[](patchi).calcGeometry();
-    }
-}
-
-
-const Foam::globalPointPatch&
-Foam::pointBoundaryMesh::globalPatch() const
-{
-    const pointPatchList& patches = *this;
-
-    forAll (patches, patchI)
-    {
-        if (isType<globalPointPatch>(patches[patchI]))
+        forAll(*this, patchi)
         {
-            return refCast<const globalPointPatch>(patches[patchI]);
+            operator[](patchi).initGeometry(pBufs);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchi)
+        {
+            operator[](patchi).calcGeometry(pBufs);
         }
     }
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
+    {
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
 
-    FatalErrorIn
-    (
-        "const pointBoundaryMesh::"
-        "globalPointPatch& globalPatch() const"
-    )   << "patch not found."
-        << abort(FatalError);
+        // Dummy.
+        pBufs.finishedSends();
 
-    // Dummy return
-    return refCast<const globalPointPatch>(patches[0]);
+        forAll(patchSchedule, patchEvali)
+        {
+            label patchi = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchi).initGeometry(pBufs);
+            }
+            else
+            {
+                operator[](patchi).calcGeometry(pBufs);
+            }
+        }
+    }
 }
 
 
 void Foam::pointBoundaryMesh::movePoints(const pointField& p)
 {
-    pointPatchList& patches = *this;
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
 
-    forAll(patches, patchi)
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        patches[patchi].initMovePoints(p);
+        forAll(*this, patchi)
+        {
+            operator[](patchi).initMovePoints(pBufs, p);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchi)
+        {
+            operator[](patchi).movePoints(pBufs, p);
+        }
     }
-
-    forAll(patches, patchi)
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
     {
-        patches[patchi].movePoints(p);
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
+
+        // Dummy.
+        pBufs.finishedSends();
+
+        forAll(patchSchedule, patchEvali)
+        {
+            label patchi = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchi).initMovePoints(pBufs, p);
+            }
+            else
+            {
+                operator[](patchi).movePoints(pBufs, p);
+            }
+        }
     }
 }
 
 
 void Foam::pointBoundaryMesh::updateMesh()
 {
-    pointPatchList& patches = *this;
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
 
-    forAll(patches, patchi)
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        patches[patchi].initUpdateMesh();
+        forAll(*this, patchi)
+        {
+            operator[](patchi).initUpdateMesh(pBufs);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchi)
+        {
+            operator[](patchi).updateMesh(pBufs);
+        }
     }
-
-    forAll(patches, patchi)
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
     {
-        patches[patchi].updateMesh();
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
+
+        // Dummy.
+        pBufs.finishedSends();
+
+        forAll(patchSchedule, patchEvali)
+        {
+            label patchi = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchi).initUpdateMesh(pBufs);
+            }
+            else
+            {
+                operator[](patchi).updateMesh(pBufs);
+            }
+        }
     }
 }
 

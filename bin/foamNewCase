@@ -3,7 +3,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2010-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2010-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
 #-------------------------------------------------------------------------------
 # License
@@ -30,13 +30,14 @@
 #     - requires rsync
 #
 #------------------------------------------------------------------------------
-siteDir=${WM_PROJECT_INST_DIR:-unknown}/site
+siteDir=${WM_PROJECT_SITE:-${WM_PROJECT_INST_DIR:-<unknown>}/site}
 userDir=$HOME/.OpenFOAM
 version=${WM_PROJECT_VERSION:-unknown}
 templateDir="appTemplates"
 
 #------------------------------------------------------------------------------
 usage() {
+    exec 1>&2
     while [ "$#" -ge 1 ]; do echo "$1"; shift; done
     cat<<USAGE
 

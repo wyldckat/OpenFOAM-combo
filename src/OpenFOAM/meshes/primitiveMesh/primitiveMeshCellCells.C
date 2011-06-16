@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ void Foam::primitiveMesh::calcCellCells() const
         const labelList& own = faceOwner();
         const labelList& nei = faceNeighbour();
 
-        forAll (nei, faceI)
+        forAll(nei, faceI)
         {
             ncc[own[faceI]]++;
             ncc[nei[faceI]]++;
@@ -77,13 +77,13 @@ void Foam::primitiveMesh::calcCellCells() const
 
         // 2. Size and fill cellFaceAddr
 
-        forAll (cellCellAddr, cellI)
+        forAll(cellCellAddr, cellI)
         {
             cellCellAddr[cellI].setSize(ncc[cellI]);
         }
         ncc = 0;
 
-        forAll (nei, faceI)
+        forAll(nei, faceI)
         {
             label ownCellI = own[faceI];
             label neiCellI = nei[faceI];

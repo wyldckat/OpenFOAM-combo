@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ inline Foam::string::string(const char c)
 template<class String>
 inline bool Foam::string::valid(const string& str)
 {
-    for (const_iterator iter = str.begin(); iter != str.end(); iter++)
+    for (const_iterator iter = str.begin(); iter != str.end(); ++iter)
     {
         if (!String::valid(*iter))
         {
@@ -112,7 +112,7 @@ template<class String>
 inline bool Foam::string::meta(const string& str, const char quote)
 {
     int escaped = 0;
-    for (const_iterator iter = str.begin(); iter != str.end(); iter++)
+    for (const_iterator iter = str.begin(); iter != str.end(); ++iter)
     {
         if (quote && *iter == quote)
         {
@@ -144,7 +144,7 @@ Foam::string::quotemeta(const string& str, const char quote)
     sQuoted.reserve(2*str.length());
 
     int escaped = 0;
-    for (const_iterator iter = str.begin(); iter != str.end(); iter++)
+    for (const_iterator iter = str.begin(); iter != str.end(); ++iter)
     {
         if (*iter == quote)
         {
@@ -174,6 +174,12 @@ inline String Foam::string::validate(const string& str)
     string ss = str;
     stripInvalid<String>(ss);
     return ss;
+}
+
+inline bool Foam::string::match(const std::string& str) const
+{
+    // check as string
+    return (str == *this);
 }
 
 

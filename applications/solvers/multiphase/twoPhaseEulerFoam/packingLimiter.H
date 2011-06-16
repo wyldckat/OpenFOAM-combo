@@ -1,11 +1,11 @@
     if (packingLimiter)
     {
         // Calculating exceeding volume fractions
-        volScalarField alphaEx = max(alpha - alphaMax, scalar(0));
+        volScalarField alphaEx(max(alpha - alphaMax, scalar(0)));
 
         // Finding neighbouring cells of the whole domain
         labelListList neighbour = mesh.cellCells();
-        scalarField cellVolumes = mesh.cellVolumes();
+        scalarField cellVolumes(mesh.cellVolumes());
 
         forAll (alphaEx, celli)
         {
@@ -14,12 +14,12 @@
 
             // Initializing neighbouring cells contribution
             scalar neighboursEx = 0.0;
-           
+
             forAll (neighbourCell, cellj)
             {
                 labelList neighboursNeighbour = neighbour[neighbourCell[cellj]];
                 scalar neighboursNeighbourCellVolumes = 0.0;
-        
+
                 forAll (neighboursNeighbour, cellk)
                 {
                     neighboursNeighbourCellVolumes +=

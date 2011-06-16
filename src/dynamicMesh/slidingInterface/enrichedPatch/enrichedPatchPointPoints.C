@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -55,11 +53,11 @@ void Foam::enrichedPatch::calcPointPoints() const
 
     register bool found = false;
 
-    forAll (lf, faceI)
+    forAll(lf, faceI)
     {
         const face& curFace = lf[faceI];
 
-        forAll (curFace, pointI)
+        forAll(curFace, pointI)
         {
             DynamicList<label, primitiveMesh::edgesPerPoint_>&
                 curPp = pp[curFace[pointI]];
@@ -69,7 +67,7 @@ void Foam::enrichedPatch::calcPointPoints() const
 
             found = false;
 
-            forAll (curPp, i)
+            forAll(curPp, i)
             {
                 if (curPp[i] == next)
                 {
@@ -87,7 +85,7 @@ void Foam::enrichedPatch::calcPointPoints() const
             label prev = curFace.prevLabel(pointI);
             found = false;
 
-            forAll (curPp, i)
+            forAll(curPp, i)
             {
                 if (curPp[i] == prev)
                 {
@@ -107,7 +105,7 @@ void Foam::enrichedPatch::calcPointPoints() const
     pointPointsPtr_ = new labelListList(pp.size());
     labelListList& ppAddr = *pointPointsPtr_;
 
-    forAll (pp, pointI)
+    forAll(pp, pointI)
     {
         ppAddr[pointI].transfer(pp[pointI]);
     }

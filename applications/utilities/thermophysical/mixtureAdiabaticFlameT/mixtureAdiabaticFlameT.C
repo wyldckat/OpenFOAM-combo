@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,11 +49,10 @@ typedef specieThermo<janafThermo<perfectGas> > thermo;
 
 int main(int argc, char *argv[])
 {
-    argList::validArgs.clear();
     argList::validArgs.append("controlFile");
     argList args(argc, argv);
 
-    fileName controlFileName(args.additionalArgs()[0]);
+    const fileName controlFileName(args[1]);
 
     // Construct control dictionary
     IFstream controlFile(controlFileName);
@@ -115,7 +114,7 @@ int main(int argc, char *argv[])
             + 2*pMix[i].volFrac()*thermo(CpData.lookup(pMix[i].name()));
     }
 
-    Info << "Adiabatic flame temperature of mixture " << rMix.name() << " = "
+    Info<< "Adiabatic flame temperature of mixture " << rMix.name() << " = "
          << products.TH(reactants.H(T0), 1000.0) << " K" << endl;
 
     return 0;

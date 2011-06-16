@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,14 @@ Foam::IntegrationScheme<Type>::IntegrationScheme
 {}
 
 
+template<class Type>
+Foam::IntegrationScheme<Type>::IntegrationScheme(const IntegrationScheme& is)
+:
+    phiName_(is.phiName_),
+    dict_(is.dict_)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor    * * * * * * * * * * * * * * //
 
 template<class Type>
@@ -48,6 +56,38 @@ Foam::IntegrationScheme<Type>::~IntegrationScheme()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-#include "newIntegrationScheme.C"
+template<class Type>
+typename Foam::IntegrationScheme<Type>::integrationResult
+Foam::IntegrationScheme<Type>::integrate
+(
+    const Type& phi,
+    const scalar dt,
+    const Type& alphaBeta,
+    const scalar beta
+) const
+{
+    notImplemented
+    (
+        "Foam::IntegrationScheme<Type>::integrationResult"
+        "Foam::IntegrationScheme<Type>::integrate"
+        "("
+            "const Type&, "
+            "const scalar, "
+            "const Type&, "
+            "const scalar"
+        ") const"
+    );
+
+    typename IntegrationScheme<Type>::integrationResult retValue;
+    retValue.average() = pTraits<Type>::zero;
+    retValue.value() = pTraits<Type>::zero;
+
+    return retValue;
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "IntegrationSchemeNew.C"
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,6 +60,7 @@ dimensionedScalar pow3(const dimensionedScalar&);
 dimensionedScalar pow4(const dimensionedScalar&);
 dimensionedScalar pow5(const dimensionedScalar&);
 dimensionedScalar pow6(const dimensionedScalar&);
+dimensionedScalar pow025(const dimensionedScalar&);
 
 dimensionedScalar sqrt(const dimensionedScalar&);
 dimensionedScalar cbrt(const dimensionedScalar&);

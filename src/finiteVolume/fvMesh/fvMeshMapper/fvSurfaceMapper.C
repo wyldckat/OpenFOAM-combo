@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -64,7 +64,7 @@ void Foam::fvSurfaceMapper::calcAddressing() const
         labelList& addr = *directAddrPtr_;
 
         // Adjust for creation of an internal face from a boundary face
-        forAll (addr, faceI)
+        forAll(addr, faceI)
         {
             if (addr[faceI] > oldNInternal)
             {
@@ -88,9 +88,9 @@ void Foam::fvSurfaceMapper::calcAddressing() const
                 scalarListList::subList(faceMap_.weights(), size())
             );
         scalarListList& w = *weightsPtr_;
-        
+
         // Adjust for creation of an internal face from a boundary face
-        forAll (addr, faceI)
+        forAll(addr, faceI)
         {
             if (max(addr[faceI]) >= oldNInternal)
             {
@@ -112,7 +112,7 @@ void Foam::fvSurfaceMapper::calcAddressing() const
 
         label nIns = 0;
 
-        forAll (insFaces, faceI)
+        forAll(insFaces, faceI)
         {
             // If the face is internal, keep it here
             if (insFaces[faceI] < size())
@@ -170,13 +170,13 @@ Foam::fvSurfaceMapper::~fvSurfaceMapper()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::unallocLabelList& Foam::fvSurfaceMapper::directAddressing() const
+const Foam::labelUList& Foam::fvSurfaceMapper::directAddressing() const
 {
     if (!direct())
     {
         FatalErrorIn
         (
-            "const unallocLabelList& fvSurfaceMapper::"
+            "const labelUList& fvSurfaceMapper::"
             "directAddressing() const"
         )   << "Requested direct addressing for an interpolative mapper."
             << abort(FatalError);

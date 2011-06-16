@@ -50,7 +50,7 @@ bool Foam::fieldValues::faceSource::validField(const word& fieldName) const
 
 
 template<class Type>
-Foam::tmp<Foam::Field<Type> > Foam::fieldValues::faceSource::setFieldValues
+Foam::tmp<Foam::Field<Type> > Foam::fieldValues::faceSource::getFieldValues
 (
     const word& fieldName
 ) const
@@ -138,24 +138,26 @@ bool Foam::fieldValues::faceSource::writeValues(const word& fieldName)
 
     if (ok)
     {
-        // Get (correctly oriented) field
-        Field<Type> values = combineFields(setFieldValues<Type>(fieldName)());
-
-        // Get unoriented magSf
+        Field<Type> values(getFieldValues<Type>(fieldName));
+        scalarField weightField(getFieldValues<scalar>(weightFieldName_));
         scalarField magSf;
 
         if (surfacePtr_.valid())
         {
-            magSf = combineFields(surfacePtr_().magSf());
+            // Get unoriented magSf
+            magSf = surfacePtr_().magSf();
         }
         else
         {
-            magSf = combineFields(filterField(mesh().magSf(), false)());
+            // Get unoriented magSf
+            magSf = filterField(mesh().magSf(), false);
         }
 
-        // Get (correctly oriented) weighting field
-        scalarField weightField =
-            combineFields(setFieldValues<scalar>(weightFieldName_)());
+        // Combine onto master
+        combineFields(values);
+        combineFields(magSf);
+        combineFields(weightField);
+
 
         if (Pstream::master())
         {
@@ -163,7 +165,7 @@ bool Foam::fieldValues::faceSource::writeValues(const word& fieldName)
 
             if (valueOutput_)
             {
-                IOList<Type>
+                IOField<Type>
                 (
                     IOobject
                     (

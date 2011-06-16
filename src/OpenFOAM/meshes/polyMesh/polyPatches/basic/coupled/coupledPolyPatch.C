@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,20 +30,24 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::coupledPolyPatch, 0);
-
-template<>
-const char* Foam::NamedEnum<Foam::coupledPolyPatch::transformType, 3>::names[] =
+namespace Foam
 {
-    "unknown",
-    "rotational",
-    "translational"
-};
+    defineTypeNameAndDebug(coupledPolyPatch, 0);
 
-const Foam::NamedEnum<Foam::coupledPolyPatch::transformType, 3>
-    Foam::coupledPolyPatch::transformTypeNames;
+    const scalar coupledPolyPatch::defaultMatchTol_ = 1E-4;
 
-Foam::scalar Foam::coupledPolyPatch::matchTol = 1E-3;
+    template<>
+    const char* NamedEnum<coupledPolyPatch::transformType, 4>::names[] =
+    {
+        "unknown",
+        "rotational",
+        "translational",
+        "noOrdering"
+    };
+
+    const NamedEnum<coupledPolyPatch::transformType, 4>
+        coupledPolyPatch::transformTypeNames;
+}
 
 
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
@@ -82,7 +86,7 @@ void Foam::coupledPolyPatch::writeOBJ
     writeOBJ(os, p1);
     vertI++;
 
-    os<< "l " << vertI-1 << ' ' << vertI << nl;
+    os  << "l " << vertI-1 << ' ' << vertI << nl;
 }
 
 
@@ -122,23 +126,6 @@ void Foam::coupledPolyPatch::writeOBJ
 }
 
 
-Foam::pointField Foam::coupledPolyPatch::calcFaceCentres
-(
-    const UList<face>& faces,
-    const pointField& points
-)
-{
-    pointField ctrs(faces.size());
-
-    forAll(faces, faceI)
-    {
-        ctrs[faceI] = faces[faceI].centre(points);
-    }
-
-    return ctrs;
-}
-
-
 Foam::pointField Foam::coupledPolyPatch::getAnchorPoints
 (
     const UList<face>& faces,
@@ -156,45 +143,9 @@ Foam::pointField Foam::coupledPolyPatch::getAnchorPoints
 }
 
 
-bool Foam::coupledPolyPatch::inPatch
-(
-    const labelList& oldToNew,
-    const label oldFaceI
-) const
-{
-    label faceI = oldToNew[oldFaceI];
-
-    return faceI >= start() && faceI < start()+size();
-}
-
-
-Foam::label Foam::coupledPolyPatch::whichPatch
-(
-    const labelList& patchStarts,
-    const label faceI
-)
-{
-    forAll(patchStarts, patchI)
-    {
-        if (patchStarts[patchI] <= faceI)
-        {
-            if (patchI == patchStarts.size()-1)
-            {
-                return patchI;
-            }
-            else if (patchStarts[patchI+1] > faceI)
-            {
-                return patchI;
-            }
-        }
-    }
-
-    return -1;
-}
-
-
 Foam::scalarField Foam::coupledPolyPatch::calcFaceTol
 (
+    const scalar matchTol,
     const UList<face>& faces,
     const pointField& points,
     const pointField& faceCentres
@@ -279,7 +230,8 @@ void Foam::coupledPolyPatch::calcTransformTensors
             << "    transform:" << transformTypeNames[transform] << nl
             << "    (half)size:" << Cf.size() << nl
             << "    absTol:" << absTol << nl
-            //<< "    smallDist:" << smallDist << nl
+            << "    smallDist min:" << min(smallDist) << nl
+            << "    smallDist max:" << max(smallDist) << nl
             << "    sum(mag(nf & nr)):" << sum(mag(nf & nr)) << endl;
     }
 
@@ -291,12 +243,13 @@ void Foam::coupledPolyPatch::calcTransformTensors
     // Then the overall error of summing the normals is sqrt(size())*absTol
     // - separation calculation: pass in from the outside an allowable error.
 
-    if (size() == 0)
+    if (Cf.size() == 0)
     {
         // Dummy geometry.
         separation_.setSize(0);
         forwardT_ = I;
         reverseT_ = I;
+        collocated_.setSize(0);
     }
     else
     {
@@ -318,12 +271,16 @@ void Foam::coupledPolyPatch::calcTransformTensors
         {
             // Type is rotation or unknown and normals not aligned
 
+            // Assume per-face differing transformation, correct later
+
             separation_.setSize(0);
 
             forwardT_.setSize(Cf.size());
             reverseT_.setSize(Cf.size());
+            collocated_.setSize(Cf.size());
+            collocated_ = false;
 
-            forAll (forwardT_, facei)
+            forAll(forwardT_, facei)
             {
                 forwardT_[facei] = rotationTensor(-nr[facei], nf[facei]);
                 reverseT_[facei] = rotationTensor(nf[facei], -nr[facei]);
@@ -340,6 +297,7 @@ void Foam::coupledPolyPatch::calcTransformTensors
             {
                 forwardT_.setSize(1);
                 reverseT_.setSize(1);
+                collocated_.setSize(1);
 
                 if (debug)
                 {
@@ -351,12 +309,14 @@ void Foam::coupledPolyPatch::calcTransformTensors
         }
         else
         {
-            // Translational or unknown and normals aligned.
+            // Translational or (unknown and normals aligned)
 
             forwardT_.setSize(0);
             reverseT_.setSize(0);
 
             separation_ = Cr - Cf;
+
+            collocated_.setSize(separation_.size());
 
             // Three situations:
             // - separation is zero. No separation.
@@ -365,15 +325,23 @@ void Foam::coupledPolyPatch::calcTransformTensors
 
             // Check for different separation per face
             bool sameSeparation = true;
+            bool doneWarning = false;
 
             forAll(separation_, facei)
             {
                 scalar smallSqr = sqr(smallDist[facei]);
 
+                collocated_[facei] = (magSqr(separation_[facei]) < smallSqr);
+
+                // Check if separation differing w.r.t. face 0.
                 if (magSqr(separation_[facei] - separation_[0]) > smallSqr)
                 {
-                    if (debug)
+                    sameSeparation = false;
+
+                    if (!doneWarning && debug)
                     {
+                        doneWarning = true;
+
                         Pout<< "    separation " << separation_[facei]
                             << " at " << facei
                             << " differs from separation[0] " << separation_[0]
@@ -381,15 +349,13 @@ void Foam::coupledPolyPatch::calcTransformTensors
                             << smallDist[facei]
                             << ". Assuming non-uniform separation." << endl;
                     }
-                    sameSeparation = false;
-                    break;
                 }
             }
 
             if (sameSeparation)
             {
                 // Check for zero separation (at 0 so everywhere)
-                if (magSqr(separation_[0]) < sqr(smallDist[0]))
+                if (collocated_[0])
                 {
                     if (debug)
                     {
@@ -399,6 +365,7 @@ void Foam::coupledPolyPatch::calcTransformTensors
                     }
 
                     separation_.setSize(0);
+                    collocated_ = boolList(1, true);
                 }
                 else
                 {
@@ -410,6 +377,7 @@ void Foam::coupledPolyPatch::calcTransformTensors
                     }
 
                     separation_.setSize(1);
+                    collocated_ = boolList(1, false);
                 }
             }
         }
@@ -434,7 +402,8 @@ Foam::coupledPolyPatch::coupledPolyPatch
     const polyBoundaryMesh& bm
 )
 :
-    polyPatch(name, size, start, index, bm)
+    polyPatch(name, size, start, index, bm),
+    matchTolerance_(defaultMatchTol_)
 {}
 
 
@@ -446,7 +415,8 @@ Foam::coupledPolyPatch::coupledPolyPatch
     const polyBoundaryMesh& bm
 )
 :
-    polyPatch(name, dict, index, bm)
+    polyPatch(name, dict, index, bm),
+    matchTolerance_(dict.lookupOrDefault("matchTolerance", defaultMatchTol_))
 {}
 
 
@@ -456,7 +426,8 @@ Foam::coupledPolyPatch::coupledPolyPatch
     const polyBoundaryMesh& bm
 )
 :
-    polyPatch(pp, bm)
+    polyPatch(pp, bm),
+    matchTolerance_(pp.matchTolerance_)
 {}
 
 
@@ -469,7 +440,22 @@ Foam::coupledPolyPatch::coupledPolyPatch
     const label newStart
 )
 :
-    polyPatch(pp, bm, index, newSize, newStart)
+    polyPatch(pp, bm, index, newSize, newStart),
+    matchTolerance_(pp.matchTolerance_)
+{}
+
+
+Foam::coupledPolyPatch::coupledPolyPatch
+(
+    const coupledPolyPatch& pp,
+    const polyBoundaryMesh& bm,
+    const label index,
+    const labelUList& mapAddressing,
+    const label newStart
+)
+:
+    polyPatch(pp, bm, index, mapAddressing, newStart),
+    matchTolerance_(pp.matchTolerance_)
 {}
 
 
@@ -477,6 +463,19 @@ Foam::coupledPolyPatch::coupledPolyPatch
 
 Foam::coupledPolyPatch::~coupledPolyPatch()
 {}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::coupledPolyPatch::write(Ostream& os) const
+{
+    polyPatch::write(os);
+    //if (matchTolerance_ != defaultMatchTol_)
+    {
+        os.writeKeyword("matchTolerance") << matchTolerance_
+            << token::END_STATEMENT << nl;
+    }
+}
 
 
 // ************************************************************************* //

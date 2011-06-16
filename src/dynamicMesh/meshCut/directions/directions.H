@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     or one set of directions per cell.
 
     Used in splitting cells.
-    Either all cells have similar refinement direction ('global') or 
+    Either all cells have similar refinement direction ('global') or
     direction is dependent on local cell geometry. Controlled by dictionary.
 
 SourceFiles
@@ -73,7 +73,7 @@ public:
         {
             TAN1,
             TAN2,
-            NORMAL,
+            NORMAL
         };
 
 private:

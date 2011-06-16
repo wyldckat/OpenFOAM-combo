@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -156,9 +156,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~laplacianScheme();
+    //- Destructor
+    virtual ~laplacianScheme();
 
 
     // Member Functions
@@ -172,13 +171,13 @@ public:
         virtual tmp<fvMatrix<Type> > fvmLaplacian
         (
             const GeometricField<GType, fvsPatchField, surfaceMesh>&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         ) = 0;
 
         virtual tmp<fvMatrix<Type> > fvmLaplacian
         (
             const GeometricField<GType, fvPatchField, volMesh>&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         );
 
         virtual tmp<GeometricField<Type, fvPatchField, volMesh> > fvcLaplacian

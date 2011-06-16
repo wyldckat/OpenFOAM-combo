@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Description
     Reverse-central-differencing interpolation scheme class which is a linear
     scheme but uses 1 - weighting factors.
 
-    Currently the sole use of this scheme is as the basis of 
+    Currently the sole use of this scheme is as the basis of
     harmonic interpolation.
 
 \*---------------------------------------------------------------------------*/

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,12 +22,13 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Generates an .obj file to plot a probability distribution function
+    Generates a graph of a probability distribution function
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "pdf.H"
+#include "distributionModel.H"
+#include "makeGraph.H"
 #include "OFstream.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -35,38 +36,43 @@ Description
 
 int main(int argc, char *argv[])
 {
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createFields.H"
 
-#   include "setRootCase.H"
-#   include "createTime.H"
-#   include "createFields.H"
-
-    OFstream objFileNew("s.m");
-
-    Random rndGen(label(0));
-
-    autoPtr<pdfs::pdf> p
-    (
-        pdfs::pdf::New(pdfDictionary, rndGen)
-    );
-
-    scalar xMin = p->minValue();
-
-    scalar xMax = p->maxValue();
-
-    for(label i=0;i<nSamples;i++)
+    label iCheck = 100;
+    for (label i=1; i<=nSamples; i++)
     {
         scalar ps = p->sample();
-        label n = label((ps-xMin)*nIntervals/(xMax-xMin));
-        //Info << "p[" << i << "] = " << ps << ", n = " << n << endl;
+        label n = label((ps - xMin)*nIntervals/(xMax - xMin));
         samples[n]++;
+
+        if (writeData)
+        {
+            filePtr() << ps << nl;
+        }
+
+        if (i % iCheck == 0)
+        {
+            Info<< "    processed " << i << " samples" << endl;
+
+            if (i == 10*iCheck)
+            {
+                iCheck *= 10;
+            }
+        }
     }
 
-    for(label i=0;i<nIntervals;i++)
+    scalarField x(nIntervals);
+
+    forAll(x, i)
     {
-        scalar x = xMin + i*(xMax-xMin)/(nIntervals-1);
-        objFileNew << x << " \t" << samples[i] << endl;
+        x[i] = xMin + i*(xMax - xMin)/(nIntervals - 1);
     }
-    Info << "End\n" << endl;
+
+    makeGraph(x, samples, p->type(), pdfPath, runTime.graphFormat());
+
+    Info<< "End\n" << endl;
 
     return 0;
 }

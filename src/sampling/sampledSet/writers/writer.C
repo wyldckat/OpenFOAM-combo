@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,23 +31,22 @@ License
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 template<class Type>
-Foam::autoPtr<Foam::writer<Type> > Foam::writer<Type>::New
+Foam::autoPtr< Foam::writer<Type> > Foam::writer<Type>::New
 (
     const word& writeType
 )
 {
     typename wordConstructorTable::iterator cstrIter =
-        wordConstructorTablePtr_
-            ->find(writeType);
+        wordConstructorTablePtr_->find(writeType);
 
     if (cstrIter == wordConstructorTablePtr_->end())
     {
         FatalErrorIn
         (
             "writer::New(const word&)"
-        )   << "Unknown write type " << writeType
-            << nl << nl
-            << "Valid write types : " << nl
+        )   << "Unknown write type "
+            << writeType << nl << nl
+            << "Valid write types : " << endl
             << wordConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }

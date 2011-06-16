@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,8 +34,8 @@ namespace XiGModels
 {
     defineTypeNameAndDebug(KTS, 0);
     addToRunTimeSelectionTable(XiGModel, KTS, dictionary);
-};
-};
+}
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -49,7 +49,7 @@ Foam::XiGModels::KTS::KTS
 )
 :
     XiGModel(XiGProperties, thermo, turbulence, Su),
-    GEtaCoef(readScalar(XiGModelCoeffs_.lookup("GEtaCoef")))
+    GEtaCoef_(readScalar(XiGModelCoeffs_.lookup("GEtaCoef")))
 {}
 
 
@@ -63,12 +63,12 @@ Foam::XiGModels::KTS::~KTS()
 
 Foam::tmp<Foam::volScalarField> Foam::XiGModels::KTS::G() const
 {
-    volScalarField up = sqrt((2.0/3.0)*turbulence_.k());
+    volScalarField up(sqrt((2.0/3.0)*turbulence_.k()));
     const volScalarField& epsilon = turbulence_.epsilon();
 
-    volScalarField tauEta = sqrt(mag(thermo_.muu()/(thermo_.rhou()*epsilon)));
+    volScalarField tauEta(sqrt(mag(thermo_.muu()/(thermo_.rhou()*epsilon))));
 
-    return GEtaCoef/tauEta;
+    return (GEtaCoef_/tauEta);
 }
 
 
@@ -76,7 +76,7 @@ bool Foam::XiGModels::KTS::read(const dictionary& XiGProperties)
 {
     XiGModel::read(XiGProperties);
 
-    XiGModelCoeffs_.lookup("GEtaCoef") >> GEtaCoef;
+    XiGModelCoeffs_.lookup("GEtaCoef") >> GEtaCoef_;
 
     return true;
 }

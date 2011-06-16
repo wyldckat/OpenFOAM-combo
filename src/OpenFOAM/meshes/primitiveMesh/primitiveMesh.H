@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -56,8 +56,6 @@ SourceFiles
 #include "DynamicList.H"
 #include "edgeList.H"
 #include "pointField.H"
-#include "SubField.H"
-#include "SubList.H"
 #include "faceList.H"
 #include "cellList.H"
 #include "cellShapeList.H"
@@ -65,12 +63,15 @@ SourceFiles
 #include "boolList.H"
 #include "HashSet.H"
 #include "Map.H"
-#include "EdgeMap.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+
+// Forward declaration of classes
+class treeDataCell;
+template<class Type> class indexedOctree;
 
 /*---------------------------------------------------------------------------*\
                       Class primitiveMesh Declaration
@@ -154,6 +155,9 @@ class primitiveMesh
             //- Cell-points
             mutable labelListList* cpPtr_;
 
+            //- Search tree to allow spatial tet searching
+            mutable indexedOctree<treeDataCell>* cellTreePtr_;
+
 
         // On-the-fly edge addresing storage
 
@@ -179,7 +183,7 @@ class primitiveMesh
             mutable vectorField* faceAreasPtr_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow construct as copy
         primitiveMesh(const primitiveMesh&);
@@ -223,7 +227,7 @@ class primitiveMesh
             );
             //- For on-the-fly addressing calculation
             static label findFirstCommonElementFromSortedLists
-            ( 
+            (
                 const labelList&,
                 const labelList&
             );
@@ -291,6 +295,9 @@ class primitiveMesh
             //- Skewness warning threshold
             static scalar skewThreshold_;
 
+            //- Threshold where faces are considered coplanar
+            static scalar planarCosAngle_;
+
 
 protected:
 
@@ -347,9 +354,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~primitiveMesh();
+    //- Destructor
+    virtual ~primitiveMesh();
 
 
     // Member Functions
@@ -441,8 +447,8 @@ public:
                 static void calcCells
                 (
                     cellList&,
-                    const unallocLabelList& own,
-                    const unallocLabelList& nei,
+                    const labelUList& own,
+                    const labelUList& nei,
                     const label nCells = -1
                 );
 
@@ -477,6 +483,10 @@ public:
                 const labelListList& pointEdges() const;
                 const labelListList& pointPoints() const;
                 const labelListList& cellPoints() const;
+
+
+            //- Build (if necessary) and return the cell search tree
+            const indexedOctree<treeDataCell>& cellTree() const;
 
 
             // Geometric data (raw!)
@@ -556,7 +566,6 @@ public:
                 //- Check for negative cell volumes
                 bool checkCellVolumes
                 (
-                    
                     const bool report = false,
                     labelHashSet* setPtr = NULL
                 ) const;
@@ -641,12 +650,19 @@ public:
                     const Vector<label>& solutionD = Vector<label>::one
                 ) const;
 
+                //- Check for concave cells by the planes of faces
+                bool checkConcaveCells
+                (
+                    const bool report = false,
+                    labelHashSet* setPtr = NULL
+                ) const;
+
 
             //- Check mesh topology for correctness.
             //  Returns false for no error.
             bool checkTopology(const bool report = false) const;
 
-            //- Check mesh geometry (& implicitly topology) for correctness. 
+            //- Check mesh geometry (& implicitly topology) for correctness.
             //  Returns false for no error.
             bool checkGeometry(const bool report = false) const;
 
@@ -677,8 +693,14 @@ public:
 
         // Useful derived info
 
-            //- Is the point in the cell bounding box
-            bool pointInCellBB(const point& p, label celli) const;
+            //- Is the point in the cell bounding box, option relative
+            //  tolerance to increase the effective size of the boundBox
+            bool pointInCellBB
+            (
+                const point& p,
+                label celli,
+                scalar tol = 0
+            ) const;
 
             //- Is the point in the cell
             bool pointInCell(const point& p, label celli) const;
@@ -798,6 +820,9 @@ public:
 
             //- Clear topological data
             void clearAddressing();
+
+            //- Clear cell tree data
+            void clearCellTree();
 
             //- Clear all geometry and addressing unnecessary for CFD
             void clearOut();

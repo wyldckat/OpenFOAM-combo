@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,7 @@ SourceFiles
 
 #include "coupledFacePointPatch.H"
 #include "cyclicPolyPatch.H"
+#include "pointBoundaryMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -68,27 +69,23 @@ class cyclicPointPatch
 
     // Demand driven private data
 
-        //- The set of pairs of points that require transformation
-        //  and/or mapping
-        edgeList transformPairs_;
-
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry();
+        virtual void initGeometry(PstreamBuffers&);
 
         //- Calculate the patch geometry
-        virtual void calcGeometry();
+        virtual void calcGeometry(PstreamBuffers&);
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&);
+        virtual void initMovePoints(PstreamBuffers&, const pointField&);
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField&);
+        virtual void movePoints(PstreamBuffers&, const pointField&);
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh();
+        virtual void initUpdateMesh(PstreamBuffers&);
 
         //- Update of the patch topology
-        virtual void updateMesh();
+        virtual void updateMesh(PstreamBuffers&);
 
 
 public:
@@ -107,19 +104,32 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~cyclicPointPatch();
+    //- Destructor
+    virtual ~cyclicPointPatch();
 
 
     // Member Functions
 
         // Access
 
+            //- Return the constraint type this pointPatch implements.
+            virtual const word& constraintType() const
+            {
+                return type();
+            }
+
             //- Return the underlying cyclicPolyPatch
             const cyclicPolyPatch& cyclicPatch() const
             {
                 return cyclicPolyPatch_;
+            }
+
+            //- Return neighbour point patch
+            const cyclicPointPatch& neighbPatch() const
+            {
+                label patchI = cyclicPolyPatch_.neighbPatchID();
+                const pointPatch& pp = this->boundaryMesh()[patchI];
+                return refCast<const cyclicPointPatch>(pp);
             }
 
             //- Are the cyclic planes parallel
@@ -144,8 +154,10 @@ public:
         // Access functions for demand driven data
 
             //- Return the set of pairs of points that require transformation
-            //  and/or mapping
+            //  and/or mapping. First index is on this patch, second on the
+            //  neighbour patch.
             virtual const edgeList& transformPairs() const;
+
 };
 
 

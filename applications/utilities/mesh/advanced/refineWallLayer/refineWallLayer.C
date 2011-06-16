@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,11 +46,18 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
-    Foam::argList::noParallel();
-    Foam::argList::validArgs.append("patchName");
-    Foam::argList::validArgs.append("edgeWeight");
-    Foam::argList::validOptions.insert("useSet", "cellSet");
-    Foam::argList::validOptions.insert("overwrite", "");
+    #include "addOverwriteOption.H"
+    argList::noParallel();
+    argList::validArgs.append("patchName");
+    argList::validArgs.append("edgeWeight");
+
+    argList::addOption
+    (
+        "useSet",
+        "name",
+        "restrict cells to refine based on specified cellSet name"
+    );
+
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -58,11 +65,9 @@ int main(int argc, char *argv[])
 #   include "createPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
-    word patchName(args.additionalArgs()[0]);
-
-    scalar weight(readScalar(IStringStream(args.additionalArgs()[1])()));
-    bool overwrite = args.optionFound("overwrite");
-
+    const word patchName = args[1];
+    const scalar weight  = args.argRead<scalar>(2);
+    const bool overwrite = args.optionFound("overwrite");
 
     label patchID = mesh.boundaryMesh().findPatchID(patchName);
 
@@ -101,32 +106,24 @@ int main(int argc, char *argv[])
     // List of cells to refine
     //
 
-    bool useSet = args.optionFound("useSet");
-
-    if (useSet)
+    word setName;
+    if (args.optionReadIfPresent("useSet", setName))
     {
-        word setName(args.option("useSet"));
-
-        Info<< "Subsetting cells to cut based on cellSet" << setName << endl
-            << endl;
+        Info<< "Subsetting cells to cut based on cellSet"
+            << setName << nl << endl;
 
         cellSet cells(mesh, setName);
 
         Info<< "Read " << cells.size() << " cells from cellSet "
             << cells.instance()/cells.local()/cells.name()
-            << endl << endl;
+            << nl << endl;
 
-        for
-        (
-            cellSet::const_iterator iter = cells.begin();
-            iter != cells.end();
-            ++iter
-        )
+        forAllConstIter(cellSet, cells, iter)
         {
             cutCells.erase(iter.key());
         }
-        Info<< "Removed from cells to cut all the ones not in set " << setName
-            << endl << endl;
+        Info<< "Removed from cells to cut all the ones not in set "
+            << setName << nl << endl;
     }
 
     // Mark all meshpoints on patch
@@ -135,7 +132,7 @@ int main(int argc, char *argv[])
 
     forAll(meshPoints, pointI)
     {
-        label meshPointI = meshPoints[pointI];
+        const label meshPointI = meshPoints[pointI];
 
         vertOnPatch[meshPointI] = true;
     }
@@ -155,8 +152,7 @@ int main(int argc, char *argv[])
 
         forAll(pEdges, pEdgeI)
         {
-            label edgeI = pEdges[pEdgeI];
-
+            const label edgeI = pEdges[pEdgeI];
             const edge& e = mesh.edges()[edgeI];
 
             label otherPointI = e.otherVertex(meshPointI);
@@ -180,9 +176,9 @@ int main(int argc, char *argv[])
     allCutEdges.shrink();
     allCutEdgeWeights.shrink();
 
-    Info<< "Cutting:" << endl
-        << "    cells:" << cutCells.size() << endl
-        << "    edges:" << allCutEdges.size() << endl
+    Info<< "Cutting:" << nl
+        << "    cells:" << cutCells.size() << nl
+        << "    edges:" << allCutEdges.size() << nl
         << endl;
 
     // Transfer DynamicLists to straight ones.
@@ -233,11 +229,11 @@ int main(int argc, char *argv[])
     }
 
     // Write resulting mesh
-    Info << "Writing refined morphMesh to time " << runTime.timeName() << endl;
+    Info<< "Writing refined morphMesh to time " << runTime.timeName() << endl;
 
     mesh.write();
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

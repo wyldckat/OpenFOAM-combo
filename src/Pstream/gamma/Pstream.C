@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -281,11 +281,11 @@ bool Pstream::init(int& argc, char**& argv)
 
 
     // Lock the special resize message
-//    gamma_mlock
-//    (
- //       reinterpret_cast<char*>(PstreamGlobals::resizeMessage),
-  //      PstreamGlobals::resizeMessageLen*sizeof(uint64_t)
-   // );
+    //    gamma_mlock
+    //    (
+    //       reinterpret_cast<char*>(PstreamGlobals::resizeMessage),
+    //      PstreamGlobals::resizeMessageLen*sizeof(uint64_t)
+    // );
 
 
     // Attach current receive buffers
@@ -306,10 +306,10 @@ bool Pstream::init(int& argc, char**& argv)
                 gamma_my_par_pid(), //unsigned char dest_par_pid,
                 myProcNo_,          //unsigned short dest_port,
                 handler,            //callback
-	        procNo,             //unsigned short semaphore,
-	        GO_BACK,            //unsigned char buffer_kind,
+                procNo,             //unsigned short semaphore,
+                GO_BACK,            //unsigned char buffer_kind,
                 buf.begin(),
-	        buf.size()
+                buf.size()
             );
         }
     }
@@ -333,7 +333,7 @@ bool Pstream::init(int& argc, char**& argv)
 
 void Pstream::exit(int errnum)
 {
-//    gamma_munlockall();
+    //    gamma_munlockall();
     gamma_exit();
     //gamma_abort();
 }
@@ -341,8 +341,8 @@ void Pstream::exit(int errnum)
 
 void Pstream::abort()
 {
-Pout<< "**Pstream::abort()**" << endl;
-//    gamma_munlockall();
+    Pout<< "**Pstream::abort()**" << endl;
+    // gamma_munlockall();
     gamma_abort();
 }
 

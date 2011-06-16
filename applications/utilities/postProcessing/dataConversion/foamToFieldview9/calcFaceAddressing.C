@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -41,7 +39,7 @@ labelList calcFaceAddressing
     const label cellI
 )
 {
-    // return value. 
+    // return value.
     labelList shapeToMesh(shape.nFaces(), -1);
 
     const faceList modelFaces(shape.faces());
@@ -74,14 +72,17 @@ labelList calcFaceAddressing
                 << "    face labels:" << faces << endl
                 << "    cellI:" << cellI << endl;
 
-            FatalError << "Faces consist of vertices:" << endl;
+            FatalError
+                << "Faces consist of vertices:" << endl;
+
             forAll(faces, faceI)
             {
                 FatalError
                     << "    face:" << faces[faceI]
                     << allFaces[faces[faceI]] << endl;
             }
-            FatalError << exit(FatalError);
+            FatalError
+                << exit(FatalError);
         }
     }
     return shapeToMesh;

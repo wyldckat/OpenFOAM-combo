@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,11 +76,9 @@ sixDoFRigidBodyDisplacementPointPatchVectorField
         rhoInf_ = readScalar(dict.lookup("rhoInf"));
     }
 
-    if (dict.found("g"))
+    if (dict.readIfPresent("g", g_))
     {
         lookupGravity_ = -2;
-
-        g_ = dict.lookup("g");
     }
 
     if (!dict.found("value"))
@@ -205,7 +203,7 @@ void sixDoFRigidBodyDisplacementPointPatchVectorField::updateCoeffs()
     // calculate the forces on the motion object from this data, then
     // update the positions
 
-    motion_.updatePosition(t.deltaTValue(), t.deltaT0Value());
+    motion_.updatePosition(t.deltaTValue());
 
     dictionary forcesDict;
 
@@ -248,9 +246,12 @@ void sixDoFRigidBodyDisplacementPointPatchVectorField::write(Ostream& os) const
 {
     pointPatchField<vector>::write(os);
 
-    os.writeKeyword("rhoInf") << rhoInf_ << token::END_STATEMENT << nl;
-
     os.writeKeyword("rhoName") << rhoName_ << token::END_STATEMENT << nl;
+
+    if (rhoName_ == "rhoInf")
+    {
+        os.writeKeyword("rhoInf") << rhoInf_ << token::END_STATEMENT << nl;
+    }
 
     if (lookupGravity_ == 0 || lookupGravity_ == -2)
     {

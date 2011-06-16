@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,6 @@ SourceFiles
 #define fvMeshDistribute_H
 
 #include "Field.H"
-//#include "uLabel.H"
 #include "fvMeshSubset.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -103,8 +102,8 @@ class fvMeshDistribute
             //- Find patch to put exposed faces into.
             label findNonEmptyPatch() const;
 
-            //- Appends processorPolyPatch. Returns patchID.
-            label addProcPatch(const word& patchName, const label nbrProc);
+            //- Appends polyPatch. Returns patchID.
+            label addPatch(polyPatch*);
 
             //- Add patch field
             template<class GeoField>
@@ -170,6 +169,7 @@ class fvMeshDistribute
                 const labelList& distribution,
                 labelList& sourceFace,
                 labelList& sourceProc,
+                labelList& sourcePatch,
                 labelList& sourceNewProc
             ) const;
 
@@ -187,10 +187,12 @@ class fvMeshDistribute
 
                 const labelList& sourceFace,
                 const labelList& sourceProc,
+                const labelList& sourcePatch,
                 const labelList& sourceNewProc,
 
                 labelList& subFace,
                 labelList& subProc,
+                labelList& subPatch,
                 labelList& subNewProc
             );
 
@@ -201,11 +203,13 @@ class fvMeshDistribute
                 const primitiveMesh&,
                 const labelList& sourceFace,
                 const labelList& sourceProc,
+                const labelList& sourcePatch,
 
                 const label domain,
                 const primitiveMesh& domainMesh,
                 const labelList& domainFace,
                 const labelList& domainProc,
+                const labelList& domainPatch,
 
                 labelList& masterCoupledFaces,
                 labelList& slaveCoupledFaces
@@ -236,15 +240,17 @@ class fvMeshDistribute
             //  proc the processor patchID.
             void addProcPatches
             (
-                const labelList&, // processor that neighbour is on
-                labelList& procPatchID
+                const labelList&, // processor that neighbour is now on
+                const labelList&, // -1 or patch that face originated from 
+                List<Map<label> >& procPatchID
             );
 
             //- Get boundary faces to be repatched. Is -1 or new patchID
-            static labelList getProcBoundaryPatch
+            static labelList getBoundaryPatch
             (
-                const labelList& neighbourNewProc,// new processor per b. face
-                const labelList& procPatchID      // patchID
+                const labelList& neighbourNewProc,  // new processor per b. face
+                const labelList& referPatchID,      // -1 or original patch
+                const List<Map<label> >& procPatchID// patchID
             );
 
             //- Send mesh and coupling data.
@@ -257,8 +263,9 @@ class fvMeshDistribute
                 const wordList& cellZoneNames,
                 const labelList& sourceFace,
                 const labelList& sourceProc,
+                const labelList& sourcePatch,
                 const labelList& sourceNewProc,
-                OSstream& toDomain
+                UOPstream& toDomain
             );
             //- Send subset of fields
             template<class GeoField>
@@ -267,7 +274,7 @@ class fvMeshDistribute
                 const label domain,
                 const wordList& fieldNames,
                 const fvMeshSubset&,
-                OSstream& toNbr
+                UOPstream& toNbr
             );
 
             //- Receive mesh. Opposite of sendMesh
@@ -280,8 +287,9 @@ class fvMeshDistribute
                 const Time& runTime,
                 labelList& domainSourceFace,
                 labelList& domainSourceProc,
+                labelList& domainSourcePatch,
                 labelList& domainSourceNewProc,
-                ISstream& fromNbr
+                UIPstream& fromNbr
             );
 
             //- Receive fields. Opposite of sendFields
@@ -293,15 +301,6 @@ class fvMeshDistribute
                 fvMesh&,
                 PtrList<GeoField>&,
                 const dictionary& fieldDicts
-            );
-
-            //- Do parallel exchange
-            template <class Container, class T>
-            static void exchange
-            (
-                const List<Container >& sendBufs,
-                List<Container >& recvBufs,
-                labelListList& sizes
             );
 
             //- Disallow default bitwise copy construct
@@ -336,6 +335,7 @@ public:
             static void printCoupleInfo
             (
                 const primitiveMesh&,
+                const labelList&,
                 const labelList&,
                 const labelList&,
                 const labelList&

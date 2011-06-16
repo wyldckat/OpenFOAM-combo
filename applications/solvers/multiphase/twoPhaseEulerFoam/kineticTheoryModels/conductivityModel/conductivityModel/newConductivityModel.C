@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,9 +34,9 @@ Foam::autoPtr<Foam::conductivityModel> Foam::conductivityModel::New
 {
     word conductivityModelType(dict.lookup("conductivityModel"));
 
-    Info<< "Selecting conductivityModel " 
+    Info<< "Selecting conductivityModel "
         << conductivityModelType << endl;
-        
+
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(conductivityModelType);
 

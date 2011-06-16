@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,14 +34,16 @@ scalar meanCoNum = 0.0;
 
 if (mesh.nInternalFaces())
 {
-    surfaceScalarField amaxSfbyDelta =
-        mesh.surfaceInterpolation::deltaCoeffs()*amaxSf;
+    surfaceScalarField amaxSfbyDelta
+    (
+        mesh.surfaceInterpolation::deltaCoeffs()*amaxSf
+    );
 
-    CoNum = max(amaxSfbyDelta/mesh.magSf()).value()*runTime.deltaT().value();
+    CoNum = max(amaxSfbyDelta/mesh.magSf()).value()*runTime.deltaTValue();
 
     meanCoNum =
         (sum(amaxSfbyDelta)/sum(mesh.magSf())).value()
-       *runTime.deltaT().value();
+       *runTime.deltaTValue();
 }
 
 Info<< "Mean and max Courant Numbers = "

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,7 +42,7 @@ void Foam::lduMatrix::initMatrixInterfaces
      || Pstream::defaultCommsType == Pstream::nonBlocking
     )
     {
-        forAll (interfaces, interfaceI)
+        forAll(interfaces, interfaceI)
         {
             if (interfaces.set(interfaceI))
             {
@@ -111,13 +111,16 @@ void Foam::lduMatrix::updateMatrixInterfaces
     )
     {
         // Block until all sends/receives have been finished
-        if (Pstream::defaultCommsType == Pstream::nonBlocking)
+        if
+        (
+            Pstream::parRun()
+         && Pstream::defaultCommsType == Pstream::nonBlocking
+        )
         {
-            IPstream::waitRequests();
-            OPstream::waitRequests();
+            UPstream::waitRequests();
         }
 
-        forAll (interfaces, interfaceI)
+        forAll(interfaces, interfaceI)
         {
             if (interfaces.set(interfaceI))
             {
@@ -138,7 +141,7 @@ void Foam::lduMatrix::updateMatrixInterfaces
         const lduSchedule& patchSchedule = this->patchSchedule();
 
         // Loop over all the "normal" interfaces relating to standard patches
-        forAll (patchSchedule, i)
+        forAll(patchSchedule, i)
         {
             label interfaceI = patchSchedule[i].patch;
 

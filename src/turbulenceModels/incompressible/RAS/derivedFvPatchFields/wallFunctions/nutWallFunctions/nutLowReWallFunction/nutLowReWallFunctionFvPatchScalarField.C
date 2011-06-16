@@ -54,7 +54,7 @@ nutLowReWallFunctionFvPatchScalarField::nutLowReWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    nutWallFunctionFvPatchScalarField(p, iF)
+    nutkWallFunctionFvPatchScalarField(p, iF)
 {}
 
 
@@ -66,7 +66,7 @@ nutLowReWallFunctionFvPatchScalarField::nutLowReWallFunctionFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    nutWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
+    nutkWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
 {}
 
 
@@ -77,7 +77,7 @@ nutLowReWallFunctionFvPatchScalarField::nutLowReWallFunctionFvPatchScalarField
     const dictionary& dict
 )
 :
-    nutWallFunctionFvPatchScalarField(p, iF, dict)
+    nutkWallFunctionFvPatchScalarField(p, iF, dict)
 {}
 
 
@@ -86,7 +86,7 @@ nutLowReWallFunctionFvPatchScalarField::nutLowReWallFunctionFvPatchScalarField
     const nutLowReWallFunctionFvPatchScalarField& nlrwfpsf
 )
 :
-    nutWallFunctionFvPatchScalarField(nlrwfpsf)
+    nutkWallFunctionFvPatchScalarField(nlrwfpsf)
 {}
 
 
@@ -96,13 +96,17 @@ nutLowReWallFunctionFvPatchScalarField::nutLowReWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    nutWallFunctionFvPatchScalarField(nlrwfpsf, iF)
+    nutkWallFunctionFvPatchScalarField(nlrwfpsf, iF)
 {}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, nutLowReWallFunctionFvPatchScalarField);
+makePatchTypeField
+(
+    fvPatchScalarField,
+    nutLowReWallFunctionFvPatchScalarField
+);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

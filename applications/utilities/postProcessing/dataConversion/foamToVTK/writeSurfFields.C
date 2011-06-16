@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,17 +49,13 @@ void writeSurfFields
 
     std::ofstream str(fileName.c_str());
 
-    str << "# vtk DataFile Version 2.0" << std::endl
-        << "surfaceFields" << std::endl;
+    writeFuns::writeHeader
+    (
+        str,
+        binary,
+        "surfaceFields"
+    );
 
-    if (binary)
-    {
-        str << "BINARY" << std::endl;
-    }
-    else
-    {
-        str << "ASCII" << std::endl;
-    }
     str << "DATASET POLYDATA" << std::endl;
 
     const pointField& fc = mesh.faceCentres();
@@ -70,7 +66,7 @@ void writeSurfFields
 
     for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
     {
-        writeFuns::insert(fc[faceI], pField);   
+        writeFuns::insert(fc[faceI], pField);
     }
 
     writeFuns::write(str, binary, pField);

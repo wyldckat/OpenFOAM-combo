@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ License
 
 #include "toroidalCS.H"
 #include "addToRunTimeSelectionTable.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -71,8 +71,8 @@ Foam::vector Foam::toroidalCS::localToGlobal
 ) const
 {
     // Notation: r = local.x()
-    scalar theta = local.y()*mathematicalConstant::pi/180.0;
-    scalar phi = local.z()*mathematicalConstant::pi/180.0;
+    scalar theta = degToRad(local.y());
+    scalar phi = degToRad(local.z());
 
     scalar rprime = radius_ + local.x()*sin(phi);
 
@@ -97,15 +97,25 @@ Foam::tmp<Foam::vectorField> Foam::toroidalCS::localToGlobal
     bool translate
 ) const
 {
-    const scalarField r = local.component(vector::X);
+    const scalarField r
+    (
+        local.component(vector::X)
+    );
 
-    const scalarField theta =
-        local.component(vector::Y)*mathematicalConstant::pi/180.0;
+    const scalarField theta
+    (
+        local.component(vector::Y)*constant::mathematical::pi/180.0
+    );
 
-    const scalarField phi =
-        local.component(vector::Z)*mathematicalConstant::pi/180.0;
+    const scalarField phi
+    (
+        local.component(vector::Z)*constant::mathematical::pi/180.0
+    );
 
-    const scalarField rprime = radius_ + r*sin(phi);
+    const scalarField rprime
+    (
+        radius_ + r*sin(phi)
+    );
 
     vectorField lc(local.size());
     lc.replace(vector::X, rprime*cos(theta));
@@ -157,8 +167,8 @@ void Foam::toroidalCS::writeDict(Ostream& os, bool subDict) const
 {
     if (subDict)
     {
-	os  << indent << name() << nl
-	    << indent << token::BEGIN_BLOCK << incrIndent << nl;
+        os  << indent << name() << nl
+            << indent << token::BEGIN_BLOCK << incrIndent << nl;
     }
 
     coordinateSystem::writeDict(os, false);
@@ -166,8 +176,9 @@ void Foam::toroidalCS::writeDict(Ostream& os, bool subDict) const
 
     if (subDict)
     {
-	os << decrIndent << indent << token::END_BLOCK << endl;
+        os << decrIndent << indent << token::END_BLOCK << endl;
     }
 }
+
 
 // ************************************************************************* //

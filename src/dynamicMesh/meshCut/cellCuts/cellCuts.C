@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -3036,12 +3036,12 @@ void Foam::cellCuts::writeOBJ
         vertI++;
     }
 
-    os << 'f';
+    os  << 'f';
     forAll(loopPts, fp)
     {
         os  << ' ' << startVertI + fp + 1;
     }
-    os<< endl;
+    os  << endl;
 }
 
 

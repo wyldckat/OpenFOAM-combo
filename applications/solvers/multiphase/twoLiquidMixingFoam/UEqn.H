@@ -14,16 +14,9 @@
     //- fvc::div(muEff*(fvc::interpolate(dev(fvc::grad(U))) & mesh.Sf()))
     );
 
-    if (finalIter)
-    {
-        UEqn.relax(1);
-    }
-    else
-    {
-        UEqn.relax();
-    }
+    UEqn.relax();
 
-    if (momentumPredictor)
+    if (pimple.momentumPredictor())
     {
         solve
         (
@@ -35,7 +28,6 @@
                   - ghf*fvc::snGrad(rho)
                   - fvc::snGrad(p_rgh)
                 ) * mesh.magSf()
-            ),
-            mesh.solver(U.select(finalIter))
+            )
         );
     }

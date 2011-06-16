@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -97,8 +97,8 @@ class movingConeTopoFvMesh
         tmp<scalarField> vertexMarkup
         (
             const pointField& p,
-            const scalar& curLeft,
-            const scalar& curRight
+            const scalar curLeft,
+            const scalar curRight
         ) const;
 
 
@@ -114,9 +114,8 @@ public:
         explicit movingConeTopoFvMesh(const IOobject& io);
 
 
-    // Destructor
-
-        virtual ~movingConeTopoFvMesh();
+    //- Destructor
+    virtual ~movingConeTopoFvMesh();
 
 
     // Member Functions

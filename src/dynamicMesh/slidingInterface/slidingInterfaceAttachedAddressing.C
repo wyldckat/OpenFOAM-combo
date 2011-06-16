@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -64,7 +64,7 @@ void Foam::slidingInterface::calcAttachedAddressing() const
         masterFaceCellsPtr_ = new labelList(masterPatchFaces.size());
         labelList& mfc = *masterFaceCellsPtr_;
 
-        forAll (masterPatchFaces, faceI)
+        forAll(masterPatchFaces, faceI)
         {
             if (masterFlip[faceI])
             {
@@ -90,7 +90,7 @@ void Foam::slidingInterface::calcAttachedAddressing() const
         slaveFaceCellsPtr_ = new labelList(slavePatchFaces.size());
         labelList& sfc = *slaveFaceCellsPtr_;
 
-        forAll (slavePatchFaces, faceI)
+        forAll(slavePatchFaces, faceI)
         {
             if (slaveFlip[faceI])
             {
@@ -107,11 +107,11 @@ void Foam::slidingInterface::calcAttachedAddressing() const
         {
             if (debug)
             {
-                forAll (mfc, faceI)
+                forAll(mfc, faceI)
                 {
                     if (mfc[faceI] < 0)
                     {
-                        Pout << "No cell next to master patch face " << faceI
+                        Pout<< "No cell next to master patch face " << faceI
                             << ".  Global face no: " << mfc[faceI]
                             << " own: " << own[masterPatchFaces[faceI]]
                             << " nei: " << nei[masterPatchFaces[faceI]]
@@ -119,11 +119,11 @@ void Foam::slidingInterface::calcAttachedAddressing() const
                     }
                 }
 
-                forAll (sfc, faceI)
+                forAll(sfc, faceI)
                 {
                     if (sfc[faceI] < 0)
                     {
-                        Pout << "No cell next to slave patch face " << faceI
+                        Pout<< "No cell next to slave patch face " << faceI
                             << ".  Global face no: " << sfc[faceI]
                             << " own: " << own[slavePatchFaces[faceI]]
                             << " nei: " << nei[slavePatchFaces[faceI]]
@@ -152,11 +152,11 @@ void Foam::slidingInterface::calcAttachedAddressing() const
 
         const labelList& masterMeshPoints = masterPatch.meshPoints();
 
-        forAll (masterMeshPoints, pointI)
+        forAll(masterMeshPoints, pointI)
         {
             const labelList& curFaces = pointFaces[masterMeshPoints[pointI]];
 
-            forAll (curFaces, faceI)
+            forAll(curFaces, faceI)
             {
                 // Check if the face belongs to the master face zone;
                 // if not add it
@@ -181,11 +181,11 @@ void Foam::slidingInterface::calcAttachedAddressing() const
 
         const labelList& slaveMeshPoints = slavePatch.meshPoints();
 
-        forAll (slaveMeshPoints, pointI)
+        forAll(slaveMeshPoints, pointI)
         {
             const labelList& curFaces = pointFaces[slaveMeshPoints[pointI]];
 
-            forAll (curFaces, faceI)
+            forAll(curFaces, faceI)
             {
                 // Check if the face belongs to the slave face zone;
                 // if not add it
@@ -204,7 +204,7 @@ void Foam::slidingInterface::calcAttachedAddressing() const
 
 
         // Retired point addressing does not exist at this stage.
-        // It will be filled when the interface is coupled.  
+        // It will be filled when the interface is coupled.
         retiredPointMapPtr_ =
             new Map<label>
             (
@@ -212,7 +212,7 @@ void Foam::slidingInterface::calcAttachedAddressing() const
             );
 
         // Ditto for cut point edge map.  This is a rough guess of its size
-        // 
+        //
         cutPointEdgePairMapPtr_ =
             new Map<Pair<edge> >
             (
@@ -261,7 +261,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
     // The renumbering map is needed the other way around, i.e. giving
     // the new cell number for every old cell next to the interface.
     const labelList& reverseCellMap = m.reverseCellMap();
-    
+
     const labelList& mfc = masterFaceCells();
     const labelList& sfc = slaveFaceCells();
 
@@ -272,7 +272,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
     const labelList& mfzRenumber =
         m.faceZoneFaceMap()[masterFaceZoneID_.index()];
 
-    forAll (mfc, faceI)
+    forAll(mfc, faceI)
     {
         label newCellI = reverseCellMap[mfc[mfzRenumber[faceI]]];
 
@@ -289,7 +289,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
     const labelList& sfzRenumber =
         m.faceZoneFaceMap()[slaveFaceZoneID_.index()];
 
-    forAll (sfc, faceI)
+    forAll(sfc, faceI)
     {
         label newCellI = reverseCellMap[sfc[sfzRenumber[faceI]]];
 
@@ -318,14 +318,14 @@ void Foam::slidingInterface::renumberAttachedAddressing
     // Renumber stick-out faces
 
     const labelList& reverseFaceMap = m.reverseFaceMap();
-    
+
     // Master side
     const labelList& msof = masterStickOutFaces();
 
     labelList* newMsofPtr = new labelList(msof.size(), -1);
     labelList& newMsof = *newMsofPtr;
 
-    forAll (msof, faceI)
+    forAll(msof, faceI)
     {
         label newFaceI = reverseFaceMap[msof[faceI]];
 
@@ -334,14 +334,14 @@ void Foam::slidingInterface::renumberAttachedAddressing
             newMsof[faceI] = newFaceI;
         }
     }
-//     Pout << "newMsof: " << newMsof << endl;
+//     Pout<< "newMsof: " << newMsof << endl;
     // Slave side
     const labelList& ssof = slaveStickOutFaces();
 
     labelList* newSsofPtr = new labelList(ssof.size(), -1);
     labelList& newSsof = *newSsofPtr;
 
-    forAll (ssof, faceI)
+    forAll(ssof, faceI)
     {
         label newFaceI = reverseFaceMap[ssof[faceI]];
 
@@ -350,7 +350,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
             newSsof[faceI] = newFaceI;
         }
     }
-//     Pout << "newSsof: " << newSsof << endl;
+//     Pout<< "newSsof: " << newSsof << endl;
     if (debug)
     {
         // Check if all the mapped cells are live
@@ -380,7 +380,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
 
     label key, value;
 
-    forAll (rpmToc, rpmTocI)
+    forAll(rpmToc, rpmTocI)
     {
         key = reversePointMap[rpmToc[rpmTocI]];
 
@@ -413,7 +413,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
 
     const labelList cpepmToc = cpepm.toc();
 
-    forAll (cpepmToc, cpepmTocI)
+    forAll(cpepmToc, cpepmTocI)
     {
         key = reversePointMap[cpepmToc[cpepmTocI]];
 
@@ -466,7 +466,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
     const labelList& sfzPointRenumber =
         m.faceZonePointMap()[slaveFaceZoneID_.index()];
 
-    forAll (newProjectedSlavePoints, pointI)
+    forAll(newProjectedSlavePoints, pointI)
     {
         if (sfzPointRenumber[pointI] > -1)
         {
@@ -479,7 +479,7 @@ void Foam::slidingInterface::renumberAttachedAddressing
     clearAttachedAddressing();
 
     deleteDemandDrivenData(projectedSlavePointsPtr_);
-    
+
     masterFaceCellsPtr_ = newMfcPtr;
     slaveFaceCellsPtr_ = newSfcPtr;
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-    scalar Vphi = (mathematicalConstant::pi*swirlRPMRatio*rpm/30).value();
+    scalar Vphi = (constant::mathematical::pi*swirlRPMRatio*rpm/30).value();
     scalar b1 = j1(swirlProfile).value();
     scalar b2 = 2.0*b1/swirlProfile.value() - j0(swirlProfile).value();
 
@@ -68,11 +68,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Umax = " << Umax << endl;
+    Info<< "Umax = " << Umax << endl;
 
     U.write();
 
-    Info << "\n end\n";
+    Info<< "\n end\n";
 
     return 0;
 }

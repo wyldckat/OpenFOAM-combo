@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     kivaToFoam
 
 Description
-    Converts a KIVA3v grid to FOAM format
+    Converts a KIVA3v grid to OpenFOAM format
 
 \*---------------------------------------------------------------------------*/
 
@@ -41,12 +41,12 @@ Description
 #include "wallPolyPatch.H"
 #include "symmetryPolyPatch.H"
 #include "wedgePolyPatch.H"
-#include "cyclicPolyPatch.H"
-#include "mathematicalConstants.H"
+#include "oldCyclicPolyPatch.H"
+#include "unitConversion.H"
 
 using namespace Foam;
 
-// Supported KIVA versions
+//- Supported KIVA versions
 enum kivaVersions
 {
     kiva3,
@@ -59,40 +59,51 @@ enum kivaVersions
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validOptions.insert("file", "fileName");
-    argList::validOptions.insert("version", "[kiva3|kiva3v]");
-    argList::validOptions.insert("zHeadMin", "scalar");
+    argList::addOption
+    (
+        "file",
+        "name",
+        "specify alternative input file name - default is otape17"
+    );
+    argList::addOption
+    (
+        "version",
+        "version",
+        "specify kiva version [kiva3|kiva3v] - default is '3v'"
+    );
+    argList::addOption
+    (
+        "zHeadMin",
+        "scalar",
+        "minimum z-height for transferring liner faces to cylinder-head"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
-    fileName kivaFileName("otape17");
-    if (args.optionFound("file"))
-    {
-        kivaFileName = args.option("file");
-    }
+    const fileName kivaFileName =
+        args.optionLookupOrDefault<fileName>("file", "otape17");
 
     kivaVersions kivaVersion = kiva3v;
     if (args.optionFound("version"))
     {
-        word kivaVersionName = args.option("version");
+        const word versionName = args["version"];
 
-        if (kivaVersionName == "kiva3")
+        if (versionName == "kiva3")
         {
             kivaVersion = kiva3;
         }
-        else if (kivaVersionName == "kiva3v")
+        else if (versionName == "kiva3v")
         {
             kivaVersion = kiva3v;
         }
         else
         {
             FatalErrorIn("main(int argc, char *argv[])")
-                << "KIVA file version " << kivaVersionName << " not supported"
+                << "KIVA file version " << versionName << " not supported"
                 << exit(FatalError);
 
             args.printUsage();
-
             FatalError.exit(1);
         }
     }
@@ -102,7 +113,7 @@ int main(int argc, char *argv[])
 
 #   include "readKivaGrid.H"
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

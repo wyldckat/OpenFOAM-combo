@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     compressible and combusting flows.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         LaunderSharmaKECoeffs
         {
             Cmu         0.09;
@@ -40,11 +40,10 @@ Description
             alphahk     1.0;    // only for compressible
             alphaEps    0.76923;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     LaunderSharmaKE.C
-    LaunderSharmaKECorrect.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -70,7 +69,10 @@ class LaunderSharmaKE
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -91,7 +93,7 @@ class LaunderSharmaKE
             volScalarField alphat_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         tmp<volScalarField> fMu() const;
         tmp<volScalarField> f2() const;
@@ -110,7 +112,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -145,13 +149,10 @@ public:
             return mut_;
         }
 
-        //- Return the effective turbulent thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat_ + alpha())
-            );
+            return alphat_;
         }
 
         //- Return the turbulence kinetic energy

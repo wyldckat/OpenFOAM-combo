@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,7 +49,7 @@ namespace Foam
 class polyMesh;
 
 /*---------------------------------------------------------------------------*\
-                           Class cellToCellStencil Declaration
+                      Class cellToCellStencil Declaration
 \*---------------------------------------------------------------------------*/
 
 class cellToCellStencil
@@ -64,12 +64,6 @@ class cellToCellStencil
         const globalIndex globalNumbering_;
 
 
-    // Private Member Functions
-
-        //- Disallow default bitwise assignment
-        void operator=(const cellToCellStencil&);
-
-        
 protected:
 
         //- Merge two lists.
@@ -94,7 +88,7 @@ protected:
         class unionEqOp
         {
             public:
-            void operator()( labelList& x, const labelList& y ) const;
+            void operator()(labelList& x, const labelList& y) const;
         };
 
         //- Collect cell neighbours of faces in global numbering

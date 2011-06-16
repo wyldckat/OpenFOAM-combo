@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -31,12 +31,13 @@
 #------------------------------------------------------------------------------
 sourcesFile=${TMPDIR:-/tmp}/sourcesFile.$$
 
-if [ $# -ne 0 ]; then
-   echo "Usage : ${0##*/}"
-   echo ""
-   echo "Build the Ebrowse dadbase for all the .H and .C files"
-   echo ""
-   exit 1
+if [ $# -ne 0 ]
+then
+    echo "Usage : ${0##*/}"
+    echo ""
+    echo "Build the Ebrowse database for all the .H and .C files"
+    echo ""
+    exit 1
 fi
 
 # Clean up on termination and on Ctrl-C

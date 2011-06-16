@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,10 +49,12 @@ LienLeschzinerLowRe::LienLeschzinerLowRe
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     C1_
     (
@@ -179,9 +181,12 @@ LienLeschzinerLowRe::LienLeschzinerLowRe
         autoCreateLowReNut("nut", mesh_)
     )
 {
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
+
     nut_ = Cmu_*(scalar(1) - exp(-Am_*yStar_))
        /(scalar(1) - exp(-Aepsilon_*yStar_) + SMALL)*sqr(k_)
-       /(epsilon_ + epsilonSmall_);
+       /(epsilon_);
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -192,7 +197,7 @@ LienLeschzinerLowRe::LienLeschzinerLowRe
 
 tmp<volSymmTensorField> LienLeschzinerLowRe::R() const
 {
-    volTensorField gradU = fvc::grad(U_);
+    tmp<volTensorField> gradU = fvc::grad(U_);
 
     return tmp<volSymmTensorField>
     (
@@ -239,7 +244,7 @@ tmp<fvVectorMatrix> LienLeschzinerLowRe::divDevReff(volVectorField& U) const
     (
       - fvm::laplacian(nuEff(), U)
     //- (fvc::grad(U) & fvc::grad(nuEff()))
-      - fvc::div(nuEff()*fvc::grad(U)().T())
+      - fvc::div(nuEff()*T(fvc::grad(U)))
     );
 }
 
@@ -283,19 +288,21 @@ void LienLeschzinerLowRe::correct()
 
     scalar Cmu75 = pow(Cmu_.value(), 0.75);
 
-    volTensorField gradU = fvc::grad(U_);
+    const volTensorField gradU(fvc::grad(U_));
 
     // generation term
-    volScalarField S2 = symm(gradU) && gradU;
+    tmp<volScalarField> S2 = symm(gradU) && gradU;
 
     yStar_ = sqrt(k_)*y_/nu() + SMALL;
-    volScalarField Rt = sqr(k_)/(nu()*epsilon_);
+    tmp<volScalarField> Rt = sqr(k_)/(nu()*epsilon_);
 
-    volScalarField fMu =
+    volScalarField fMu
+    (
         (scalar(1) - exp(-Am_*yStar_))
-       /(scalar(1) - exp(-Aepsilon_*yStar_) + SMALL);
+       /(scalar(1) - exp(-Aepsilon_*yStar_) + SMALL)
+    );
 
-    volScalarField f2 = scalar(1) - 0.3*exp(-sqr(Rt));
+    const volScalarField f2(scalar(1) - 0.3*exp(-sqr(Rt)));
 
     volScalarField G("RASModel::G", Cmu_*fMu*sqr(k_)/epsilon_*S2);
 
@@ -321,7 +328,7 @@ void LienLeschzinerLowRe::correct()
     #include "wallDissipationI.H"
 
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -338,7 +345,7 @@ void LienLeschzinerLowRe::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,21 +25,16 @@ License
 
 #include "moleculeCloud.H"
 #include "fvMesh.H"
+#include "mathematicalConstants.H"
+
+using namespace Foam::constant::mathematical;
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    defineParticleTypeNameAndDebug(molecule, 0);
     defineTemplateTypeNameAndDebug(Cloud<molecule>, 0);
-};
-
-Foam::scalar Foam::moleculeCloud::kb = 1.380650277e-23;
-
-Foam::scalar Foam::moleculeCloud::elementaryCharge = 1.602176487e-19;
-
-Foam::scalar Foam::moleculeCloud::vacuumPermittivity = 8.854187817e-12;
-
+}
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -60,7 +55,7 @@ void Foam::moleculeCloud::buildConstProps()
             "moleculeProperties",
             mesh_.time().constant(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -68,9 +63,8 @@ void Foam::moleculeCloud::buildConstProps()
 
     forAll(idList, i)
     {
-        const word& id(idList[i]);
-
-        const dictionary& molDict(moleculePropertiesDict.subDict(id));
+        const word& id = idList[i];
+        const dictionary& molDict = moleculePropertiesDict.subDict(id);
 
         List<word> siteIdNames = molDict.lookup("siteIds");
 
@@ -84,7 +78,7 @@ void Foam::moleculeCloud::buildConstProps()
 
             if (siteIds[sI] == -1)
             {
-                FatalErrorIn("moleculeCloud.C") << nl
+                FatalErrorIn("moleculeCloud::buildConstProps()")
                     << siteId << " site not found."
                     << nl << abort(FatalError);
             }
@@ -101,9 +95,7 @@ void Foam::moleculeCloud::buildConstProps()
 
 void Foam::moleculeCloud::setSiteSizesAndPositions()
 {
-    iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllIter(moleculeCloud, *this, mol)
     {
         const molecule::constantProperties& cP = constProps(mol().id());
 
@@ -121,14 +113,7 @@ void Foam::moleculeCloud::buildCellOccupancy()
         cellOccupancy_[cO].clear();
     }
 
-    iterator mol(this->begin());
-
-    for
-    (
-        mol = this->begin();
-        mol != this->end();
-        ++mol
-    )
+    forAllIter(moleculeCloud, *this, mol)
     {
         cellOccupancy_[mol().cell()].append(&mol());
     }
@@ -137,23 +122,23 @@ void Foam::moleculeCloud::buildCellOccupancy()
     {
         cellOccupancy_[cO].shrink();
     }
-
-    il_.ril().referMolecules(cellOccupancy());
 }
 
 
 void Foam::moleculeCloud::calculatePairForce()
 {
-    iterator mol(this->begin());
+    PstreamBuffers pBufs(Pstream::nonBlocking);
+
+    // Start sending referred data
+    il_.sendReferredData(cellOccupancy(), pBufs);
+
+    molecule* molI = NULL;
+    molecule* molJ = NULL;
 
     {
         // Real-Real interactions
 
-        molecule* molI = &mol();
-
-        molecule* molJ = &mol();
-
-        const directInteractionList& dil(il_.dil());
+        const labelListList& dil = il_.dil();
 
         forAll(dil, d)
         {
@@ -163,54 +148,62 @@ void Foam::moleculeCloud::calculatePairForce()
 
                 forAll(dil[d], interactingCells)
                 {
-                    List< molecule* > cellJ =
-                    cellOccupancy_[dil[d][interactingCells]];
+                    List<molecule*> cellJ =
+                        cellOccupancy_[dil[d][interactingCells]];
 
                     forAll(cellJ, cellJMols)
                     {
                         molJ = cellJ[cellJMols];
 
-                        evaluatePair(molI, molJ);
+                        evaluatePair(*molI, *molJ);
                     }
                 }
 
-                forAll(cellOccupancy_[d],cellIOtherMols)
+                forAll(cellOccupancy_[d], cellIOtherMols)
                 {
                     molJ = cellOccupancy_[d][cellIOtherMols];
 
                     if (molJ > molI)
                     {
-                        evaluatePair(molI, molJ);
+                        evaluatePair(*molI, *molJ);
                     }
                 }
             }
         }
     }
 
+    // Receive referred data
+    il_.receiveReferredData(pBufs);
+
     {
         // Real-Referred interactions
 
-        molecule* molK = &mol();
+        const labelListList& ril = il_.ril();
 
-        referredCellList& ril(il_.ril());
+        List<IDLList<molecule> >& referredMols = il_.referredParticles();
 
         forAll(ril, r)
         {
-            const List<label>& realCells = ril[r].realCellsForInteraction();
+            const List<label>& realCells = ril[r];
 
-            forAll(ril[r], refMols)
+            IDLList<molecule>& refMols = referredMols[r];
+
+            forAllIter
+            (
+                IDLList<molecule>,
+                refMols,
+                refMol
+            )
             {
-                referredMolecule* molL(&(ril[r][refMols]));
-
                 forAll(realCells, rC)
                 {
-                    List<molecule*> cellK = cellOccupancy_[realCells[rC]];
+                    List<molecule*> cellI = cellOccupancy_[realCells[rC]];
 
-                    forAll(cellK, cellKMols)
+                    forAll(cellI, cellIMols)
                     {
-                        molK = cellK[cellKMols];
+                        molI = cellI[cellIMols];
 
-                        evaluatePair(molK, molL);
+                        evaluatePair(*molI, refMol());
                     }
                 }
             }
@@ -223,9 +216,7 @@ void Foam::moleculeCloud::calculateTetherForce()
 {
     const tetherPotentialList& tetherPot(pot_.tetherPotentials());
 
-    iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllIter(moleculeCloud, *this, mol)
     {
         if (mol().tethered())
         {
@@ -250,9 +241,7 @@ void Foam::moleculeCloud::calculateTetherForce()
 
 void Foam::moleculeCloud::calculateExternalForce()
 {
-    iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllIter(moleculeCloud, *this, mol)
     {
         mol().a() += pot_.gravity();
     }
@@ -277,18 +266,14 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
     buildCellOccupancy();
 
     // Real-Real interaction
-    iterator mol(this->begin());
+
+    molecule* molI = NULL;
+    molecule* molJ = NULL;
 
     {
-        mol = this->begin();
-
-        molecule* molI = &mol();
-
-        molecule* molJ = &mol();
-
         DynamicList<molecule*> molsToDelete;
 
-        const directInteractionList& dil(il_.dil());
+        const labelListList& dil(il_.dil());
 
         forAll(dil, d)
         {
@@ -298,14 +283,14 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
 
                 forAll(dil[d], interactingCells)
                 {
-                    List< molecule* > cellJ =
-                    cellOccupancy_[dil[d][interactingCells]];
+                    List<molecule*> cellJ =
+                        cellOccupancy_[dil[d][interactingCells]];
 
                     forAll(cellJ, cellJMols)
                     {
                         molJ = cellJ[cellJMols];
 
-                        if (evaluatePotentialLimit(molI, molJ))
+                        if (evaluatePotentialLimit(*molI, *molJ))
                         {
                             label idI = molI->id();
 
@@ -315,7 +300,7 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
                             (
                                 idI == idJ
                              || findIndex(pot_.removalOrder(), idJ)
-                                < findIndex(pot_.removalOrder(), idI)
+                              < findIndex(pot_.removalOrder(), idI)
                             )
                             {
                                 if (findIndex(molsToDelete, molJ) == -1)
@@ -332,13 +317,13 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
                 }
             }
 
-            forAll(cellOccupancy_[d],cellIOtherMols)
+            forAll(cellOccupancy_[d], cellIOtherMols)
             {
                 molJ = cellOccupancy_[d][cellIOtherMols];
 
                 if (molJ > molI)
                 {
-                    if (evaluatePotentialLimit(molI, molJ))
+                    if (evaluatePotentialLimit(*molI, *molJ))
                     {
                         label idI = molI->id();
 
@@ -348,7 +333,7 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
                         (
                             idI == idJ
                          || findIndex(pot_.removalOrder(), idJ)
-                            < findIndex(pot_.removalOrder(), idI)
+                          < findIndex(pot_.removalOrder(), idI)
                         )
                         {
                             if (findIndex(molsToDelete, molJ) == -1)
@@ -365,7 +350,7 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
             }
         }
 
-        forAll (molsToDelete, mTD)
+        forAll(molsToDelete, mTD)
         {
             deleteParticle(*(molsToDelete[mTD]));
         }
@@ -373,79 +358,81 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
 
     buildCellOccupancy();
 
+    PstreamBuffers pBufs(Pstream::nonBlocking);
+
+    // Start sending referred data
+    il_.sendReferredData(cellOccupancy(), pBufs);
+
+        // Receive referred data
+    il_.receiveReferredData(pBufs);
+
     // Real-Referred interaction
 
     {
-        molecule* molK = &mol();
-
         DynamicList<molecule*> molsToDelete;
 
-        referredCellList& ril(il_.ril());
+        const labelListList& ril(il_.ril());
+
+        List<IDLList<molecule> >& referredMols = il_.referredParticles();
 
         forAll(ril, r)
         {
-            referredCell& refCell = ril[r];
+            IDLList<molecule>& refMols = referredMols[r];
 
-            forAll(refCell, refMols)
+            forAllIter
+            (
+                IDLList<molecule>,
+                refMols,
+                refMol
+            )
             {
-                referredMolecule* molL = &(refCell[refMols]);
+                molJ = &refMol();
 
-                List <label> realCells = refCell.realCellsForInteraction();
+                const List<label>& realCells = ril[r];
 
                 forAll(realCells, rC)
                 {
-                    label cellK = realCells[rC];
+                    label cellI = realCells[rC];
 
-                    List<molecule*> cellKMols = cellOccupancy_[cellK];
+                    List<molecule*> cellIMols = cellOccupancy_[cellI];
 
-                    forAll(cellKMols, cKM)
+                    forAll(cellIMols, cIM)
                     {
-                        molK = cellKMols[cKM];
+                        molI = cellIMols[cIM];
 
-                        if (evaluatePotentialLimit(molK, molL))
+                        if (evaluatePotentialLimit(*molI, *molJ))
                         {
-                            label idK = molK->id();
+                            label idI = molI->id();
 
-                            label idL = molL->id();
+                            label idJ = molJ->id();
 
                             if
                             (
-                                findIndex(pot_.removalOrder(), idK)
-                                    < findIndex(pot_.removalOrder(), idL)
+                                findIndex(pot_.removalOrder(), idI)
+                              < findIndex(pot_.removalOrder(), idJ)
                             )
                             {
-                                if (findIndex(molsToDelete, molK) == -1)
+                                if (findIndex(molsToDelete, molI) == -1)
                                 {
-                                    molsToDelete.append(molK);
+                                    molsToDelete.append(molI);
                                 }
                             }
-
                             else if
                             (
-                                findIndex(pot_.removalOrder(), idK)
-                                    == findIndex(pot_.removalOrder(), idL)
+                                findIndex(pot_.removalOrder(), idI)
+                             == findIndex(pot_.removalOrder(), idJ)
                             )
                             {
-                                if
-                                (
-                                    Pstream::myProcNo() == refCell.sourceProc()
-                                 && cellK <= refCell.sourceCell()
-                                )
-                                {
-                                    if (findIndex(molsToDelete, molK) == -1)
-                                    {
-                                        molsToDelete.append(molK);
-                                    }
-                                }
+                                // Remove one of the molecules
+                                // arbitrarily, assuring that a
+                                // consistent decision is made for
+                                // both real-referred pairs.
 
-                                else if
-                                (
-                                    Pstream::myProcNo() < refCell.sourceProc()
-                                )
+                                if (molI->origId() > molJ->origId())
                                 {
-                                    if (findIndex(molsToDelete, molK) == -1)
+                                    if (findIndex(molsToDelete, molI) == -1)
                                     {
-                                        molsToDelete.append(molK);
+                                        molsToDelete.append(molI);
                                     }
                                 }
                             }
@@ -455,13 +442,19 @@ void Foam::moleculeCloud::removeHighEnergyOverlaps()
             }
         }
 
-        forAll (molsToDelete, mTD)
+        forAll(molsToDelete, mTD)
         {
             deleteParticle(*(molsToDelete[mTD]));
         }
     }
 
     buildCellOccupancy();
+
+    // Start sending referred data
+    il_.sendReferredData(cellOccupancy(), pBufs);
+
+    // Receive referred data
+    il_.receiveReferredData(pBufs);
 
     label molsRemoved = initialSize - this->size();
 
@@ -492,7 +485,7 @@ void Foam::moleculeCloud::initialiseMolecules
             << abort(FatalError);
     }
 
-    forAll (cellZones, z)
+    forAll(cellZones, z)
     {
         const cellZone& zone(cellZones[z]);
 
@@ -525,7 +518,7 @@ void Foam::moleculeCloud::initialiseMolecules
                     zoneDict.lookup("latticePositions")
                 );
 
-                if(latticeIds.size() != latticePositions.size())
+                if (latticeIds.size() != latticePositions.size())
                 {
                     FatalErrorIn("Foam::moleculeCloud::initialiseMolecules")
                         << "latticeIds and latticePositions must be the same "
@@ -622,20 +615,11 @@ void Foam::moleculeCloud::initialiseMolecules
                     zoneDict.lookup("orientationAngles")
                 );
 
-                scalar phi
-                (
-                    orientationAngles.x()*mathematicalConstant::pi/180.0
-                );
+                scalar phi(orientationAngles.x()*pi/180.0);
 
-                scalar theta
-                (
-                    orientationAngles.y()*mathematicalConstant::pi/180.0
-                );
+                scalar theta(orientationAngles.y()*pi/180.0);
 
-                scalar psi
-                (
-                    orientationAngles.z()*mathematicalConstant::pi/180.0
-                );
+                scalar psi(orientationAngles.z()*pi/180.0);
 
                 const tensor R
                 (
@@ -658,7 +642,7 @@ void Foam::moleculeCloud::initialiseMolecules
 
                 vector zoneMax = -VGREAT*vector::one;
 
-                forAll (zone, cell)
+                forAll(zone, cell)
                 {
                     const point cellCentre = mesh_.cellCentres()[zone[cell]];
 
@@ -740,21 +724,34 @@ void Foam::moleculeCloud::initialiseMolecules
                             label id = findIndex(pot_.idList(), latticeIds[p]);
 
                             const vector& latticePosition =
-                            vector
-                            (
-                                unitCellLatticePosition.x(),
-                                unitCellLatticePosition.y(),
-                                unitCellLatticePosition.z()
-                            )
-                            + latticePositions[p];
+                                vector
+                                (
+                                    unitCellLatticePosition.x(),
+                                    unitCellLatticePosition.y(),
+                                    unitCellLatticePosition.z()
+                                )
+                              + latticePositions[p];
 
                             point globalPosition =
-                            anchor + (R & (latticeCellShape & latticePosition));
+                                anchor
+                              + (R & (latticeCellShape & latticePosition));
 
-                            partOfLayerInBounds =
-                            mesh_.bounds().contains(globalPosition);
+                            partOfLayerInBounds = mesh_.bounds().contains
+                            (
+                                globalPosition
+                            );
 
-                            label cell = mesh_.findCell(globalPosition);
+                            label cell = -1;
+                            label tetFace = -1;
+                            label tetPt = -1;
+
+                            mesh_.findCellFacePt
+                            (
+                                globalPosition,
+                                cell,
+                                tetFace,
+                                tetPt
+                            );
 
                             if (findIndex(zone, cell) != -1)
                             {
@@ -762,6 +759,8 @@ void Foam::moleculeCloud::initialiseMolecules
                                 (
                                     globalPosition,
                                     cell,
+                                    tetFace,
+                                    tetPt,
                                     id,
                                     tethered,
                                     temperature,
@@ -806,24 +805,40 @@ void Foam::moleculeCloud::initialiseMolecules
                                         );
 
                                         const vector& latticePosition =
-                                        vector
-                                        (
-                                            unitCellLatticePosition.x(),
-                                            unitCellLatticePosition.y(),
-                                            unitCellLatticePosition.z()
-                                        )
-                                        + latticePositions[p];
+                                            vector
+                                            (
+                                                unitCellLatticePosition.x(),
+                                                unitCellLatticePosition.y(),
+                                                unitCellLatticePosition.z()
+                                            )
+                                          + latticePositions[p];
 
-                                        point globalPosition = anchor
-                                        + (R
-                                        &(latticeCellShape & latticePosition));
+                                        point globalPosition =
+                                            anchor
+                                          + (
+                                                R
+                                              & (
+                                                    latticeCellShape
+                                                  & latticePosition
+                                                )
+                                            );
 
                                         partOfLayerInBounds =
-                                        mesh_.bounds().contains(globalPosition);
+                                            mesh_.bounds().contains
+                                            (
+                                                globalPosition
+                                            );
 
-                                        label cell = mesh_.findCell
+                                        label cell = -1;
+                                        label tetFace = -1;
+                                        label tetPt = -1;
+
+                                        mesh_.findCellFacePt
                                         (
-                                            globalPosition
+                                            globalPosition,
+                                            cell,
+                                            tetFace,
+                                            tetPt
                                         );
 
                                         if (findIndex(zone, cell) != -1)
@@ -832,6 +847,8 @@ void Foam::moleculeCloud::initialiseMolecules
                                             (
                                                 globalPosition,
                                                 cell,
+                                                tetFace,
+                                                tetPt,
                                                 id,
                                                 tethered,
                                                 temperature,
@@ -867,24 +884,40 @@ void Foam::moleculeCloud::initialiseMolecules
                                         );
 
                                         const vector& latticePosition =
-                                        vector
-                                        (
-                                            unitCellLatticePosition.x(),
-                                            unitCellLatticePosition.y(),
-                                            unitCellLatticePosition.z()
-                                        )
-                                        + latticePositions[p];
+                                            vector
+                                            (
+                                                unitCellLatticePosition.x(),
+                                                unitCellLatticePosition.y(),
+                                                unitCellLatticePosition.z()
+                                            )
+                                          + latticePositions[p];
 
-                                        point globalPosition = anchor
-                                        + (R
-                                        &(latticeCellShape & latticePosition));
+                                        point globalPosition =
+                                            anchor
+                                          + (
+                                                R
+                                              & (
+                                                   latticeCellShape
+                                                 & latticePosition
+                                                )
+                                            );
 
                                         partOfLayerInBounds =
-                                        mesh_.bounds().contains(globalPosition);
+                                            mesh_.bounds().contains
+                                            (
+                                                globalPosition
+                                            );
 
-                                        label cell = mesh_.findCell
+                                        label cell = -1;
+                                        label tetFace = -1;
+                                        label tetPt = -1;
+
+                                        mesh_.findCellFacePt
                                         (
-                                            globalPosition
+                                            globalPosition,
+                                            cell,
+                                            tetFace,
+                                            tetPt
                                         );
 
                                         if (findIndex(zone, cell) != -1)
@@ -893,6 +926,8 @@ void Foam::moleculeCloud::initialiseMolecules
                                             (
                                                 globalPosition,
                                                 cell,
+                                                tetFace,
+                                                tetPt,
                                                 id,
                                                 tethered,
                                                 temperature,
@@ -902,12 +937,12 @@ void Foam::moleculeCloud::initialiseMolecules
                                     }
 
                                     unitCellLatticePosition =
-                                    labelVector
-                                    (
-                                        - unitCellLatticePosition.y(),
-                                        unitCellLatticePosition.x(),
-                                        unitCellLatticePosition.z()
-                                    );
+                                        labelVector
+                                        (
+                                          - unitCellLatticePosition.y(),
+                                            unitCellLatticePosition.x(),
+                                            unitCellLatticePosition.z()
+                                        );
                                 }
                             }
                         }
@@ -940,7 +975,7 @@ void Foam::moleculeCloud::initialiseMolecules
                     }
 
                     molsPlacedThisIteration =
-                    this->size() - sizeBeforeIteration;
+                        this->size() - sizeBeforeIteration;
 
                     totalZoneMols += molsPlacedThisIteration;
 
@@ -956,17 +991,17 @@ void Foam::moleculeCloud::createMolecule
 (
     const point& position,
     label cell,
+    label tetFace,
+    label tetPt,
     label id,
     bool tethered,
     scalar temperature,
     const vector& bulkVelocity
 )
 {
-    const Cloud<molecule>& cloud = *this;
-
     if (cell == -1)
     {
-        cell = mesh_.findCell(position);
+        mesh_.findCellFacePt(position, cell, tetFace, tetPt);
     }
 
     if (cell == -1)
@@ -1001,11 +1036,11 @@ void Foam::moleculeCloud::createMolecule
     {
         pi = equipartitionAngularMomentum(temperature, cP);
 
-        scalar phi(rndGen_.scalar01()*mathematicalConstant::twoPi);
+        scalar phi(rndGen_.scalar01()*twoPi);
 
-        scalar theta(rndGen_.scalar01()*mathematicalConstant::twoPi);
+        scalar theta(rndGen_.scalar01()*twoPi);
 
-        scalar psi(rndGen_.scalar01()*mathematicalConstant::twoPi);
+        scalar psi(rndGen_.scalar01()*twoPi);
 
         Q = tensor
         (
@@ -1025,9 +1060,11 @@ void Foam::moleculeCloud::createMolecule
     (
         new molecule
         (
-            cloud,
+            mesh_,
             position,
             cell,
+            tetFace,
+            tetPt,
             Q,
             v,
             vector::zero,
@@ -1046,9 +1083,7 @@ Foam::label Foam::moleculeCloud::nSites() const
 {
     label n = 0;
 
-    const_iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllConstIter(moleculeCloud, *this, mol)
     {
         n += constProps(mol().id()).nSites();
     }
@@ -1070,7 +1105,7 @@ Foam::moleculeCloud::moleculeCloud
     mesh_(mesh),
     pot_(pot),
     cellOccupancy_(mesh_.nCells()),
-    il_(mesh_, pot_.pairPotentials().rCutMaxSqr(), false),
+    il_(mesh_, pot_.pairPotentials().rCutMax(), false),
     constPropList_(),
     rndGen_(clock::getTime())
 {
@@ -1096,11 +1131,11 @@ Foam::moleculeCloud::moleculeCloud
     const IOdictionary& mdInitialiseDict,
     bool readFields
 )
-    :
+:
     Cloud<molecule>(mesh, "moleculeCloud", false),
     mesh_(mesh),
     pot_(pot),
-    il_(mesh_),
+    il_(mesh_, 0.0, false),
     constPropList_(),
     rndGen_(clock::getTime())
 {
@@ -1121,19 +1156,19 @@ Foam::moleculeCloud::moleculeCloud
 
 void Foam::moleculeCloud::evolve()
 {
-    molecule::trackData td0(*this, 0);
-    Cloud<molecule>::move(td0);
+    molecule::trackingData td0(*this, 0);
+    Cloud<molecule>::move(td0, mesh_.time().deltaTValue());
 
-    molecule::trackData td1(*this, 1);
-    Cloud<molecule>::move(td1);
+    molecule::trackingData td1(*this, 1);
+    Cloud<molecule>::move(td1, mesh_.time().deltaTValue());
 
-    molecule::trackData td2(*this, 2);
-    Cloud<molecule>::move(td2);
+    molecule::trackingData td2(*this, 2);
+    Cloud<molecule>::move(td2, mesh_.time().deltaTValue());
 
     calculateForce();
 
-    molecule::trackData td3(*this, 3);
-    Cloud<molecule>::move(td3);
+    molecule::trackingData td3(*this, 3);
+    Cloud<molecule>::move(td3, mesh_.time().deltaTValue());
 }
 
 
@@ -1141,10 +1176,8 @@ void Foam::moleculeCloud::calculateForce()
 {
     buildCellOccupancy();
 
-    iterator mol(this->begin());
-
     // Set accumulated quantities to zero
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllIter(moleculeCloud, *this, mol)
     {
         mol().siteForces() = vector::zero;
 
@@ -1168,7 +1201,7 @@ void Foam::moleculeCloud::applyConstraintsAndThermostats
 )
 {
     scalar temperatureCorrectionFactor =
-        sqrt(targetTemperature/measuredTemperature);
+        sqrt(targetTemperature/max(VSMALL, measuredTemperature));
 
     Info<< "----------------------------------------" << nl
         << "Temperature equilibration" << nl
@@ -1181,9 +1214,7 @@ void Foam::moleculeCloud::applyConstraintsAndThermostats
         << "----------------------------------------"
         << endl;
 
-    iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllIter(moleculeCloud, *this, mol)
     {
         mol().v() *= temperatureCorrectionFactor;
 
@@ -1194,13 +1225,11 @@ void Foam::moleculeCloud::applyConstraintsAndThermostats
 
 void Foam::moleculeCloud::writeXYZ(const fileName& fName) const
 {
-    OFstream str(fName);
+    OFstream os(fName);
 
-    str << nSites() << nl << "moleculeCloud site positions in angstroms" << nl;
+    os  << nSites() << nl << "moleculeCloud site positions in angstroms" << nl;
 
-    const_iterator mol(this->begin());
-
-    for (mol = this->begin(); mol != this->end(); ++mol)
+    forAllConstIter(moleculeCloud, *this, mol)
     {
         const molecule::constantProperties& cP = constProps(mol().id());
 
@@ -1208,7 +1237,7 @@ void Foam::moleculeCloud::writeXYZ(const fileName& fName) const
         {
             const point& sP = mol().sitePositions()[i];
 
-            str << pot_.siteIdList()[cP.siteIds()[i]]
+            os  << pot_.siteIdList()[cP.siteIds()[i]]
                 << ' ' << sP.x()*1e10
                 << ' ' << sP.y()*1e10
                 << ' ' << sP.z()*1e10

@@ -16,10 +16,10 @@ if (Pstream::master())
     if (Times[0].value() < 0)
     {
         Tcorr = - Times[0].value();
-        Info << "Correcting time values. Adding " << Tcorr << endl;
+        Info<< "Correcting time values. Adding " << Tcorr << endl;
     }
 
-    for (int n=startTime; n<endTime; n++)
+    forAll(Times, n)
     {
         ensightCaseFile << setw(12) << Times[n].value() + Tcorr << " ";
 

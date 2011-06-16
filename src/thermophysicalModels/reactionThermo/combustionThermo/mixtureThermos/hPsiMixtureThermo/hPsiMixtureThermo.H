@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -52,7 +52,7 @@ class hPsiMixtureThermo
     public hCombustionThermo,
     public MixtureType
 {
-    // Private member functions
+    // Private Member Functions
 
         void calculate();
 
@@ -93,11 +93,11 @@ public:
         //- Update properties
         virtual void correct();
 
-        //- Chemical enthalpy [J/kg]
-        virtual tmp<volScalarField> hc() const;
-
 
         // Fields derived from thermodynamic state variables
+
+            //- Chemical enthalpy [J/kg]
+            virtual tmp<volScalarField> hc() const;
 
             //- Enthalpy for cell-set [J/kg]
             virtual tmp<scalarField> h

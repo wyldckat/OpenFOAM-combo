@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,42 +26,63 @@ License
 #include "sutherlandTransport.H"
 #include "IOstreams.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class thermo>
-sutherlandTransport<thermo>::sutherlandTransport(Istream& is)
+template<class Thermo>
+Foam::sutherlandTransport<Thermo>::sutherlandTransport(Istream& is)
 :
-    thermo(is),
-    As(readScalar(is)),
-    Ts(readScalar(is))
+    Thermo(is),
+    As_(readScalar(is)),
+    Ts_(readScalar(is))
 {
-    is.check("sutherlandTransport<thermo>::sutherlandTransport(Istream&)");
+    is.check("sutherlandTransport<Thermo>::sutherlandTransport(Istream&)");
 }
 
 
+template<class Thermo>
+Foam::sutherlandTransport<Thermo>::sutherlandTransport(const dictionary& dict)
+:
+    Thermo(dict),
+    As_(readScalar(dict.subDict("transport").lookup("As"))),
+    Ts_(readScalar(dict.subDict("transport").lookup("Ts")))
+{}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class Thermo>
+void Foam::sutherlandTransport<Thermo>::write(Ostream& os) const
+{
+    os  << this->name() << endl;
+    os  << token::BEGIN_BLOCK  << incrIndent << nl;
+
+    Thermo::write(os);
+
+    dictionary dict("transport");
+    dict.add("As", As_);
+    dict.add("Ts", Ts_);
+    os  << dict;
+
+    os  << decrIndent << token::END_BLOCK << nl;
+}
+
 // * * * * * * * * * * * * * * * IOstream Operators  * * * * * * * * * * * * //
 
-template<class thermo>
-Ostream& operator<<(Ostream& os, const sutherlandTransport<thermo>& st)
+template<class Thermo>
+Foam::Ostream& Foam::operator<<
+(
+    Ostream& os, const sutherlandTransport<Thermo>& st
+)
 {
-    os << static_cast<const thermo&>(st) << tab << st.As << tab << st.Ts;
+    os << static_cast<const Thermo&>(st) << tab << st.As_ << tab << st.Ts_;
 
     os.check
     (
-        "Ostream& operator<<(Ostream&, const sutherlandTransport<thermo>&)"
+        "Ostream& operator<<(Ostream&, const sutherlandTransport<Thermo>&)"
     );
 
     return os;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

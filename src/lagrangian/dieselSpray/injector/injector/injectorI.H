@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,32 +23,25 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-        
-//- Return clone
-inline autoPtr<injector> injector::clone() const
+
+inline Foam::autoPtr<Foam::injector>
+Foam::injector::clone() const
 {
     return autoPtr<injector>(new injector(*this));
 }
 
-inline autoPtr<injectorType>& injector::properties()
+inline Foam::autoPtr<Foam::injectorType>&
+Foam::injector::properties()
 {
     return properties_;
 }
 
-inline const autoPtr<injectorType>& injector::properties() const
+inline const Foam::autoPtr<Foam::injectorType>&
+Foam::injector::properties() const
 {
     return properties_;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

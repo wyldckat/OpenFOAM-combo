@@ -1,9 +1,9 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -38,7 +38,7 @@
 usage() {
     cat<<USAGE
 
-usage: ${0##*/} <turbulenceProperties>
+Usage: ${0##*/} <turbulenceProperties>
 
   Where <turbulenceProperties> is the full path to the
   turbulenceProperties dictionary

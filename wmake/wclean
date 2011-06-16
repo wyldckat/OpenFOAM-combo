@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -26,8 +26,8 @@
 #     wclean
 #
 # Description
-#     Clean up the wmake control directory Make and remove the include
-#     directories generated for libraries.
+#     Clean up the wmake control directory Make/\$WM_OPTIONS and remove the
+#     lnInclude directories generated for libraries.
 #
 #------------------------------------------------------------------------------
 Script=${0##*/}
@@ -35,35 +35,53 @@ Script=${0##*/}
 usage() {
     while [ "$#" -ge 1 ]; do echo "$1"; shift; done
     cat<<USAGE
-usage: $Script [dir]
-       $Script target [dir [MakeDir]]
 
-Clean up the wmake control directory Make and remove the include
-directories generated for libraries.
+Usage: $Script [OPTION] [dir]
+       $Script [OPTION] target [dir [MakeDir]]
+
+options:
+  -s | -silent      ignored - for compatibility with wmake
+  -help             print the usage
+
+Clean up the wmake control directory Make/\$WM_OPTIONS and remove the
+lnInclude directories generated for libraries.
 
 The targets correspond to a subset of the 'wmake' special targets:
-    all       all subdirectories
-    exe       cleans dir/Make
-    lib       cleans dir/Make and dir/lnInclude
-    libso     cleans dir/Make and dir/lnInclude
-    libo      cleans dir/Make and dir/lnInclude
+  all               all subdirectories, uses any Allwclean or Allclean
+                    files if they exist
+  exe | lib | libo | libso
+                    clean Make, any *.dep files and lnInclude directories
 
 USAGE
-   exit 1
+    exit 1
 }
 
-# provide immediate help
-if [ "$1" = "-h" -o "$1" = "-help" ]
-then
-    usage
-fi
+
+# parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)
+        usage
+        ;;
+    -s | -silent)    # ignored - for compatibility with wmake
+        shift
+        ;;
+    -*)
+        usage "unknown option: '$*'"
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
 
 
 #------------------------------------------------------------------------------
-# check arguments and change to the directory in which to run wmake
+# check arguments and change to the directory in which to run wclean
 #------------------------------------------------------------------------------
 
-unset dir makeOption
+unset dir makeType
 MakeDir=Make
 
 if [ $# -ge 1 ]
@@ -73,19 +91,14 @@ then
     then
         dir=$1
     else
-        makeOption=$1
+        makeType=$1
     fi
 
-    if [ $# -ge 2 ]
-    then
-        dir=$2
-    fi
+    # specified directory name:
+    [ $# -ge 2 ] && dir=$2
 
-    # alternative name for the Make sub-directory
-    if [ $# -ge 3 ]
-    then
-        MakeDir=$3
-    fi
+    # specified alternative name for the Make sub-directory:
+    [ $# -ge 3 ] && MakeDir=$3
 
     if [ "$dir" ]
     then
@@ -103,35 +116,39 @@ fi
 # Recurse the directories tree
 #------------------------------------------------------------------------------
 
-if [ "$makeOption" = all ]
+if [ "$makeType" = all ]
 then
-    if [ -e Allclean ]
+    if [ -e Allwclean ]       # consistent with Allwmake
+    then
+        ./Allwclean
+        exit $?
+    elif [ -e Allclean ]      # often used for tutorial cases
     then
         ./Allclean
         exit $?
     elif [ ! -d $MakeDir ]
     then
-        for dir in `find . \( -type d -a -name Make \) -printf "%h "`
+        for dir in `find . \( -type d -a -name Make \)`
         do
-            $0 $dir
+            $0 ${dir%/Make}   # parent directory - trim /Make from the end
         done
         exit 0
     fi
-
-    # This is the end of the recursion down the application directories tree
-    # so remove the "all" option so that the call to make builds the application
-    makeOption=
 fi
 
+# makeType is not needed beyond this point
+unset makeType
+
+
 #------------------------------------------------------------------------------
-# Check the existance of the Make directory
+# Require the existence of the 'Make' directory
 #------------------------------------------------------------------------------
 
-if [ ! -d $MakeDir ]
-then
+[ -d $MakeDir ] || {
     echo "$Script error: '$MakeDir' directory does not exist" 1>&2
     exit 1
-fi
+}
+
 
 # -----------------------------------------------------------------------------
 
@@ -139,13 +156,10 @@ rm -rf $MakeDir/$WM_OPTIONS $MakeDir/classes 2>/dev/null
 
 find . -name "*.dep" -exec rm {} \;
 
-case "$makeOption" in
-lib | libso | libo )
-    rm -rf lnInclude 2>/dev/null
-    ;;
-esac
+# always safe to remove lnInclude
+rm -rf lnInclude 2>/dev/null
 
 rm -rf ii_files Templates.DB 2>/dev/null
-rm -f so_locations
+rm -f so_locations 2>/dev/null
 
 #------------------------------------------------------------------------------

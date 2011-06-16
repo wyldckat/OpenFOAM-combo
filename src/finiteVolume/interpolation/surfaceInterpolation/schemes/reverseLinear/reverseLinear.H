@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -127,7 +127,7 @@ public:
             reverseLinearWeights.internalField() =
                 1.0 - cdWeights.internalField();
 
-            forAll (mesh.boundary(), patchI)
+            forAll(mesh.boundary(), patchI)
             {
                 if (mesh.boundary()[patchI].coupled())
                 {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "MeshedSurfaceIOAllocator.H"
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -60,11 +59,11 @@ Foam::MeshedSurfaceIOAllocator::MeshedSurfaceIOAllocator
 Foam::MeshedSurfaceIOAllocator::MeshedSurfaceIOAllocator
 (
     const IOobject& ioPoints,
-    const Xfer< pointField >& points,
+    const Xfer<pointField>& points,
     const IOobject& ioFaces,
-    const Xfer< faceList >& faces,
+    const Xfer<faceList>& faces,
     const IOobject& ioZones,
-    const Xfer< surfZoneList >& zones
+    const Xfer<surfZoneList>& zones
 )
 :
     points_(ioPoints, points),
@@ -72,8 +71,6 @@ Foam::MeshedSurfaceIOAllocator::MeshedSurfaceIOAllocator
     zones_(ioZones, zones)
 {}
 
-
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -87,8 +84,8 @@ void Foam::MeshedSurfaceIOAllocator::clear()
 
 void Foam::MeshedSurfaceIOAllocator::resetFaces
 (
-    const Xfer< List<face> >& faces,
-    const Xfer< surfZoneList >& zones
+    const Xfer<List<face> >& faces,
+    const Xfer<surfZoneList>& zones
 )
 {
     if (&faces)
@@ -105,9 +102,9 @@ void Foam::MeshedSurfaceIOAllocator::resetFaces
 
 void Foam::MeshedSurfaceIOAllocator::reset
 (
-    const Xfer< pointField >& points,
-    const Xfer< faceList >& faces,
-    const Xfer< surfZoneList >& zones
+    const Xfer<pointField>& points,
+    const Xfer<faceList>& faces,
+    const Xfer<surfZoneList>& zones
 )
 {
     // Take over new primitive data.
@@ -123,9 +120,9 @@ void Foam::MeshedSurfaceIOAllocator::reset
 
 void Foam::MeshedSurfaceIOAllocator::reset
 (
-    const Xfer< List<point> >& points,
-    const Xfer< faceList >& faces,
-    const Xfer< surfZoneList >& zones
+    const Xfer<List<point> >& points,
+    const Xfer<faceList>& faces,
+    const Xfer<surfZoneList>& zones
 )
 {
     // Take over new primitive data.

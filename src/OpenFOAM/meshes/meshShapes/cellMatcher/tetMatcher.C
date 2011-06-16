@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,7 @@ License
 #include "primitiveMesh.H"
 #include "primitiveMesh.H"
 #include "cellModeller.H"
+#include "ListOps.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -38,7 +39,6 @@ const Foam::label Foam::tetMatcher::maxVertPerFace = 3;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct null
 Foam::tetMatcher::tetMatcher()
 :
     cellMatcher
@@ -237,7 +237,7 @@ bool Foam::tetMatcher::isA(const faceList& faces)
         faces,                      // all faces in mesh
         labelList(faces.size(), 0), // cell 0 is owner of all faces
         0,                          // cell label
-        makeIdentity(faces.size())  // faces of cell 0
+        identity(faces.size())      // faces of cell 0
     );
 }
 

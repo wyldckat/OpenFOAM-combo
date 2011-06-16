@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,46 +26,6 @@ License
 #include "ThermoLookupTableInjection.H"
 #include "scalarIOList.H"
 
-// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
-
-template<class CloudType>
-Foam::label Foam::ThermoLookupTableInjection<CloudType>::parcelsToInject
-(
-    const scalar time0,
-    const scalar time1
-) const
-{
-    if ((time0 >= 0.0) && (time0 < duration_))
-    {
-        return round(injectorCells_.size()*(time1 - time0)*nParcelsPerSecond_);
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-
-template<class CloudType>
-Foam::scalar Foam::ThermoLookupTableInjection<CloudType>::volumeToInject
-(
-    const scalar time0,
-    const scalar time1
-) const
-{
-    scalar volume = 0.0;
-    if ((time0 >= 0.0) && (time0 < duration_))
-    {
-        forAll(injectors_, i)
-        {
-            volume += injectors_[i].mDot()/injectors_[i].rho()*(time1 - time0);
-        }
-    }
-
-    return volume;
-}
-
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class CloudType>
@@ -78,7 +38,7 @@ Foam::ThermoLookupTableInjection<CloudType>::ThermoLookupTableInjection
     InjectionModel<CloudType>(dict, owner, typeName),
     inputFileName_(this->coeffDict().lookup("inputFile")),
     duration_(readScalar(this->coeffDict().lookup("duration"))),
-    nParcelsPerSecond_
+    parcelsPerSecond_
     (
         readScalar(this->coeffDict().lookup("parcelsPerSecond"))
     ),
@@ -93,13 +53,24 @@ Foam::ThermoLookupTableInjection<CloudType>::ThermoLookupTableInjection
             IOobject::NO_WRITE
         )
     ),
-    injectorCells_(0)
+    injectorCells_(0),
+    injectorTetFaces_(0),
+    injectorTetPts_(0)
 {
     // Set/cache the injector cells
     injectorCells_.setSize(injectors_.size());
+    injectorTetFaces_.setSize(injectors_.size());
+    injectorTetPts_.setSize(injectors_.size());
+
     forAll(injectors_, i)
     {
-        this->findCellAtPosition(injectorCells_[injectorI], injectors_[i].x());
+        this->findCellAtPosition
+        (
+            injectorCells_[i],
+            injectorTetFaces_[i],
+            injectorTetPts_[i],
+            injectors_[i].x()
+        );
     }
 
     // Determine volume of particles to inject
@@ -112,6 +83,23 @@ Foam::ThermoLookupTableInjection<CloudType>::ThermoLookupTableInjection
 }
 
 
+template<class CloudType>
+Foam::ThermoLookupTableInjection<CloudType>::ThermoLookupTableInjection
+(
+    const ThermoLookupTableInjection<CloudType>& im
+)
+:
+    InjectionModel<CloudType>(im),
+    inputFileName_(im.inputFileName_),
+    duration_(im.duration_),
+    parcelsPerSecond_(im.parcelsPerSecond_),
+    injectors_(im.injectors_),
+    injectorCells_(im.injectorCells_),
+    injectorTetFaces_(im.injectorTetFaces_),
+    injectorTetPts_(im.injectorTetPts_)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 template<class CloudType>
@@ -122,16 +110,47 @@ Foam::ThermoLookupTableInjection<CloudType>::~ThermoLookupTableInjection()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class CloudType>
-bool Foam::ThermoLookupTableInjection<CloudType>::active() const
+Foam::scalar Foam::ThermoLookupTableInjection<CloudType>::timeEnd() const
 {
-    return true;
+    return this->SOI_ + duration_;
 }
 
 
 template<class CloudType>
-Foam::scalar Foam::ThermoLookupTableInjection<CloudType>::timeEnd() const
+Foam::label Foam::ThermoLookupTableInjection<CloudType>::parcelsToInject
+(
+    const scalar time0,
+    const scalar time1
+)
 {
-    return this->SOI_ + duration_;
+    if ((time0 >= 0.0) && (time0 < duration_))
+    {
+        return floor(injectorCells_.size()*(time1 - time0)*parcelsPerSecond_);
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
+template<class CloudType>
+Foam::scalar Foam::ThermoLookupTableInjection<CloudType>::volumeToInject
+(
+    const scalar time0,
+    const scalar time1
+)
+{
+    scalar volume = 0.0;
+    if ((time0 >= 0.0) && (time0 < duration_))
+    {
+        forAll(injectors_, i)
+        {
+            volume += injectors_[i].mDot()/injectors_[i].rho()*(time1 - time0);
+        }
+    }
+
+    return volume;
 }
 
 
@@ -142,13 +161,17 @@ void Foam::ThermoLookupTableInjection<CloudType>::setPositionAndCell
     const label nParcels,
     const scalar time,
     vector& position,
-    label& cellOwner
+    label& cellOwner,
+    label& tetFaceI,
+    label& tetPtI
 )
 {
     label injectorI = parcelI*injectorCells_.size()/nParcels;
 
     position = injectors_[injectorI].x();
     cellOwner = injectorCells_[injectorI];
+    tetFaceI = injectorTetFaces_[injectorI];
+    tetPtI = injectorTetPts_[injectorI];
 }
 
 

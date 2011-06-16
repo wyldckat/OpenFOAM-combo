@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -20,28 +20,28 @@ internalField   uniform 0;
 
 boundaryField
 {
-    inlet           
+    inlet
     {
         type            zeroGradient;
     }
 
-    outlet          
+    outlet
     {
         type            fixedValue;
         value           uniform 0;
     }
 
-    upperWall       
+    upperWall
     {
         type            zeroGradient;
     }
 
-    lowerWall       
+    lowerWall
     {
         type            zeroGradient;
     }
 
-    frontAndBack    
+    frontAndBack
     {
         type            empty;
     }

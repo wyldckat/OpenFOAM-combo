@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -88,7 +88,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         // Topological change
         if (debug)
         {
-            Info << "Topological change" << endl;
+            Info<< "Topological change" << endl;
         }
 
         clearOut();
@@ -112,7 +112,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
             )
         );
 
-        faces_ = faceIOList
+        faces_ = faceCompactIOList
         (
             IOobject
             (
@@ -185,7 +185,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
             wordList oldTypes = boundary_.types();
             wordList oldNames = boundary_.names();
 
-            forAll (oldTypes, patchI)
+            forAll(oldTypes, patchI)
             {
                 if
                 (
@@ -208,14 +208,14 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
             boundary_.clear();
             boundary_.setSize(newBoundary.size());
 
-            forAll (newBoundary, patchI)
+            forAll(newBoundary, patchI)
             {
                 boundary_.set(patchI, newBoundary[patchI].clone(boundary_));
             }
         }
         else
         {
-            forAll (boundary_, patchI)
+            forAll(boundary_, patchI)
             {
                 boundary_[patchI] = polyPatch
                 (
@@ -238,7 +238,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         }
         else
         {
-            cellIOList cells
+            cellCompactIOList cells
             (
                 IOobject
                 (
@@ -296,7 +296,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         }
 
         // Reset existing ones
-        forAll (pointZones_, czI)
+        forAll(pointZones_, czI)
         {
             pointZones_[czI] = newPointZones[czI];
         }
@@ -333,7 +333,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         }
 
         // Reset existing ones
-        forAll (faceZones_, fzI)
+        forAll(faceZones_, fzI)
         {
             faceZones_[fzI].resetAddressing
             (
@@ -374,7 +374,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         }
 
         // Reset existing ones
-        forAll (cellZones_, czI)
+        forAll(cellZones_, czI)
         {
             cellZones_[czI] = newCellZones[czI];
         }
@@ -402,7 +402,7 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         // Points moved
         if (debug)
         {
-            Info << "Point motion" << endl;
+            Info<< "Point motion" << endl;
         }
 
         clearGeom();
@@ -429,14 +429,14 @@ Foam::polyMesh::readUpdateState Foam::polyMesh::readUpdate()
         // Rotation can cause direction vector to change
         geometricD_ = Vector<label>::zero;
         solutionD_ = Vector<label>::zero;
-        
+
         return polyMesh::POINTS_MOVED;
     }
     else
     {
         if (debug)
         {
-            Info << "No change" << endl;
+            Info<< "No change" << endl;
         }
 
         return polyMesh::UNCHANGED;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,8 @@ Description
 #define dragModel_H
 
 #include "IOdictionary.H"
-#include "fvCFD.H"
+#include "volFields.H"
+#include "surfaceFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -76,15 +77,11 @@ public:
     // Constructors
 
         //- Construct from components
-        dragModel
-        (
-            const dictionary& dict
-        );
+        dragModel(const dictionary& dict);
 
 
-    // Destructor
-
-        virtual ~dragModel();
+    //- Destructor
+    virtual ~dragModel();
 
 
     // Selector

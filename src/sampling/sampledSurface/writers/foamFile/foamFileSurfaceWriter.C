@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,26 +28,76 @@ License
 #include "OFstream.H"
 #include "OSspecific.H"
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+#include "makeSurfaceWriterMethods.H"
+
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+namespace Foam
+{
+    makeSurfaceWriterType(foamFileSurfaceWriter);
+}
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 template<class Type>
-Foam::foamFileSurfaceWriter<Type>::foamFileSurfaceWriter()
+void Foam::foamFileSurfaceWriter::writeTemplate
+(
+    const fileName& outputDir,
+    const fileName& surfaceName,
+    const pointField& points,
+    const faceList& faces,
+    const word& fieldName,
+    const Field<Type>& values,
+    const bool isNodeValues,
+    const bool verbose
+) const
+{
+    fileName surfaceDir(outputDir/surfaceName);
+
+    if (!isDir(surfaceDir))
+    {
+        mkDir(surfaceDir);
+    }
+
+    if (verbose)
+    {
+        Info<< "Writing field " << fieldName << " to " << surfaceDir << endl;
+    }
+
+    // geometry should already have been written
+    // Values to separate directory (e.g. "scalarField/p")
+
+    fileName foamName(pTraits<Type>::typeName);
+    fileName valuesDir(surfaceDir  / (foamName + Field<Type>::typeName));
+
+    if (!isDir(valuesDir))
+    {
+        mkDir(valuesDir);
+    }
+
+    // values
+    OFstream(valuesDir/fieldName)()  << values;
+}
+
+
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::foamFileSurfaceWriter::foamFileSurfaceWriter()
 :
-    surfaceWriter<Type>()
+    surfaceWriter()
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template<class Type>
-Foam::foamFileSurfaceWriter<Type>::~foamFileSurfaceWriter()
+Foam::foamFileSurfaceWriter::~foamFileSurfaceWriter()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class Type>
-void Foam::foamFileSurfaceWriter<Type>::write
+void Foam::foamFileSurfaceWriter::write
 (
     const fileName& outputDir,
     const fileName& surfaceName,
@@ -68,6 +118,7 @@ void Foam::foamFileSurfaceWriter<Type>::write
         Info<< "Writing geometry to " << surfaceDir << endl;
     }
 
+
     // Points
     OFstream(surfaceDir/"points")() << points;
 
@@ -78,7 +129,7 @@ void Foam::foamFileSurfaceWriter<Type>::write
     // for e.g. timeVaryingMapped bc.
     pointField faceCentres(faces.size(),point::zero);
 
-    forAll (faces, faceI)
+    forAll(faces, faceI)
     {
         faceCentres[faceI] = faces[faceI].centre(points);
     }
@@ -87,45 +138,8 @@ void Foam::foamFileSurfaceWriter<Type>::write
 }
 
 
-template<class Type>
-void Foam::foamFileSurfaceWriter<Type>::write
-(
-    const fileName& outputDir,
-    const fileName& surfaceName,
-    const pointField& points,
-    const faceList& faces,
-    const fileName& fieldName,
-    const Field<Type>& values,
-    const bool verbose
-) const
-{
-    fileName surfaceDir(outputDir/surfaceName);
-
-    if (!isDir(surfaceDir))
-    {
-        mkDir(surfaceDir);
-    }
-
-    if (verbose)
-    {
-        Info<< "Writing field " << fieldName << " to " << surfaceDir << endl;
-    }
-
-    // geometry should already have been written
-
-    // Values to separate directory (e.g. "scalarField/p")
-
-    fileName foamName(pTraits<Type>::typeName);
-    fileName valuesDir(surfaceDir  / (foamName + Field<Type>::typeName));
-
-    if (!isDir(valuesDir))
-    {
-        mkDir(valuesDir);
-    }
-
-    // values
-    OFstream(valuesDir/fieldName)() << values;
-}
+// create write methods
+defineSurfaceWriterWriteFields(Foam::foamFileSurfaceWriter);
 
 
 // ************************************************************************* //

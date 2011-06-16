@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,8 +34,8 @@ namespace XiEqModels
 {
     defineTypeNameAndDebug(Gulder, 0);
     addToRunTimeSelectionTable(XiEqModel, Gulder, dictionary);
-};
-};
+}
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -49,8 +49,8 @@ Foam::XiEqModels::Gulder::Gulder
 )
 :
     XiEqModel(XiEqProperties, thermo, turbulence, Su),
-    XiEqCoef(readScalar(XiEqModelCoeffs_.lookup("XiEqCoef"))),
-    SuMin(0.01*Su.average())
+    XiEqCoef_(readScalar(XiEqModelCoeffs_.lookup("XiEqCoef"))),
+    SuMin_(0.01*Su.average())
 {}
 
 
@@ -64,18 +64,26 @@ Foam::XiEqModels::Gulder::~Gulder()
 
 Foam::tmp<Foam::volScalarField> Foam::XiEqModels::Gulder::XiEq() const
 {
-    volScalarField up = sqrt((2.0/3.0)*turbulence_.k());
+    volScalarField up(sqrt((2.0/3.0)*turbulence_.k()));
     const volScalarField& epsilon = turbulence_.epsilon();
 
-    volScalarField tauEta = sqrt(mag(thermo_.muu()/(thermo_.rhou()*epsilon)));
+    if (subGridSchelkin())
+    {
+        up.internalField() += calculateSchelkinEffect();
+    }
 
-    volScalarField Reta = up/
+    volScalarField tauEta(sqrt(mag(thermo_.muu()/(thermo_.rhou()*epsilon))));
+
+    volScalarField Reta
     (
-        sqrt(epsilon*tauEta)
-      + dimensionedScalar("1e-8", up.dimensions(), 1e-8)
+        up
+      / (
+            sqrt(epsilon*tauEta)
+          + dimensionedScalar("1e-8", up.dimensions(), 1e-8)
+        )
     );
 
-    return 1.0 + XiEqCoef*sqrt(up/(Su_ + SuMin))*Reta;
+    return (1.0 + XiEqCoef_*sqrt(up/(Su_ + SuMin_))*Reta);
 }
 
 
@@ -83,7 +91,9 @@ bool Foam::XiEqModels::Gulder::read(const dictionary& XiEqProperties)
 {
     XiEqModel::read(XiEqProperties);
 
-    XiEqModelCoeffs_.lookup("XiEqCoef") >> XiEqCoef;
+    XiEqModelCoeffs_.lookup("XiEqCoef") >> XiEqCoef_;
+    XiEqModelCoeffs_.lookup("uPrimeCoef") >> uPrimeCoef_;
+    XiEqModelCoeffs_.lookup("subGridSchelkin") >> subGridSchelkin_;
 
     return true;
 }

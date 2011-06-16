@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,7 @@ Description
 #include "Switch.H"
 #include "plasticViscosity.H"
 #include "yieldStress.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -49,31 +50,23 @@ int main(int argc, char *argv[])
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
     #include "initContinuityErrs.H"
-    #include "readTimeControls.H"
-    #include "compressibleCourantNo.H"
-    #include "setInitialDeltaT.H"
+
+    pimpleControl pimple(mesh);
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
 
-    while (runTime.run())
+    while (runTime.loop())
     {
-        #include "readPISOControls.H"
-        #include "readTimeControls.H"
-        #include "compressibleCourantNo.H"
-        #include "setDeltaT.H"
-
-        runTime++;
-
         Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        #include "compressibleCourantNo.H"
 
         #include "rhoEqn.H"
 
-        for (int oCorr=0; oCorr<nOuterCorr; oCorr++)
+        for (pimple.start(); pimple.loop(); pimple++)
         {
-            bool finalIter = oCorr == nOuterCorr-1;
-
             #include "calcVdj.H"
 
             #include "UEqn.H"
@@ -83,12 +76,15 @@ int main(int argc, char *argv[])
             #include "correctViscosity.H"
 
             // --- PISO loop
-            for (int corr=0; corr<nCorr; corr++)
+            for (int corr=0; corr<pimple.nCorr(); corr++)
             {
                 #include "pEqn.H"
             }
 
-            #include "kEpsilon.H"
+            if (pimple.turbCorr())
+            {
+                #include "kEpsilon.H"
+            }
         }
 
         runTime.write();

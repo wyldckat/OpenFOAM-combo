@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,12 +29,12 @@ Description
     flows.
 
     Turbulence model described in:
-    @verbatim
+    \verbatim
         Menter, F., Esch, T.
         "Elements of Industrial Heat Transfer Prediction"
         16th Brazilian Congress of Mechanical Engineering (COBEM),
         Nov. 2001
-    @endverbatim
+    \endverbatim
 
     Note that this implementation is written in terms of alpha diffusion
     coefficients rather than the more traditional sigma (alpha = 1/sigma) so
@@ -53,7 +53,7 @@ Description
     sufficiently small blending u_tau in this manner clearly becomes nonsense.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         kOmegaSSTCoeffs
         {
             alphaK1     0.85034;
@@ -68,7 +68,7 @@ Description
             a1          0.31;
             c1          10.0;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     kOmegaSST.C
@@ -91,14 +91,17 @@ namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class kOmega Declaration
+                          Class kOmegaSST Declaration
 \*---------------------------------------------------------------------------*/
 
 class kOmegaSST
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
             dimensionedScalar alphaK1_;
@@ -129,7 +132,7 @@ class kOmegaSST
             volScalarField nut_;
 
 
-    // Private member functions
+    // Protected Member Functions
 
         tmp<volScalarField> F1(const volScalarField& CDkOmega) const;
         tmp<volScalarField> F2() const;
@@ -144,34 +147,22 @@ class kOmegaSST
             return F1*(psi1 - psi2) + psi2;
         }
 
-        tmp<volScalarField> alphaK
-        (
-            const volScalarField& F1
-        ) const
+        tmp<volScalarField> alphaK(const volScalarField& F1) const
         {
             return blend(F1, alphaK1_, alphaK2_);
         }
 
-        tmp<volScalarField> alphaOmega
-        (
-            const volScalarField& F1
-        ) const
+        tmp<volScalarField> alphaOmega(const volScalarField& F1) const
         {
             return blend(F1, alphaOmega1_, alphaOmega2_);
         }
 
-        tmp<volScalarField> beta
-        (
-            const volScalarField& F1
-        ) const
+        tmp<volScalarField> beta(const volScalarField& F1) const
         {
             return blend(F1, beta1_, beta2_);
         }
 
-        tmp<volScalarField> gamma
-        (
-            const volScalarField& F1
-        ) const
+        tmp<volScalarField> gamma(const volScalarField& F1) const
         {
             return blend(F1, gamma1_, gamma2_);
         }
@@ -190,7 +181,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

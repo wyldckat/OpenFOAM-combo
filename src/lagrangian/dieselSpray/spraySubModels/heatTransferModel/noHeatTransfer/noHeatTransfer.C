@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,61 +23,53 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
-
 #include "noHeatTransfer.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noHeatTransfer, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        heatTransferModel,
+        noHeatTransfer,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(noHeatTransfer, 0);
-
-addToRunTimeSelectionTable
-(
-    heatTransferModel,
-    noHeatTransfer,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noHeatTransfer::noHeatTransfer
-(
-    const dictionary& dict
-)
+Foam::noHeatTransfer::noHeatTransfer(const dictionary& dict)
 :
     heatTransferModel(dict)
 {}
 
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noHeatTransfer::~noHeatTransfer()
+Foam::noHeatTransfer::~noHeatTransfer()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool noHeatTransfer::heatTransfer() const
+bool Foam::noHeatTransfer::heatTransfer() const
 {
     return false;
 }
 
-scalar noHeatTransfer::Nu
-(
-    const scalar,
-    const scalar
-) const
+
+Foam::scalar Foam::noHeatTransfer::Nu(const scalar, const scalar) const
 {
     return 0.0;
 }
 
-scalar noHeatTransfer::relaxationTime
+
+Foam::scalar Foam::noHeatTransfer::relaxationTime
 (
     const scalar,
     const scalar,
@@ -90,13 +82,11 @@ scalar noHeatTransfer::relaxationTime
     return GREAT;
 }
 
-scalar noHeatTransfer::fCorrection(const scalar) const
+
+Foam::scalar Foam::noHeatTransfer::fCorrection(const scalar) const
 {
     return 1.0;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

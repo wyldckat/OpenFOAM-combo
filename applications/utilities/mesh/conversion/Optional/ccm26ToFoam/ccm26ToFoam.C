@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -197,8 +197,11 @@ void ReadVertices
     int dims = 1;
     float scale;
     CCMIOID mapID;
-    CCMIOReadVerticesf(&err, vertices, &dims, &scale, &mapID, verts.begin(),
-		       offset, offsetPlusSize);
+    CCMIOReadVerticesf
+    (
+        &err, vertices, &dims, &scale, &mapID, verts.begin(),
+        offset, offsetPlusSize
+    );
     CCMIOReadMap(&err, mapID, mapData.begin(), offset, offsetPlusSize);
 
     //CCMIOSize size;
@@ -244,35 +247,34 @@ void ReadProblem
      == kCCMIONoErr
     )
     {
-	char *name;
-	int size;
+        char *name;
+        int size;
         int cellType;
 
-	// ... if it has a material type.  (Note that we do not pass in
-	// an array to get the name because we do not know how long the
-	// string is yet.  Many parameters to CCMIO functions that
+        // ... if it has a material type.  (Note that we do not pass in
+        // an array to get the name because we do not know how long the
+        // string is yet.  Many parameters to CCMIO functions that
         // return
-	// data can be NULL if that data is not needed.)
-	if
+        // data can be NULL if that data is not needed.)
+        if
         (
             CCMIOReadOptstr(NULL, next, "MaterialType", &size, NULL)
          == kCCMIONoErr
         )
-	{
-	    name = new char[size + 1];
-	    CCMIOReadOptstr(&err, next, "MaterialType", &size, name);
-	    CCMIOGetEntityIndex(&err, next, &cellType);
+        {
+            name = new char[size + 1];
+            CCMIOReadOptstr(&err, next, "MaterialType", &size, name);
+            CCMIOGetEntityIndex(&err, next, &cellType);
 
             foamCellTypeNames.insert(cellType, name);
             Pout<< "Celltype:" << cellType << " name:" << name << endl;
 
-	    delete [] name;
-	}
+            delete [] name;
+        }
     }
 
     // ... walk through each region description and print it...
 
-    
     CCMIOID boundary;
     label regionI = 0;
     int k = 0;
@@ -319,13 +321,13 @@ void ReadProblem
                 CCMIOReadOptstr(NULL, boundary, "BoundaryType", &size, NULL)
              == kCCMIONoErr
             )
-	    {
-	        char* s = new char[size + 1];
-	        CCMIOReadOptstr(NULL, boundary, "BoundaryType", &size, s);
+            {
+                char* s = new char[size + 1];
+                CCMIOReadOptstr(NULL, boundary, "BoundaryType", &size, s);
                 s[size] = '\0';
                 foamPatchTypes[foamPatchI] = string::validate<word>(string(s));
-	        delete [] s;
-	    }
+                delete [] s;
+            }
 
 
             //foamPatchMap.append(prostarI);
@@ -341,28 +343,30 @@ void ReadProblem
                 CCMIOReadOptstr(NULL, boundary, "BoundaryName", &size, NULL)
              == kCCMIONoErr
             )
-	    {
-	        char* name = new char[size + 1];
-	        CCMIOReadOptstr(NULL, boundary, "BoundaryName", &size, name);
+            {
+                char* name = new char[size + 1];
+                CCMIOReadOptstr(NULL, boundary, "BoundaryName", &size, name);
                 name[size] = '\0';
-                foamPatchNames[foamPatchI] = string::validate<word>(string(name));
-	        delete [] name;
-	    }
+                foamPatchNames[foamPatchI] =
+                    string::validate<word>(string(name));
+                delete [] name;
+            }
             else if
             (
                 CCMIOReadOptstr(NULL, boundary, "Label", &size, NULL)
              == kCCMIONoErr
             )
-	    {
-	        char* name = new char[size + 1];
-	        CCMIOReadOptstr(NULL, boundary, "Label", &size, name);
+            {
+                char* name = new char[size + 1];
+                CCMIOReadOptstr(NULL, boundary, "Label", &size, name);
                 name[size] = '\0';
-                foamPatchNames[foamPatchI] = string::validate<word>(string(name));
-	        delete [] name;
-	    }
+                foamPatchNames[foamPatchI] =
+                    string::validate<word>(string(name));
+                delete [] name;
+            }
             else
             {
-                foamPatchNames[foamPatchI] = 
+                foamPatchNames[foamPatchI] =
                     foamPatchTypes[foamPatchI]
                   + Foam::name(foamPatchI);
                 Pout<< "Made up name:" << foamPatchNames[foamPatchI]
@@ -439,8 +443,8 @@ void ReadCells
      == kCCMIONoErr
     )
     {
-	CCMIOSize size;
-	CCMIOEntitySize(&err, id, &size, NULL);
+        CCMIOSize size;
+        CCMIOEntitySize(&err, id, &size, NULL);
 
         Pout<< "Read kCCMIOBoundaryFaces entry with " << size
             << " faces." << endl;
@@ -460,13 +464,13 @@ void ReadCells
     CCMIOGetEntity(&err, topology, kCCMIOInternalFaces, 0, &id);
     CCMIOSize size;
     CCMIOReadFaces(&err, id, kCCMIOInternalFaces, NULL, &size, NULL,
-		   kCCMIOStart, kCCMIOEnd);
+                   kCCMIOStart, kCCMIOEnd);
     std::vector<int> faces(size);
     CCMIOReadFaces(&err, id, kCCMIOInternalFaces, &mapID, NULL, &faces[0],
-		   kCCMIOStart, kCCMIOEnd);
+                   kCCMIOStart, kCCMIOEnd);
     std::vector<int> faceCells(2*nInternalFaces);
     CCMIOReadFaceCells(&err, id, kCCMIOInternalFaces, &faceCells[0],
-		       kCCMIOStart, kCCMIOEnd);
+                       kCCMIOStart, kCCMIOEnd);
     CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
     CheckError(err, "Error reading internal faces");
 
@@ -504,19 +508,19 @@ void ReadCells
     )
     {
         CCMIOSize nFaces;
-	CCMIOEntitySize(&err, id, &nFaces, NULL);
+        CCMIOEntitySize(&err, id, &nFaces, NULL);
 
-	mapData.resize(nFaces);
-	faceCells.resize(nFaces);
-	CCMIOReadFaces(&err, id, kCCMIOBoundaryFaces, NULL, &size, NULL,
-		       kCCMIOStart, kCCMIOEnd);
-	faces.resize(size);
-	CCMIOReadFaces(&err, id, kCCMIOBoundaryFaces, &mapID, NULL, &faces[0],
-		       kCCMIOStart, kCCMIOEnd);
-	CCMIOReadFaceCells(&err, id, kCCMIOBoundaryFaces, &faceCells[0],
-			   kCCMIOStart, kCCMIOEnd);
-	CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
-	CheckError(err, "Error reading boundary faces");
+        mapData.resize(nFaces);
+        faceCells.resize(nFaces);
+        CCMIOReadFaces(&err, id, kCCMIOBoundaryFaces, NULL, &size, NULL,
+                       kCCMIOStart, kCCMIOEnd);
+        faces.resize(size);
+        CCMIOReadFaces(&err, id, kCCMIOBoundaryFaces, &mapID, NULL, &faces[0],
+                       kCCMIOStart, kCCMIOEnd);
+        CCMIOReadFaceCells(&err, id, kCCMIOBoundaryFaces, &faceCells[0],
+                           kCCMIOStart, kCCMIOEnd);
+        CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
+        CheckError(err, "Error reading boundary faces");
 
         // Read prostar id
         int prostarI;
@@ -577,12 +581,17 @@ void ReadCells
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "read CCM files as written by proSTAR/ccm\n"
+        " - does not handle 'interfaces' (couples), cyclics or data\n"
+        " - does not handle mesh regions (porosity, solids, ...)\n"
+    );
     argList::noParallel();
-    argList::validArgs.append("ccm26 file");
+    argList::validArgs.append("ccmFile");
 
-#   include "setRootCase.H"
-#   include "createTime.H"
-
+    #include "setRootCase.H"
+    #include "createTime.H"
 
     // Foam mesh data
     // ~~~~~~~~~~~~~~
@@ -612,7 +621,8 @@ int main(int argc, char *argv[])
     wordList foamPatchNames;
 
     {
-        fileName ccmFile(args.additionalArgs()[0]);
+        const fileName ccmFile = args[1];
+        const word ccmExt = ccmFile.ext();
 
         if (!isFile(ccmFile))
         {
@@ -620,8 +630,6 @@ int main(int argc, char *argv[])
                 << "Cannot read file " << ccmFile
                 << exit(FatalError);
         }
-
-        word ccmExt = ccmFile.ext();
 
         if (ccmExt != "ccm" && ccmExt != "ccmg")
         {
@@ -635,7 +643,13 @@ int main(int argc, char *argv[])
         // in NULL (which always means kCCMIONoErr) and then assign the return
         // value to 'err'.).
         CCMIOID root;
-        CCMIOError err = CCMIOOpenFile(NULL, ccmFile.c_str(), kCCMIORead, &root);
+        CCMIOError err = CCMIOOpenFile
+        (
+            NULL,
+            ccmFile.c_str(),
+            kCCMIORead,
+            &root
+        );
 
         // We are going to assume that we have a state with a known name.
         // We could instead use CCMIONextEntity() to walk through all the
@@ -671,9 +685,9 @@ int main(int argc, char *argv[])
 
         if (err != kCCMIONoErr)
         {
-	    // Maybe no solution;  try again
-	    err = kCCMIONoErr;
-	    CCMIOReadProcessor
+            // Maybe no solution;  try again
+            err = kCCMIONoErr;
+            CCMIOReadProcessor
             (
                 &err,
                 processor,
@@ -682,12 +696,12 @@ int main(int argc, char *argv[])
                 NULL,
                 NULL
             );
-	    if (err != kCCMIONoErr)
-	    {
-	        FatalErrorIn(args.executable())
+            if (err != kCCMIONoErr)
+            {
+                FatalErrorIn(args.executable())
                     << "Could not read the file."
                     << exit(FatalError);
-	    }
+            }
         }
 
         ReadVertices(err, vertices, foamPointMap, foamPoints);
@@ -839,7 +853,7 @@ int main(int argc, char *argv[])
             {
                 foamOwner[faceI] = foamNeighbour[faceI];
                 foamNeighbour[faceI] = own;
-                foamFaces[faceI] = foamFaces[faceI].reverseFace();
+                foamFaces[faceI].flip();
             }
         }
 

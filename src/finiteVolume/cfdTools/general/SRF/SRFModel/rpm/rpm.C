@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -57,7 +55,7 @@ Foam::SRF::rpm::rpm
     rpm_(readScalar(SRFModelCoeffs_.lookup("rpm")))
 {
     // Initialise the angular velocity
-    omega_.value() = axis_*rpm_*2.0*mathematicalConstant::pi/60.0;
+    omega_.value() = axis_*rpm_*constant::mathematical::twoPi/60.0;
 }
 
 
@@ -77,7 +75,7 @@ bool Foam::SRF::rpm::read()
         SRFModelCoeffs_.lookup("rpm") >> rpm_;
 
         // Update angular velocity
-        omega_.value() = axis_*rpm_*(2.0*mathematicalConstant::pi/60.0);
+        omega_.value() = axis_*rpm_*(constant::mathematical::twoPi/60.0);
 
         return true;
     }

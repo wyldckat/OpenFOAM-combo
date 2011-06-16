@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,22 @@ Class
     Foam::turbulentHeatFluxTemperatureFvPatchScalarField
 
 Description
-    Fixed heat flux boundary condition for temperature.
+    Fixed heat boundary condition to specify temperature gradient. Input
+    heat source either specified in terms of an absolute power [W], or as a
+    flux [W/m2].
+
+    Example usage:
+
+        hotWall
+        {
+            type            turbulentHeatFluxTemperature;
+            heatSource      flux;        // power [W]; flux [W/m2]
+            q               uniform 10;  // heat power or flux
+            alphaEff        alphaEff;    // alphaEff field name;
+                                         // alphaEff in [kg/m/s]
+            Cp              Cp;          // Cp field name; Cp in [J/kg/K]
+            value           uniform 300; // initial temperature value
+        }
 
 SourceFiles
     turbulentHeatFluxTemperatureFvPatchScalarField.C
@@ -37,6 +52,7 @@ SourceFiles
 
 #include "fvPatchFields.H"
 #include "fixedGradientFvPatchFields.H"
+#include "NamedEnum.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -53,16 +69,37 @@ class turbulentHeatFluxTemperatureFvPatchScalarField
 :
     public fixedGradientFvPatchScalarField
 {
-// Private data
+public:
 
-    //- Heat flux [W/m2]
-    scalarField q_;
+    // Data types
 
-    //- Name of effective thermal diffusivity field
-    word alphaEffName_;
+        //- Enumeration listing the possible hest source input modes
+        enum heatSourceType
+        {
+            hsPower,
+            hsFlux
+        };
 
-    //- Name of specific heat capacity field
-    word CpName_;
+
+private:
+
+    // Private data
+
+        //- Heat source type names
+        static const NamedEnum<heatSourceType, 2> heatSourceTypeNames_;
+
+        //- Heat source type
+        heatSourceType heatSource_;
+
+        //- Heat power [W] or flux [W/m2]
+        //  NOTE: to be divided by density, rho, if used in kinematic form
+        scalarField q_;
+
+        //- Name of effective thermal diffusivity field
+        word alphaEffName_;
+
+        //- Name of specific heat capacity field
+        word CpName_;
 
 
 public:

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2007 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2007 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,12 +42,12 @@ Description
 
 #include "incompressible/RAS/derivedFvPatchFields/wallFunctions/epsilonWallFunctions/epsilonWallFunction/epsilonWallFunctionFvPatchScalarField.H"
 #include "incompressible/RAS/derivedFvPatchFields/wallFunctions/kqRWallFunctions/kqRWallFunction/kqRWallFunctionFvPatchField.H"
-#include "incompressible/RAS/derivedFvPatchFields/wallFunctions/nutWallFunctions/nutWallFunction/nutWallFunctionFvPatchScalarField.H"
+#include "incompressible/RAS/derivedFvPatchFields/wallFunctions/nutWallFunctions/nutkWallFunction/nutkWallFunctionFvPatchScalarField.H"
 #include "incompressible/RAS/derivedFvPatchFields/wallFunctions/omegaWallFunctions/omegaWallFunction/omegaWallFunctionFvPatchScalarField.H"
 
 #include "compressible/RAS/derivedFvPatchFields/wallFunctions/epsilonWallFunctions/epsilonWallFunction/epsilonWallFunctionFvPatchScalarField.H"
 #include "compressible/RAS/derivedFvPatchFields/wallFunctions/kqRWallFunctions/kqRWallFunction/kqRWallFunctionFvPatchField.H"
-#include "compressible/RAS/derivedFvPatchFields/wallFunctions/mutWallFunctions/mutWallFunction/mutWallFunctionFvPatchScalarField.H"
+#include "compressible/RAS/derivedFvPatchFields/wallFunctions/mutWallFunctions/mutkWallFunction/mutkWallFunctionFvPatchScalarField.H"
 #include "compressible/RAS/derivedFvPatchFields/wallFunctions/omegaWallFunctions/omegaWallFunction/omegaWallFunctionFvPatchScalarField.H"
 
 using namespace Foam;
@@ -189,13 +189,12 @@ void replaceBoundaryType
     const_cast<word&>(IOdictionary::typeName) = oldTypeName;
     const_cast<word&>(dict.type()) = dict.headerClassName();
 
-    // Make a backup of the old field
-    word backupName(dict.name() + ".old");
-    Info<< "    copying " << dict.name() << " to "
-        << backupName << endl;
-    IOdictionary dictOld = dict;
-    dictOld.rename(backupName);
-    dictOld.regIOobject::write();
+    // Make a backup of the old file
+    if (mvBak(dict.objectPath(), "old"))
+    {
+        Info<< "    Backup original file to "
+            << (dict.objectPath() + ".old") << endl;
+    }
 
     // Loop through boundary patches and update
     const polyBoundaryMesh& bMesh = mesh.boundaryMesh();
@@ -233,7 +232,7 @@ void updateCompressibleCase(const fvMesh& mesh)
     (
         mesh,
         "mut",
-        compressible::RASModels::mutWallFunctionFvPatchScalarField::typeName,
+        compressible::RASModels::mutkWallFunctionFvPatchScalarField::typeName,
         "0"
     );
     replaceBoundaryType
@@ -285,7 +284,7 @@ void updateIncompressibleCase(const fvMesh& mesh)
     (
         mesh,
         "nut",
-        incompressible::RASModels::nutWallFunctionFvPatchScalarField::typeName,
+        incompressible::RASModels::nutkWallFunctionFvPatchScalarField::typeName,
         "0"
     );
     replaceBoundaryType
@@ -334,13 +333,17 @@ void updateIncompressibleCase(const fvMesh& mesh)
 int main(int argc, char *argv[])
 {
     #include "addTimeOptions.H"
-    argList::validOptions.insert("compressible", "");
+    argList::addBoolOption
+    (
+        "compressible",
+        "force use of compressible wall functions. default is auto-detect."
+    );
 
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
 
-    bool compressible = args.optionFound("compressible");
+    const bool compressible = args.optionFound("compressible");
 
     Info<< "Updating turbulence fields to operate using new run time "
         << "selectable" << nl << "wall functions"

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,21 +26,18 @@ License
 #include "error.H"
 #include "atomizationModel.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(atomizationModel, 0);
+    defineRunTimeSelectionTable(atomizationModel, dictionary);
+}
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(atomizationModel, 0);
-
-defineRunTimeSelectionTable(atomizationModel, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-atomizationModel::atomizationModel
+Foam::atomizationModel::atomizationModel
 (
     const dictionary& dict,
     spray& sm
@@ -54,11 +51,8 @@ atomizationModel::atomizationModel
 
 // * * * * * * * * * * * * * * * * Destructor    * * * * * * * * * * * * * * //
 
-atomizationModel::~atomizationModel()
+Foam::atomizationModel::~atomizationModel()
 {}
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

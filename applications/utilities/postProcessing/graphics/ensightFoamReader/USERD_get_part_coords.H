@@ -8,7 +8,7 @@ int USERD_get_part_coords
 {
 
 #ifdef ENSIGHTDEBUG
-    Info << "Entering: USERD_get_part_coords" << endl << 
+    Info<< "Entering: USERD_get_part_coords" << endl <<
         "part_number = " << part_number << endl << flush;
 #endif
 
@@ -19,7 +19,7 @@ int USERD_get_part_coords
 
         const vectorField& points = meshPtr->points();
         label nPoints = points.size();
-        
+
         for (label indx=0; indx<nPoints; indx++)
         {
             coord_array[0][indx+1] = (float)points[indx].x();
@@ -36,7 +36,7 @@ int USERD_get_part_coords
         const polyBoundaryMesh& bMesh = meshPtr->boundaryMesh();
         const vectorField& points = bMesh[patchi].points();
         label nPoints = points.size();
-        
+
         for (label indx=0; indx<nPoints; indx++)
         {
             coord_array[0][indx+1] = (float)points[indx].x();
@@ -47,19 +47,13 @@ int USERD_get_part_coords
     }
     else if (part_number == nPatches+2)
     {
-
         label indx = 1;
 
-        for
-        (
-            Cloud<passiveParticle>::iterator elmnt = sprayPtr->begin();
-            elmnt != sprayPtr->end();
-            ++elmnt
-        )
+        forAllConstIter(Cloud<passiveParticle>, *sprayPtr, iter)
         {
-            coord_array[0][indx] = (float)elmnt().position().x();
-            coord_array[1][indx] = (float)elmnt().position().y();
-            coord_array[2][indx] = (float)elmnt().position().z();
+            coord_array[0][indx] = (float)iter().position().x();
+            coord_array[1][indx] = (float)iter().position().y();
+            coord_array[2][indx] = (float)iter().position().z();
             indx++;
         }
 
@@ -70,7 +64,7 @@ int USERD_get_part_coords
     }
 
 #ifdef ENSIGHTDEBUG
-    Info << "Leaving: USERD_get_part_coords" << endl << flush;
+    Info<< "Leaving: USERD_get_part_coords" << endl << flush;
 #endif
 
     return Z_OK;

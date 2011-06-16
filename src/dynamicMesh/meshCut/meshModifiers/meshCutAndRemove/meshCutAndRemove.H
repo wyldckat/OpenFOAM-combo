@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Class
 
 Description
     like meshCutter but also removes non-anchor side of cell.
-    
+
 SourceFiles
     meshCutAndRemove.C
 
@@ -128,7 +128,7 @@ class meshCutAndRemove
             const label patchID
         );
 
-        //- Modifies existing faceI for either new owner/neighbour or 
+        //- Modifies existing faceI for either new owner/neighbour or
         //  new face points. Checks if anything changed and flips face
         //  if owner>neighbour
         void modFace

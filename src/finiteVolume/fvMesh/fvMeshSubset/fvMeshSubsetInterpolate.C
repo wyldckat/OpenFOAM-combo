@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,11 +51,11 @@ tmp<GeometricField<Type, fvPatchField, volMesh> > fvMeshSubset::interpolate
     // Create and map the patch field values
     PtrList<fvPatchField<Type> > patchFields(patchMap.size());
 
-    forAll (patchFields, patchI)
+    forAll(patchFields, patchI)
     {
         // Set the first one by hand as it corresponds to the
         // exposed internal faces.  Additional interpolation can be put here
-        // as necessary.  
+        // as necessary.
         if (patchMap[patchI] == -1)
         {
             patchFields.set
@@ -73,14 +73,14 @@ tmp<GeometricField<Type, fvPatchField, volMesh> > fvMeshSubset::interpolate
             // Construct addressing
             const fvPatch& subPatch = sMesh.boundary()[patchI];
             const fvPatch& basePatch = vf.mesh().boundary()[patchMap[patchI]];
-            label baseStart = basePatch.patch().start();
-            label baseSize = basePatch.size();
+            const label baseStart = basePatch.start();
+            const label baseSize = basePatch.size();
 
             labelList directAddressing(subPatch.size());
 
             forAll(directAddressing, i)
             {
-                label baseFaceI = faceMap[subPatch.patch().start()+i];
+                label baseFaceI = faceMap[subPatch.start()+i];
 
                 if (baseFaceI >= baseStart && baseFaceI < baseStart+baseSize)
                 {
@@ -175,11 +175,11 @@ tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > fvMeshSubset::interpolate
     // Create and map the patch field values
     PtrList<fvsPatchField<Type> > patchFields(patchMap.size());
 
-    forAll (patchFields, patchI)
+    forAll(patchFields, patchI)
     {
         // Set the first one by hand as it corresponds to the
         // exposed internal faces.  Additional interpolation can be put here
-        // as necessary.  
+        // as necessary.
         if (patchMap[patchI] == -1)
         {
             patchFields.set
@@ -197,14 +197,14 @@ tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > fvMeshSubset::interpolate
             // Construct addressing
             const fvPatch& subPatch = sMesh.boundary()[patchI];
             const fvPatch& basePatch = vf.mesh().boundary()[patchMap[patchI]];
-            label baseStart = basePatch.patch().start();
-            label baseSize = basePatch.size();
+            const label baseStart = basePatch.start();
+            const label baseSize = basePatch.size();
 
             labelList directAddressing(subPatch.size());
 
             forAll(directAddressing, i)
             {
-                label baseFaceI = faceMap[subPatch.patch().start()+i];
+                label baseFaceI = faceMap[subPatch.start()+i];
 
                 if (baseFaceI >= baseStart && baseFaceI < baseStart+baseSize)
                 {
@@ -239,7 +239,7 @@ tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > fvMeshSubset::interpolate
     {
         fvsPatchField<Type>& pfld = patchFields[patchI];
 
-        label meshFaceI = pfld.patch().patch().start();
+        label meshFaceI = pfld.patch().start();
 
         forAll(pfld, i)
         {
@@ -308,11 +308,11 @@ fvMeshSubset::interpolate
     // Create and map the patch field values
     PtrList<pointPatchField<Type> > patchFields(patchMap.size());
 
-    forAll (patchFields, patchI)
+    forAll(patchFields, patchI)
     {
         // Set the first one by hand as it corresponds to the
         // exposed internal faces.  Additional interpolation can be put here
-        // as necessary.  
+        // as necessary.
         if (patchMap[patchI] == -1)
         {
             patchFields.set

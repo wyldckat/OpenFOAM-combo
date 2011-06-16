@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -141,19 +141,19 @@ public:
 
         tmp<fvScalarMatrix> fvmDdt
         (
-            volScalarField&
+            const volScalarField&
         );
 
         tmp<fvScalarMatrix> fvmDdt
         (
             const dimensionedScalar&,
-            volScalarField&
+            const volScalarField&
         );
 
         tmp<fvScalarMatrix> fvmDdt
         (
             const volScalarField&,
-            volScalarField&
+            const volScalarField&
         );
 
         tmp<surfaceScalarField> fvcDdtPhiCorr

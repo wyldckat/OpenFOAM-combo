@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,10 +49,12 @@ RNGkEpsilon::RNGkEpsilon
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel
+    const basicThermo& thermophysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, rho, U, phi, thermophysicalModel),
+    RASModel(modelName, rho, U, phi, thermophysicalModel, turbulenceModelName),
 
     Cmu_
     (
@@ -185,7 +187,10 @@ RNGkEpsilon::RNGkEpsilon
         autoCreateAlphat("alphat", mesh_)
     )
 {
-    mut_ = Cmu_*rho_*sqr(k_)/(epsilon_ + epsilonSmall_);
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
+
+    mut_ = Cmu_*rho_*sqr(k_)/epsilon_;
     mut_.correctBoundaryConditions();
 
     alphat_ = mut_/Prt_;
@@ -242,7 +247,7 @@ tmp<fvVectorMatrix> RNGkEpsilon::divDevRhoReff(volVectorField& U) const
 {
     return
     (
-      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(fvc::grad(U)().T()))
+      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(T(fvc::grad(U))))
     );
 }
 
@@ -275,7 +280,7 @@ void RNGkEpsilon::correct()
     if (!turbulence_)
     {
         // Re-calculate viscosity
-        mut_ = rho_*Cmu_*sqr(k_)/(epsilon_ + epsilonSmall_);
+        mut_ = rho_*Cmu_*sqr(k_)/epsilon_;
         mut_.correctBoundaryConditions();
 
         // Re-calculate thermal diffusivity
@@ -287,7 +292,7 @@ void RNGkEpsilon::correct()
 
     RASModel::correct();
 
-    volScalarField divU = fvc::div(phi_/fvc::interpolate(rho_));
+    volScalarField divU(fvc::div(phi_/fvc::interpolate(rho_)));
 
     if (mesh_.moving())
     {
@@ -295,18 +300,20 @@ void RNGkEpsilon::correct()
     }
 
     tmp<volTensorField> tgradU = fvc::grad(U_);
-    volScalarField S2 = (tgradU() && dev(twoSymm(tgradU())));
+    volScalarField S2((tgradU() && dev(twoSymm(tgradU()))));
     tgradU.clear();
 
     volScalarField G("RASModel::G", mut_*S2);
 
-    volScalarField eta = sqrt(mag(S2))*k_/epsilon_;
-    volScalarField eta3 = eta*sqr(eta);
+    volScalarField eta(sqrt(mag(S2))*k_/epsilon_);
+    volScalarField eta3(eta*sqr(eta));
 
-    volScalarField R =
-        ((eta*(-eta/eta0_ + scalar(1)))/(beta_*eta3 + scalar(1)));
+    volScalarField R
+    (
+        ((eta*(-eta/eta0_ + scalar(1)))/(beta_*eta3 + scalar(1)))
+    );
 
-    // Update espsilon and G at the wall
+    // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
 
     // Dissipation equation
@@ -326,7 +333,7 @@ void RNGkEpsilon::correct()
     epsEqn().boundaryManipulate(epsilon_.boundaryField());
 
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -338,12 +345,12 @@ void RNGkEpsilon::correct()
       - fvm::laplacian(DkEff(), k_)
       ==
         G - fvm::SuSp(2.0/3.0*rho_*divU, k_)
-      - fvm::Sp(rho_*(epsilon_)/k_, k_)
+      - fvm::Sp(rho_*epsilon_/k_, k_)
     );
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

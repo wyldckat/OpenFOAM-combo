@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,7 +55,7 @@ bool Foam::UnsortedMeshedSurface<Face>::canReadType
     const bool verbose
 )
 {
-   return checkSupport
+   return fileFormats::surfaceFormatsCore::checkSupport
    (
        readTypes() | ParentType::readTypes(),
        ext,
@@ -72,7 +72,7 @@ bool Foam::UnsortedMeshedSurface<Face>::canWriteType
     const bool verbose
 )
 {
-    return checkSupport
+    return fileFormats::surfaceFormatsCore::checkSupport
     (
         writeTypes(),
         ext,
@@ -158,10 +158,10 @@ Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface()
 template<class Face>
 Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< List<label> >& zoneIds,
-    const Xfer< surfZoneIdentifierList >& zoneTofc
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<List<label> >& zoneIds,
+    const Xfer<surfZoneIdentifierList>& zoneTofc
 )
 :
     ParentType(pointLst, faceLst),
@@ -173,9 +173,9 @@ Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 template<class Face>
 Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const UList<label>& zoneSizes,
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const labelUList& zoneSizes,
     const UList<word>& zoneNames
 )
 :
@@ -234,7 +234,7 @@ Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 template<class Face>
 Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 (
-    const Xfer< UnsortedMeshedSurface<Face> >& surf
+    const Xfer<UnsortedMeshedSurface<Face> >& surf
 )
 :
     ParentType()
@@ -246,7 +246,7 @@ Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 template<class Face>
 Foam::UnsortedMeshedSurface<Face>::UnsortedMeshedSurface
 (
-    const Xfer< MeshedSurface<Face> >& surf
+    const Xfer<MeshedSurface<Face> >& surf
 )
 :
     ParentType()
@@ -346,7 +346,7 @@ void Foam::UnsortedMeshedSurface<Face>::setZones
 template<class Face>
 void Foam::UnsortedMeshedSurface<Face>::setZones
 (
-    const UList<label>& sizes,
+    const labelUList& sizes,
     const UList<word>& names
 )
 {
@@ -370,7 +370,7 @@ void Foam::UnsortedMeshedSurface<Face>::setZones
 template<class Face>
 void Foam::UnsortedMeshedSurface<Face>::setZones
 (
-    const UList<label>& sizes
+    const labelUList& sizes
 )
 {
     zoneIds_.setSize(size());
@@ -397,7 +397,7 @@ void Foam::UnsortedMeshedSurface<Face>::setZones
 template<class Face>
 void Foam::UnsortedMeshedSurface<Face>::remapFaces
 (
-    const UList<label>& faceMap
+    const labelUList& faceMap
 )
 {
     // re-assign the zone Ids
@@ -600,9 +600,9 @@ Foam::UnsortedMeshedSurface<Face> Foam::UnsortedMeshedSurface<Face>::subsetMesh
 template<class Face>
 void Foam::UnsortedMeshedSurface<Face>::reset
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< List<label> >& zoneIds
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<List<label> >& zoneIds
 )
 {
     ParentType::reset
@@ -622,9 +622,9 @@ void Foam::UnsortedMeshedSurface<Face>::reset
 template<class Face>
 void Foam::UnsortedMeshedSurface<Face>::reset
 (
-    const Xfer< List<point> >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< List<label> >& zoneIds
+    const Xfer<List<point> >& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<List<label> >& zoneIds
 )
 {
     ParentType::reset
@@ -680,7 +680,7 @@ void Foam::UnsortedMeshedSurface<Face>::transfer
 
 
 template<class Face>
-Foam::Xfer< Foam::UnsortedMeshedSurface<Face> >
+Foam::Xfer<Foam::UnsortedMeshedSurface<Face> >
 Foam::UnsortedMeshedSurface<Face>::xfer()
 {
     return xferMove(*this);

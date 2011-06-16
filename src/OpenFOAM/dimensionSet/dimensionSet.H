@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,7 @@ Class
 
 Description
     Dimension set for the base types.
+
     This type may be used to implement rigorous dimension checking
     for algebraic manipulation.
 
@@ -69,6 +70,7 @@ dimensionSet pow3(const dimensionSet&);
 dimensionSet pow4(const dimensionSet&);
 dimensionSet pow5(const dimensionSet&);
 dimensionSet pow6(const dimensionSet&);
+dimensionSet pow025(const dimensionSet&);
 
 dimensionSet sqrt(const dimensionSet&);
 dimensionSet magSqr(const dimensionSet&);
@@ -103,7 +105,7 @@ Ostream& operator<<(Ostream&, const dimensionSet&);
 
 
 /*---------------------------------------------------------------------------*\
-                           Class dimensionSet Declaration
+                        Class dimensionSet Declaration
 \*---------------------------------------------------------------------------*/
 
 class dimensionSet
@@ -182,8 +184,13 @@ public:
 
     // Member functions
 
+        //- Return true if it is dimensionless
         bool dimensionless() const;
+
         void reset(const dimensionSet&);
+
+        //- Return a text representation for added readability
+        string asText() const;
 
 
     // Member operators
@@ -225,6 +232,7 @@ public:
         friend dimensionSet pow4(const dimensionSet&);
         friend dimensionSet pow5(const dimensionSet&);
         friend dimensionSet pow6(const dimensionSet&);
+        friend dimensionSet pow025(const dimensionSet&);
 
         friend dimensionSet sqrt(const dimensionSet&);
         friend dimensionSet magSqr(const dimensionSet&);

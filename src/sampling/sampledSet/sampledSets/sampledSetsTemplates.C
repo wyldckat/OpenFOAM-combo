@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,10 +45,10 @@ Foam::sampledSets::volFieldSampler<Type>::volFieldSampler
         interpolation<Type>::New(interpolationScheme, field)
     );
 
-    forAll(samplers, seti)
+    forAll(samplers, setI)
     {
-        Field<Type>& values = this->operator[](seti);
-        const sampledSet& samples = samplers[seti];
+        Field<Type>& values = this->operator[](setI);
+        const sampledSet& samples = samplers[setI];
 
         values.setSize(samples.size());
         forAll(samples, samplei)
@@ -57,20 +57,12 @@ Foam::sampledSets::volFieldSampler<Type>::volFieldSampler
             label celli = samples.cells()[samplei];
             label facei = samples.faces()[samplei];
 
-            if (celli == -1 && facei == -1)
-            {
-                // Special condition for illegal sampling points
-                values[samplei] = pTraits<Type>::max;
-            }
-            else
-            {
-                values[samplei] = interpolator().interpolate
-                (
-                    samplePt,
-                    celli,
-                    facei
-                );
-            }
+            values[samplei] = interpolator().interpolate
+            (
+                samplePt,
+                celli,
+                facei
+            );
         }
     }
 }
@@ -86,24 +78,15 @@ Foam::sampledSets::volFieldSampler<Type>::volFieldSampler
     List<Field<Type> >(samplers.size()),
     name_(field.name())
 {
-    forAll(samplers, seti)
+    forAll(samplers, setI)
     {
-        Field<Type>& values = this->operator[](seti);
-        const sampledSet& samples = samplers[seti];
+        Field<Type>& values = this->operator[](setI);
+        const sampledSet& samples = samplers[setI];
 
         values.setSize(samples.size());
         forAll(samples, samplei)
         {
-            label celli = samples.cells()[samplei];
-
-            if (celli ==-1)
-            {
-                values[samplei] = pTraits<Type>::max;
-            }
-            else
-            {
-                values[samplei] = field[celli];
-            }
+            values[samplei] = field[samples.cells()[samplei]];
         }
     }
 }
@@ -122,40 +105,11 @@ Foam::sampledSets::volFieldSampler<Type>::volFieldSampler
 
 
 template<class Type>
-Foam::label Foam::sampledSets::grep
-(
-    fieldGroup<Type>& fieldList,
-    const wordList& fieldTypes
-) const
-{
-    fieldList.setSize(fieldNames_.size());
-    label nFields = 0;
-
-    forAll(fieldNames_, fieldi)
-    {
-        if
-        (
-            fieldTypes[fieldi]
-         == GeometricField<Type, fvPatchField, volMesh>::typeName
-        )
-        {
-            fieldList[nFields] = fieldNames_[fieldi];
-            nFields++;
-        }
-    }
-
-    fieldList.setSize(nFields);
-
-    return nFields;
-}
-
-
-template<class Type>
 void Foam::sampledSets::writeSampleFile
 (
     const coordSet& masterSampleSet,
     const PtrList<volFieldSampler<Type> >& masterFields,
-    const label seti,
+    const label setI,
     const fileName& timeDir,
     const writer<Type>& formatter
 )
@@ -166,7 +120,7 @@ void Foam::sampledSets::writeSampleFile
     forAll(masterFields, fieldi)
     {
         valueSetNames[fieldi] = masterFields[fieldi].name();
-        valueSets[fieldi] = &masterFields[fieldi][seti];
+        valueSets[fieldi] = &masterFields[fieldi][setI];
     }
 
     fileName fName
@@ -215,11 +169,11 @@ void Foam::sampledSets::combineSampledValues
     {
         List<Field<T> > masterValues(indexSets.size());
 
-        forAll(indexSets, seti)
+        forAll(indexSets, setI)
         {
             // Collect data from all processors
             List<Field<T> > gatheredData(Pstream::nProcs());
-            gatheredData[Pstream::myProcNo()] = sampledFields[fieldi][seti];
+            gatheredData[Pstream::myProcNo()] = sampledFields[fieldi][setI];
             Pstream::gatherList(gatheredData);
 
             if (Pstream::master())
@@ -233,10 +187,10 @@ void Foam::sampledSets::combineSampledValues
                     )
                 );
 
-                masterValues[seti] = UIndirectList<T>
+                masterValues[setI] = UIndirectList<T>
                 (
                     allData,
-                    indexSets[seti]
+                    indexSets[setI]
                 )();
             }
         }
@@ -267,7 +221,7 @@ void Foam::sampledSets::sampleAndWrite
         // Create or use existing writer
         if (fields.formatter.empty())
         {
-            fields.formatter = writer<Type>::New(writeFormat_);
+            fields = writeFormat_;
         }
 
         // Storage for interpolated values
@@ -361,13 +315,13 @@ void Foam::sampledSets::sampleAndWrite
 
         if (Pstream::master())
         {
-            forAll(masterSampledSets_, seti)
+            forAll(masterSampledSets_, setI)
             {
                 writeSampleFile
                 (
-                    masterSampledSets_[seti],
+                    masterSampledSets_[setI],
                     masterFields,
-                    seti,
+                    setI,
                     outputPath_/mesh_.time().timeName(),
                     fields.formatter()
                 );

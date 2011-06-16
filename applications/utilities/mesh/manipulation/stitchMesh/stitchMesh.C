@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,6 +40,7 @@ Description
     Comparable to running a meshModifier of the form
     (if masterPatch is called "M" and slavePatch "S"):
 
+    \verbatim
     couple
     {
         type                    slidingInterface;
@@ -51,6 +52,7 @@ Description
         slavePatchName          S;
         typeOfMatch             partial or integral
     }
+    \endverbatim
 
 
 \*---------------------------------------------------------------------------*/
@@ -168,7 +170,7 @@ label addCellZone(const polyMesh& mesh, const word& name)
 // Checks whether patch present
 void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 {
-    label patchI = bMesh.findPatchID(name);
+    const label patchI = bMesh.findPatchID(name);
 
     if (patchI == -1)
     {
@@ -192,36 +194,54 @@ void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 
 int main(int argc, char *argv[])
 {
-    Foam::argList::noParallel();
-#   include "addRegionOption.H"
-    Foam::argList::validArgs.append("masterPatch");
-    Foam::argList::validArgs.append("slavePatch");
+    argList::addNote
+    (
+        "merge the faces on the specified patches (if geometrically possible)\n"
+        "so the faces become internal"
+    );
 
-    Foam::argList::validOptions.insert("partial", "");
-    Foam::argList::validOptions.insert("perfect", "");
+    argList::noParallel();
+    #include "addOverwriteOption.H"
+    #include "addRegionOption.H"
 
-    Foam::argList::validOptions.insert("overwrite", "");
+    argList::validArgs.append("masterPatch");
+    argList::validArgs.append("slavePatch");
 
-    Foam::argList::validOptions.insert("toleranceDict", "file with tolerances");
+    argList::addBoolOption
+    (
+        "partial",
+        "couple partially overlapping patches"
+    );
+    argList::addBoolOption
+    (
+        "perfect",
+        "couple perfectly aligned patches"
+    );
+    argList::addOption
+    (
+        "toleranceDict",
+        "file",
+        "dictionary file with tolerances"
+    );
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
-#   include "createNamedMesh.H"
+    #include "createNamedMesh.H"
+
     const word oldInstance = mesh.pointsInstance();
 
+    const word masterPatchName = args[1];
+    const word slavePatchName  = args[2];
 
-    word masterPatchName(args.additionalArgs()[0]);
-    word slavePatchName(args.additionalArgs()[1]);
-
-    bool partialCover = args.optionFound("partial");
-    bool perfectCover = args.optionFound("perfect");
-    bool overwrite    = args.optionFound("overwrite");
+    const bool partialCover = args.optionFound("partial");
+    const bool perfectCover = args.optionFound("perfect");
+    const bool overwrite    = args.optionFound("overwrite");
 
     if (partialCover && perfectCover)
     {
         FatalErrorIn(args.executable())
-            << "Cannot both supply partial and perfect." << endl
+            << "Cannot supply both partial and perfect." << endl
             << "Use perfect match option if the patches perfectly align"
             << " (both vertex positions and face centres)" << endl
             << exit(FatalError);
@@ -269,15 +289,17 @@ int main(int argc, char *argv[])
 
     // set up the tolerances for the sliding mesh
     dictionary slidingTolerances;
-    if (args.options().found("toleranceDict")) 
+    if (args.options().found("toleranceDict"))
     {
-        IOdictionary toleranceFile(
-            IOobject(
+        IOdictionary toleranceFile
+        (
+            IOobject
+            (
                 args.options()["toleranceDict"],
                 runTime.constant(),
                 mesh,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE                 
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE
             )
         );
         slidingTolerances += toleranceFile;
@@ -290,16 +312,12 @@ int main(int argc, char *argv[])
     // Create and add face zones and mesh modifiers
 
     // Master patch
-    const polyPatch& masterPatch =
-        mesh.boundaryMesh()
-        [
-            mesh.boundaryMesh().findPatchID(masterPatchName)
-        ];
+    const polyPatch& masterPatch = mesh.boundaryMesh()[masterPatchName];
 
     // Make list of masterPatch faces
     labelList isf(masterPatch.size());
 
-    forAll (isf, i)
+    forAll(isf, i)
     {
         isf[i] = masterPatch.start() + i;
     }
@@ -351,15 +369,11 @@ int main(int argc, char *argv[])
         );
 
         // Slave patch
-        const polyPatch& slavePatch =
-            mesh.boundaryMesh()
-            [
-                mesh.boundaryMesh().findPatchID(slavePatchName)
-            ];
+        const polyPatch& slavePatch = mesh.boundaryMesh()[slavePatchName];
 
         labelList osf(slavePatch.size());
 
-        forAll (osf, i)
+        forAll(osf, i)
         {
             osf[i] = slavePatch.start() + i;
         }
@@ -454,7 +468,7 @@ int main(int argc, char *argv[])
         mesh.setInstance(oldInstance);
         stitcher.instance() = oldInstance;
     }
-    Info << nl << "Writing polyMesh to time " << runTime.timeName() << endl;
+    Info<< nl << "Writing polyMesh to time " << runTime.timeName() << endl;
 
     IOstream::defaultPrecision(10);
 

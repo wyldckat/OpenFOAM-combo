@@ -21,12 +21,12 @@ LamBremhorstKE/LamBremhorstKE.C
 wallFunctions = derivedFvPatchFields/wallFunctions
 
 nutWallFunctions = $(wallFunctions)/nutWallFunctions
+$(nutWallFunctions)/nutkRoughWallFunction/nutkRoughWallFunctionFvPatchScalarField.C
 $(nutWallFunctions)/nutkWallFunction/nutkWallFunctionFvPatchScalarField.C
-$(nutWallFunctions)/nutWallFunction/nutWallFunctionFvPatchScalarField.C
-$(nutWallFunctions)/nutRoughWallFunction/nutRoughWallFunctionFvPatchScalarField.C
-$(nutWallFunctions)/nutSpalartAllmarasWallFunction/nutSpalartAllmarasWallFunctionFvPatchScalarField.C
-$(nutWallFunctions)/nutSpalartAllmarasStandardWallFunction/nutSpalartAllmarasStandardWallFunctionFvPatchScalarField.C
-$(nutWallFunctions)/nutSpalartAllmarasStandardRoughWallFunction/nutSpalartAllmarasStandardRoughWallFunctionFvPatchScalarField.C
+$(nutWallFunctions)/nutURoughWallFunction/nutURoughWallFunctionFvPatchScalarField.C
+$(nutWallFunctions)/nutUSpaldingWallFunction/nutUSpaldingWallFunctionFvPatchScalarField.C
+$(nutWallFunctions)/nutUWallFunction/nutUWallFunctionFvPatchScalarField.C
+$(nutWallFunctions)/nutUTabulatedWallFunction/nutUTabulatedWallFunctionFvPatchScalarField.C
 $(nutWallFunctions)/nutLowReWallFunction/nutLowReWallFunctionFvPatchScalarField.C
 
 epsilonWallFunctions = $(wallFunctions)/epsilonWallFunctions

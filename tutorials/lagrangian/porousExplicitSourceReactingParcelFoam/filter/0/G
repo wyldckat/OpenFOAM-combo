@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -10,12 +10,12 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    location    "0";
+    location    "1";
     object      G;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [1 0 -3 0 0 0 0];
+dimensions      [ 1 0 -3 0 0 0 0 ];
 
 internalField   uniform 0;
 
@@ -25,33 +25,47 @@ boundaryField
     {
         type            MarshakRadiation;
         T               T;
+        emissivityMode  lookup;
         emissivity      1;
         value           uniform 0;
+        refValue        uniform 0;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
     }
     inlet
     {
         type            MarshakRadiation;
         T               T;
+        emissivityMode  lookup;
         emissivity      1;
         value           uniform 0;
+        refValue        uniform 0;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
     }
     outlet
     {
         type            zeroGradient;
     }
-    cycLeft
+    cycLeft_half0
     {
         type            cyclic;
-        value           uniform 0;
     }
-    cycRight
+    cycRight_half0
     {
         type            cyclic;
-        value           uniform 0;
     }
     frontAndBack
     {
         type            empty;
+    }
+    cycLeft_half1
+    {
+        type            cyclic;
+    }
+    cycRight_half1
+    {
+        type            cyclic;
     }
 }
 

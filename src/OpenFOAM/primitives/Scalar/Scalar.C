@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,6 +38,12 @@ const Scalar pTraits<Scalar>::max = ScalarVGREAT;
 
 const char* pTraits<Scalar>::componentNames[] = { "x" };
 
+pTraits<Scalar>::pTraits(const Scalar& p)
+:
+    p_(p)
+{}
+
+
 pTraits<Scalar>::pTraits(Istream& is)
 {
     is >> p_;
@@ -59,7 +65,7 @@ word name(const Scalar val)
 Scalar readScalar(Istream& is)
 {
     Scalar rs;
-    is >> rs;
+    is  >> rs;
 
     return rs;
 }
@@ -83,7 +89,7 @@ Istream& operator>>(Istream& is, Scalar& s)
     {
         is.setBad();
         FatalIOErrorIn("operator>>(Istream&, Scalar&)", is)
-            << "wrong token type - expected Scalar found " << t.info()
+            << "wrong token type - expected Scalar, found " << t.info()
             << exit(FatalIOError);
 
         return is;

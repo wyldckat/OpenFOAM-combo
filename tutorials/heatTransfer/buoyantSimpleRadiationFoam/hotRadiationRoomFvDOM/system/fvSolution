@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,39 +29,7 @@ solvers
         mergeLevels     1;
     }
 
-    U
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    h
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    k
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    epsilon
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    Ii
+    "(U|h|k|epsilon|Ii)"
     {
         solver          PBiCG;
         preconditioner  DILU;
@@ -73,8 +41,19 @@ solvers
 SIMPLE
 {
     nNonOrthogonalCorrectors 0;
-    pRefCell       0;
-    pRefValue      0;
+    pRefCell        0;
+    pRefValue       0;
+
+    residualControl
+    {
+        p_rgh           1e-2;
+        U               1e-3;
+        h               1e-3;
+        G               1e-3;
+
+        // possibly check turbulence fields
+        "(k|epsilon|omega)" 1e-3;
+    }
 }
 
 relaxationFactors

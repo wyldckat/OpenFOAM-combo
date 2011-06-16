@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Typedef
 
 Description
     FunctionObject wrapper around dsmcFields to allow it to be created via
-    the functions list within controlDict.
+    the functions entry within controlDict.
 
 SourceFiles
     dsmcFieldsFunctionObject.C

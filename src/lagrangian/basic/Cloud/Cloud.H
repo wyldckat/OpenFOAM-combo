@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ Class
     Foam::Cloud
 
 Description
+    Base cloud calls templated on particle type
 
 SourceFiles
     Cloud.C
@@ -38,7 +39,13 @@ SourceFiles
 #include "cloud.H"
 #include "IDLList.H"
 #include "IOField.H"
+#include "CompactIOField.H"
 #include "polyMesh.H"
+#include "indexedOctree.H"
+#include "treeDataCell.H"
+#include "tetPointRef.H"
+#include "polyMeshTetDecomposition.H"
+#include "PackedBoolList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -74,17 +81,24 @@ class Cloud
 
         const polyMesh& polyMesh_;
 
-        //- Overall count of particles ever created. Never decreases.
-        mutable label particleCount_;
-
-        //- Temporary storage for addressing. Used in findFaces.
+        //- Temporary storage for addressing. Used in findTris.
         mutable DynamicList<label> labels_;
 
+        //- Count of how many tracking rescue corrections have been
+        //  applied
+        mutable label nTrackingRescues_;
 
-    // Private member functions
+        //- Does the cell have wall faces
+        mutable autoPtr<PackedBoolList> cellWallFacesPtr_;
+
+
+    // Private Member Functions
 
         //- Initialise cloud on IO constructor
         void initCloud(const bool checkClass);
+
+        //- Find all cells which have wall faces
+        void calcCellWallFaces() const;
 
         //- Read cloud properties dictionary
         void readCloudUniformProperties();
@@ -95,8 +109,7 @@ class Cloud
 
 public:
 
-    template<class ParticleT>
-    friend class Particle;
+    friend class particle;
     template<class ParticleT>
     friend class IOPosition;
 
@@ -161,34 +174,44 @@ public:
                 return polyMesh_;
             }
 
-            //- Is this global face an internal face?
-            bool internalFace(const label facei) const
-            {
-                return polyMesh_.isInternalFace(facei);
-            }
-
-            //- Is this global face a boundary face?
-            bool boundaryFace(const label facei) const
-            {
-                return !internalFace(facei);
-            }
-
-            //- Which patch is this global face on
-            label facePatch(const label facei) const
-            {
-                return polyMesh_.boundaryMesh().whichPatch(facei);
-            }
-
-            //- Which face of this patch is this global face
-            label patchFace(const label patchi, const label facei) const
-            {
-                return polyMesh_.boundaryMesh()[patchi].whichFace(facei);
-            }
-
             label size() const
             {
                 return IDLList<ParticleType>::size();
             };
+
+            DynamicList<label>& labels()
+            {
+                return labels_;
+            }
+
+            //- Return nTrackingRescues
+            label nTrackingRescues() const
+            {
+                return nTrackingRescues_;
+            }
+
+            //- Increment the nTrackingRescues counter
+            void trackingRescue() const
+            {
+                nTrackingRescues_++;
+                if (cloud::debug && nTrackingRescues_ % size() == 0)
+                {
+                    Pout<< "    " << nTrackingRescues_
+                        << " tracking rescues " << endl;
+                }
+            }
+
+            //- Whether each cell has any wall faces (demand driven data)
+            const PackedBoolList& cellHasWallFaces() const;
+
+            //- Switch to specify if particles of the cloud can return
+            //  non-zero wall distance values.  By default, assume
+            //  that they can't (default for wallImpactDistance in
+            //  particle is 0.0).
+            virtual bool hasWallImpactDistance() const
+            {
+                return false;
+            }
 
 
             // Iterators
@@ -231,23 +254,24 @@ public:
                 return IDLList<ParticleType>::clear();
             };
 
-            //- Get unique particle creation id
-            label getNewParticleID() const;
-
             //- Transfer particle to cloud
             void addParticle(ParticleType* pPtr);
 
             //- Remove particle from cloud and delete
             void deleteParticle(ParticleType&);
 
+            //- Reset the particles
+            void cloudReset(const Cloud<ParticleType>& c);
+
             //- Move the particles
             //  passing the TrackingData to the track function
-            template<class TrackingData>
-            void move(TrackingData& td);
+            template<class TrackData>
+            void move(TrackData& td, const scalar trackTime);
 
             //- Remap the cells of particles corresponding to the
             //  mesh topology change
-            virtual void autoMap(const mapPolyMesh&);
+            template<class TrackData>
+            void autoMap(TrackData& td, const mapPolyMesh&);
 
 
         // Read
@@ -265,6 +289,14 @@ public:
             (
                 const Cloud<ParticleType>& c,
                 const IOField<DataType>& data
+            ) const;
+
+            //- Check lagrangian data fieldfield
+            template<class DataType>
+            void checkFieldFieldIOobject
+            (
+                const Cloud<ParticleType>& c,
+                const CompactIOField<Field<DataType>, DataType>& data
             ) const;
 
             //- Read the field data for the cloud of particles. Dummy at
@@ -287,7 +319,7 @@ public:
                 IOstream::compressionType cmp
             ) const;
 
-            //- Write positions to <cloudName>_positions.obj file
+            //- Write positions to \<cloudName\>_positions.obj file
             void writePositions() const;
 
 

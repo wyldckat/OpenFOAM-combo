@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,7 +54,7 @@ class reactingMixture
     public multiComponentMixture<ThermoType>,
     public PtrList<Reaction<ThermoType> >
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow default bitwise copy construct
         reactingMixture(const reactingMixture&);

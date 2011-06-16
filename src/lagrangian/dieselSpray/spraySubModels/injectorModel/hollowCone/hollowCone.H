@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,14 +37,14 @@ Description
 
 #include "injectorModel.H"
 #include "scalarList.H"
-#include "pdf.H"
+#include "distributionModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 /*---------------------------------------------------------------------------*\
-                           Class hollowConeInjector Declaration
+                     Class hollowConeInjector Declaration
 \*---------------------------------------------------------------------------*/
 
 class hollowConeInjector
@@ -58,29 +58,25 @@ private:
 
         dictionary hollowConeDict_;
 
-        autoPtr<pdfs::pdf> dropletPDF_;
+        autoPtr<distributionModels::distributionModel> sizeDistribution_;
         scalarList innerAngle_;
         scalarList outerAngle_;
+
 
 public:
 
     //- Runtime type information
-        TypeName("hollowConeInjector");
+    TypeName("hollowConeInjector");
 
 
     // Constructors
 
         //- Construct from components
-        hollowConeInjector
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        hollowConeInjector(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~hollowConeInjector();
+    //- Destructor
+    virtual ~hollowConeInjector();
 
 
     // Member Functions
@@ -97,16 +93,9 @@ public:
             const scalar d
         ) const;
 
-        scalar velocity
-        (
-            const label i,
-            const scalar time
-        ) const;
+        scalar velocity(const label i, const scalar time) const;
 
-        scalar averageVelocity
-        (
-            const label i
-        ) const;
+        scalar averageVelocity(const label i) const;
 };
 
 

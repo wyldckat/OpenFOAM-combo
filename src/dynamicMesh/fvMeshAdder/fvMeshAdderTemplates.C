@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -146,7 +146,7 @@ void Foam::fvMeshAdder::MapVolField
             if (newPatchI != -1)
             {
                 labelList newToOld
-                (   
+                (
                     calcPatchMap
                     (
                         oldPatchStarts[patchI],
@@ -208,7 +208,7 @@ void Foam::fvMeshAdder::MapVolField
 
                     // From new patch faces to patch faces on added mesh.
                     labelList newToAdded
-                    (   
+                    (
                         calcPatchMap
                         (
                             oldPatch.start(),
@@ -241,7 +241,7 @@ void Foam::fvMeshAdder::MapVolField
                     // From new patch faces to patch faces on added mesh. This
                     // time keep unmapped elements -1.
                     labelList newToAdded
-                    (   
+                    (
                         calcPatchMap
                         (
                             oldPatch.start(),
@@ -298,7 +298,7 @@ void Foam::fvMeshAdder::MapVolFields
     // It is necessary to enforce that all old-time fields are stored
     // before the mapping is performed.  Otherwise, if the
     // old-time-level field is mapped before the field itself, sizes
-    // will not match.  
+    // will not match.
 
     for
     (
@@ -329,8 +329,6 @@ void Foam::fvMeshAdder::MapVolFields
 
         if (fieldsToAdd.found(fld.name()))
         {
-            Pout<< "Mapping field " << fld.name() << endl;
-
             const GeometricField<Type, fvPatchField, volMesh>& fldToAdd =
                 *fieldsToAdd[fld.name()];
 
@@ -338,7 +336,7 @@ void Foam::fvMeshAdder::MapVolFields
         }
         else
         {
-            WarningIn("fvMeshAdder::MapVolFields")
+            WarningIn("fvMeshAdder::MapVolFields(..)")
                 << "Not mapping field " << fld.name()
                 << " since not present on mesh to add"
                 << endl;
@@ -463,7 +461,7 @@ void Foam::fvMeshAdder::MapSurfaceField
             if (newPatchI != -1)
             {
                 labelList newToOld
-                (   
+                (
                     calcPatchMap
                     (
                         oldPatchStarts[patchI],
@@ -525,7 +523,7 @@ void Foam::fvMeshAdder::MapSurfaceField
 
                     // From new patch faces to patch faces on added mesh.
                     labelList newToAdded
-                    (   
+                    (
                         calcPatchMap
                         (
                             oldPatch.start(),
@@ -558,7 +556,7 @@ void Foam::fvMeshAdder::MapSurfaceField
                     // From new patch faces to patch faces on added mesh. This
                     // time keep unmapped elements -1.
                     labelList newToAdded
-                    (   
+                    (
                         calcPatchMap
                         (
                             oldPatch.start(),
@@ -614,7 +612,7 @@ void Foam::fvMeshAdder::MapSurfaceFields
     // It is necessary to enforce that all old-time fields are stored
     // before the mapping is performed.  Otherwise, if the
     // old-time-level field is mapped before the field itself, sizes
-    // will not match.  
+    // will not match.
 
     for
     (
@@ -641,15 +639,13 @@ void Foam::fvMeshAdder::MapSurfaceFields
 
         if (fieldsToAdd.found(fld.name()))
         {
-            Pout<< "Mapping field " << fld.name() << endl;
-
             const fldType& fldToAdd = *fieldsToAdd[fld.name()];
 
             MapSurfaceField<Type>(meshMap, fld, fldToAdd);
         }
         else
         {
-            WarningIn("fvMeshAdder::MapSurfaceFields")
+            WarningIn("fvMeshAdder::MapSurfaceFields(..)")
                 << "Not mapping field " << fld.name()
                 << " since not present on mesh to add"
                 << endl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,14 +26,9 @@ License
 #include "engineTime.H"
 #include "ignition.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-ignition::ignition
+Foam::ignition::ignition
 (
     const dictionary& combustionProperties,
     const Time& db,
@@ -59,7 +54,7 @@ ignition::ignition
 }
 
 
-ignition::ignition
+Foam::ignition::ignition
 (
     const dictionary& combustionProperties,
     const engineTime& edb,
@@ -84,9 +79,5 @@ ignition::ignition
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

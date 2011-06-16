@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,7 +48,7 @@ cellShape extrudedTriangleCellShape
     faceList& frontAndBackFaces
 )
 {
-    const static cellModel* prismModelPtr_ = NULL;
+    static const cellModel* prismModelPtr_ = NULL;
 
     if (!prismModelPtr_)
     {
@@ -74,7 +74,7 @@ cellShape extrudedTriangleCellShape
     // make a list of outward-pointing faces
     labelListList localFaces(3);
 
-    forAll (faceLabels, faceI)
+    forAll(faceLabels, faceI)
     {
         const label curFaceLabel = faceLabels[faceI];
 
@@ -101,7 +101,7 @@ cellShape extrudedTriangleCellShape
         {
             // Reverse the face.  Note: it is necessary to reverse by
             // hand to preserve connectivity of a 2-D mesh.
-            // 
+            //
             localFaces[faceI].setSize(curFace.size());
 
             forAllReverse(curFace, i)

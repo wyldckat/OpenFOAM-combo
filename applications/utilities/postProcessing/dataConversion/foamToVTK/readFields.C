@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,12 +50,7 @@ void readFields
     fields.setSize(fieldObjects.size());
     label nFields = 0;
 
-    for
-    (
-        IOobjectList::iterator iter = fieldObjects.begin();
-        iter != fieldObjects.end();
-        ++iter
-    )
+    forAllIter(IOobjectList, fieldObjects, iter)
     {
         if (selectedFields.empty() || selectedFields.found(iter()->name()))
         {

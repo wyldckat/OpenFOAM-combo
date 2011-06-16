@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -126,9 +126,8 @@ public:
         }
 
 
-    // Destructor
-
-        ~processorPointPatchField();
+    //- Destructor
+    ~processorPointPatchField();
 
 
     // Member functions
@@ -148,7 +147,7 @@ public:
                 }
             }
 
-            //- Does the patch field perform the transfromation
+            //- Does the patch field perform the transformation
             virtual bool doTransform() const
             {
                 return
@@ -156,6 +155,15 @@ public:
                         procPatch_.procPolyPatch().parallel()
                      || pTraits<Type>::rank == 0
                     );
+            }
+
+
+        //- Constraint handling
+
+            //- Return the constraint type this pointPatchField implements
+            virtual const word& constraintType() const
+            {
+                return type();
             }
 
 
@@ -168,11 +176,19 @@ public:
             )
             {}
 
-            //- Initialise swap of patch point values
-            virtual void initSwapAdd(Field<Type>&) const;
+            //- Initialise swap of non-collocated patch point values
+            virtual void initSwapAddSeparated
+            (
+                const Pstream::commsTypes commsType,
+                Field<Type>&
+            ) const;
 
             //- Complete swap of patch point values and add to local values
-            virtual void swapAdd(Field<Type>&) const;
+            virtual void swapAddSeparated
+            (
+                const Pstream::commsTypes commsType,
+                Field<Type>&
+            ) const;
 };
 
 

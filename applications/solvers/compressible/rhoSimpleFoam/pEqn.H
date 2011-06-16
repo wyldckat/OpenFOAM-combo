@@ -3,13 +3,13 @@ rho = max(rho, rhoMin);
 rho = min(rho, rhoMax);
 rho.relax();
 
-volScalarField rUA = 1.0/UEqn().A();
-U = rUA*UEqn().H();
+volScalarField rAU(1.0/UEqn().A());
+U = rAU*UEqn().H();
 UEqn.clear();
 
 bool closedVolume = false;
 
-if (transonic)
+if (simple.transonic())
 {
     surfaceScalarField phid
     (
@@ -17,12 +17,12 @@ if (transonic)
         fvc::interpolate(psi)*(fvc::interpolate(U) & mesh.Sf())
     );
 
-    for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+    for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
     {
         fvScalarMatrix pEqn
         (
             fvm::div(phid, p)
-          - fvm::laplacian(rho*rUA, p)
+          - fvm::laplacian(rho*rAU, p)
         );
 
         // Relax the pressure equation to ensure diagonal-dominance
@@ -30,18 +30,9 @@ if (transonic)
 
         pEqn.setReference(pRefCell, pRefValue);
 
-        // retain the residual from the first iteration
-        if (nonOrth == 0)
-        {
-            eqnResidual = pEqn.solve().initialResidual();
-            maxResidual = max(eqnResidual, maxResidual);
-        }
-        else
-        {
-            pEqn.solve();
-        }
+        pEqn.solve();
 
-        if (nonOrth == nNonOrthCorr)
+        if (nonOrth == simple.nNonOrthCorr())
         {
             phi == pEqn.flux();
         }
@@ -52,27 +43,18 @@ else
     phi = fvc::interpolate(rho)*(fvc::interpolate(U) & mesh.Sf());
     closedVolume = adjustPhi(phi, U, p);
 
-    for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+    for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
     {
         fvScalarMatrix pEqn
         (
-            fvm::laplacian(rho*rUA, p) == fvc::div(phi)
+            fvm::laplacian(rho*rAU, p) == fvc::div(phi)
         );
 
         pEqn.setReference(pRefCell, pRefValue);
 
-        // Retain the residual from the first iteration
-        if (nonOrth == 0)
-        {
-            eqnResidual = pEqn.solve().initialResidual();
-            maxResidual = max(eqnResidual, maxResidual);
-        }
-        else
-        {
-            pEqn.solve();
-        }
+        pEqn.solve();
 
-        if (nonOrth == nNonOrthCorr)
+        if (nonOrth == simple.nNonOrthCorr())
         {
             phi -= pEqn.flux();
         }
@@ -85,7 +67,7 @@ else
 // Explicitly relax pressure for momentum corrector
 p.relax();
 
-U -= rUA*fvc::grad(p);
+U -= rAU*fvc::grad(p);
 U.correctBoundaryConditions();
 
 // For closed-volume cases adjust the pressure and density levels

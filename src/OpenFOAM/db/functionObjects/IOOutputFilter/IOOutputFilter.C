@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,19 @@ License
 #include "Time.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+template<class OutputFilter>
+Foam::IOOutputFilter<OutputFilter>::IOOutputFilter
+(
+    const word& outputFilterName,
+    const IOobject& ioDict,
+    const bool readFromFiles
+)
+:
+    IOdictionary(ioDict),
+    OutputFilter(outputFilterName, ioDict.db(), *this, readFromFiles)
+{}
+
 
 template<class OutputFilter>
 Foam::IOOutputFilter<OutputFilter>::IOOutputFilter

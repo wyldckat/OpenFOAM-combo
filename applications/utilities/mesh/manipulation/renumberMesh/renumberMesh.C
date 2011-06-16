@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anispulation  |
 -------------------------------------------------------------------------------
 License
@@ -124,7 +124,7 @@ labelList regionFaceOrder
 
     label prevRegion = -1;
 
-    forAll (cellOrder, newCellI)
+    forAll(cellOrder, newCellI)
     {
         label oldCellI = cellOrder[newCellI];
 
@@ -295,7 +295,7 @@ autoPtr<mapPolyMesh> reorderMesh
 
         if (nei < own)
         {
-            newFaces[faceI] = newFaces[faceI].reverseFace();
+            newFaces[faceI].flip();
             Swap(newOwner[faceI], newNeighbour[faceI]);
         }
     }
@@ -305,6 +305,7 @@ autoPtr<mapPolyMesh> reorderMesh
     labelList patchStarts(patches.size());
     labelList oldPatchNMeshPoints(patches.size());
     labelListList patchPointMap(patches.size());
+
     forAll(patches, patchI)
     {
         patchSizes[patchI] = patches[patchI].size();
@@ -320,7 +321,8 @@ autoPtr<mapPolyMesh> reorderMesh
         xferMove(newOwner),
         xferMove(newNeighbour),
         patchSizes,
-        patchStarts
+        patchStarts,
+        true
     );
 
     return autoPtr<mapPolyMesh>
@@ -363,12 +365,24 @@ autoPtr<mapPolyMesh> reorderMesh
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("blockOrder", "");
-    argList::validOptions.insert("orderPoints", "");
-    argList::validOptions.insert("writeMaps", "");
-    argList::validOptions.insert("overwrite", "");
+    argList::addBoolOption
+    (
+        "blockOrder",
+        "order cells into regions (using decomposition)"
+    );
+    argList::addBoolOption
+    (
+        "orderPoints",
+        "order points into internal and boundary points"
+    );
+    argList::addBoolOption
+    (
+        "writeMaps",
+        "write cellMap, faceMap, pointMap in polyMesh/"
+    );
 
 #   include "addRegionOption.H"
+#   include "addOverwriteOption.H"
 #   include "addTimeOptions.H"
 
 #   include "setRootCase.H"
@@ -409,7 +423,7 @@ int main(int argc, char *argv[])
             << endl;
     }
 
-    bool overwrite = args.optionFound("overwrite");
+    const bool overwrite = args.optionFound("overwrite");
 
     label band = getBand(mesh.faceOwner(), mesh.faceNeighbour());
 
@@ -523,17 +537,23 @@ int main(int argc, char *argv[])
                 "decomposeParDict",
                 runTime.system(),
                 mesh,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE
             )
         );
         autoPtr<decompositionMethod> decomposePtr = decompositionMethod::New
         (
-            decomposeDict,
-            mesh
+            decomposeDict
         );
 
-        labelList cellToRegion(decomposePtr().decompose(mesh.cellCentres()));
+        labelList cellToRegion
+        (
+            decomposePtr().decompose
+            (
+                mesh,
+                mesh.cellCentres()
+            )
+        );
 
         // For debugging: write out region
         {

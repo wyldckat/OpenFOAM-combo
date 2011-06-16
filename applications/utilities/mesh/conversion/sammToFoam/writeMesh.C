@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,7 @@ void sammMesh::writeMesh()
 {
     if (isShapeMesh_)
     {
-        Info << "This is a shapeMesh." << endl;
+        Info<< "This is a shapeMesh." << endl;
 
         polyMesh pShapeMesh
         (
@@ -56,7 +56,7 @@ void sammMesh::writeMesh()
             patchPhysicalTypes_
         );
 
-        Info << "Writing polyMesh" << endl;
+        Info<< "Writing polyMesh" << endl;
         pShapeMesh.write();
     }
     else
@@ -65,7 +65,7 @@ void sammMesh::writeMesh()
 
         createPolyMeshData();
 
-        Info << "This is a polyMesh" << endl;
+        Info<< "This is a polyMesh" << endl;
 
         polyMesh pMesh
         (
@@ -82,7 +82,7 @@ void sammMesh::writeMesh()
 
         pMesh.addPatches(polyBoundaryPatches(pMesh));
 
-        Info << "Writing polyMesh" << endl;
+        Info<< "Writing polyMesh" << endl;
         pMesh.write();
     }
 }

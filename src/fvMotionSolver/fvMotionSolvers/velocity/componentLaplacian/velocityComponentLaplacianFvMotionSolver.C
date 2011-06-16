@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -141,7 +141,7 @@ Foam::velocityComponentLaplacianFvMotionSolver::curPoints() const
     (
         cmpt_,
         tcurPoints().component(cmpt_)
-      + fvMesh_.time().deltaT().value()*pointMotionU_.internalField()
+      + fvMesh_.time().deltaTValue()*pointMotionU_.internalField()
     );
 
     twoDCorrectPoints(tcurPoints());

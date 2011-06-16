@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,11 +59,26 @@ oneEqEddy::oneEqEddy
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, rho, U, phi, thermoPhysicalModel),
+    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
     GenEddyVisc(rho, U, phi, thermoPhysicalModel),
+
+    k_
+    (
+        IOobject
+        (
+            "k",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_
+    ),
 
     ck_
     (
@@ -89,10 +104,10 @@ void oneEqEddy::correct(const tmp<volTensorField>& tgradU)
 
     GenEddyVisc::correct(gradU);
 
-    volScalarField divU = fvc::div(phi()/fvc::interpolate(rho()));
-    volScalarField G = 2*muSgs_*(gradU && dev(symm(gradU)));
+    volScalarField divU(fvc::div(phi()/fvc::interpolate(rho())));
+    volScalarField G(2*muSgs_*(gradU && dev(symm(gradU))));
 
-    fvScalarMatrix kEqn
+    tmp<fvScalarMatrix> kEqn
     (
         fvm::ddt(rho(), k_)
       + fvm::div(phi(), k_)
@@ -103,10 +118,10 @@ void oneEqEddy::correct(const tmp<volTensorField>& tgradU)
       - fvm::Sp(ce_*rho()*sqrt(k_)/delta(), k_)
     );
 
-    kEqn.relax();
-    kEqn.solve();
+    kEqn().relax();
+    kEqn().solve();
 
-    bound(k_, k0());
+    bound(k_, kMin_);
 
     updateSubGridScaleFields();
 }

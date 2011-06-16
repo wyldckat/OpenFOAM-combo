@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,6 +34,7 @@ Description
 #include "IOdictionary.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
+#include "SubModelBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -46,21 +47,13 @@ namespace Foam
 
 template<class CloudType>
 class DispersionModel
+:
+    public SubModelBase<CloudType>
 {
-
-    // Private data
-
-        //- Cloud dictionary
-        const dictionary& dict_;
-
-        //- Reference to the owner cloud class
-        CloudType& owner_;
-
-
 public:
 
     //- Runtime type information
-    TypeName("DispersionModel");
+    TypeName("dispersionModel");
 
 
     // Declare runtime constructor selection table
@@ -87,8 +80,21 @@ public:
         DispersionModel
         (
             const dictionary& dict,
-            CloudType& owner
+            CloudType& owner,
+            const word& type
         );
+
+        //- Construct copy
+        DispersionModel(DispersionModel<CloudType>& dm);
+
+        //- Construct and return a clone
+        virtual autoPtr<DispersionModel<CloudType> > clone()
+        {
+            return autoPtr<DispersionModel<CloudType> >
+            (
+                new DispersionModel<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -103,36 +109,18 @@ public:
     );
 
 
-    // Access
-
-        //- Return the owner cloud object
-        const CloudType& owner() const;
-
-        //- Return the owner cloud object
-        CloudType& owner();
-
-        //- Return the dictionary
-        const dictionary& dict() const;
-
-
     // Member Functions
-
-        //- Flag to indicate whether model activates injection model
-        virtual bool active() const = 0;
-
-        //- Cache carrier fields
-        virtual void cacheFields(const bool store) = 0;
 
         //- Update (disperse particles)
         virtual vector update
         (
             const scalar dt,
-            const label celli,
+            const label cellI,
             const vector& U,
             const vector& Uc,
             vector& UTurb,
             scalar& tTurb
-        ) = 0;
+        );
 };
 
 
@@ -144,36 +132,23 @@ public:
 
 #define makeDispersionModel(CloudType)                                        \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(DispersionModel<CloudType>, 0);       \
-                                                                              \
+    typedef CloudType::kinematicCloudType kinematicCloudType;                 \
+    defineTemplateTypeNameAndDebug(DispersionModel<kinematicCloudType>, 0);   \
     defineTemplateRunTimeSelectionTable                                       \
     (                                                                         \
-        DispersionModel<CloudType>,                                           \
+        DispersionModel<kinematicCloudType>,                                  \
         dictionary                                                            \
     );
 
 
-#define makeDispersionModelType(SS, CloudType, ParcelType)                    \
+#define makeDispersionModelType(SS, CloudType)                                \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(SS<CloudType<ParcelType> >, 0);       \
+    typedef CloudType::kinematicCloudType kinematicCloudType;                 \
+    defineNamedTemplateTypeNameAndDebug(SS<kinematicCloudType>, 0);           \
                                                                               \
-    DispersionModel<CloudType<ParcelType> >::                                 \
-        adddictionaryConstructorToTable<SS<CloudType<ParcelType> > >          \
-            add##SS##CloudType##ParcelType##ConstructorToTable_;
-
-
-#define makeDispersionModelThermoType(SS, CloudType, ParcelType, ThermoType)  \
-                                                                              \
-    defineNamedTemplateTypeNameAndDebug                                       \
-    (                                                                         \
-        SS<CloudType<ParcelType<ThermoType> > >,                              \
-        0                                                                     \
-    );                                                                        \
-                                                                              \
-    DispersionModel<CloudType<ParcelType<ThermoType> > >::                    \
-        adddictionaryConstructorToTable                                       \
-            <SS<CloudType<ParcelType<ThermoType> > > >                        \
-            add##SS##CloudType##ParcelType##ThermoType##ConstructorToTable_;
+    DispersionModel<kinematicCloudType>::                                     \
+        adddictionaryConstructorToTable<SS<kinematicCloudType> >              \
+            add##SS##CloudType##kinematicCloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

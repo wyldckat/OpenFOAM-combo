@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -113,7 +113,7 @@ Foam::List<T>::List(const List<T>& a)
 
 // Construct by transferring the parameter contents
 template<class T>
-Foam::List<T>::List(const Xfer< List<T> >& lst)
+Foam::List<T>::List(const Xfer<List<T> >& lst)
 {
     transfer(lst());
 }
@@ -155,7 +155,7 @@ Foam::List<T>::List(List<T>& a, bool reUse)
 
 // Construct as subset
 template<class T>
-Foam::List<T>::List(const UList<T>& a, const unallocLabelList& map)
+Foam::List<T>::List(const UList<T>& a, const labelUList& map)
 :
     UList<T>(NULL, map.size())
 {
@@ -266,24 +266,6 @@ Foam::List<T>::List(const SLList<T>& lst)
 }
 
 
-// Construct as copy of IndirectList<T>
-template<class T>
-Foam::List<T>::List(const IndirectList<T>& lst)
-:
-    UList<T>(NULL, lst.size())
-{
-    if (this->size_)
-    {
-        this->v_ = new T[this->size_];
-
-        forAll(*this, i)
-        {
-            this->operator[](i) = lst[i];
-        }
-    }
-}
-
-
 // Construct as copy of UIndirectList<T>
 template<class T>
 Foam::List<T>::List(const UIndirectList<T>& lst)
@@ -381,7 +363,7 @@ void Foam::List<T>::setSize(const label newSize)
 template<class T>
 void Foam::List<T>::setSize(const label newSize, const T& a)
 {
-    label oldSize = this->size_;
+    label oldSize = label(this->size_);
     this->setSize(newSize);
 
     if (newSize > oldSize)
@@ -403,7 +385,7 @@ void Foam::List<T>::clear()
 
 
 // Transfer the contents of the argument List into this List
-// and anull the argument list
+// and annul the argument list
 template<class T>
 void Foam::List<T>::transfer(List<T>& a)
 {
@@ -417,7 +399,7 @@ void Foam::List<T>::transfer(List<T>& a)
 
 
 // Transfer the contents of the argument DynamicList into this List
-// and anull the argument list
+// and annul the argument list
 template<class T>
 template<unsigned SizeInc, unsigned SizeMult, unsigned SizeDiv>
 void Foam::List<T>::transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>& a)
@@ -430,7 +412,7 @@ void Foam::List<T>::transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>& a)
 
 
 // Transfer the contents of the argument SortableList into this List
-// and anull the argument list
+// and annul the argument list
 template<class T>
 void Foam::List<T>::transfer(SortableList<T>& a)
 {
@@ -513,25 +495,6 @@ void Foam::List<T>::operator=(const SLList<T>& lst)
         {
             this->operator[](i++) = iter();
         }
-    }
-}
-
-
-// Assignment operator. Takes linear time.
-template<class T>
-void Foam::List<T>::operator=(const IndirectList<T>& lst)
-{
-    if (lst.size() != this->size_)
-    {
-        if (this->v_) delete[] this->v_;
-        this->v_ = 0;
-        this->size_ = lst.size();
-        if (this->size_) this->v_ = new T[this->size_];
-    }
-
-    forAll(*this, i)
-    {
-        this->operator[](i) = lst[i];
     }
 }
 

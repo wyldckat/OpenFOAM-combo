@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ Class
 
 Description
     Contains information about location on a triSurface:
-
     - pointIndexHit:
         - location
         - bool: hit/miss
@@ -84,7 +83,7 @@ public:
 
         //- Construct from components
         surfaceLocation
-        (   
+        (
             const pointIndexHit& pih,
             const triPointRef::proxType elementType,
             const label triangle
@@ -110,7 +109,7 @@ public:
         {
             return elementType_;
         }
-        
+
         triPointRef::proxType elementType() const
         {
             return elementType_;
@@ -120,7 +119,7 @@ public:
         {
             return triangle_;
         }
-        
+
         label triangle() const
         {
             return triangle_;
@@ -149,7 +148,7 @@ public:
         friend Ostream& operator<<
         (
             Ostream&,
-            const InfoProxy<surfaceLocation>& 
+            const InfoProxy<surfaceLocation>&
         );
 };
 

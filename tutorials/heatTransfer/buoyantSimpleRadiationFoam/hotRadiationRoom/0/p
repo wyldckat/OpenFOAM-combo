@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -23,25 +23,25 @@ boundaryField
     floor
     {
         type            calculated;
-        value           uniform 100000;
+        value           $internalField;
     }
 
     ceiling
     {
         type            calculated;
-        value           uniform 100000;
+        value           $internalField;
     }
 
     fixedWalls
     {
         type            calculated;
-        value           uniform 100000;
+        value           $internalField;
     }
 
     box
     {
         type            calculated;
-        value           uniform 100000;
+        value           $internalField;
     }
 }
 

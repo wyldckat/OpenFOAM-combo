@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,9 +82,9 @@ bool Foam::functionEntry::execute
             "(const word& functionName, dictionary& parentDict, Istream&)"
         )   << "Unknown functionEntry '" << functionName
             << "' in " << is.name() << " near line " << is.lineNumber()
-            << endl << endl
+            << nl << nl
             << "Valid functionEntries are :" << endl
-            << executedictionaryIstreamMemberFunctionTablePtr_->sortedToc()
+            << executedictionaryIstreamMemberFunctionTablePtr_->toc()
             << exit(FatalError);
     }
 
@@ -128,9 +128,9 @@ bool Foam::functionEntry::execute
             "(const word&, const dictionary&, primitiveEntry&, Istream&)"
         )   << "Unknown functionEntry '" << functionName
             << "' in " << is.name() << " near line " << is.lineNumber()
-            << endl << endl
+            << nl << nl
             << "Valid functionEntries are :" << endl
-            << executeprimitiveEntryIstreamMemberFunctionTablePtr_->sortedToc()
+            << executeprimitiveEntryIstreamMemberFunctionTablePtr_->toc()
             << exit(FatalError);
     }
 

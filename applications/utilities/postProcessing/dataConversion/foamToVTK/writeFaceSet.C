@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,22 +21,15 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "writeFaceSet.H"
 #include "OFstream.H"
 #include "writeFuns.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
-void writeFaceSet
+void Foam::writeFaceSet
 (
     const bool binary,
     const vtkMesh& vMesh,
@@ -46,26 +39,21 @@ void writeFaceSet
 {
     const faceList& faces = vMesh.mesh().faces();
 
-    std::ofstream pStream(fileName.c_str());
+    std::ofstream ostr(fileName.c_str());
 
-    pStream
-        << "# vtk DataFile Version 2.0" << std::endl
-        << set.name() << std::endl;
-    if (binary)
-    {
-        pStream << "BINARY" << std::endl;
-    }
-    else
-    {
-        pStream << "ASCII" << std::endl;
-    }
-    pStream << "DATASET POLYDATA" << std::endl;
+    writeFuns::writeHeader
+    (
+        ostr,
+        binary,
+        set.name()
+    );
 
+    ostr<< "DATASET POLYDATA" << std::endl;
 
     //------------------------------------------------------------------
     //
     // Write topology
-    // 
+    //
     //------------------------------------------------------------------
 
 
@@ -75,12 +63,7 @@ void writeFaceSet
     labelList setFaceLabels(set.size());
     label setFaceI = 0;
 
-    for
-    (
-        faceSet::const_iterator iter = set.begin();
-        iter != set.end();
-        ++iter
-    )
+    forAllConstIter(faceSet, set, iter)
     {
         setFaceLabels[setFaceI] = iter.key();
         setFaces[setFaceI] = faces[iter.key()];
@@ -91,13 +74,13 @@ void writeFaceSet
 
     // Write points and faces as polygons
 
-    pStream << "POINTS " << fp.nPoints() << " float" << std::endl;
+    ostr<< "POINTS " << fp.nPoints() << " float" << std::endl;
 
     DynamicList<floatScalar> ptField(3*fp.nPoints());
 
     writeFuns::insert(fp.localPoints(), ptField);
 
-    writeFuns::write(pStream, binary, ptField);
+    writeFuns::write(ostr, binary, ptField);
 
 
     label nFaceVerts = 0;
@@ -106,8 +89,7 @@ void writeFaceSet
     {
         nFaceVerts += fp.localFaces()[faceI].size() + 1;
     }
-    pStream << "POLYGONS " << fp.size() << ' ' << nFaceVerts
-        << std::endl;
+    ostr<< "POLYGONS " << fp.size() << ' ' << nFaceVerts << std::endl;
 
 
     DynamicList<label> vertLabels(nFaceVerts);
@@ -120,29 +102,26 @@ void writeFaceSet
 
         writeFuns::insert(f, vertLabels);
     }
-    writeFuns::write(pStream, binary, vertLabels);
+    writeFuns::write(ostr, binary, vertLabels);
 
 
     //-----------------------------------------------------------------
     //
     // Write data
-    // 
+    //
     //-----------------------------------------------------------------
 
     // Write faceID
 
-    pStream
+    ostr
         << "CELL_DATA " << fp.size() << std::endl
         << "FIELD attributes 1" << std::endl;
 
     // Cell ids first
-    pStream << "faceID 1 " << fp.size() << " int" << std::endl;
+    ostr<< "faceID 1 " << fp.size() << " int" << std::endl;
 
-    writeFuns::write(pStream, binary, setFaceLabels);
+    writeFuns::write(ostr, binary, setFaceLabels);
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

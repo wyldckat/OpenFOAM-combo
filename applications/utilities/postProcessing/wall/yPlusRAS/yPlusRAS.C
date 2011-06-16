@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,8 +28,8 @@ Description
     Calculates and reports yPlus for all wall patches, for the specified times
     when using RAS turbulence models.
 
-    Default behaviour assumes operating in incompressible mode. To apply to
-    compressible RAS cases, use the -compressible option.
+    Default behaviour assumes operating in incompressible mode.
+    Use the -compressible option for compressible RAS cases.
 
 \*---------------------------------------------------------------------------*/
 
@@ -37,11 +37,11 @@ Description
 
 #include "incompressible/singlePhaseTransportModel/singlePhaseTransportModel.H"
 #include "incompressible/RAS/RASModel/RASModel.H"
-#include "nutWallFunction/nutWallFunctionFvPatchScalarField.H"
+#include "nutkWallFunction/nutkWallFunctionFvPatchScalarField.H"
 
 #include "basicPsiThermo.H"
 #include "compressible/RAS/RASModel/RASModel.H"
-#include "mutWallFunction/mutWallFunctionFvPatchScalarField.H"
+#include "mutkWallFunction/mutkWallFunctionFvPatchScalarField.H"
 
 #include "wallDist.H"
 
@@ -55,7 +55,7 @@ void calcIncompressibleYPlus
     volScalarField& yPlus
 )
 {
-    typedef incompressible::RASModels::nutWallFunctionFvPatchScalarField
+    typedef incompressible::RASModels::nutkWallFunctionFvPatchScalarField
         wallFunctionPatchField;
 
     #include "createPhi.H"
@@ -107,7 +107,7 @@ void calcCompressibleYPlus
     volScalarField& yPlus
 )
 {
-    typedef compressible::RASModels::mutWallFunctionFvPatchScalarField
+    typedef compressible::RASModels::mutkWallFunctionFvPatchScalarField
         wallFunctionPatchField;
 
     IOobject rhoHeader
@@ -125,7 +125,7 @@ void calcCompressibleYPlus
         return;
     }
 
-    Info << "Reading field rho\n" << endl;
+    Info<< "Reading field rho\n" << endl;
     volScalarField rho(rhoHeader, mesh);
 
     #include "compressibleCreatePhi.H"
@@ -185,14 +185,18 @@ int main(int argc, char *argv[])
 
     #include "addRegionOption.H"
 
-    argList::validOptions.insert("compressible","");
+    argList::addBoolOption
+    (
+        "compressible",
+        "calculate compressible y+"
+    );
 
     #include "setRootCase.H"
     #include "createTime.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
     #include "createNamedMesh.H"
 
-    bool compressible = args.optionFound("compressible");
+    const bool compressible = args.optionFound("compressible");
 
     forAll(timeDirs, timeI)
     {
@@ -205,8 +209,7 @@ int main(int argc, char *argv[])
         {
             Info<< "Calculating wall distance\n" << endl;
             wallDist y(mesh, true);
-            Info<< "Writing wall distance to field "
-                << y.name() << nl << endl;
+            Info<< "Writing wall distance to field " << y.name() << nl << endl;
             y.write();
         }
 
@@ -235,7 +238,7 @@ int main(int argc, char *argv[])
 
         if (UHeader.headerOk())
         {
-            Info << "Reading field U\n" << endl;
+            Info<< "Reading field U\n" << endl;
             volVectorField U(UHeader, mesh);
 
             if (compressible)

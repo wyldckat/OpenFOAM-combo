@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,7 +57,7 @@ Foam::IOobjectList::IOobjectList
         }
     }
 
-    // Create list file names in directory
+    // Create a list of file names in this directory
     fileNameList ObjectNames =
         readDir(db.path(newInstance, db.dbDir()/local), fileName::FILE);
 
@@ -129,8 +129,8 @@ Foam::IOobject* Foam::IOobjectList::lookup(const word& name) const
     {
         if (IOobject::debug)
         {
-            Info<< "IOobjectList::lookup : found " << name
-                << endl;
+            Info<< "IOobjectList::lookup : found "
+                << name << endl;
         }
 
         return const_cast<IOobject*>(*iter);
@@ -139,8 +139,8 @@ Foam::IOobject* Foam::IOobjectList::lookup(const word& name) const
     {
         if (IOobject::debug)
         {
-            Info<< "IOobjectList::lookup : could not find " << name
-                << endl;
+            Info<< "IOobjectList::lookup : could not find "
+                << name << endl;
         }
 
         return NULL;
@@ -150,48 +150,35 @@ Foam::IOobject* Foam::IOobjectList::lookup(const word& name) const
 
 Foam::IOobjectList Foam::IOobjectList::lookupClass(const word& ClassName) const
 {
-    IOobjectList IOobjectsOfClass(size());
+    IOobjectList objectsOfClass(size());
 
-    for
-    (
-        HashPtrTable<IOobject>::const_iterator iter = begin();
-        iter != end();
-        ++iter
-    )
+    forAllConstIter(HashPtrTable<IOobject>, *this, iter)
     {
         if (iter()->headerClassName() == ClassName)
         {
             if (IOobject::debug)
             {
                 Info<< "IOobjectList::lookupClass : found "
-                    << iter()->name()
-                    << endl;
+                    << iter.key() << endl;
             }
 
-            IOobjectsOfClass.insert(iter()->name(), new IOobject(*iter()));
+            objectsOfClass.insert(iter.key(), new IOobject(*iter()));
         }
     }
 
-    return IOobjectsOfClass;
+    return objectsOfClass;
 }
 
 
 Foam::wordList Foam::IOobjectList::names() const
 {
-    wordList objectNames(size());
+    return HashPtrTable<IOobject>::toc();
+}
 
-    label count = 0;
-    for
-    (
-        HashPtrTable<IOobject>::const_iterator iter = begin();
-        iter != end();
-        ++iter
-    )
-    {
-        objectNames[count++] = iter()->name();
-    }
 
-    return objectNames;
+Foam::wordList Foam::IOobjectList::sortedNames() const
+{
+    return HashPtrTable<IOobject>::sortedToc();
 }
 
 
@@ -200,22 +187,26 @@ Foam::wordList Foam::IOobjectList::names(const word& ClassName) const
     wordList objectNames(size());
 
     label count = 0;
-    for
-    (
-        HashPtrTable<IOobject>::const_iterator iter = begin();
-        iter != end();
-        ++iter
-    )
+    forAllConstIter(HashPtrTable<IOobject>, *this, iter)
     {
         if (iter()->headerClassName() == ClassName)
         {
-            objectNames[count++] = iter()->name();
+            objectNames[count++] = iter.key();
         }
     }
 
     objectNames.setSize(count);
 
     return objectNames;
+}
+
+
+Foam::wordList Foam::IOobjectList::sortedNames(const word& ClassName) const
+{
+    wordList sortedLst = names(ClassName);
+    sort(sortedLst);
+
+    return sortedLst;
 }
 
 

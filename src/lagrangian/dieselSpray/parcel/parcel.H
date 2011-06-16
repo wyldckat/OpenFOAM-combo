@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,7 @@ Description
 #ifndef parcel_H
 #define parcel_H
 
-#include "Particle.H"
+#include "particle.H"
 #include "contiguous.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -48,12 +48,13 @@ class spray;
 
 class parcel
 :
-    public Particle<parcel>
+    public particle
 {
     // Private member data
 
-        // Reference to the names of the liquid components
-            List<word> liquidComponents_;
+        //- Reference to the names of the liquid components
+        List<word> liquidComponents_;
+
 
         // Defining data (read and written to field files)
 
@@ -108,12 +109,12 @@ class parcel
             scalar tMom_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Set the relaxation times
         void setRelaxationTimes
         (
-            label celli,
+            label cellI,
             scalar& tauMomentum,
             scalarField& tauEvaporation,
             scalar& tauHeatTransfer,
@@ -133,8 +134,8 @@ class parcel
         (
             const scalar dt,
             spray& sprayData,
-            const label celli,
-            const label facei
+            const label cellI,
+            const label faceI
         );
 
 
@@ -142,15 +143,29 @@ public:
 
     friend class Cloud<parcel>;
 
+    //- Class used to pass tracking data to the trackToFace function
+    class trackingData
+    :
+        public particle::TrackingData<spray>
+    {
+    public:
+
+        trackingData(spray& cloud)
+        :
+            particle::TrackingData<spray>(cloud)
+        {}
+    };
 
     // Constructors
 
         //- Construct from components
         parcel
         (
-            const Cloud<parcel>& cloud,
+            const polyMesh& mesh,
             const vector& position,
-            const label celli,
+            const label cellI,
+            const label tetFaceI,
+            const label tetPtI,
             const vector& n,
             const scalar d,
             const scalar T,
@@ -171,10 +186,29 @@ public:
         //- Construct from Istream reading field values if required
         parcel
         (
-            const Cloud<parcel>& cloud,
+            const polyMesh& mesh,
             Istream& is,
             bool readFields = true
         );
+
+        //- Factory class to read-construct particles used for
+        //  parallel transfer
+        class iNew
+        {
+            const polyMesh& mesh_;
+
+        public:
+
+            iNew(const polyMesh& mesh)
+            :
+                mesh_(mesh)
+            {}
+
+            autoPtr<parcel> operator()(Istream& is) const
+            {
+                return autoPtr<parcel>(new parcel(mesh_, is, true));
+            }
+        };
 
 
     // Member Functions
@@ -184,7 +218,8 @@ public:
             //- Return the names of the liquid components
             inline const List<word>& liquidNames() const;
 
-            //- Return the names of the liquid fuel components - identical with liquidNames
+            //- Return the names of the liquid fuel components
+            //  - identical with liquidNames
             inline const List<word>& fuelNames() const;
 
             //- Return diameter of droplets in parcel
@@ -346,15 +381,15 @@ public:
 
         // Parcel operations
 
-            bool move(spray& sprayData);
+            bool move(trackingData& td, const scalar trackTime);
 
             //- Transform the position and physical properties of the particle
             //  according to the given transformation tensor
-            void transformProperties(const tensor& T);
+            virtual void transformProperties(const tensor& T);
 
             //- Transform the position and physical properties of the particle
             //  according to the given separation vector
-            void transformProperties(const vector& separation);
+            virtual void transformProperties(const vector& separation);
 
             //- fix the 2D plane normal,
             // when particle hits a face it is slightly perturbed

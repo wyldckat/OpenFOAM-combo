@@ -5,10 +5,10 @@ int USERD_get_maxsize_info
     int *max_ijk_dimensions[3]
 )
 {
-    return Z_ERR; 
+    return Z_ERR;
 
 #ifdef ENSIGHTDEBUG
-    Info << "Entering: USERD_get_maxsize_info" << endl;
+    Info<< "Entering: USERD_get_maxsize_info" << endl;
 #endif
 
     label maxNPoints = 0;
@@ -19,7 +19,8 @@ int USERD_get_maxsize_info
     label nPyr05Max = 0;
     label nTet04Max = 0;
 
-    Info<< "Checking all time steps for EnSight memory allocation purpose. This can take some time." << endl;
+    Info<< "Checking all time steps for EnSight memory allocation purpose. "
+        << "This can take some time." << endl;
 
     for (label timeI=1; timeI < timeDirs.size(); ++timeI)
     {
@@ -34,10 +35,10 @@ int USERD_get_maxsize_info
         Info<< "Checking time = " << runTimePtr->timeName() << endl;
 
         const cellShapeList& cells = meshPtr->cellShapes();
-        
+
         const label nPoints = meshPtr->nPoints();
         const label nCells  = cells.size();
-        
+
         maxNPoints = max(maxNPoints, nPoints);
 
         for (label n=0; n<nCells;n++)

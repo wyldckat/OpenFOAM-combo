@@ -100,9 +100,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~systemCall();
+    //- Destructor
+    virtual ~systemCall();
 
 
     // Member Functions

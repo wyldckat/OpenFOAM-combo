@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ SourceFiles
 #include "scalarField.H"
 #include "HashSet.H"
 #include "Map.H"
-#include "wordList.H"
+#include "wordReList.H"
 #include "scalarField.H"
 #include "point.H"
 #include "primitivePatch.H"
@@ -98,8 +98,8 @@ public:
             return mesh_;
         }
 
-        //- Get patchIDs of named patches
-        labelHashSet getPatchIDs(const wordList&) const;
+        //- Return the set of patch IDs corresponding to the given names
+        labelHashSet getPatchIDs(const wordReList& patchNames) const;
 
         //- Get patchIDs of/derived off certain type (e.g. 'processorPolyPatch')
         //  Uses isA, not isType
@@ -130,7 +130,7 @@ public:
         //- Size of largest patch (out of supplied subset of patches)
         label maxPatchSize(const labelHashSet& patchIDs) const;
 
-        //- Sum of patch sizes (out of supplied subset of patches). 
+        //- Sum of patch sizes (out of supplied subset of patches).
         //  Used in sizing arrays.
         label sumPatchSize(const labelHashSet& patchIDs) const;
 

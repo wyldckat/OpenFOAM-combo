@@ -28,6 +28,15 @@ License
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class CloudType>
+Foam::BinaryCollisionModel<CloudType>::BinaryCollisionModel(CloudType& owner)
+:
+    dict_(dictionary::null),
+    owner_(owner),
+    coeffDict_(dictionary::null)
+{}
+
+
+template<class CloudType>
 Foam::BinaryCollisionModel<CloudType>::BinaryCollisionModel
 (
     const dictionary& dict,
@@ -84,7 +93,6 @@ Foam::BinaryCollisionModel<CloudType>::coeffDict() const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "NewBinaryCollisionModel.C"
+#include "BinaryCollisionModelNew.C"
 
 // ************************************************************************* //
-

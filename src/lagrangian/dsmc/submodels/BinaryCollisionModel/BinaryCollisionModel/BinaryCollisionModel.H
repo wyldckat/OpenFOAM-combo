@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     BinaryCollisionModel.C
-    NewBinaryCollisionModel.C
+    BinaryCollisionModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -85,6 +85,9 @@ public:
 
     // Constructors
 
+        //- Construct null from owner
+        BinaryCollisionModel(CloudType& owner);
+
         //- Construct from components
         BinaryCollisionModel
         (
@@ -94,7 +97,7 @@ public:
         );
 
 
-    // Destructor
+    //- Destructor
     virtual ~BinaryCollisionModel();
 
 
@@ -123,24 +126,21 @@ public:
 
     // Member Functions
 
+        //- Flag to indicate whether model activates collision model
+        virtual bool active() const = 0;
+
         //- Return the collision cross section * relative velocity product
         virtual scalar sigmaTcR
         (
-            label typeIdP,
-            label typeIdQ,
-            const vector& UP,
-            const vector& UQ
+            const typename CloudType::parcelType& pP,
+            const typename CloudType::parcelType& pQ
         ) const = 0;
 
         //- Apply collision
         virtual void collide
         (
-            label typeIdP,
-            label typeIdQ,
-            vector& UP,
-            vector& UQ,
-            scalar& EiP,
-            scalar& EiQ
+            typename CloudType::parcelType& pP,
+            typename CloudType::parcelType& pQ
         ) = 0;
 };
 
@@ -166,13 +166,13 @@ public:
     );
 
 
-#define makeBinaryCollisionModelType(SS, CloudType, ParcelType)               \
+#define makeBinaryCollisionModelType(SS, CloudType)                           \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(SS<CloudType<ParcelType> >, 0);       \
+    defineNamedTemplateTypeNameAndDebug(SS<CloudType>, 0);                    \
                                                                               \
-    BinaryCollisionModel<CloudType<ParcelType> >::                            \
-        adddictionaryConstructorToTable<SS<CloudType<ParcelType> > >          \
-            add##SS##CloudType##ParcelType##ConstructorToTable_;
+    BinaryCollisionModel<CloudType>::                                         \
+        adddictionaryConstructorToTable<SS<CloudType> >                       \
+            add##SS##CloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

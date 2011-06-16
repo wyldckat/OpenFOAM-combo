@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -95,13 +95,13 @@ public:
 
         friend Istream& operator>>(Istream& is, substance& s)
         {
-            is >> s.name_ >> s.volFrac_;
+            is  >> s.name_ >> s.volFrac_;
             return is;
         }
 
         friend Ostream& operator<<(Ostream& os, const substance& s)
         {
-            os << s.name_ << token::SPACE << s.volFrac_;
+            os  << s.name_ << token::SPACE << s.volFrac_;
             return os;
         }
 };

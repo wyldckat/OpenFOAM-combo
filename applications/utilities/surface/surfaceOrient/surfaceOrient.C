@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,34 +39,43 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "set face normals consistent with a user-provided 'outside' point"
+    );
+
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validArgs.append("Foam surface file");
+    argList::validArgs.append("surfaceFile");
     argList::validArgs.append("visiblePoint");
-    argList::validArgs.append("output file");
-    argList::validOptions.insert("inside", "");
+    argList::validArgs.append("output surfaceFile");
+    argList::addBoolOption
+    (
+        "inside",
+        "treat provided point as being inside"
+    );
+
     argList args(argc, argv);
 
-    fileName surfFileName(args.additionalArgs()[0]);
-    Info<< "Reading surface from " << surfFileName << endl;
+    const fileName surfFileName = args[1];
+    const point visiblePoint    = args.argRead<point>(2);
+    const fileName outFileName  = args[3];
 
-    point visiblePoint(IStringStream(args.additionalArgs()[1])());
-    Info<< "Visible point " << visiblePoint << endl;
+    const bool orientInside = args.optionFound("inside");
 
-    bool orientInside = args.optionFound("inside");
+    Info<< "Reading surface from " << surfFileName << nl
+        << "Visible point " << visiblePoint << nl
+        << "Orienting surface such that visiblePoint " << visiblePoint
+        << " is ";
 
     if (orientInside)
     {
-        Info<< "Orienting surface such that visiblePoint " << visiblePoint
-            << " is inside" << endl;
+        Info<< "inside" << endl;
     }
     else
     {
-        Info<< "Orienting surface such that visiblePoint " << visiblePoint
-            << " is outside" << endl;
+        Info<< "outside" << endl;
     }
 
-    fileName outFileName(args.additionalArgs()[2]);
     Info<< "Writing surface to " << outFileName << endl;
 
 
@@ -94,7 +103,7 @@ int main(int argc, char *argv[])
 
     surf.write(outFileName);
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

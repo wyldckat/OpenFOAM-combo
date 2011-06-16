@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,22 +31,19 @@ License
 
 namespace Foam
 {
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(emptyPointPatch, 0);
-
-addToRunTimeSelectionTable
-(
-    facePointPatch,
-    emptyPointPatch,
-    polyPatch
-);
+    defineTypeNameAndDebug(emptyPointPatch, 0);
+    addToRunTimeSelectionTable
+    (
+        facePointPatch,
+        emptyPointPatch,
+        polyPatch
+    );
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void emptyPointPatch::applyConstraint
+void Foam::emptyPointPatch::applyConstraint
 (
     const label pointi,
     pointConstraint& pc
@@ -55,9 +52,5 @@ void emptyPointPatch::applyConstraint
     pc.applyConstraint(pointNormals()[pointi]);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

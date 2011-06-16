@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,17 +36,23 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-template<>
-const char* Foam::NamedEnum<Foam::directions::directionType, 3>::names[] =
+namespace Foam
 {
-    "tan1",
-    "tan2",
-    "normal"
-};
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::directions::directionType,
+        3
+    >::names[] =
+    {
+        "tan1",
+        "tan2",
+        "normal"
+    };
+}
 
 const Foam::NamedEnum<Foam::directions::directionType, 3>
     Foam::directions::directionTypeNames_;
-
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -181,7 +187,7 @@ Foam::vectorField Foam::directions::propagateDirection
             changedFacesInfo[patchFaceI] =
                 directionInfo
                 (
-                    faceIndex, 
+                    faceIndex,
                     cutDir
                 );
         }
@@ -267,7 +273,6 @@ Foam::vectorField Foam::directions::propagateDirection
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
 Foam::directions::directions
 (
     const polyMesh& mesh,
@@ -304,7 +309,7 @@ Foam::directions::directions
 
     label nDirs = 0;
 
-    word coordSystem(dict.lookup("coordinateSystem"));
+    const word coordSystem(dict.lookup("coordinateSystem"));
 
     if (coordSystem == "global")
     {
@@ -342,18 +347,19 @@ Foam::directions::directions
     {
         const dictionary& patchDict = dict.subDict("patchLocalCoeffs");
 
-        word patchName(patchDict.lookup("patch"));
+        const word patchName(patchDict.lookup("patch"));
 
-        label patchI = mesh.boundaryMesh().findPatchID(patchName);
+        const label patchI = mesh.boundaryMesh().findPatchID(patchName);
 
         if (patchI == -1)
         {
             FatalErrorIn
             (
                 "directions::directions(const polyMesh&, const dictionary&,"
-                "const twoDPointCorrector*"
+                "const twoDPointCorrector*)"
             )   << "Cannot find patch "
-                << patchName << exit(FatalError);
+                << patchName
+                << exit(FatalError);
         }
 
         // Take zeroth face on patch
@@ -370,7 +376,7 @@ Foam::directions::directions
             WarningIn
             (
                 "directions::directions(const polyMesh&, const dictionary&,"
-                "const twoDPointCorrector*"
+                "const twoDPointCorrector*)"
             )   << "Discarding user specified tan1 since 2D case." << endl
                 << "Recalculated tan1 from face normal and planeNormal as "
                 << tan1 << endl << endl;
@@ -395,16 +401,13 @@ Foam::directions::directions
 
             if (wantNormal)
             {
-                operator[](nDirs++) = normalDirs;
-
-                //// Dump to file.
-                //writeOBJ("normal.obj", mesh, normalDirs);
+                this->operator[](nDirs++) = normalDirs;
             }
         }
 
         if (wantTan1 || wantTan2)
         {
-            tan1Dirs = 
+            tan1Dirs =
                 propagateDirection
                 (
                     mesh,
@@ -417,20 +420,14 @@ Foam::directions::directions
 
             if (wantTan1)
             {
-                operator[](nDirs++) = tan1Dirs;
-
-                //// Dump to file.
-                //writeOBJ("tan1.obj", mesh, tan1Dirs);
+                this->operator[](nDirs++) = tan1Dirs;
             }
         }
         if (wantTan2)
         {
-            vectorField tan2Dirs = normalDirs ^ tan1Dirs;
+            tmp<vectorField> tan2Dirs = normalDirs ^ tan1Dirs;
 
-            operator[](nDirs++) = tan2Dirs;
-
-            //// Dump to file.
-            //writeOBJ("tan2.obj", mesh, tan2Dirs);
+            this->operator[](nDirs++) = tan2Dirs;
         }
     }
     else
@@ -438,27 +435,13 @@ Foam::directions::directions
         FatalErrorIn
         (
             "directions::directions(const polyMesh&, const dictionary&,"
-            "const twoDPointCorrector*"
+            "const twoDPointCorrector*)"
         )   << "Unknown coordinate system "
             << coordSystem << endl
-            << "Known types are global and patchLocal" << exit(FatalError);
+            << "Known types are global and patchLocal"
+            << exit(FatalError);
     }
 }
-
-
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

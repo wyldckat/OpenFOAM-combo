@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,30 +76,35 @@ public:
         IOobjectList(const IOobjectList&);
 
 
-    // Destructor
-
-        ~IOobjectList();
+    //- Destructor
+    ~IOobjectList();
 
 
     // Member functions
 
-        //- Add an IOobject to list
+        //- Add an IOobject to the list
         bool add(IOobject&);
 
-        //- Remove an IOobject from list
+        //- Remove an IOobject from the list
         bool remove(IOobject&);
 
         //- Lookup a given name and return IOobject ptr if found else NULL
         IOobject* lookup(const word& name) const;
 
-        //- Return the list for all IOobjects of given class
+        //- Return the list for all IOobjects of a given class
         IOobjectList lookupClass(const word& className) const;
 
         //- Return the list of names of the IOobjects
         wordList names() const;
 
+        //- Return the sorted list of names of the IOobjects
+        wordList sortedNames() const;
+
         //- Return the list of names of the IOobjects of given class
         wordList names(const word& className) const;
+
+        //- Return the sorted list of names of the IOobjects of given class
+        wordList sortedNames(const word& className) const;
 };
 
 

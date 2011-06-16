@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,7 @@ License
 #include "emptyPolyPatch.H"
 #include "commSchedule.H"
 #include "globalMeshData.H"
+#include "cyclicPolyPatch.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -52,7 +53,7 @@ GeometricBoundaryField
 
     forAll(bmesh_, patchi)
     {
-        set
+        this->set
         (
             patchi,
             PatchField<Type>::New
@@ -72,7 +73,8 @@ GeometricBoundaryField
 (
     const BoundaryMesh& bmesh,
     const DimensionedField<Type, GeoMesh>& field,
-    const wordList& patchFieldTypes
+    const wordList& patchFieldTypes,
+    const wordList& constraintTypes
 )
 :
     FieldField<PatchField, Type>(bmesh.size()),
@@ -83,18 +85,22 @@ GeometricBoundaryField
         Info<< "GeometricField<Type, PatchField, GeoMesh>::"
                "GeometricBoundaryField::"
                "GeometricBoundaryField(const BoundaryMesh&, "
-               "const Field<Type>&, const wordList&)"
+               "const Field<Type>&, const wordList&, const wordList&)"
             << endl;
     }
 
-    if (patchFieldTypes.size() != this->size())
+    if
+    (
+        patchFieldTypes.size() != this->size()
+     || (constraintTypes.size() && (constraintTypes.size() != this->size()))
+    )
     {
         FatalErrorIn
         (
             "GeometricField<Type, PatchField, GeoMesh>::"
             "GeometricBoundaryField::"
             "GeometricBoundaryField(const BoundaryMesh&, "
-            "const Field<Type>&, const wordList&)"
+            "const Field<Type>&, const wordList&, const wordList&)"
         )   << "Incorrect number of patch type specifications given" << nl
             << "    Number of patches in mesh = " << bmesh.size()
             << " number of patch type specifications = "
@@ -102,18 +108,38 @@ GeometricBoundaryField
             << abort(FatalError);
     }
 
-    forAll(bmesh_, patchi)
+    if (constraintTypes.size())
     {
-        set
-        (
-            patchi,
-            PatchField<Type>::New
+        forAll(bmesh_, patchi)
+        {
+            this->set
             (
-                patchFieldTypes[patchi],
-                bmesh_[patchi],
-                field
-            )
-        );
+                patchi,
+                PatchField<Type>::New
+                (
+                    patchFieldTypes[patchi],
+                    constraintTypes[patchi],
+                    bmesh_[patchi],
+                    field
+                )
+            );
+        }
+    }
+    else
+    {
+        forAll(bmesh_, patchi)
+        {
+            this->set
+            (
+                patchi,
+                PatchField<Type>::New
+                (
+                    patchFieldTypes[patchi],
+                    bmesh_[patchi],
+                    field
+                )
+            );
+        }
     }
 }
 
@@ -141,7 +167,7 @@ GeometricBoundaryField
 
     forAll(bmesh_, patchi)
     {
-        set(patchi, ptfl[patchi].clone(field));
+        this->set(patchi, ptfl[patchi].clone(field));
     }
 }
 
@@ -169,7 +195,7 @@ GeometricBoundaryField
 
     forAll(bmesh_, patchi)
     {
-        set(patchi, btf[patchi].clone(field));
+        this->set(patchi, btf[patchi].clone(field));
     }
 }
 
@@ -226,7 +252,30 @@ GeometricBoundaryField
     {
         if (bmesh_[patchi].type() != emptyPolyPatch::typeName)
         {
-            set
+            if
+            (
+                bmesh_[patchi].type() == cyclicPolyPatch::typeName
+             && !dict.found(bmesh_[patchi].name())
+            )
+            {
+                FatalIOErrorIn
+                (
+                    "GeometricField<Type, PatchField, GeoMesh>::\n"
+                    "GeometricBoundaryField::GeometricBoundaryField\n"
+                    "(\n"
+                    "    const BoundaryMesh&,\n"
+                    "    const DimensionedField<Type, GeoMesh>&,\n"
+                    "    const dictionary&\n"
+                    ")",
+                    dict
+                )   << "Cannot find patchField entry for cyclic "
+                    << bmesh_[patchi].name() << endl
+                    << "Is your field uptodate with split cyclics?" << endl
+                    << "Run foamUpgradeCyclics to convert mesh and fields"
+                    << " to split cyclics." << exit(FatalIOError);
+            }
+
+            this->set
             (
                 patchi,
                 PatchField<Type>::New
@@ -239,7 +288,7 @@ GeometricBoundaryField
         }
         else
         {
-            set
+            this->set
             (
                 patchi,
                 PatchField<Type>::New
@@ -297,10 +346,13 @@ evaluate()
         }
 
         // Block for any outstanding requests
-        if (Pstream::defaultCommsType == Pstream::nonBlocking)
+        if
+        (
+            Pstream::parRun()
+         && Pstream::defaultCommsType == Pstream::nonBlocking
+        )
         {
-            IPstream::waitRequests();
-            OPstream::waitRequests();
+            Pstream::waitRequests();
         }
 
         forAll(*this, patchi)
@@ -380,7 +432,7 @@ interfaces() const
 {
     lduInterfaceFieldPtrsList interfaces(this->size());
 
-    forAll (interfaces, patchi)
+    forAll(interfaces, patchi)
     {
         if (isA<lduInterfaceField>(this->operator[](patchi)))
         {

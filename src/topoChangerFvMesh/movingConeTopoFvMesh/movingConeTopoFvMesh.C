@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,8 +51,8 @@ namespace Foam
 Foam::tmp<Foam::scalarField> Foam::movingConeTopoFvMesh::vertexMarkup
 (
     const pointField& p,
-    const scalar& curLeft,
-    const scalar& curRight
+    const scalar curLeft,
+    const scalar curRight
 ) const
 {
     Info<< "Updating vertex markup.  curLeft: "
@@ -61,7 +61,7 @@ Foam::tmp<Foam::scalarField> Foam::movingConeTopoFvMesh::vertexMarkup
     tmp<scalarField> tvertexMarkup(new scalarField(p.size()));
     scalarField& vertexMarkup = tvertexMarkup();
 
-    forAll (p, pI)
+    forAll(p, pI)
     {
         if (p[pI].x() < curLeft - SMALL)
         {
@@ -114,7 +114,7 @@ void Foam::movingConeTopoFvMesh::addZonesAndModifiers()
     boolList flipZone2(fc.size(), false);
     label nZoneFaces2 = 0;
 
-    forAll (fc, faceI)
+    forAll(fc, faceI)
     {
         if
         (
@@ -145,7 +145,7 @@ void Foam::movingConeTopoFvMesh::addZonesAndModifiers()
                 flipZone2[nZoneFaces2] = true;
             }
 
-            Info << "face " << faceI << " for zone 2.  Flip: "
+            Info<< "face " << faceI << " for zone 2.  Flip: "
                 << flipZone2[nZoneFaces2] << endl;
             nZoneFaces2++;
         }
@@ -157,8 +157,8 @@ void Foam::movingConeTopoFvMesh::addZonesAndModifiers()
     zone2.setSize(nZoneFaces2);
     flipZone2.setSize(nZoneFaces2);
 
-    Info << "zone: " << zone1 << endl;
-    Info << "zone: " << zone2 << endl;
+    Info<< "zone: " << zone1 << endl;
+    Info<< "zone: " << zone2 << endl;
 
     List<pointZone*> pz(0);
     List<faceZone*> fz(2);
@@ -190,7 +190,7 @@ void Foam::movingConeTopoFvMesh::addZonesAndModifiers()
 
     fz.setSize(nFz);
 
-    Info << "Adding mesh zones." << endl;
+    Info<< "Adding mesh zones." << endl;
     addZones(pz, fz, cz);
 
 
@@ -235,7 +235,7 @@ void Foam::movingConeTopoFvMesh::addZonesAndModifiers()
     nMods++;
     tm.setSize(nMods);
 
-    Info << "Adding " << nMods << " mesh modifiers" << endl;
+    Info<< "Adding " << nMods << " mesh modifiers" << endl;
     topoChanger_.addTopologyModifiers(tm);
 
     write();
@@ -257,8 +257,9 @@ Foam::movingConeTopoFvMesh::movingConeTopoFvMesh(const IOobject& io)
                 "dynamicMeshDict",
                 time().constant(),
                 *this,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
         ).subDict(typeName + "Coeffs")
     ),
@@ -331,11 +332,11 @@ bool Foam::movingConeTopoFvMesh::update()
 
     if (topoChangeMap.valid())
     {
-        Info << "Topology change. Calculating motion points" << endl;
+        Info<< "Topology change. Calculating motion points" << endl;
 
         if (topoChangeMap().hasMotionPoints())
         {
-            Info << "Topology change. Has premotion points" << endl;
+            Info<< "Topology change. Has premotion points" << endl;
             //Info<< "preMotionPoints:" << topoChangeMap().preMotionPoints()
             //    << endl;
 
@@ -396,7 +397,7 @@ bool Foam::movingConeTopoFvMesh::update()
         }
         else
         {
-            Info << "Topology change. Already set mesh points" << endl;
+            Info<< "Topology change. Already set mesh points" << endl;
 
             motionMask_ =
                 vertexMarkup
@@ -416,7 +417,7 @@ bool Foam::movingConeTopoFvMesh::update()
     }
     else
     {
-        Info << "No topology change" << endl;
+        Info<< "No topology change" << endl;
         // Set the mesh motion
         newPoints =
             points()

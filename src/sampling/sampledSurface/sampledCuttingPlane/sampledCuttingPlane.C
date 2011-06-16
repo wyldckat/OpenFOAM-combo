@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,6 @@ License
 #include "volPointInterpolation.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvMesh.H"
-#include "isoSurface.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -70,7 +69,7 @@ void Foam::sampledCuttingPlane::createGeometry()
         const polyBoundaryMesh& patches = mesh().boundaryMesh();
 
         // Patch to put exposed internal faces into
-        label exposedPatchI = patches.findPatchID(exposedPatchName_);
+        const label exposedPatchI = patches.findPatchID(exposedPatchName_);
 
         if (debug)
         {
@@ -174,7 +173,7 @@ void Foam::sampledCuttingPlane::createGeometry()
 
                 forAll(fld, i)
                 {
-                    fld[i] =  (cc[i] - plane_.refPoint()) & plane_.normal();
+                    fld[i] = (cc[i] - plane_.refPoint()) & plane_.normal();
                 }
             }
         }
@@ -232,6 +231,14 @@ void Foam::sampledCuttingPlane::createGeometry()
             0.0,
             regularise_
         )
+        //new isoSurfaceCell
+        //(
+        //    fvm,
+        //    cellDistance,
+        //    pointDistance_,
+        //    0.0,
+        //    regularise_
+        //)
     );
 
     if (debug)
@@ -255,6 +262,7 @@ Foam::sampledCuttingPlane::sampledCuttingPlane
     plane_(dict),
     mergeTol_(dict.lookupOrDefault("mergeTol", 1E-6)),
     regularise_(dict.lookupOrDefault("regularise", true)),
+    average_(dict.lookupOrDefault("average", false)),
     zoneID_(dict.lookupOrDefault("zone", word::null), mesh.cellZones()),
     exposedPatchName_(word::null),
     needsUpdate_(true),

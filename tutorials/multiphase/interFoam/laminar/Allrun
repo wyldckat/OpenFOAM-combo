@@ -1,9 +1,8 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
-
-# Set application name
-application="interFoam"
 
 setDamBreakFine ()
 {
@@ -25,30 +24,41 @@ setDamBreakFine ()
 }
 
 # Do damBreak
-cd damBreak
+(
+    cd damBreak || exit
+
     runApplication blockMesh
+    cp 0/alpha1.org 0/alpha1
     runApplication setFields
-    runApplication $application
-cd ..
+    runApplication `getApplication`
+)
 
 # Clone case
 cloneCase damBreak damBreakFine
 
-cd damBreakFine
+(
+    cd damBreakFine || exit
+
     # Modify case
     setDamBreakFine
-    cp ../damBreak/0/alpha1.org 0/alpha1
+
     # And execute
     runApplication blockMesh
+    cp ../damBreak/0/alpha1.org 0/alpha1
     runApplication setFields
     runApplication decomposePar
-    runParallel $application 4
+    runParallel `getApplication` 4
     runApplication reconstructPar
-cd ..
+)
 
 # Do capillaryRise
-cd capillaryRise
+(
+    cd capillaryRise || exit
+
     runApplication blockMesh
+    cp 0/alpha1.org 0/alpha1
     runApplication setFields
-    runApplication $application
-cd ..
+    runApplication `getApplication`
+)
+
+# ----------------------------------------------------------------- end-of-file

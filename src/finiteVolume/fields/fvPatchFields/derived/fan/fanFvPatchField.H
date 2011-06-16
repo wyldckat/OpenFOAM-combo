@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class jumpCyclicFvPatch Declaration
+                       Class fanFvPatchField Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
@@ -131,10 +131,26 @@ public:
 
         // Access
 
-            //- Return the "jump" across the patch as a "half" field 
+            //- Return the polynomial coefficients
+            const List<scalar>& f() const
+            {
+                return f_;
+            }
+
+            //- Return the "jump" across the patch.
             virtual tmp<Field<Type> > jump() const
             {
-                return jump_;
+                if (this->cyclicPatch().owner())
+                {
+                    return jump_;
+                }
+                else
+                {
+                    return refCast<const fanFvPatchField<Type> >
+                    (
+                        this->neighbourPatchField()
+                    ).jump();
+                }
             }
 
 

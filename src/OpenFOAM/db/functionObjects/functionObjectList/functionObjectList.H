@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -108,7 +108,7 @@ public:
 
         //- Construct from Time, a dictionary with "functions" entry
         //  and the execution setting.
-        //  @param[in]  parentDict - the parent dictionary containing
+        //  \param[in]  parentDict - the parent dictionary containing
         //    a "functions" entry, which can either be a list or a dictionary
         //    of functionObject specifications.
         functionObjectList
@@ -119,9 +119,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~functionObjectList();
+    //- Destructor
+    virtual ~functionObjectList();
 
 
     // Member Functions
@@ -138,6 +137,8 @@ public:
         //- Clear the list of function objects
         virtual void clear();
 
+        //- Find the ID of a given function object by name
+        virtual label findObjectID(const word& name) const;
 
         //- Switch the function objects on
         virtual void on();
@@ -152,15 +153,16 @@ public:
         //- Called at the start of the time-loop
         virtual bool start();
 
-        //- Called at each ++ or += of the time-loop
-        virtual bool execute();
+        //- Called at each ++ or += of the time-loop. forceWrite overrides
+        //  the usual outputControl behaviour and forces writing always
+        //  (used in postprocessing mode)
+        virtual bool execute(const bool forceWrite = false);
 
         //- Called when Time::run() determines that the time-loop exits
         virtual bool end();
 
         //- Read and set the function objects if their data have changed
         virtual bool read();
-
 };
 
 

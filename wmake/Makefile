@@ -1,8 +1,8 @@
-#------------------------------------------------------------------------------
+#-------------------------------*- makefile -*---------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -21,16 +21,16 @@
 #     You should have received a copy of the GNU General Public License
 #     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Script
+# File
 #     Makefile
 #
 # Description
-#     Generic Makefile used by wmake
+#     A generic Makefile, used by wmake
 #
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# The Makefile use a POSIX shell
+# The Makefile uses a POSIX shell
 #------------------------------------------------------------------------------
 
 SHELL      = /bin/sh
@@ -56,8 +56,7 @@ WM_SCRIPTS   = $(WM_DIR)/scripts
 #------------------------------------------------------------------------------
 
 LIB_SRC            = $(WM_PROJECT_DIR)/src
-LIB_DIR            = $(WM_PROJECT_DIR)/lib
-LIB_WM_OPTIONS_DIR = $(LIB_DIR)/$(WM_OPTIONS)
+LIB_PLATFORMS      = $(WM_PROJECT_DIR)/platforms/$(WM_OPTIONS)/lib
 OBJECTS_DIR        = $(MAKE_DIR)/$(WM_OPTIONS)
 CLASSES_DIR        = $(MAKE_DIR)/classes
 
@@ -107,7 +106,7 @@ SEXE            = a.out
 
 GENERAL_RULES = $(WM_DIR)/rules/General
 RULES         = $(WM_DIR)/rules/$(WM_ARCH)$(WM_COMPILER)
-BIN           = $(WM_DIR)/bin/$(WM_ARCH)$(WM_COMPILER)
+WMAKE_BIN     = $(WM_DIR)/platforms/$(WM_ARCH)$(WM_COMPILER)
 
 include $(GENERAL_RULES)/general
 include $(RULES)/general
@@ -119,7 +118,7 @@ MAKE_DEP   = @$(MKDEP) $< | $(WM_SCRIPTS)/addCompile $<
 #------------------------------------------------------------------------------
 # Include PROJECT directory tree file and
 # source, object and dependency list files.
-# These are constructed by wmakeDerivedFiles
+# These are constructed by scripts/makeDerivedFiles
 #------------------------------------------------------------------------------
 
 include $(OBJECTS_DIR)/options
@@ -147,15 +146,15 @@ LIB_HEADER_DIRS = \
 #------------------------------------------------------------------------------
 
 $(EXE):  $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(EXE)
-	     $(LINKEXE) $(OBJECTS) -L$(LIB_WM_OPTIONS_DIR) \
+	     @$(WM_SCRIPTS)/makeTargetDir $(EXE)
+	     $(LINKEXE) $(OBJECTS) -L$(LIB_PLATFORMS) \
 	     $(EXE_LIBS) $(PROJECT_LIBS) $(SYS_LIBS) $(LINK_LIBS) $(GLIBS) -o $(EXE)
 
 exe:     $(SEXE)
 	     @echo \'$(SEXE)\' is up to date.
 
 $(SEXE): $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(SEXE)
+	     @$(WM_SCRIPTS)/makeTargetDir $(SEXE)
 	     $(LINKEXE) $(OBJECTS) $(EXE_LIBS) \
          $(SYS_LIBS) $(LINK_LIBS) $(GLIBS) -o $(SEXE)
 
@@ -164,20 +163,22 @@ $(SEXE): $(OBJECTS)
 # define link statements for libraries
 #------------------------------------------------------------------------------
 
+objects: $(OBJECTS)
+
 libso:   $(LIB).$(SO)
 	     @echo \'$(LIB).$(SO)\' is up to date.
 
 $(LIB).$(SO): $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(LIB)
+	     @$(WM_SCRIPTS)/makeTargetDir $(LIB)
 	     @rm -f so_locations
 	     @cd $(OBJECTS_DIR) ; \
-	     $(LINKLIBSO) $(LOCAL_OBJECTS) -L$(LIB_WM_OPTIONS_DIR) $(LIB_LIBS) $(GLIB_LIBS) -o $(LIB).$(SO)
+	     $(LINKLIBSO) $(LOCAL_OBJECTS) -L$(LIB_PLATFORMS) $(LIB_LIBS) $(GLIB_LIBS) -o $(LIB).$(SO)
 
 lib:     $(LIB).a
 	     @echo \'$(LIB).a\' is up to date.
 
 $(LIB).a: $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(LIB)
+	     @$(WM_SCRIPTS)/makeTargetDir $(LIB)
 	     @rm -f $(LIB).a
 	     $(AR) $(ARFLAGS) $(LIB).a $(OBJECTS)
 	     $(RANLIB) $(LIB).a
@@ -186,7 +187,7 @@ libo:    $(LIB).o
 	     @echo \'$(LIB).o\' is up to date.
 
 $(LIB).o: $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(LIB)
+	     @$(WM_SCRIPTS)/makeTargetDir $(LIB)
 	     @rm -f $(LIB).o
 	     $(LD) -r -o $(LIB).o $(OBJECTS)
 
@@ -194,7 +195,7 @@ jar:     $(LIB).jar
 	     @echo \'$(LIB).jar\' is up to date.
 
 $(LIB).jar: $(OBJECTS)
-	     @$(WM_SCRIPTS)/mkObjectDir $(LIB)
+	     @$(WM_SCRIPTS)/makeTargetDir $(LIB)
 	     jar cfm $(LIB).jar $(LIB_LIBS) -C $(CLASSES_DIR) .
 
 #------------------------------------------------------------------------------

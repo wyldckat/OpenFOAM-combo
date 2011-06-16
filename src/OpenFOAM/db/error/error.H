@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,10 +35,10 @@ Description
     handling has beed switched on (off by default).
 
 Usage
-    @code
+    \code
         error << "message1" << "message2" << FoamDataType << exit(errNo);
         error << "message1" << "message2" << FoamDataType << abort();
-    @endcode
+    \endcode
 
 SourceFiles
     error.C
@@ -61,7 +61,7 @@ Ostream& operator<<(Ostream&, const error&);
 
 
 /*---------------------------------------------------------------------------*\
-                           Class error Declaration
+                            Class error Declaration
 \*---------------------------------------------------------------------------*/
 
 class error
@@ -91,15 +91,14 @@ public:
         error(const string& title);
 
         //- Construct from dictionary
-        error(const dictionary& errDict);
+        error(const dictionary&);
 
         //- Construct as copy
-        error(const error& err);
+        error(const error&);
 
 
-    // Destructor
-
-        virtual ~error() throw();
+    //- Destructor
+    virtual ~error() throw();
 
 
     // Member functions
@@ -131,8 +130,8 @@ public:
             throwExceptions_ = false;
         }
 
-        //- Convert to Ostream
-        //  Prints basic message and then returns Ostream for further info.
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         OSstream& operator()
         (
             const char* functionName,
@@ -140,6 +139,8 @@ public:
             const int sourceFileLineNumber = 0
         );
 
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         OSstream& operator()
         (
             const string& functionName,
@@ -147,11 +148,11 @@ public:
             const int sourceFileLineNumber = 0
         );
 
-        //- Convert to Ostream
-        //  Prints basic message and then returns Ostream for further info.
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         operator OSstream&();
 
-        //- Explicitly convert to Ostream for << operations
+        //- Explicitly convert to OSstream for << operations
         OSstream& operator()()
         {
             return operator OSstream&();
@@ -162,14 +163,14 @@ public:
 
 
         //- Helper function to print a stack
-        static void printStack(Ostream& os);
+        static void printStack(Ostream&);
 
-        //- Exit : can be called for any error to exit program. Prints stack
-        //  before exiting.
+        //- Exit : can be called for any error to exit program.
+        //  Prints stack before exiting.
         void exit(const int errNo = 1);
 
-        //- Abort : used to stop code for fatal errors. Prints stack before
-        //  exiting.
+        //- Abort : used to stop code for fatal errors.
+        //  Prints stack before exiting.
         void abort();
 
 
@@ -180,9 +181,7 @@ public:
 
 
 // Forward declaration of friend functions and operators
-
 class IOerror;
-
 Ostream& operator<<(Ostream&, const IOerror&);
 
 
@@ -210,12 +209,11 @@ public:
         IOerror(const string& title);
 
         //- Construct from dictionary
-        IOerror(const dictionary& errDict);
+        IOerror(const dictionary&);
 
 
-    // Destructor
-
-        virtual ~IOerror() throw();
+    //- Destructor
+    virtual ~IOerror() throw();
 
 
     // Member functions
@@ -235,8 +233,8 @@ public:
             return ioEndLineNumber_;
         }
 
-        //- Convert to Ostream
-        //  Prints basic message and then returns Ostream for further info.
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         OSstream& operator()
         (
             const char* functionName,
@@ -247,8 +245,8 @@ public:
             const label ioEndLineNumber = -1
         );
 
-        //- Convert to Ostream
-        //  Prints basic message and then returns Ostream for further info.
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         OSstream& operator()
         (
             const char* functionName,
@@ -257,8 +255,8 @@ public:
             const IOstream&
         );
 
-        //- Convert to Ostream
-        //  Prints basic message and then returns Ostream for further info.
+        //- Convert to OSstream
+        //  Prints basic message and returns OSstream for further info.
         OSstream& operator()
         (
             const char* functionName,
@@ -287,23 +285,46 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 // Global error declarations: defined in error.C
 
-extern error FatalError;
+extern error   FatalError;
 extern IOerror FatalIOError;
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Convienient macros to add the file name and line number to the function name
-
-#define FatalErrorIn(fn) FatalError(fn, __FILE__, __LINE__)
-#define FatalIOErrorIn(fn, ios) FatalIOError(fn, __FILE__, __LINE__, ios)
-
-// Call for functions which are not currently implemented.
-// The functionName is printed and then abort is called.
-#define notImplemented(fn) \
-    FatalErrorIn(fn) << "Not implemented" << Foam::abort(FatalError);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// Convenience macros to add the file name and line number to the function name
+
+/**
+ * \def FatalErrorIn(functionName)
+ * Report an error message using Foam::FatalError for functionName in
+ * file __FILE__ at line __LINE__
+*/
+#define FatalErrorIn(fn) \
+    ::Foam::FatalError((fn), __FILE__, __LINE__)
+
+/**
+ * \def FatalIOErrorIn(functionName, ios)
+ * Report an error message using Foam::FatalIOError for functionName in
+ * file __FILE__ at line __LINE__
+ * for a particular IOstream
+*/
+#define FatalIOErrorIn(fn, ios) \
+    ::Foam::FatalIOError((fn), __FILE__, __LINE__, (ios))
+
+/**
+ * \def notImplemented(functionName)
+ * Issue a FatalErrorIn for the functionName.
+ * This is used for functions that are not currently implemented.
+ * The functionName is printed and then abort is called.
+ *
+ * \note
+ * This macro can be particularly useful when methods must be defined to
+ * complete the interface of a derived class even if they should never be
+ * called for this derived class.
+*/
+#define notImplemented(fn) \
+    FatalErrorIn(fn) << "Not implemented" << ::Foam::abort(FatalError);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

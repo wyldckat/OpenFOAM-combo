@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Description
+    Cell to face interpolation scheme. Included in fvMesh.
+
 \*---------------------------------------------------------------------------*/
 
 #include "fvMesh.H"
@@ -28,18 +31,21 @@ License
 #include "surfaceFields.H"
 #include "demandDrivenData.H"
 #include "coupledFvPatch.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    defineTypeNameAndDebug(surfaceInterpolation, 0);
-}
+
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+defineTypeNameAndDebug(surfaceInterpolation, 0);
+
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-void Foam::surfaceInterpolation::clearOut()
+void surfaceInterpolation::clearOut()
 {
     deleteDemandDrivenData(weightingFactors_);
     deleteDemandDrivenData(differenceFactors_);
@@ -49,10 +55,8 @@ void Foam::surfaceInterpolation::clearOut()
 
 // * * * * * * * * * * * * * * * * Constructors * * * * * * * * * * * * * * //
 
-Foam::surfaceInterpolation::surfaceInterpolation(const fvMesh& fvm)
+surfaceInterpolation::surfaceInterpolation(const fvMesh& fvm)
 :
-    fvSchemes(static_cast<const objectRegistry&>(fvm)),
-    fvSolution(static_cast<const objectRegistry&>(fvm)),
     mesh_(fvm),
     weightingFactors_(NULL),
     differenceFactors_(NULL),
@@ -63,7 +67,7 @@ Foam::surfaceInterpolation::surfaceInterpolation(const fvMesh& fvm)
 
 // * * * * * * * * * * * * * * * * Destructor * * * * * * * * * * * * * * * //
 
-Foam::surfaceInterpolation::~surfaceInterpolation()
+surfaceInterpolation::~surfaceInterpolation()
 {
     clearOut();
 }
@@ -71,7 +75,7 @@ Foam::surfaceInterpolation::~surfaceInterpolation()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::surfaceScalarField& Foam::surfaceInterpolation::weights() const
+const surfaceScalarField& surfaceInterpolation::weights() const
 {
     if (!weightingFactors_)
     {
@@ -82,7 +86,7 @@ const Foam::surfaceScalarField& Foam::surfaceInterpolation::weights() const
 }
 
 
-const Foam::surfaceScalarField& Foam::surfaceInterpolation::deltaCoeffs() const
+const surfaceScalarField& surfaceInterpolation::deltaCoeffs() const
 {
     if (!differenceFactors_)
     {
@@ -93,7 +97,7 @@ const Foam::surfaceScalarField& Foam::surfaceInterpolation::deltaCoeffs() const
 }
 
 
-bool Foam::surfaceInterpolation::orthogonal() const
+bool surfaceInterpolation::orthogonal() const
 {
     if (orthogonal_ == false && !correctionVectors_)
     {
@@ -104,8 +108,7 @@ bool Foam::surfaceInterpolation::orthogonal() const
 }
 
 
-const Foam::surfaceVectorField&
-Foam::surfaceInterpolation::correctionVectors() const
+const surfaceVectorField& surfaceInterpolation::correctionVectors() const
 {
     if (orthogonal())
     {
@@ -118,7 +121,8 @@ Foam::surfaceInterpolation::correctionVectors() const
 }
 
 
-bool Foam::surfaceInterpolation::movePoints()
+// Do what is neccessary if the mesh has moved
+bool surfaceInterpolation::movePoints()
 {
     deleteDemandDrivenData(weightingFactors_);
     deleteDemandDrivenData(differenceFactors_);
@@ -130,7 +134,7 @@ bool Foam::surfaceInterpolation::movePoints()
 }
 
 
-void Foam::surfaceInterpolation::makeWeights() const
+void surfaceInterpolation::makeWeights() const
 {
     if (debug)
     {
@@ -158,8 +162,8 @@ void Foam::surfaceInterpolation::makeWeights() const
     // (note that we should not use fvMesh sliced fields at this point yet
     //  since this causes a loop when generating weighting factors in
     //  coupledFvPatchField evaluation phase)
-    const unallocLabelList& owner = mesh_.owner();
-    const unallocLabelList& neighbour = mesh_.neighbour();
+    const labelUList& owner = mesh_.owner();
+    const labelUList& neighbour = mesh_.neighbour();
 
     const vectorField& Cf = mesh_.faceCentres();
     const vectorField& C = mesh_.cellCentres();
@@ -198,7 +202,7 @@ void Foam::surfaceInterpolation::makeWeights() const
 }
 
 
-void Foam::surfaceInterpolation::makeDeltaCoeffs() const
+void surfaceInterpolation::makeDeltaCoeffs() const
 {
     if (debug)
     {
@@ -227,8 +231,8 @@ void Foam::surfaceInterpolation::makeDeltaCoeffs() const
 
     // Set local references to mesh data
     const volVectorField& C = mesh_.C();
-    const unallocLabelList& owner = mesh_.owner();
-    const unallocLabelList& neighbour = mesh_.neighbour();
+    const labelUList& owner = mesh_.owner();
+    const labelUList& neighbour = mesh_.neighbour();
     const surfaceVectorField& Sf = mesh_.Sf();
     const surfaceScalarField& magSf = mesh_.magSf();
 
@@ -260,7 +264,7 @@ void Foam::surfaceInterpolation::makeDeltaCoeffs() const
 }
 
 
-void Foam::surfaceInterpolation::makeCorrectionVectors() const
+void surfaceInterpolation::makeCorrectionVectors() const
 {
     if (debug)
     {
@@ -284,8 +288,8 @@ void Foam::surfaceInterpolation::makeCorrectionVectors() const
 
     // Set local references to mesh data
     const volVectorField& C = mesh_.C();
-    const unallocLabelList& owner = mesh_.owner();
-    const unallocLabelList& neighbour = mesh_.neighbour();
+    const labelUList& owner = mesh_.owner();
+    const labelUList& neighbour = mesh_.neighbour();
     const surfaceVectorField& Sf = mesh_.Sf();
     const surfaceScalarField& magSf = mesh_.magSf();
     const surfaceScalarField& DeltaCoeffs = deltaCoeffs();
@@ -317,7 +321,7 @@ void Foam::surfaceInterpolation::makeCorrectionVectors() const
 
             const fvPatch& p = patchcorrVecs.patch();
 
-            vectorField patchDeltas = mesh_.boundary()[patchi].delta();
+            const vectorField patchDeltas(mesh_.boundary()[patchi].delta());
 
             forAll(p, patchFacei)
             {
@@ -333,32 +337,34 @@ void Foam::surfaceInterpolation::makeCorrectionVectors() const
         }
     }
 
-    scalar MaxNonOrthog = 0.0;
+    scalar NonOrthogCoeff = 0.0;
 
     // Calculate the non-orthogonality for meshes with 1 face or more
     if (returnReduce(magSf.size(), sumOp<label>()) > 0)
     {
-        MaxNonOrthog =
+        NonOrthogCoeff = radToDeg
+        (
             asin
             (
                 min
                 (
-                    max(mag(corrVecs)).value(),
+                    (sum(magSf*mag(corrVecs))/sum(magSf)).value(),
                     1.0
                 )
-            )*180.0/mathematicalConstant::pi;
+            )
+        );
     }
 
     if (debug)
     {
         Info<< "surfaceInterpolation::makeCorrectionVectors() : "
-            << "maximum non-orthogonality = " << MaxNonOrthog << " deg."
+            << "non-orthogonality coefficient = " << NonOrthogCoeff << " deg."
             << endl;
     }
 
-    //MaxNonOrthog = 0.0;
+    //NonOrthogCoeff = 0.0;
 
-    if (MaxNonOrthog < 5)
+    if (NonOrthogCoeff < 0.1)
     {
         orthogonal_ = true;
         deleteDemandDrivenData(correctionVectors_);
@@ -376,5 +382,9 @@ void Foam::surfaceInterpolation::makeCorrectionVectors() const
     }
 }
 
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 // ************************************************************************* //

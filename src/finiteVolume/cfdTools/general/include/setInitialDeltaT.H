@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Global
 
 Description
     Set the initial timestep corresponding to the timestep adjustment
-    algorithm in setDeltaT
+    algorithm in setDeltaT but only if it would reduce the timestep.
 
 \*---------------------------------------------------------------------------*/
 
@@ -38,8 +38,8 @@ if (adjustTimeStep)
         (
             min
             (
-                maxCo*runTime.deltaT().value()/CoNum,
-                maxDeltaT
+                maxCo*runTime.deltaTValue()/CoNum,
+                runTime.deltaTValue()
             )
         );
     }

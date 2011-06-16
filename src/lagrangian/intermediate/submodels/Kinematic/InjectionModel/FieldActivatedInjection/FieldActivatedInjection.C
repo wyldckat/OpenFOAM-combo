@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,43 +27,7 @@ License
 #include "volFields.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
-
-template<class CloudType>
-Foam::label Foam::FieldActivatedInjection<CloudType>::parcelsToInject
-(
-    const scalar time0,
-    const scalar time1
-) const
-{
-    if (sum(nParcelsInjected_) < nParcelsPerInjector_*positions_.size())
-    {
-        return positions_.size();
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-
-template<class CloudType>
-Foam::scalar Foam::FieldActivatedInjection<CloudType>::volumeToInject
-(
-    const scalar time0,
-    const scalar time1
-) const
-{
-    if (sum(nParcelsInjected_) < nParcelsPerInjector_*positions_.size())
-    {
-        return this->volumeTotal_/nParcelsPerInjector_;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
+using namespace Foam::constant::mathematical;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -78,14 +42,14 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
     factor_(readScalar(this->coeffDict().lookup("factor"))),
     referenceField_
     (
-        owner.db().objectRegistry::lookupObject<volScalarField>
+        owner.db().objectRegistry::template lookupObject<volScalarField>
         (
             this->coeffDict().lookup("referenceField")
         )
     ),
     thresholdField_
     (
-        owner.db().objectRegistry::lookupObject<volScalarField>
+        owner.db().objectRegistry::template lookupObject<volScalarField>
         (
             this->coeffDict().lookup("thresholdField")
         )
@@ -103,6 +67,8 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
         )
     ),
     injectorCells_(positions_.size()),
+    injectorTetFaces_(positions_.size()),
+    injectorTetPts_(positions_.size()),
     nParcelsPerInjector_
     (
         readLabel(this->coeffDict().lookup("parcelsPerInjector"))
@@ -110,11 +76,11 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
     nParcelsInjected_(positions_.size(), 0),
     U0_(this->coeffDict().lookup("U0")),
     diameters_(positions_.size()),
-    parcelPDF_
+    sizeDistribution_
     (
-        pdfs::pdf::New
+        distributionModels::distributionModel::New
         (
-            this->coeffDict().subDict("parcelPDF"),
+            this->coeffDict().subDict("sizeDistribution"),
             owner.rndGen()
         )
     )
@@ -122,12 +88,12 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
     // Construct parcel diameters - one per injector cell
     forAll(diameters_, i)
     {
-        diameters_[i] = parcelPDF_->sample();
+        diameters_[i] = sizeDistribution_->sample();
     }
 
     // Determine total volume of particles to inject
     this->volumeTotal_ =
-        nParcelsPerInjector_*sum(pow3(diameters_))*mathematicalConstant::pi/6.0;
+        nParcelsPerInjector_*sum(pow3(diameters_))*pi/6.0;
 
     // Set/cache the injector cells
     forAll(positions_, i)
@@ -135,10 +101,35 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
         this->findCellAtPosition
         (
             injectorCells_[i],
+            injectorTetFaces_[i],
+            injectorTetPts_[i],
             positions_[i]
         );
     }
 }
+
+
+template<class CloudType>
+Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
+(
+    const FieldActivatedInjection<CloudType>& im
+)
+:
+    InjectionModel<CloudType>(im),
+    factor_(im.factor_),
+    referenceField_(im.referenceField_),
+    thresholdField_(im.thresholdField_),
+    positionsFile_(im.positionsFile_),
+    positions_(im.positions_),
+    injectorCells_(im.injectorCells_),
+    injectorTetFaces_(im.injectorTetFaces_),
+    injectorTetPts_(im.injectorTetPts_),
+    nParcelsPerInjector_(im.nParcelsPerInjector_),
+    nParcelsInjected_(im.nParcelsInjected_),
+    U0_(im.U0_),
+    diameters_(im.diameters_),
+    sizeDistribution_(im.sizeDistribution_().clone().ptr())
+{}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -151,16 +142,45 @@ Foam::FieldActivatedInjection<CloudType>::~FieldActivatedInjection()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class CloudType>
-bool Foam::FieldActivatedInjection<CloudType>::active() const
+Foam::scalar Foam::FieldActivatedInjection<CloudType>::timeEnd() const
 {
-    return true;
+    return GREAT;
 }
 
 
 template<class CloudType>
-Foam::scalar Foam::FieldActivatedInjection<CloudType>::timeEnd() const
+Foam::label Foam::FieldActivatedInjection<CloudType>::parcelsToInject
+(
+    const scalar time0,
+    const scalar time1
+)
 {
-    return GREAT;
+    if (sum(nParcelsInjected_) < nParcelsPerInjector_*positions_.size())
+    {
+        return positions_.size();
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
+template<class CloudType>
+Foam::scalar Foam::FieldActivatedInjection<CloudType>::volumeToInject
+(
+    const scalar time0,
+    const scalar time1
+)
+{
+    if (sum(nParcelsInjected_) < nParcelsPerInjector_*positions_.size())
+    {
+        return this->volumeTotal_/nParcelsPerInjector_;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 
@@ -171,11 +191,15 @@ void Foam::FieldActivatedInjection<CloudType>::setPositionAndCell
     const label,
     const scalar,
     vector& position,
-    label& cellOwner
+    label& cellOwner,
+    label& tetFaceI,
+    label& tetPtI
 )
 {
     position = positions_[parcelI];
     cellOwner = injectorCells_[parcelI];
+    tetFaceI = injectorTetFaces_[parcelI];
+    tetPtI = injectorTetPts_[parcelI];
 }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,6 +67,8 @@ namespace incompressible
 \*---------------------------------------------------------------------------*/
 
 class turbulenceModel
+:
+    public regIOobject
 {
 
 protected:
@@ -109,9 +111,10 @@ public:
             (
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                transportModel& lamTransportModel
+                transportModel& transport,
+                const word& turbulenceModelName
             ),
-            (U, phi, lamTransportModel)
+            (U, phi, transport, turbulenceModelName)
         );
 
 
@@ -122,7 +125,8 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& lamTransportModel
+            transportModel& transport,
+            const word& turbulenceModelName = typeName
         );
 
 
@@ -133,7 +137,8 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& lamTransportModel
+            transportModel& transport,
+            const word& turbulenceModelName = typeName
         );
 
 
@@ -163,7 +168,7 @@ public:
         }
 
         //- Return the laminar viscosity
-        const volScalarField& nu() const
+        inline tmp<volScalarField> nu() const
         {
             return transportModel_.nu();
         }
@@ -192,8 +197,14 @@ public:
         //- Solve the turbulence equations and correct the turbulence viscosity
         virtual void correct() = 0;
 
-        //- Read turbulenceProperties dictionary
+        //- Read LESProperties or RASProperties dictionary
         virtual bool read() = 0;
+
+        //- Default dummy write function
+        virtual bool writeData(Ostream&) const
+        {
+            return true;
+        }
 };
 
 

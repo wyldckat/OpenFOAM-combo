@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include        "initialConditions"
+#include        "include/initialConditions"
 
 dimensions      [0 2 -2 0 0 0 0];
 
@@ -22,7 +22,7 @@ internalField   uniform $turbulentKE;
 
 boundaryField
 {
-    #include "fixedInlet"
+    #include "include/fixedInlet"
 
     outlet
     {
@@ -34,16 +34,14 @@ boundaryField
     lowerWall
     {
         type            kqRWallFunction;
-        value           $internalField;
     }
 
     "motorBike_.*"
     {
         type            kqRWallFunction;
-        value           $internalField;
     }
 
-    #include "frontBackUpperPatches"
+    #include "include/frontBackUpperPatches"
 }
 
 

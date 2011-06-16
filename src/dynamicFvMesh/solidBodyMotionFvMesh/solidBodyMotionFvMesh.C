@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,10 +26,7 @@ License
 #include "solidBodyMotionFvMesh.H"
 #include "addToRunTimeSelectionTable.H"
 #include "volFields.H"
-#include "mathematicalConstants.H"
 #include "transformField.H"
-
-using namespace Foam::mathematicalConstant;
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -54,8 +51,9 @@ Foam::solidBodyMotionFvMesh::solidBodyMotionFvMesh(const IOobject& io)
                 "dynamicMeshDict",
                 io.time().constant(),
                 *this,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
         ).subDict(typeName + "Coeffs")
     ),

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -165,12 +165,11 @@ public:
         {}
 
 
-    // Destructor
-
-        ~OSHA1stream()
-        {
-            delete &dynamic_cast<osha1stream&>(stream());
-        }
+    //- Destructor
+    ~OSHA1stream()
+    {
+        delete &dynamic_cast<osha1stream&>(stdStream());
+    }
 
 
     // Member functions
@@ -180,7 +179,7 @@ public:
         //- Full access to the sha1
         Foam::SHA1& sha1()
         {
-            return dynamic_cast<osha1stream&>(stream()).sha1();
+            return dynamic_cast<osha1stream&>(stdStream()).sha1();
         }
 
         //- Return SHA1::Digest for the data processed until now

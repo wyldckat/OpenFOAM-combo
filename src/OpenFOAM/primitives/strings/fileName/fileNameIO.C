@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,9 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Istream constructor and IOstream operators for fileName.
-
 \*---------------------------------------------------------------------------*/
 
 #include "fileName.H"
@@ -33,20 +30,40 @@ Description
 
 Foam::fileName::fileName(Istream& is)
 :
-    string(is)
+    string()
 {
-    stripInvalid();
+    is >> *this;
 }
 
 
 Foam::Istream& Foam::operator>>(Istream& is, fileName& fn)
 {
-    fileName fName(is);
+    token t(is);
+
+    if (!t.good())
+    {
+        is.setBad();
+        return is;
+    }
+
+    if (t.isString())
+    {
+        fn = t.stringToken();
+    }
+    else
+    {
+        is.setBad();
+        FatalIOErrorIn("operator>>(Istream&, fileName&)", is)
+            << "wrong token type - expected string, found " << t.info()
+            << exit(FatalIOError);
+
+        return is;
+    }
+
+    fn.stripInvalid();
 
     // Check state of Istream
     is.check("Istream& operator>>(Istream&, fileName&)");
-
-    fn = fName;
 
     return is;
 }

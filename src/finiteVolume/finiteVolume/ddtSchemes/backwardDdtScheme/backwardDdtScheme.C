@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,14 +43,14 @@ namespace fv
 template<class Type>
 scalar backwardDdtScheme<Type>::deltaT_() const
 {
-    return mesh().time().deltaT().value();
+    return mesh().time().deltaTValue();
 }
 
 
 template<class Type>
 scalar backwardDdtScheme<Type>::deltaT0_() const
 {
-    return mesh().time().deltaT0().value();
+    return mesh().time().deltaT0Value();
 }
 
 
@@ -360,7 +360,7 @@ template<class Type>
 tmp<fvMatrix<Type> >
 backwardDdtScheme<Type>::fvmDdt
 (
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -412,7 +412,7 @@ tmp<fvMatrix<Type> >
 backwardDdtScheme<Type>::fvmDdt
 (
     const dimensionedScalar& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -463,7 +463,7 @@ tmp<fvMatrix<Type> >
 backwardDdtScheme<Type>::fvmDdt
 (
     const volScalarField& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -542,7 +542,7 @@ backwardDdtScheme<Type>::fvcDdtPhiCorr
         new fluxFieldType
         (
             ddtIOobject,
-            rDeltaT*fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
+            rDeltaT*this->fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
            *(
                 fvc::interpolate(rA)
                *(
@@ -606,7 +606,7 @@ backwardDdtScheme<Type>::fvcDdtPhiCorr
             new fluxFieldType
             (
                 ddtIOobject,
-                rDeltaT*fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime())
+                rDeltaT*this->fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime())
                *(
                     coefft0*fvc::interpolate(rA*rho.oldTime())
                    *phiAbs.oldTime()
@@ -639,7 +639,7 @@ backwardDdtScheme<Type>::fvcDdtPhiCorr
             (
                 ddtIOobject,
                 rDeltaT
-               *fvcDdtPhiCoeff
+               *this->fvcDdtPhiCoeff
                 (
                     U.oldTime(),
                     phiAbs.oldTime()/fvc::interpolate(rho.oldTime())
@@ -678,10 +678,11 @@ backwardDdtScheme<Type>::fvcDdtPhiCorr
             (
                 ddtIOobject,
                 rDeltaT
-               *fvcDdtPhiCoeff(rho.oldTime(), U.oldTime(), phiAbs.oldTime())
-               *(
+              * this->fvcDdtPhiCoeff
+                (rho.oldTime(), U.oldTime(), phiAbs.oldTime())
+              * (
                     fvc::interpolate(rA)
-                   *(
+                  * (
                        coefft0*phiAbs.oldTime()
                      - coefft00*phiAbs.oldTime().oldTime()
                     )

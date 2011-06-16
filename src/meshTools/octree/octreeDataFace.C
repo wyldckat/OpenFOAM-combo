@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,7 +45,7 @@ void Foam::octreeDataFace::calcBb()
     allBb_.setSize(meshFaces_.size());
     allBb_ = treeBoundBox::invertedBox;
 
-    forAll (meshFaces_, i)
+    forAll(meshFaces_, i)
     {
         // Update bb of face
         treeBoundBox& myBb = allBb_[i];
@@ -514,13 +514,9 @@ bool Foam::octreeDataFace::overlaps
     const face& f = mesh_.faces()[faceI];
 
     const pointField& points = mesh_.points();
-
-    forAll(f, fp)
+    if (sampleBb.containsAny(points, f))
     {
-        if (sampleBb.contains(points[f[fp]]))
-        {
-            return true;
-        }
+        return true;
     }
 
     // 3. Difficult case: all points are outside but connecting edges might

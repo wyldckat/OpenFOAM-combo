@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,7 +76,7 @@ public:
             surfaceInterpolationScheme<Type>(mesh)
         {}
 
-        //- Construct from Istream. 
+        //- Construct from Istream.
         //  The name of the flux field is read from the Istream and looked-up
         //  from the mesh objectRegistry
         localMin
@@ -132,7 +132,7 @@ public:
                 (
                     IOobject
                     (
-                        vf.name(),
+                        "localMin::interpolate(" + vf.name() + ')',
                         mesh.time().timeName(),
                         mesh
                     ),
@@ -147,8 +147,8 @@ public:
                 vff.boundaryField()[patchi] = vf.boundaryField()[patchi];
             }
 
-            const unallocLabelList& own = mesh.owner();
-            const unallocLabelList& nei = mesh.neighbour();
+            const labelUList& own = mesh.owner();
+            const labelUList& nei = mesh.neighbour();
 
             forAll(vff, facei)
             {

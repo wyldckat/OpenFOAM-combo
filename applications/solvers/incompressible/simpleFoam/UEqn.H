@@ -1,4 +1,4 @@
-    // Solve the Momentum equation
+    // Momentum predictor
 
     tmp<fvVectorMatrix> UEqn
     (
@@ -6,14 +6,6 @@
       + turbulence->divDevReff(U)
     );
 
-    // Add resistance on the actuation disks
-    actuationDisks.addSu(UEqn());
-
     UEqn().relax();
 
-    eqnResidual = solve
-    (
-        UEqn() == -fvc::grad(p)
-    ).initialResidual();
-
-    maxResidual = max(eqnResidual, maxResidual);
+    solve(UEqn() == -fvc::grad(p));

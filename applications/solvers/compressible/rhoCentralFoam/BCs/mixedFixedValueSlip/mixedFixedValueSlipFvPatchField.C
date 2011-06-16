@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -135,8 +135,8 @@ void mixedFixedValueSlipFvPatchField<Type>::rmap
 template<class Type>
 tmp<Field<Type> > mixedFixedValueSlipFvPatchField<Type>::snGrad() const
 {
-    vectorField nHat = this->patch().nf();
-    Field<Type> pif = this->patchInternalField();
+    tmp<vectorField> nHat = this->patch().nf();
+    Field<Type> pif(this->patchInternalField());
 
     return
     (
@@ -155,7 +155,7 @@ void mixedFixedValueSlipFvPatchField<Type>::evaluate(const Pstream::commsTypes)
         this->updateCoeffs();
     }
 
-    vectorField nHat = this->patch().nf();
+    vectorField nHat(this->patch().nf());
 
     Field<Type>::operator=
     (
@@ -171,9 +171,10 @@ void mixedFixedValueSlipFvPatchField<Type>::evaluate(const Pstream::commsTypes)
 
 // Return defining fields
 template<class Type>
-tmp<Field<Type> > mixedFixedValueSlipFvPatchField<Type>::snGradTransformDiag() const
+tmp<Field<Type> >
+mixedFixedValueSlipFvPatchField<Type>::snGradTransformDiag() const
 {
-    vectorField nHat = this->patch().nf();
+    vectorField nHat(this->patch().nf());
     vectorField diag(nHat.size());
 
     diag.replace(vector::X, mag(nHat.component(vector::X)));
@@ -182,7 +183,8 @@ tmp<Field<Type> > mixedFixedValueSlipFvPatchField<Type>::snGradTransformDiag() c
 
     return
         valueFraction_*Type(pTraits<Type>::one)
-      + (1.0 - valueFraction_)*transformFieldMask<Type>(pow<vector, pTraits<Type>::rank>(diag));
+      + (1.0 - valueFraction_)
+       *transformFieldMask<Type>(pow<vector, pTraits<Type>::rank>(diag));
 }
 
 

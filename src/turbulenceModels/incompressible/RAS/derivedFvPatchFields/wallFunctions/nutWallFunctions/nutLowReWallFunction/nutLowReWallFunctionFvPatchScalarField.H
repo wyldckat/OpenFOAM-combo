@@ -38,7 +38,7 @@ SourceFiles
 #ifndef nutLowReWallFunctionFvPatchScalarField_H
 #define nutLowReWallFunctionFvPatchScalarField_H
 
-#include "nutWallFunctionFvPatchScalarField.H"
+#include "nutkWallFunctionFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -55,11 +55,11 @@ namespace RASModels
 
 class nutLowReWallFunctionFvPatchScalarField
 :
-    public nutWallFunctionFvPatchScalarField
+    public nutkWallFunctionFvPatchScalarField
 {
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Calculate the turbulence viscosity
         virtual tmp<scalarField> calcNut() const;

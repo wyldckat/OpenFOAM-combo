@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -14,15 +14,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            ("libparMetisDecomp.so");
-
 application     simpleFoam;
 
 startFrom       latestTime;
 
 startTime       0;
 
-stopAt          endTime;
+stopAt          nextWrite;
 
 endTime         500;
 
@@ -30,7 +28,7 @@ deltaT          1;
 
 writeControl    timeStep;
 
-writeInterval   100;
+writeInterval   1;
 
 purgeWrite      0;
 
@@ -44,6 +42,22 @@ timeFormat      general;
 
 timePrecision   6;
 
-runTimeModifiable yes;
+runTimeModifiable true;
+
+libs
+(
+    "libOpenFOAM.so"
+    "libcompressibleTurbulenceModels.so"
+    "libincompressibleRASModels.so"
+);
+
+functions
+{
+    #include "readFields"
+    #include "streamLines"
+    #include "cuttingPlane"
+    #include "forceCoeffs"
+}
+
 
 // ************************************************************************* //

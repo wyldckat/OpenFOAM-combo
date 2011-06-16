@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,164 +30,165 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::preEvolve()
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::setModels()
 {
-    ReactingCloud<ParcelType>::preEvolve();
+    devolatilisationModel_.reset
+    (
+        DevolatilisationModel<ReactingMultiphaseCloud<CloudType> >::New
+        (
+            this->subModelProperties(),
+            *this
+        ).ptr()
+    );
+
+    surfaceReactionModel_.reset
+    (
+        SurfaceReactionModel<ReactingMultiphaseCloud<CloudType> >::New
+        (
+            this->subModelProperties(),
+            *this
+        ).ptr()
+    );
 }
 
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::evolveCloud()
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::cloudReset
+(
+    ReactingMultiphaseCloud<CloudType>& c
+)
 {
-    const volScalarField& T = this->carrierThermo().T();
-    const volScalarField cp = this->carrierThermo().Cp();
-    const volScalarField& p = this->carrierThermo().p();
+    CloudType::cloudReset(c);
 
-    autoPtr<interpolation<scalar> > rhoInterp = interpolation<scalar>::New
-    (
-        this->interpolationSchemes(),
-        this->rho()
-    );
+    devolatilisationModel_.reset(c.devolatilisationModel_.ptr());
+    surfaceReactionModel_.reset(c.surfaceReactionModel_.ptr());
 
-    autoPtr<interpolation<vector> > UInterp = interpolation<vector>::New
-    (
-        this->interpolationSchemes(),
-        this->U()
-    );
-
-    autoPtr<interpolation<scalar> > muInterp = interpolation<scalar>::New
-    (
-        this->interpolationSchemes(),
-        this->mu()
-    );
-
-    autoPtr<interpolation<scalar> > TInterp = interpolation<scalar>::New
-    (
-        this->interpolationSchemes(),
-        T
-    );
-
-    autoPtr<interpolation<scalar> > cpInterp = interpolation<scalar>::New
-    (
-        this->interpolationSchemes(),
-        cp
-    );
-
-    autoPtr<interpolation<scalar> > pInterp = interpolation<scalar>::New
-    (
-        this->interpolationSchemes(),
-        p
-    );
-
-    typename ParcelType::trackData td
-    (
-        *this,
-        constProps_,
-        rhoInterp(),
-        UInterp(),
-        muInterp(),
-        TInterp(),
-        cpInterp(),
-        pInterp(),
-        this->g().value()
-    );
-
-    this->injection().inject(td);
-
-    if (this->coupled())
-    {
-        resetSourceTerms();
-    }
-
-    Cloud<ParcelType>::move(td);
-}
-
-
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::postEvolve()
-{
-    ReactingCloud<ParcelType>::postEvolve();
+    dMassDevolatilisation_ = c.dMassDevolatilisation_;
+    dMassSurfaceReaction_ = c.dMassSurfaceReaction_;
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class ParcelType>
-Foam::ReactingMultiphaseCloud<ParcelType>::ReactingMultiphaseCloud
+template<class CloudType>
+Foam::ReactingMultiphaseCloud<CloudType>::ReactingMultiphaseCloud
 (
     const word& cloudName,
     const volScalarField& rho,
     const volVectorField& U,
     const dimensionedVector& g,
-    basicThermo& thermo,
+    const SLGThermo& thermo,
     bool readFields
 )
 :
-    ReactingCloud<ParcelType>(cloudName, rho, U, g, thermo, false),
+    CloudType(cloudName, rho, U, g, thermo, false),
     reactingMultiphaseCloud(),
-    constProps_(this->particleProperties()),
-    devolatilisationModel_
-    (
-        DevolatilisationModel<ReactingMultiphaseCloud<ParcelType> >::New
-        (
-            this->particleProperties(),
-            *this
-        )
-    ),
-    surfaceReactionModel_
-    (
-        SurfaceReactionModel<ReactingMultiphaseCloud<ParcelType> >::New
-        (
-            this->particleProperties(),
-            *this
-        )
-    ),
-    dMassDevolatilisation_(0.0)
+    cloudCopyPtr_(NULL),
+    constProps_(this->particleProperties(), this->solution().active()),
+    devolatilisationModel_(NULL),
+    surfaceReactionModel_(NULL),
+    dMassDevolatilisation_(0.0),
+    dMassSurfaceReaction_(0.0)
 {
-    if (readFields)
+    if (this->solution().active())
     {
-        ParcelType::readFields(*this);
+        setModels();
+
+        if (readFields)
+        {
+            parcelType::readFields(*this, this->composition());
+        }
+    }
+
+    if (this->solution().resetSourcesOnStartup())
+    {
+        resetSourceTerms();
     }
 }
 
 
+template<class CloudType>
+Foam::ReactingMultiphaseCloud<CloudType>::ReactingMultiphaseCloud
+(
+    ReactingMultiphaseCloud<CloudType>& c,
+    const word& name
+)
+:
+    CloudType(c, name),
+    reactingMultiphaseCloud(),
+    cloudCopyPtr_(NULL),
+    constProps_(c.constProps_),
+    devolatilisationModel_(c.devolatilisationModel_->clone()),
+    surfaceReactionModel_(c.surfaceReactionModel_->clone()),
+    dMassDevolatilisation_(c.dMassDevolatilisation_),
+    dMassSurfaceReaction_(c.dMassSurfaceReaction_)
+{}
+
+
+template<class CloudType>
+Foam::ReactingMultiphaseCloud<CloudType>::ReactingMultiphaseCloud
+(
+    const fvMesh& mesh,
+    const word& name,
+    const ReactingMultiphaseCloud<CloudType>& c
+)
+:
+    CloudType(mesh, name, c),
+    reactingMultiphaseCloud(),
+    cloudCopyPtr_(NULL),
+    constProps_(),
+    devolatilisationModel_(NULL),
+    surfaceReactionModel_(NULL),
+    dMassDevolatilisation_(0.0),
+    dMassSurfaceReaction_(0.0)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template<class ParcelType>
-Foam::ReactingMultiphaseCloud<ParcelType>::~ReactingMultiphaseCloud()
+template<class CloudType>
+Foam::ReactingMultiphaseCloud<CloudType>::~ReactingMultiphaseCloud()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::checkParcelProperties
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::setParcelThermoProperties
 (
-    ParcelType& parcel,
-    const scalar lagrangianDt,
-    const bool fullyDescribed
+    parcelType& parcel,
+    const scalar lagrangianDt
 )
 {
-    ReactingCloud<ParcelType>::checkParcelProperties
-    (
-        parcel,
-        lagrangianDt,
-        fullyDescribed
-    );
+    CloudType::setParcelThermoProperties(parcel, lagrangianDt);
 
     label idGas = this->composition().idGas();
     label idLiquid = this->composition().idLiquid();
     label idSolid = this->composition().idSolid();
 
-    if (!fullyDescribed)
+    parcel.YGas() = this->composition().Y0(idGas);
+    parcel.YLiquid() = this->composition().Y0(idLiquid);
+    parcel.YSolid() = this->composition().Y0(idSolid);
+}
+
+
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::checkParcelProperties
+(
+    parcelType& parcel,
+    const scalar lagrangianDt,
+    const bool fullyDescribed
+)
+{
+    CloudType::checkParcelProperties(parcel, lagrangianDt, fullyDescribed);
+
+    if (fullyDescribed)
     {
-        parcel.YGas() = this->composition().Y0(idGas);
-        parcel.YLiquid() = this->composition().Y0(idLiquid);
-        parcel.YSolid() = this->composition().Y0(idSolid);
-    }
-    else
-    {
+        label idGas = this->composition().idGas();
+        label idLiquid = this->composition().idLiquid();
+        label idSolid = this->composition().idSolid();
+
         this->checkSuppliedComposition
         (
             parcel.YGas(),
@@ -210,43 +211,49 @@ void Foam::ReactingMultiphaseCloud<ParcelType>::checkParcelProperties
 }
 
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::resetSourceTerms()
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::storeState()
 {
-    ReactingCloud<ParcelType>::resetSourceTerms();
+    cloudCopyPtr_.reset
+    (
+        static_cast<ReactingMultiphaseCloud<CloudType>*>
+        (
+            clone(this->name() + "Copy").ptr()
+        )
+    );
 }
 
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::evolve()
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::restoreState()
 {
-    if (this->active())
+    cloudReset(cloudCopyPtr_());
+    cloudCopyPtr_.clear();
+}
+
+
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::resetSourceTerms()
+{
+    CloudType::resetSourceTerms();
+}
+
+
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::evolve()
+{
+    if (this->solution().canEvolve())
     {
-        preEvolve();
+        typename parcelType::template
+            TrackingData<ReactingMultiphaseCloud<CloudType> > td(*this);
 
-        evolveCloud();
-
-        postEvolve();
-
-        info();
-        Info<< endl;
+        this->solve(td);
     }
 }
 
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::info() const
-{
-    ReactingCloud<ParcelType>::info();
-    Info<< "    Mass transfer devolatilisation  = "
-        << returnReduce(dMassDevolatilisation_, sumOp<scalar>()) << nl;
-    Info<< "    Mass transfer surface reaction  = "
-        << returnReduce(dMassSurfaceReaction_, sumOp<scalar>()) << nl;
-}
-
-
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::addToMassDevolatilisation
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::addToMassDevolatilisation
 (
     const scalar dMass
 )
@@ -255,13 +262,34 @@ void Foam::ReactingMultiphaseCloud<ParcelType>::addToMassDevolatilisation
 }
 
 
-template<class ParcelType>
-void Foam::ReactingMultiphaseCloud<ParcelType>::addToMassSurfaceReaction
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::addToMassSurfaceReaction
 (
     const scalar dMass
 )
 {
     dMassSurfaceReaction_ += dMass;
+}
+
+
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::info() const
+{
+    CloudType::info();
+    Info<< "    Mass transfer devolatilisation  = "
+        << returnReduce(dMassDevolatilisation_, sumOp<scalar>()) << nl;
+    Info<< "    Mass transfer surface reaction  = "
+        << returnReduce(dMassSurfaceReaction_, sumOp<scalar>()) << nl;
+}
+
+
+template<class CloudType>
+void Foam::ReactingMultiphaseCloud<CloudType>::writeFields() const
+{
+    if (this->size())
+    {
+        CloudType::particleType::writeFields(*this, this->composition());
+    }
 }
 
 

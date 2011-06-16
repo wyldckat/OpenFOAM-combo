@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,16 +25,13 @@ License
 
 #include "basicSymmetryPointPatchField.H"
 #include "transformField.H"
+#include "symmTransformField.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class Type>
-basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
+Foam::basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 (
     const pointPatch& p,
     const DimensionedField<Type, pointMesh>& iF
@@ -45,7 +42,7 @@ basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 
 
 template<class Type>
-basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
+Foam::basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 (
     const pointPatch& p,
     const DimensionedField<Type, pointMesh>& iF,
@@ -57,7 +54,7 @@ basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 
 
 template<class Type>
-basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
+Foam::basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 (
     const basicSymmetryPointPatchField<Type>& ptf,
     const pointPatch& p,
@@ -70,7 +67,7 @@ basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 
 
 template<class Type>
-basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
+Foam::basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 (
     const basicSymmetryPointPatchField<Type>& ptf,
     const DimensionedField<Type, pointMesh>& iF
@@ -83,22 +80,26 @@ basicSymmetryPointPatchField<Type>::basicSymmetryPointPatchField
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-void basicSymmetryPointPatchField<Type>::evaluate(const Pstream::commsTypes)
+void Foam::basicSymmetryPointPatchField<Type>::evaluate
+(
+    const Pstream::commsTypes
+)
 {
     const vectorField& nHat = this->patch().pointNormals();
 
     tmp<Field<Type> > tvalues =
-        transform(I - nHat*nHat, this->patchInternalField());
+    (
+        (
+            this->patchInternalField()
+          + transform(I - 2.0*sqr(nHat), this->patchInternalField())
+        )/2.0
+    );
 
     // Get internal field to insert values into
     Field<Type>& iF = const_cast<Field<Type>&>(this->internalField());
 
-    setInInternalField(iF, tvalues());
+    this->setInInternalField(iF, tvalues());
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

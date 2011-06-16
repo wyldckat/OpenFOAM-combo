@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -78,9 +78,8 @@ public:
         surfaceRegistry(const objectRegistry&, const word& surfName = "");
 
 
-    // Destructor
-
-        virtual ~surfaceRegistry();
+    //- Destructor
+    virtual ~surfaceRegistry();
 };
 
 

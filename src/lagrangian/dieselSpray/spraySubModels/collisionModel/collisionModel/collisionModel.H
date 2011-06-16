@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,7 +34,7 @@ Description
 
 #include "IOdictionary.H"
 #include "spray.H"
-#include "Random.H"
+#include "cachedRandom.H"
 #include "Switch.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
@@ -56,7 +56,7 @@ protected:
     // Protected data
         const dictionary& dict_;
         spray& spray_;
-        Random& rndGen_;
+        cachedRandom& rndGen_;
 
         //dictionary coeffsDict_;
 
@@ -76,7 +76,7 @@ public:
             (
                 const dictionary& dict,
                 spray& sm,
-                Random& rndGen
+                cachedRandom& rndGen
             ),
             (dict, sm, rndGen)
         );
@@ -89,13 +89,12 @@ public:
         (
             const dictionary& dict,
             spray& sm,
-            Random& rndGen
+            cachedRandom& rndGen
         );
 
 
-    // Destructor
-
-        virtual ~collisionModel();
+    //- Destructor
+    virtual ~collisionModel();
 
 
     // Selector
@@ -104,7 +103,7 @@ public:
         (
             const dictionary& dict,
             spray& sm,
-            Random& rndGen
+            cachedRandom& rndGen
         );
 
 

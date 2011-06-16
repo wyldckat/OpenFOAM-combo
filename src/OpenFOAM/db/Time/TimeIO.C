@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "Time.H"
-#include "PstreamReduceOps.H"
+#include "Pstream.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -94,7 +94,7 @@ void Foam::Time::readDict()
 
     if (controlDict_.found("timeFormat"))
     {
-        word formatName(controlDict_.lookup("timeFormat"));
+        const word formatName(controlDict_.lookup("timeFormat"));
 
         if (formatName == "general")
         {
@@ -168,6 +168,12 @@ void Foam::Time::readDict()
 
         Pout.precision(IOstream::defaultPrecision());
         Perr.precision(IOstream::defaultPrecision());
+
+        FatalError().precision(IOstream::defaultPrecision());
+        FatalIOError.error::operator()().precision
+        (
+            IOstream::defaultPrecision()
+        );
     }
 
     if (controlDict_.found("writeCompression"))
@@ -180,6 +186,12 @@ void Foam::Time::readDict()
 
     controlDict_.readIfPresent("graphFormat", graphFormat_);
     controlDict_.readIfPresent("runTimeModifiable", runTimeModifiable_);
+
+    if (!runTimeModifiable_ && controlDict_.watchIndex() != -1)
+    {
+        removeWatch(controlDict_.watchIndex());
+        controlDict_.watchIndex() = -1;
+    }
 }
 
 
@@ -201,35 +213,32 @@ void Foam::Time::readModifiedObjects()
 {
     if (runTimeModifiable_)
     {
-        // For parallel runs check if any object's file has been modified
-        // and only call readIfModified on each object if this is the case
-        // to avoid unnecessary reductions in readIfModified for each object
+        // Get state of all monitored objects (=registered objects with a
+        // valid filePath).
+        // Note: requires same ordering in objectRegistries on different
+        // processors!
+        monitorPtr_().updateStates
+        (
+            (
+                regIOobject::fileModificationChecking == inotifyMaster
+             || regIOobject::fileModificationChecking == timeStampMaster
+            ),
+            Pstream::parRun()
+        );
 
-        bool anyModified = true;
+        // Time handling is special since controlDict_ is the one dictionary
+        // that is not registered to any database.
 
-        if (Pstream::parRun())
+        if (controlDict_.readIfModified())
         {
-            anyModified = controlDict_.modified() || objectRegistry::modified();
-            bool anyModifiedOnThisProc = anyModified;
-            reduce(anyModified, andOp<bool>());
-
-            if (anyModifiedOnThisProc && !anyModified)
-            {
-                WarningIn("Time::readModifiedObjects()")
-                    << "Delaying reading objects due to inconsistent "
-                       "file time-stamps between processors"
-                    << endl;
-            }
+           readDict();
+           functionObjects_.read();
         }
 
-        if (anyModified)
-        {
-            if (controlDict_.readIfModified())
-            {
-                readDict();
-                functionObjects_.read();
-            }
+        bool registryModified = objectRegistry::modified();
 
+        if (registryModified)
+        {
             objectRegistry::readModifiedObjects();
         }
     }

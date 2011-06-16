@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,10 +32,10 @@ License
 
 // set values for what is close to zero and what is considered to
 // be positive (and not just rounding noise)
-//! @cond localScope
+//! \cond localScope
 const Foam::scalar zeroish  = Foam::SMALL;
 const Foam::scalar positive = Foam::SMALL * 1E3;
-//! @endcond localScope
+//! \endcond
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -44,7 +44,7 @@ void Foam::cuttingPlane::calcCutCells
 (
     const primitiveMesh& mesh,
     const scalarField& dotProducts,
-    const UList<label>& cellIdLabels
+    const labelUList& cellIdLabels
 )
 {
     const labelListList& cellEdges = mesh.cellEdges();
@@ -165,7 +165,7 @@ void Foam::cuttingPlane::intersectEdges
 bool Foam::cuttingPlane::walkCell
 (
     const primitiveMesh& mesh,
-    const UList<label>& edgePoint,
+    const labelUList& edgePoint,
     const label cellI,
     const label startEdgeI,
     DynamicList<label>& faceVerts
@@ -257,7 +257,8 @@ bool Foam::cuttingPlane::walkCell
 void Foam::cuttingPlane::walkCellCuts
 (
     const primitiveMesh& mesh,
-    const UList<label>& edgePoint
+    const bool triangulate,
+    const labelUList& edgePoint
 )
 {
     const pointField& cutPoints = this->points();
@@ -292,7 +293,7 @@ void Foam::cuttingPlane::walkCellCuts
         // Check for the unexpected ...
         if (startEdgeI == -1)
         {
-            FatalErrorIn("Foam::cuttingPlane::walkCellCuts")
+            FatalErrorIn("Foam::cuttingPlane::walkCellCuts(..)")
                 << "Cannot find cut edge for cut cell " << cellI
                 << abort(FatalError);
         }
@@ -314,13 +315,21 @@ void Foam::cuttingPlane::walkCellCuts
             // Orient face to point in the same direction as the plane normal
             if ((f.normal(cutPoints) & normal()) < 0)
             {
-                f = f.reverseFace();
+                f.flip();
             }
 
-            // the cut faces are usually quite ugly, so always triangulate
-            label nTri = f.triangles(cutPoints, dynCutFaces);
-            while (nTri--)
+            // the cut faces are usually quite ugly, so optionally triangulate
+            if (triangulate)
             {
+                label nTri = f.triangles(cutPoints, dynCutFaces);
+                while (nTri--)
+                {
+                    dynCutCells.append(cellI);
+                }
+            }
+            else
+            {
+                dynCutFaces.append(f);
                 dynCutCells.append(cellI);
             }
         }
@@ -345,12 +354,13 @@ Foam::cuttingPlane::cuttingPlane
 (
     const plane& pln,
     const primitiveMesh& mesh,
-    const UList<label>& cellIdLabels
+    const bool triangulate,
+    const labelUList& cellIdLabels
 )
 :
     plane(pln)
 {
-    reCut(mesh, cellIdLabels);
+    reCut(mesh, triangulate, cellIdLabels);
 }
 
 
@@ -361,13 +371,14 @@ Foam::cuttingPlane::cuttingPlane
 void Foam::cuttingPlane::reCut
 (
     const primitiveMesh& mesh,
-    const UList<label>& cellIdLabels
+    const bool triangulate,
+    const labelUList& cellIdLabels
 )
 {
     MeshStorage::clear();
     cutCells_.clear();
 
-    scalarField dotProducts = (mesh.points() - refPoint()) & normal();
+    const scalarField dotProducts((mesh.points() - refPoint()) & normal());
 
     // Determine cells that are (probably) cut.
     calcCutCells(mesh, dotProducts, cellIdLabels);
@@ -378,14 +389,14 @@ void Foam::cuttingPlane::reCut
     intersectEdges(mesh, dotProducts, edgePoint);
 
     // Do topological walk around cell to find closed loop.
-    walkCellCuts(mesh, edgePoint);
+    walkCellCuts(mesh, triangulate, edgePoint);
 }
 
 
 // remap action on triangulation
 void Foam::cuttingPlane::remapFaces
 (
-    const UList<label>& faceMap
+    const labelUList& faceMap
 )
 {
     // recalculate the cells cut

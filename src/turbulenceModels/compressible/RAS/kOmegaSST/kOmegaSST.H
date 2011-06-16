@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,12 +28,12 @@ Description
     Implementation of the k-omega-SST turbulence model for compressible flows.
 
     Turbulence model described in:
-    @verbatim
+    \verbatim
         Menter, F., Esch, T.
         "Elements of Industrial Heat Transfer Prediction"
         16th Brazilian Congress of Mechanical Engineering (COBEM),
         Nov. 2001
-    @endverbatim
+    \endverbatim
 
     Note that this implementation is written in terms of alpha diffusion
     coefficients rather than the more traditional sigma (alpha = 1/sigma) so
@@ -52,7 +52,7 @@ Description
     sufficiently small blending u_tau in this manner clearly becomes nonsense.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         kOmegaSSTCoeffs
         {
             alphaK1     0.85034;
@@ -68,13 +68,10 @@ Description
             a1          0.31;
             c1          10.0;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     kOmegaSST.C
-    kOmegaWallFunctionsI.H
-    kOmegaWallViscosityI.H
-    wallOmegaI.H
 
 \*---------------------------------------------------------------------------*/
 
@@ -101,7 +98,10 @@ class kOmegaSST
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -137,7 +137,7 @@ class kOmegaSST
             volScalarField alphat_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         tmp<volScalarField> F1(const volScalarField& CDkOmega) const;
         tmp<volScalarField> F2() const;
@@ -187,7 +187,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -221,13 +223,10 @@ public:
             return mut_;
         }
 
-        //- Return the effective turbulent thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat_ + alpha())
-            );
+            return alphat_;
         }
 
         //- Return the turbulence kinetic energy

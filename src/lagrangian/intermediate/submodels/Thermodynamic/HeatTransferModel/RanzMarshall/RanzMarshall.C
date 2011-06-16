@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template <class CloudType>
+template<class CloudType>
 Foam::RanzMarshall<CloudType>::RanzMarshall
 (
     const dictionary& dict,
@@ -38,23 +38,23 @@ Foam::RanzMarshall<CloudType>::RanzMarshall
 {}
 
 
+template<class CloudType>
+Foam::RanzMarshall<CloudType>::RanzMarshall(const RanzMarshall<CloudType>& htm)
+:
+    HeatTransferModel<CloudType>(htm)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template <class CloudType>
+template<class CloudType>
 Foam::RanzMarshall<CloudType>::~RanzMarshall()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template <class CloudType>
-bool Foam::RanzMarshall<CloudType>::active() const
-{
-    return true;
-}
-
-
-template <class CloudType>
+template<class CloudType>
 Foam::scalar Foam::RanzMarshall<CloudType>::Nu
 (
     const scalar Re,

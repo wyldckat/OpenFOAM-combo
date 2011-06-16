@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,8 @@ SourceFiles
 
 #include "HashTable.H"
 #include "StaticAssert.H"
+#include "stringList.H"
+#include "wordList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -86,6 +88,12 @@ public:
 
         //- Write the name representation of the enumeration to an Ostream
         void write(const Enum e, Ostream&) const;
+
+        //- The set of names as a list of strings
+        static stringList strings();
+
+        //- The set of names as a list of words
+        static wordList words();
 
 
     // Member Operators

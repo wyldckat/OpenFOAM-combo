@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,9 +76,9 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
     label nPatchEdges = 0;
 
-    forAll (patchNames_, i)
+    forAll(patchNames_, i)
     {
-        label pID = bdry.findPatchID(patchNames_[i]);
+        const label pID = bdry.findPatchID(patchNames_[i]);
 
         if (pID > -1)
         {
@@ -90,6 +90,9 @@ void Foam::inversePointDistanceDiffusivity::correct()
     // Distance to wall on points and edges.
     List<pointEdgePoint> pointWallDist(mesh.nPoints());
     List<pointEdgePoint> edgeWallDist(mesh.nEdges());
+
+    int dummyTrackData = 0;
+
 
     {
         // Seeds
@@ -108,7 +111,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
             {
                 label pointI = meshPoints[i];
 
-                if (!pointWallDist[pointI].valid())
+                if (!pointWallDist[pointI].valid(dummyTrackData))
                 {
                     // Not yet seeded
                     seedInfo[nPatchEdges] = pointEdgePoint
@@ -135,7 +138,8 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
             pointWallDist,
             edgeWallDist,
-            mesh.globalData().nTotalPoints() // max iterations
+            mesh.globalData().nTotalPoints(),// max iterations
+            dummyTrackData
         );
     }
 
@@ -161,7 +165,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
         if (patchSet.found(patchI))
         {
-            const unallocLabelList& faceCells = bfld.patch().faceCells();
+            const labelUList& faceCells = bfld.patch().faceCells();
 
             forAll(bfld, i)
             {
@@ -190,7 +194,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
         }
         else
         {
-            label start = bfld.patch().patch().start();
+            const label start = bfld.patch().start();
 
             forAll(bfld, i)
             {

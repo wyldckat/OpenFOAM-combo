@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,14 +26,13 @@ Class
 
 Description
     Patch injection
-
     - User specifies
       - Total mass to inject
       - Name of patch
       - Injection duration
       - Initial parcel velocity
       - Injection volume flow rate
-    - Parcel diameters obtained by PDF model
+    - Parcel diameters obtained by distribution model
     - Parcels injected at cell centres adjacent to patch
 
 SourceFiles
@@ -54,7 +53,7 @@ namespace Foam
 template<class Type>
 class DataEntry;
 
-class pdf;
+class distributionModel;
 
 /*---------------------------------------------------------------------------*\
                        Class PatchInjection Declaration
@@ -70,6 +69,9 @@ class PatchInjection
         //- Name of patch
         const word patchName_;
 
+        //- Id of patch
+        const label patchId_;
+
         //- Injection duration [s]
         const scalar duration_;
 
@@ -79,52 +81,41 @@ class PatchInjection
         //- Initial parcel velocity [m/s]
         const vector U0_;
 
-        //- Volume flow rate of parcels to introduce relative to SOI [m^3/s]
-        const autoPtr<DataEntry<scalar> > volumeFlowRate_;
+        //- Flow rate profile relative to SOI []
+        const autoPtr<DataEntry<scalar> > flowRateProfile_;
 
-        //- Parcel size PDF model
-        const autoPtr<pdfs::pdf> parcelPDF_;
+        //- Parcel size distribution model
+        const autoPtr<distributionModels::distributionModel> sizeDistribution_;
 
-        //- Cell owners
+        //- List of cell labels corresponding to injector positions
         labelList cellOwners_;
 
         //- Fraction of injection controlled by this processor
         scalar fraction_;
 
 
-protected:
-
-    // Protected member functions
-
-        //- Number of parcels to introduce over the time step relative to SOI
-        label parcelsToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
-
-        //- Volume of parcels to introduce over the time step relative to SOI
-        scalar volumeToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
-
-
 public:
 
     //- Runtime type information
-    TypeName("PatchInjection");
+    TypeName("patchInjection");
 
 
     // Constructors
 
         //- Construct from dictionary
-        PatchInjection
-        (
-            const dictionary& dict,
-            CloudType& owner
-        );
+        PatchInjection(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
+        PatchInjection(const PatchInjection<CloudType>& im);
+
+        //- Construct and return a clone
+        virtual autoPtr<InjectionModel<CloudType> > clone() const
+        {
+            return autoPtr<InjectionModel<CloudType> >
+            (
+                new PatchInjection<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -133,23 +124,28 @@ public:
 
     // Member Functions
 
-        //- Flag to indicate whether model activates injection model
-        bool active() const;
-
         //- Return the end-of-injection time
         scalar timeEnd() const;
+
+        //- Number of parcels to introduce relative to SOI
+        virtual label parcelsToInject(const scalar time0, const scalar time1);
+
+        //- Volume of parcels to introduce relative to SOI
+        virtual scalar volumeToInject(const scalar time0, const scalar time1);
 
 
         // Injection geometry
 
-            //- Set the injection position and owner cell
+            //- Set the injection position and owner cell, tetFace and tetPt
             virtual void setPositionAndCell
             (
                 const label parcelI,
                 const label nParcels,
                 const scalar time,
                 vector& position,
-                label& cellOwner
+                label& cellOwner,
+                label& tetFaceI,
+                label& tetPtI
             );
 
             virtual void setProperties

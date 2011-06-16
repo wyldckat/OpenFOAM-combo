@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,18 +22,16 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Finds nearest triangle and vertex.
+    Finds nearest face and vertex.
 
 \*---------------------------------------------------------------------------*/
 
-#include "triSurface.H"
 #include "argList.H"
 #include "OFstream.H"
 
-#ifndef namespaceFoam
-#define namespaceFoam
-    using namespace Foam;
-#endif
+#include "MeshedSurfaces.H"
+
+using namespace Foam;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -42,26 +40,24 @@ Description
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validOptions.insert("x", "X");
-    argList::validOptions.insert("y", "Y");
-    argList::validOptions.insert("z", "Z");
-
-    argList::validArgs.append("surface file");
+    argList::validArgs.append("surfaceFile");
+    argList::addOption("x", "X", "The point x-coordinate (if non-zero)");
+    argList::addOption("y", "Y", "The point y-coordinate (if non-zero)");
+    argList::addOption("z", "Z", "The point y-coordinate (if non-zero)");
 
     argList args(argc, argv);
 
-    point samplePt
+    const point samplePt
     (
-        args.optionRead<scalar>("x"),
-        args.optionRead<scalar>("y"),
-        args.optionRead<scalar>("z")
+        args.optionLookupOrDefault<scalar>("x", 0),
+        args.optionLookupOrDefault<scalar>("y", 0),
+        args.optionLookupOrDefault<scalar>("z", 0)
     );
     Info<< "Looking for nearest face/vertex to " << samplePt << endl;
 
 
-    Info<< "Reading surf1 ..." << endl;
-    triSurface surf1(args.additionalArgs()[0]);
+    Info<< "Reading surf ..." << endl;
+    meshedSurface surf1(args[1]);
 
     //
     // Nearest vertex
@@ -82,11 +78,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info<< "Nearest vertex:" << endl
-        << "    index      :" << minIndex << " (in localPoints)" << endl
+    Info<< "Nearest vertex:" << nl
+        << "    index      :" << minIndex << " (in localPoints)" << nl
         << "    index      :" << surf1.meshPoints()[minIndex]
-        << " (in points)" << endl
-        << "    coordinates:" << localPoints[minIndex] << endl
+        << " (in points)" << nl
+        << "    coordinates:" << localPoints[minIndex] << nl
         << endl;
 
     //
@@ -100,8 +96,7 @@ int main(int argc, char *argv[])
 
     forAll(surf1, faceI)
     {
-        const labelledTri& f = surf1[faceI];
-        const point centre = f.centre(points);
+        const point centre = surf1[faceI].centre(points);
 
         const scalar dist = mag(centre - samplePt);
         if (dist < minDist)
@@ -111,18 +106,21 @@ int main(int argc, char *argv[])
         }
     }
 
-    const labelledTri& f = surf1[minIndex];
+    const face& f = surf1[minIndex];
 
-    Info<< "Face with nearest centre:" << endl
-        << "    index        :" << minIndex << endl
-        << "    centre       :" << f.centre(points) << endl
-        << "    face         :" << f << endl
-        << "    vertex coords:" << points[f[0]] << " "
-        << points[f[1]] << " " << points[f[2]] << endl
-        << endl;
+    Info<< "Face with nearest centre:" << nl
+        << "    index        :" << minIndex << nl
+        << "    centre       :" << f.centre(points) << nl
+        << "    face         :" << f << nl
+        << "    vertex coords:\n";
+    forAll(f, fp)
+    {
+        Info<< "        " << points[f[fp]] << "\n";
+    }
 
+    Info<< endl;
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

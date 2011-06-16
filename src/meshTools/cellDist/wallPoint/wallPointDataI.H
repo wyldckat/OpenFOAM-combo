@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -32,19 +30,20 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-
 // Update this with w2 if w2 nearer to pt.
 template <class Type>
+template <class TrackingData>
 inline bool wallPointData<Type>::update
 (
     const point& pt,
     const wallPointData<Type>& w2,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     scalar dist2 = magSqr(pt - w2.origin());
 
-    if (!valid())
+    if (!valid(td))
     {
         // current not yet set so use any value
         distSqr() = dist2;
@@ -52,7 +51,7 @@ inline bool wallPointData<Type>::update
         data_ = w2.data();
 
         return true;
-    }        
+    }
 
     scalar diff = distSqr() - dist2;
 
@@ -77,7 +76,7 @@ inline bool wallPointData<Type>::update
         return true;
     }
 }
-    
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -122,13 +121,15 @@ inline Type& wallPointData<Type>::data()
 
 // Update this with w2 if w2 nearer to pt.
 template <class Type>
+template <class TrackingData>
 inline bool wallPointData<Type>::updateCell
 (
     const polyMesh& mesh,
     const label thisCellI,
     const label,
     const wallPointData<Type>& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& cellCentres = mesh.primitiveMesh::cellCentres();
@@ -137,20 +138,23 @@ inline bool wallPointData<Type>::updateCell
     (
         cellCentres[thisCellI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // Update this with w2 if w2 nearer to pt.
 template <class Type>
+template <class TrackingData>
 inline bool wallPointData<Type>::updateFace
 (
     const polyMesh& mesh,
     const label thisFaceI,
     const label,
     const wallPointData<Type>& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& faceCentres = mesh.faceCentres();
@@ -159,19 +163,22 @@ inline bool wallPointData<Type>::updateFace
     (
         faceCentres[thisFaceI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // Update this with w2 if w2 nearer to pt.
 template <class Type>
+template <class TrackingData>
 inline bool wallPointData<Type>::updateFace
 (
     const polyMesh& mesh,
     const label thisFaceI,
     const wallPointData<Type>& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& faceCentres = mesh.faceCentres();
@@ -180,9 +187,10 @@ inline bool wallPointData<Type>::updateFace
     (
         faceCentres[thisFaceI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // ************************************************************************* //

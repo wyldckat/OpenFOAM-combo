@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ Description
 Foam::label Foam::cell::opposingFaceLabel
 (
     const label masterFaceLabel,
-    const unallocFaceList& meshFaces
+    const faceUList& meshFaces
 ) const
 {
     // Algorithm:
@@ -54,7 +54,7 @@ Foam::label Foam::cell::opposingFaceLabel
 
     label oppositeFaceLabel = -1;
 
-    forAll (curFaceLabels, faceI)
+    forAll(curFaceLabels, faceI)
     {
         // Compare the face with the master
         const face& curFace = meshFaces[curFaceLabels[faceI]];
@@ -70,11 +70,11 @@ Foam::label Foam::cell::opposingFaceLabel
 
             // Compare every vertex of the current face agains the
             // vertices of the master face
-            forAll (curFace, pointI)
+            forAll(curFace, pointI)
             {
                 const label l = curFace[pointI];
 
-                forAll (masterFace, masterPointI)
+                forAll(masterFace, masterPointI)
                 {
                     if (masterFace[masterPointI] == l)
                     {
@@ -98,7 +98,7 @@ Foam::label Foam::cell::opposingFaceLabel
                 {
                     // There has already been an opposite face.
                     // Non-prismatic cell
-                    Info<< "Multiple faces not sharing vertex: " 
+                    Info<< "Multiple faces not sharing vertex: "
                         << oppositeFaceLabel << " and "
                         << curFaceLabels[faceI] << endl;
                     return -1;
@@ -114,7 +114,7 @@ Foam::label Foam::cell::opposingFaceLabel
 Foam::oppositeFace Foam::cell::opposingFace
 (
     const label masterFaceLabel,
-    const unallocFaceList& meshFaces
+    const faceUList& meshFaces
 ) const
 {
     // Get the label of the opposite face
@@ -149,11 +149,11 @@ Foam::oppositeFace Foam::cell::opposingFace
             oppFaceLabel
         );
 
-        forAll (masterFace, pointI)
+        forAll(masterFace, pointI)
         {
             // Go through the list of edges and find the edge from this vertex
             // to the slave face
-            forAll (e, edgeI)
+            forAll(e, edgeI)
             {
                 if (!usedEdges[edgeI])
                 {
@@ -166,7 +166,7 @@ Foam::oppositeFace Foam::cell::opposingFace
                         // Found an edge coming from this vertex.
                         // Check all vertices of the slave to find out
                         // if it exists.
-                        forAll (slaveFace, slavePointI)
+                        forAll(slaveFace, slavePointI)
                         {
                             if (slaveFace[slavePointI] == otherVertex)
                             {

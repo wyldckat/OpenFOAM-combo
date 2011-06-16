@@ -35,31 +35,34 @@ core
 lnInclude
 
 # build folders - anywhere
+linux*Clang*/
 linux*Gcc*/
 linux*Icc*/
 linuxming*/
 SiCortex*Gcc*/
 solaris*Gcc*/
 SunOS*Gcc*/
-
-# debian/ derived files
-build-stamp
-debian/files
-debian/openfoam170.debhelper.log
-debian/openfoam170.substvars
-debian/openfoam170/
-debian/stamp-patched
+platforms/
 
 # reinstate wmake/rules that might look like build folders
 !wmake/rules/*/
 
 # doxygen generated documentation
-doc/[Dd]oxygen/html
-doc/[Dd]oxygen/latex
-doc/[Dd]oxygen/man
+doc/Doxygen/html
+doc/Doxygen/latex
+doc/Doxygen/man
+doc/Doxygen/DTAGS
 
 # generated files in the main directory (e.g. ReleaseNotes-?.?.html)
+# and in the doc directory
 /*.html
+/doc/*.html
+
+# untracked configuration files
+/etc/prefs.csh
+/etc/prefs.sh
+/etc/config/prefs.csh
+/etc/config/prefs.sh
 
 # source packages - anywhere
 *.tar.bz2
@@ -76,5 +79,9 @@ doc/[Dd]oxygen/man
 
 # ignore .tags in the main directory
 /.tags
+
+# ignore eclipse project files in the main directory
+/.cproject
+/.project
 
 # end-of-file

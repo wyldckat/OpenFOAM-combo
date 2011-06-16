@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -92,12 +92,11 @@ public:
         {}
 
 
-    // Destructor
-
-        ~IStringStream()
-        {
-            delete &dynamic_cast<std::istringstream&>(stream());
-        }
+    //- Destructor
+    ~IStringStream()
+    {
+        delete &dynamic_cast<std::istringstream&>(stdStream());
+    }
 
 
     // Member functions
@@ -107,7 +106,10 @@ public:
             //- Return the string
             string str() const
             {
-                return dynamic_cast<const std::istringstream&>(stream()).str();
+                return dynamic_cast<const std::istringstream&>
+                (
+                    stdStream()
+                ).str();
             }
 
 

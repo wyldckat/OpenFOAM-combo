@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,14 +29,9 @@ License
 #include "HashTable.H"
 #include "hashSignedLabel.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void triSurface::writeSTLASCII(Ostream& os) const
+void Foam::triSurface::writeSTLASCII(Ostream& os) const
 {
     labelList faceMap;
 
@@ -48,7 +43,7 @@ void triSurface::writeSTLASCII(Ostream& os) const
         // Print all faces belonging to this region
         const surfacePatch& patch = myPatches[patchI];
 
-        os << "solid " << patch.name() << endl;
+        os  << "solid " << patch.name() << endl;
 
         for
         (
@@ -62,8 +57,8 @@ void triSurface::writeSTLASCII(Ostream& os) const
             const vector& n = faceNormals()[faceI];
 
             os  << "  facet normal "
-                << n.x() << ' ' << n.y() << ' ' << n.z() << endl;
-            os  << "    outer loop" << endl;
+                << n.x() << ' ' << n.y() << ' ' << n.z() << nl
+                << "    outer loop" << endl;
 
             const labelledTri& f = (*this)[faceI];
             const point& pa = points()[f[0]];
@@ -71,23 +66,21 @@ void triSurface::writeSTLASCII(Ostream& os) const
             const point& pc = points()[f[2]];
 
             os  << "       vertex "
-                << pa.x() << ' ' << pa.y() << ' ' << pa.z() << endl;
-            os  << "       vertex "
-                << pb.x() << ' ' << pb.y() << ' ' << pb.z() << endl;
-            os  << "       vertex "
-                << pc.x() << ' ' << pc.y() << ' ' << pc.z() << endl;
-            os
-                << "    endloop" << endl;
-            os
+                << pa.x() << ' ' << pa.y() << ' ' << pa.z() << nl
+                << "       vertex "
+                << pb.x() << ' ' << pb.y() << ' ' << pb.z() << nl
+                << "       vertex "
+                << pc.x() << ' ' << pc.y() << ' ' << pc.z() << nl
+                << "    endloop" << nl
                 << "  endfacet" << endl;
         }
 
-        os << "endsolid " << patch.name() << endl;
+        os  << "endsolid " << patch.name() << endl;
     }
 }
 
 
-void triSurface::writeSTLBINARY(std::ostream& os) const
+void Foam::triSurface::writeSTLBINARY(std::ostream& os) const
 {
     // Write the STL header
     string header("Foam binary STL", STLheaderSize);
@@ -114,9 +107,5 @@ void triSurface::writeSTLBINARY(std::ostream& os) const
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

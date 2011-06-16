@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,6 +50,7 @@ timeVaryingMappedFixedValueFvPatchField
     fixedValueFvPatchField<Type>(p, iF),
     fieldTableName_(iF.name()),
     setAverage_(false),
+    perturb_(0),
     referenceCS_(NULL),
     nearestVertex_(0),
     nearestVertexWeight_(0),
@@ -76,6 +77,7 @@ timeVaryingMappedFixedValueFvPatchField
     fixedValueFvPatchField<Type>(ptf, p, iF, mapper),
     fieldTableName_(ptf.fieldTableName_),
     setAverage_(ptf.setAverage_),
+    perturb_(ptf.perturb_),
     referenceCS_(NULL),
     nearestVertex_(0),
     nearestVertexWeight_(0),
@@ -101,6 +103,7 @@ timeVaryingMappedFixedValueFvPatchField
     fixedValueFvPatchField<Type>(p, iF),
     fieldTableName_(iF.name()),
     setAverage_(readBool(dict.lookup("setAverage"))),
+    perturb_(dict.lookupOrDefault("perturb", 1E-5)),
     referenceCS_(NULL),
     nearestVertex_(0),
     nearestVertexWeight_(0),
@@ -112,10 +115,7 @@ timeVaryingMappedFixedValueFvPatchField
     endSampledValues_(0),
     endAverage_(pTraits<Type>::zero)
 {
-    if (dict.found("fieldTableName"))
-    {
-        dict.lookup("fieldTableName") >> fieldTableName_;
-    }
+    dict.readIfPresent("fieldTableName", fieldTableName_);
 
     if (dict.found("value"))
     {
@@ -138,6 +138,7 @@ timeVaryingMappedFixedValueFvPatchField
     fixedValueFvPatchField<Type>(ptf),
     fieldTableName_(ptf.fieldTableName_),
     setAverage_(ptf.setAverage_),
+    perturb_(ptf.perturb_),
     referenceCS_(ptf.referenceCS_),
     nearestVertex_(ptf.nearestVertex_),
     nearestVertexWeight_(ptf.nearestVertexWeight_),
@@ -163,6 +164,7 @@ timeVaryingMappedFixedValueFvPatchField
     fixedValueFvPatchField<Type>(ptf, iF),
     fieldTableName_(ptf.fieldTableName_),
     setAverage_(ptf.setAverage_),
+    perturb_(ptf.perturb_),
     referenceCS_(ptf.referenceCS_),
     nearestVertex_(ptf.nearestVertex_),
     nearestVertexWeight_(ptf.nearestVertexWeight_),
@@ -274,7 +276,6 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
             maxDist = magD;
         }
     }
-
     // Find point that is furthest away from line p0-p1
     const point& p1 = samplePoints[index1];
 
@@ -296,7 +297,6 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
             }
         }
     }
-
     if (index2 == -1)
     {
         FatalErrorIn
@@ -312,7 +312,6 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
     }
 
     vector n = e1^(samplePoints[index2]-p0);
-
     n /= mag(n);
 
     if (debug)
@@ -370,13 +369,14 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
 
     triSurface s(triSurfaceTools::delaunay2D(localVertices2D));
 
-    tmp<pointField> localFaceCentres
+    tmp<pointField> tlocalFaceCentres
     (
         referenceCS().localPosition
         (
             this->patch().patch().faceCentres()
         )
     );
+    const pointField& localFaceCentres = tlocalFaceCentres();
 
     if (debug)
     {
@@ -388,9 +388,9 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::readSamplePoints()
         Pout<< "readSamplePoints :"
             << " Dumping face centres to " << str.name() << endl;
 
-        forAll(localFaceCentres(), i)
+        forAll(localFaceCentres, i)
         {
-            const point& p = localFaceCentres()[i];
+            const point& p = localFaceCentres[i];
             str<< "v " << p.x() << ' ' << p.y() << ' ' << p.z() << nl;
         }
     }
@@ -768,6 +768,7 @@ void timeVaryingMappedFixedValueFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
     os.writeKeyword("setAverage") << setAverage_ << token::END_STATEMENT << nl;
+    os.writeKeyword("peturb") << perturb_ << token::END_STATEMENT << nl;
 
     if (fieldTableName_ != this->dimensionedInternalField().name())
     {

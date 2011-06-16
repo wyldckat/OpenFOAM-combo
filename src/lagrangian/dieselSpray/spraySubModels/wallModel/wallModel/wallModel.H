@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,9 +39,11 @@ SourceFiles
 
 #include "spray.H"
 #include "IOdictionary.H"
-#include "fvCFD.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
+
+#include "volFields.H"
+#include "surfaceFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -90,22 +92,21 @@ public:
         //- Construct from components
         wallModel
         (
-            const dictionary& dict,
+            const dictionary&,
             const volVectorField& U,
-            spray& sm
+            spray&
         );
 
 
-    // Destructor
-
-        virtual ~wallModel();
+    //- Destructor
+    virtual ~wallModel();
 
 
     // Selector
 
         static autoPtr<wallModel> New
         (
-            const dictionary& dict,
+            const dictionary&,
             const volVectorField& U,
             spray& sm
         );
@@ -116,10 +117,9 @@ public:
         //- Return true if parcel is to be kept, false if it is to be removed
         virtual bool wallTreatment
         (
-            parcel& parcel,
-            const label facei
+            parcel&,
+            const label faceI
         ) const = 0;
-
 };
 
 

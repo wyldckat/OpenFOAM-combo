@@ -1,8 +1,8 @@
-/*---------------------------------------------------------------------------*\
+/*--------------------------------*- C++ -*----------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,22 +38,22 @@ License
 int Foam::chemkinReader::yyBufSize = YY_BUF_SIZE;
 
 // Dummy yyFlexLexer::yylex() to keep the linker happy. It is not called
-//! @cond dummy
+//! \cond dummy
 int yyFlexLexer::yylex()
 {
-    Foam::FatalErrorIn("yyFlexLexer::yylex()")
+    FatalErrorIn("yyFlexLexer::yylex()")
         << "should not have called this function"
         << abort(Foam::FatalError);
 
     return 0;
 }
-//! @endcond dummy
+//! \endcond
 
 
 // Dummy yywrap to keep yylex happy at compile time.
 // It is called by yylex but is not used as the mechanism to change file.
 // See <<EOF>>
-//! @cond dummy
+//! \cond dummy
 #if YY_FLEX_SUBMINOR_VERSION < 34
 extern "C" int yywrap()
 #else
@@ -62,7 +62,7 @@ int yyFlexLexer::yywrap()
 {
     return 1;
 }
-//! @endcond dummy
+//! \endcond
 
 
 Foam::string foamSpecieString(const char* YYText)
@@ -102,26 +102,14 @@ Foam::word foamName(const Foam::string& s)
 one_space             [ \t\f\r]
 space                 {one_space}*
 some_space            {one_space}+
-cspace                ","{space}
 
 alpha                 [_A-Za-z]
 digit                 [0-9]
-dec_digit             [0-9]
-octal_digit           [0-7]
-hex_digit             [0-9a-fA-F]
-
-identifier            {alpha}({alpha}|{digit})*
-integer               {dec_digit}+
-label                 [1-9]{dec_digit}*
-zeroLabel             {digit}*
-
-word                  ([[:alnum:]]|[[:punct:]])+
-string                {word}({some_space}{word})*
 
 exponent_part         [eEdD][-+]?{digit}+
 fractional_constant   [-+]?(({digit}*"."{digit}+)|({digit}+"."?))
 
-double                (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
+floatNum              (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
 
 
 elements              {space}("ELEMENTS"|"ELEM"){space}
@@ -133,10 +121,10 @@ end                   {space}"END"{space}
 
 elementName           {space}([A-Z]|([A-Z][A-Z])){space}
 startIsotopeMolW      {space}"/"{space}
-isotopeMolW           {space}{double}{space}"/"{space}
+isotopeMolW           {space}{floatNum}{space}"/"{space}
 
 specieName            {space}[A-Za-z](([A-Za-z0-9)*+-])|("("[^+]))*{space}
-nMoles                {space}{double}{space}
+nMoles                {space}{floatNum}{space}
 
 thermoTemp            .{10}
 
@@ -159,13 +147,13 @@ reversibleReactionDelimiter {space}("="|"<=>"){space}
 irreversibleReactionDelimiter {space}"=>"{space}
 startPDependentSpecie {space}"("{space}"+"{space}
 pDependentSpecie      {specieName}")"{space}
-reactionCoeffs        {space}{double}{some_space}{double}{some_space}{double}{space}
+reactionCoeffs        {space}{floatNum}{some_space}{floatNum}{some_space}{floatNum}{space}
 reactionKeyword       {space}[A-Za-z](([A-Za-z0-9)*-])|("("[^+]))*{space}
 reactionKeywordSlash  {reactionKeyword}"/"{space}
-thirdBodyEfficiency   {space}{double}{space}"/"{space}
+thirdBodyEfficiency   {space}{floatNum}{space}"/"{space}
 startReactionCoeffs   {space}"/"{space}
 endReactionCoeffs     {space}"/"{space}
-reactionCoeff         {space}{double}{space}
+reactionCoeff         {space}{floatNum}{space}
 
 calPerMol             {space}"CAL/MOLE"{space}
 kcalPerMol            {space}"KCAL/MOLE"{space}
@@ -308,8 +296,8 @@ List<specieElement> currentSpecieComposition(5);
 scalar currentLowT = 0;
 scalar currentHighT = 0;
 scalar currentCommonT = 0;
-gasThermoPhysics::coeffArray highCpCoeffs = {0, 0, 0, 0, 0, 0, 0};
-gasThermoPhysics::coeffArray lowCpCoeffs = {0, 0, 0, 0, 0, 0, 0};
+gasThermoPhysics::coeffArray highCpCoeffs(scalarList(7));
+gasThermoPhysics::coeffArray lowCpCoeffs(scalarList(7));
 
 gasReaction::specieCoeffs currentSpecieCoeff;
 
@@ -1440,7 +1428,7 @@ bool finishReaction = false;
 
         bool found = false;
 
-        forAll (lrhs, i)
+        forAll(lrhs, i)
         {
             if (lrhs[i].index == currentSpecieIndex)
             {

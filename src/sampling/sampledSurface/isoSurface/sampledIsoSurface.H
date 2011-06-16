@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -117,18 +117,6 @@ class sampledIsoSurface
         //- Get fields needed to recreate iso surface.
         void getIsoFields() const;
 
-        tmp<volScalarField> average
-        (
-            const fvMesh&,
-            const pointScalarField&
-        ) const;
-
-        tmp<pointScalarField> average
-        (
-            const pointMesh&,
-            const volScalarField& fld
-        ) const;
-
         //- Create iso surface (if time has changed)
         //  Do nothing (and return false) if no update was needed
         bool updateGeometry() const;
@@ -163,9 +151,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~sampledIsoSurface();
+    //- Destructor
+    virtual ~sampledIsoSurface();
 
 
     // Member Functions

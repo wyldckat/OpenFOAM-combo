@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,7 +76,7 @@ multivariateSurfaceInterpolationScheme<Type>::New
             << endl;
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     typename IstreamConstructorTable::iterator constructorIter =
         IstreamConstructorTablePtr_->find(schemeName);
@@ -89,7 +89,7 @@ multivariateSurfaceInterpolationScheme<Type>::New
             "(const fvMesh& mesh, const fieldTable&, "
             "const surfaceScalarField&, Istream&)",
             schemeData
-        )   << "unknown discretisation scheme " << schemeName << endl << endl
+        )   << "Unknown discretisation scheme " << schemeName << nl << nl
             << "Valid schemes are :" << endl
             << IstreamConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ License
 #include "Istream.H"
 #include "Ostream.H"
 #include "INew.H"
+#include "dictionary.H"
 
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
@@ -64,7 +65,7 @@ void Foam::HashPtrTable<T, Key, Hash>::read(Istream& is, const INew& inewt)
                 {
                     Key key;
                     is >> key;
-                    insert(key, inewt(key, is).ptr());
+                    this->insert(key, inewt(key, is).ptr());
 
                     is.fatalCheck
                     (
@@ -111,7 +112,7 @@ void Foam::HashPtrTable<T, Key, Hash>::read(Istream& is, const INew& inewt)
             is.putBack(lastToken);
             Key key;
             is >> key;
-            insert(key, inewt(key, is).ptr());
+            this->insert(key, inewt(key, is).ptr());
 
             is.fatalCheck
             (
@@ -137,20 +138,64 @@ void Foam::HashPtrTable<T, Key, Hash>::read(Istream& is, const INew& inewt)
 }
 
 
+template<class T, class Key, class Hash>
+template<class INew>
+void Foam::HashPtrTable<T, Key, Hash>::read
+(
+    const dictionary& dict,
+    const INew& inewt
+)
+{
+    forAllConstIter(dictionary, dict, iter)
+    {
+        this->insert
+        (
+            iter().keyword(),
+            inewt(dict.subDict(iter().keyword())).ptr()
+        );
+    }
+}
+
+
+template<class T, class Key, class Hash>
+void Foam::HashPtrTable<T, Key, Hash>::write(Ostream& os) const
+{
+
+    for
+    (
+        typename HashPtrTable<T, Key, Hash>::const_iterator
+        iter = this->begin();
+        iter != this->end();
+        ++iter
+    )
+    {
+        const T* ptr = iter();
+        ptr->write(os);
+    }
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class T, class Key, class Hash>
 template<class INew>
 Foam::HashPtrTable<T, Key, Hash>::HashPtrTable(Istream& is, const INew& inewt)
 {
-    read(is, inewt);
+    this->read(is, inewt);
 }
 
 
 template<class T, class Key, class Hash>
 Foam::HashPtrTable<T, Key, Hash>::HashPtrTable(Istream& is)
 {
-    read(is, INew<T>());
+    this->read(is, INew<T>());
+}
+
+
+template<class T, class Key, class Hash>
+Foam::HashPtrTable<T, Key, Hash>::HashPtrTable(const dictionary& dict)
+{
+    this->read(dict, INew<T>());
 }
 
 

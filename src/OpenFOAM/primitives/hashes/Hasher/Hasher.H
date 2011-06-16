@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,9 +54,9 @@ namespace Foam
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     //- Bob Jenkins's 96-bit mixer hashing function (lookup3)
-    //  @param[in] data - a character stream
-    //  @param[in] len  - the number of bytes
-    //  @param[in] seed - the previous hash, or an arbitrary value
+    //  \param[in] data - a character stream
+    //  \param[in] len  - the number of bytes
+    //  \param[in] seed - the previous hash, or an arbitrary value
     unsigned Hasher(const void* data, size_t len, unsigned seed = 0);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

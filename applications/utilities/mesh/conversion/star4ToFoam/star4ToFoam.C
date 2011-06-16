@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,14 +31,14 @@ Usage
     - star4ToFoam [OPTION] ccmMesh\n
       convert pro-STAR mesh to OpenFOAM
 
-    @param -ascii \n
+    \param -ascii \n
     Write in ASCII format instead of binary
 
-    @param -scale \<factor\>\n
+    \param -scale \<factor\>\n
     Specify an alternative geometry scaling factor.
-    The default is @b 0.001 (scale @em [mm] to @em [m]).
+    The default is \b 0.001 (scale \em [mm] to \em [m]).
 
-    @param -solids \n
+    \param -solids \n
     Treat any solid cells present just like fluid cells.
     The default is to discard them.
 
@@ -59,30 +59,41 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "convert pro-STAR (v4) mesh to OpenFOAM"
+    );
+
     argList::noParallel();
     argList::validArgs.append("pro-STAR prefix");
-    argList::validOptions.insert("ascii", "");
-    argList::validOptions.insert("scale", "scale");
-    argList::validOptions.insert("solids", "");
+    argList::addBoolOption
+    (
+        "ascii",
+        "write in ASCII instead of binary format"
+    );
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 0.001 ([mm] to [m])"
+    );
+    argList::addBoolOption
+    (
+        "solids",
+        "retain solid cells and treat them like fluid cells"
+    );
 
     argList args(argc, argv);
     Time runTime(args.rootPath(), args.caseName());
-    const stringList& params = args.additionalArgs();
 
     // default rescale from [mm] to [m]
-    scalar scaleFactor = 0.001;
-    if (args.optionReadIfPresent("scale", scaleFactor))
+    scalar scaleFactor = args.optionLookupOrDefault("scale", 0.001);
+    if (scaleFactor <= 0)
     {
-        if (scaleFactor <= 0)
-        {
-            scaleFactor = 1;
-        }
+        scaleFactor = 1;
     }
 
-    if (args.optionFound("solids"))
-    {
-        meshReaders::STARCD::keepSolids = true;
-    }
+    meshReaders::STARCD::keepSolids = args.optionFound("solids");
 
     // default to binary output, unless otherwise specified
     IOstream::streamFormat format = IOstream::BINARY;
@@ -95,7 +106,7 @@ int main(int argc, char *argv[])
     IOstream::defaultPrecision(10);
 
     // remove extensions and/or trailing '.'
-    fileName prefix = fileName(params[0]).lessExt();
+    const fileName prefix = fileName(args[1]).lessExt();
 
     meshReaders::STARCD reader(prefix, runTime, scaleFactor);
 

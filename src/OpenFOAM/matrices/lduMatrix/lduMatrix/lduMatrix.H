@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -102,6 +102,7 @@ public:
 
         // Constructors
 
+            //- Construct null
             solverPerformance()
             :
                 initialResidual_(0),
@@ -111,7 +112,7 @@ public:
                 singular_(false)
             {}
 
-
+            //- Construct from components
             solverPerformance
             (
                 const word&  solverName,
@@ -132,6 +133,9 @@ public:
                 singular_(singular)
             {}
 
+            //- Construct from Istream
+            solverPerformance(Istream&);
+
 
         // Member functions
 
@@ -140,6 +144,20 @@ public:
             {
                 return solverName_;
             }
+
+            //- Return solver name
+            word& solverName()
+            {
+                return solverName_;
+            }
+
+
+            //- Return field name
+            const word& fieldName() const
+            {
+                return fieldName_;
+            }
+
 
             //- Return initial residual
             scalar initialResidual() const
@@ -204,6 +222,26 @@ public:
 
             //- Print summary of solver performance
             void print() const;
+
+        // Member Operators
+
+            bool operator!=(const solverPerformance&) const;
+
+
+        // Friend functions
+
+            //- Return the element-wise maximum of two solverPerformances
+            friend solverPerformance max
+            (
+                const solverPerformance&,
+                const solverPerformance&
+            );
+
+
+        // Ostream Operator
+
+            friend Istream& operator>>(Istream&, solverPerformance&);
+            friend Ostream& operator<<(Ostream&, const solverPerformance&);
     };
 
 
@@ -321,10 +359,9 @@ public:
 
 
 
-        // Destructor
-
-            virtual ~solver()
-            {}
+        //- Destructor
+        virtual ~solver()
+        {}
 
 
         // Member functions
@@ -473,10 +510,9 @@ public:
             );
 
 
-        // Destructor
-
-            virtual ~smoother()
-            {}
+        //- Destructor
+        virtual ~smoother()
+        {}
 
 
         // Member functions
@@ -588,10 +624,9 @@ public:
             );
 
 
-        // Destructor
-
-            virtual ~preconditioner()
-            {}
+        //- Destructor
+        virtual ~preconditioner()
+        {}
 
 
         // Member functions
@@ -658,9 +693,8 @@ public:
         lduMatrix(const lduMesh&, Istream&);
 
 
-    // Destructor
-
-        ~lduMatrix();
+    //- Destructor
+    ~lduMatrix();
 
 
     // Member functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,8 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Converts CHEMKINIII thermodynamics and reaction data files into FOAM format
+    Converts CHEMKINIII thermodynamics and reaction data files into
+    OpenFOAM format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -37,29 +38,25 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
-    argList::validArgs.clear();
     argList::validArgs.append("CHEMKINFile");
     argList::validArgs.append("CHEMKINThermodynamicsFile");
     argList::validArgs.append("FOAMChemistryFile");
     argList::validArgs.append("FOAMThermodynamicsFile");
     argList args(argc, argv);
 
-    fileName CHEMKINFileName(args.additionalArgs()[0]);
-    fileName thermoFileName(args.additionalArgs()[1]);
-    fileName FOAMChemistryFileName(args.additionalArgs()[2]);
-    fileName FOAMThermodynamicsFileName(args.additionalArgs()[3]);
+    chemkinReader cr(args[1], args[2]);
 
-    chemkinReader cr(CHEMKINFileName, thermoFileName);
-
-    OFstream reactionsFile(FOAMChemistryFileName);
+    OFstream reactionsFile(args[3]);
     reactionsFile
-        << "species" << cr.species() << ';' << endl << endl
-        << "reactions" << cr.reactions() << ';' << endl;
+        << "species" << cr.species() << token::END_STATEMENT << nl << nl;
 
-    OFstream thermoFile(FOAMThermodynamicsFileName);
-    thermoFile<< cr.speciesThermo() << endl;
+    cr.reactions().write(reactionsFile);
 
-    Info << "End\n" << endl;
+
+    OFstream thermoFile(args[4]);
+    cr.speciesThermo().write(thermoFile);
+
+    Info<< "End\n" << endl;
 
     return 0;
 }

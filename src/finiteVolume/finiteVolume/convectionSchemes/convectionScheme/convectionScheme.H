@@ -2,13 +2,13 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
 
-    OpenFOAM is free software; you can redistribute itand/or modify it
+    OpenFOAM is free software: you can redistribute itand/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -147,9 +147,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~convectionScheme();
+    //- Destructor
+    virtual ~convectionScheme();
 
 
     // Member Functions
@@ -176,7 +175,7 @@ public:
         virtual tmp<fvMatrix<Type> > fvmDiv
         (
             const surfaceScalarField&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         ) const = 0;
 
         virtual tmp<GeometricField<Type, fvPatchField, volMesh> > fvcDiv

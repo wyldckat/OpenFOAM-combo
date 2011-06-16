@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,10 @@ License
 #include "polyMesh.H"
 #include "primitiveMesh.H"
 #include "processorPolyPatch.H"
+#include "stringListOps.H"
+#include "PstreamBuffers.H"
+#include "lduSchedule.H"
+#include "globalMeshData.H"
 #include "stringListOps.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -57,11 +61,29 @@ Foam::polyBoundaryMesh::polyBoundaryMesh
 :
     polyPatchList(),
     regIOobject(io),
-    mesh_(mesh),
-    neighbourEdgesPtr_(NULL)
+    mesh_(mesh)
 {
-    if (readOpt() == IOobject::MUST_READ)
+    if
+    (
+        readOpt() == IOobject::MUST_READ
+     || readOpt() == IOobject::MUST_READ_IF_MODIFIED
+    )
     {
+        if (readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+        {
+            WarningIn
+            (
+                "polyBoundaryMesh::polyBoundaryMesh\n"
+                "(\n"
+                "    const IOobject&,\n"
+                "    const polyMesh&\n"
+                ")"
+            )   << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+                << " does not support automatic rereading."
+                << endl;
+        }
+
+
         polyPatchList& patches = *this;
 
         // Read polyPatchList
@@ -106,35 +128,33 @@ Foam::polyBoundaryMesh::polyBoundaryMesh
 :
     polyPatchList(size),
     regIOobject(io),
-    mesh_(pm),
-    neighbourEdgesPtr_(NULL)
+    mesh_(pm)
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::polyBoundaryMesh::~polyBoundaryMesh()
-{
-    deleteDemandDrivenData(neighbourEdgesPtr_);
-}
+{}
 
 
 void Foam::polyBoundaryMesh::clearGeom()
 {
-    forAll (*this, patchi)
+    forAll(*this, patchI)
     {
-        operator[](patchi).clearGeom();
+        operator[](patchI).clearGeom();
     }
 }
 
 
 void Foam::polyBoundaryMesh::clearAddressing()
 {
-    deleteDemandDrivenData(neighbourEdgesPtr_);
+    neighbourEdgesPtr_.clear();
+    patchIDPtr_.clear();
 
-    forAll (*this, patchi)
+    forAll(*this, patchI)
     {
-        operator[](patchi).clearAddressing();
+        operator[](patchI).clearAddressing();
     }
 }
 
@@ -143,14 +163,46 @@ void Foam::polyBoundaryMesh::clearAddressing()
 
 void Foam::polyBoundaryMesh::calcGeometry()
 {
-    forAll(*this, patchi)
-    {
-        operator[](patchi).initGeometry();
-    }
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
 
-    forAll(*this, patchi)
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        operator[](patchi).calcGeometry();
+        forAll(*this, patchI)
+        {
+            operator[](patchI).initGeometry(pBufs);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchI)
+        {
+            operator[](patchI).calcGeometry(pBufs);
+        }
+    }
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
+    {
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
+
+        // Dummy.
+        pBufs.finishedSends();
+
+        forAll(patchSchedule, patchEvali)
+        {
+            const label patchI = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchI).initGeometry(pBufs);
+            }
+            else
+            {
+                operator[](patchI).calcGeometry(pBufs);
+            }
+        }
     }
 }
 
@@ -165,22 +217,22 @@ Foam::polyBoundaryMesh::neighbourEdges() const
             << " boundaries." << endl;
     }
 
-    if (!neighbourEdgesPtr_)
+    if (!neighbourEdgesPtr_.valid())
     {
-        neighbourEdgesPtr_ = new List<labelPairList>(size());
-        List<labelPairList>& neighbourEdges = *neighbourEdgesPtr_;
+        neighbourEdgesPtr_.reset(new List<labelPairList>(size()));
+        List<labelPairList>& neighbourEdges = neighbourEdgesPtr_();
 
         // Initialize.
         label nEdgePairs = 0;
-        forAll(*this, patchi)
+        forAll(*this, patchI)
         {
-            const polyPatch& pp = operator[](patchi);
+            const polyPatch& pp = operator[](patchI);
 
-            neighbourEdges[patchi].setSize(pp.nEdges() - pp.nInternalEdges());
+            neighbourEdges[patchI].setSize(pp.nEdges() - pp.nInternalEdges());
 
-            forAll(neighbourEdges[patchi], i)
+            forAll(neighbourEdges[patchI], i)
             {
-                labelPair& edgeInfo = neighbourEdges[patchi][i];
+                labelPair& edgeInfo = neighbourEdges[patchI][i];
 
                 edgeInfo[0] = -1;
                 edgeInfo[1] = -1;
@@ -193,9 +245,9 @@ Foam::polyBoundaryMesh::neighbourEdges() const
         // point addressing) to patch + relative edge index.
         HashTable<labelPair, edge, Hash<edge> > pointsToEdge(nEdgePairs);
 
-        forAll(*this, patchi)
+        forAll(*this, patchI)
         {
-            const polyPatch& pp = operator[](patchi);
+            const polyPatch& pp = operator[](patchI);
 
             const edgeList& edges = pp.edges();
 
@@ -224,7 +276,7 @@ Foam::polyBoundaryMesh::neighbourEdges() const
                         meshEdge,
                         labelPair
                         (
-                            patchi,
+                            patchI,
                             edgei - pp.nInternalEdges()
                         )
                     );
@@ -234,11 +286,11 @@ Foam::polyBoundaryMesh::neighbourEdges() const
                     // Second occurrence. Store.
                     const labelPair& edgeInfo = fnd();
 
-                    neighbourEdges[patchi][edgei - pp.nInternalEdges()] =
+                    neighbourEdges[patchI][edgei - pp.nInternalEdges()] =
                         edgeInfo;
 
                     neighbourEdges[edgeInfo[0]][edgeInfo[1]]
-                         = labelPair(patchi, edgei - pp.nInternalEdges());
+                         = labelPair(patchI, edgei - pp.nInternalEdges());
 
                     // Found all two occurrences of this edge so remove from
                     // hash to save space. Note that this will give lots of
@@ -256,11 +308,11 @@ Foam::polyBoundaryMesh::neighbourEdges() const
                 << abort(FatalError);
         }
 
-        forAll(*this, patchi)
+        forAll(*this, patchI)
         {
-            const polyPatch& pp = operator[](patchi);
+            const polyPatch& pp = operator[](patchI);
 
-            const labelPairList& nbrEdges = neighbourEdges[patchi];
+            const labelPairList& nbrEdges = neighbourEdges[patchI];
 
             forAll(nbrEdges, i)
             {
@@ -284,7 +336,36 @@ Foam::polyBoundaryMesh::neighbourEdges() const
         }
     }
 
-    return *neighbourEdgesPtr_;
+    return neighbourEdgesPtr_();
+}
+
+
+const Foam::labelList& Foam::polyBoundaryMesh::patchID() const
+{
+    if (!patchIDPtr_.valid())
+    {
+        patchIDPtr_.reset
+        (
+            new labelList
+            (
+                mesh_.nFaces()
+              - mesh_.nInternalFaces()
+            )
+        );
+        labelList& patchID = patchIDPtr_();
+
+        const polyBoundaryMesh& bm = *this;
+
+        forAll(bm, patchI)
+        {
+            label bFaceI = bm[patchI].start() - mesh_.nInternalFaces();
+            forAll(bm[patchI], i)
+            {
+                patchID[bFaceI++] = patchI;
+            }
+        }
+    }
+    return patchIDPtr_();
 }
 
 
@@ -294,7 +375,7 @@ Foam::wordList Foam::polyBoundaryMesh::names() const
 
     wordList t(patches.size());
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         t[patchI] = patches[patchI].name();
     }
@@ -309,7 +390,7 @@ Foam::wordList Foam::polyBoundaryMesh::types() const
 
     wordList t(patches.size());
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         t[patchI] = patches[patchI].type();
     }
@@ -324,7 +405,7 @@ Foam::wordList Foam::polyBoundaryMesh::physicalTypes() const
 
     wordList t(patches.size());
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         t[patchI] = patches[patchI].physicalType();
     }
@@ -333,11 +414,71 @@ Foam::wordList Foam::polyBoundaryMesh::physicalTypes() const
 }
 
 
+Foam::labelList Foam::polyBoundaryMesh::findIndices(const keyType& key) const
+{
+    labelList indices;
+
+    if (!key.empty())
+    {
+        if (key.isPattern())
+        {
+            indices = findStrings(key, this->names());
+        }
+        else
+        {
+            indices.setSize(this->size());
+            label nFound = 0;
+            forAll(*this, i)
+            {
+                if (key == operator[](i).name())
+                {
+                    indices[nFound++] = i;
+                }
+            }
+            indices.setSize(nFound);
+        }
+    }
+
+    return indices;
+}
+
+
+Foam::label Foam::polyBoundaryMesh::findIndex(const keyType& key) const
+{
+    if (!key.empty())
+    {
+        if (key.isPattern())
+        {
+            labelList indices = this->findIndices(key);
+
+            // return first element
+            if (!indices.empty())
+            {
+                return indices[0];
+            }
+        }
+        else
+        {
+            forAll(*this, i)
+            {
+                if (key == operator[](i).name())
+                {
+                    return i;
+                }
+            }
+        }
+    }
+
+    // not found
+    return -1;
+}
+
+
 Foam::label Foam::polyBoundaryMesh::findPatchID(const word& patchName) const
 {
     const polyPatchList& patches = *this;
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         if (patches[patchI].name() == patchName)
         {
@@ -348,8 +489,7 @@ Foam::label Foam::polyBoundaryMesh::findPatchID(const word& patchName) const
     // Patch not found
     if (debug)
     {
-        Pout<< "label polyBoundaryMesh::findPatchID(const word& "
-            << "patchName) const"
+        Pout<< "label polyBoundaryMesh::findPatchID(const word&) const"
             << "Patch named " << patchName << " not found.  "
             << "List of available patch names: " << names() << endl;
     }
@@ -365,7 +505,11 @@ Foam::label Foam::polyBoundaryMesh::whichPatch(const label faceIndex) const
     // with patch start labels.
     // If the face is internal, return -1;
     // if it is off the end of the list, abort
-    if (faceIndex >= mesh().nFaces())
+    if (faceIndex < mesh().nInternalFaces())
+    {
+        return -1;
+    }
+    else if (faceIndex >= mesh().nFaces())
     {
         FatalErrorIn
         (
@@ -374,12 +518,8 @@ Foam::label Foam::polyBoundaryMesh::whichPatch(const label faceIndex) const
             << abort(FatalError);
     }
 
-    if (faceIndex < mesh().nInternalFaces())
-    {
-        return -1;
-    }
 
-    forAll (*this, patchI)
+    forAll(*this, patchI)
     {
         const polyPatch& bp = operator[](patchI);
 
@@ -410,11 +550,12 @@ Foam::label Foam::polyBoundaryMesh::whichPatch(const label faceIndex) const
 
 Foam::labelHashSet Foam::polyBoundaryMesh::patchSet
 (
-    const wordList& patchNames
+    const UList<wordRe>& patchNames,
+    const bool warnNotFound
 ) const
 {
-    wordList allPatchNames = names();
-    labelHashSet ps(size());
+    const wordList allPatchNames(this->names());
+    labelHashSet ids(size());
 
     forAll(patchNames, i)
     {
@@ -422,20 +563,23 @@ Foam::labelHashSet Foam::polyBoundaryMesh::patchSet
         // of all patch names for matches
         labelList patchIDs = findStrings(patchNames[i], allPatchNames);
 
-        if (patchIDs.empty())
+        if (patchIDs.empty() && warnNotFound)
         {
-            WarningIn("polyBoundaryMesh::patchSet(const wordList&)")
-                << "Cannot find any patch names matching " << patchNames[i]
+            WarningIn
+            (
+                "polyBoundaryMesh::patchSet"
+                "(const wordReList&, const bool) const"
+            )   << "Cannot find any patch names matching " << patchNames[i]
                 << endl;
         }
 
         forAll(patchIDs, j)
         {
-            ps.insert(patchIDs[j]);
+            ids.insert(patchIDs[j]);
         }
     }
 
-    return ps;
+    return ids;
 }
 
 
@@ -449,7 +593,7 @@ bool Foam::polyBoundaryMesh::checkParallelSync(const bool report) const
 
     const polyBoundaryMesh& bm = *this;
 
-    bool boundaryError = false;
+    bool hasError = false;
 
     // Collect non-proc patches and check proc patches are last.
     wordList names(bm.size());
@@ -457,14 +601,14 @@ bool Foam::polyBoundaryMesh::checkParallelSync(const bool report) const
 
     label nonProcI = 0;
 
-    forAll (bm, patchI)
+    forAll(bm, patchI)
     {
         if (!isA<processorPolyPatch>(bm[patchI]))
         {
             if (nonProcI != patchI)
             {
-                // There is processor patch inbetween normal patches.
-                boundaryError = true;
+                // There is processor patch in between normal patches.
+                hasError = true;
 
                 if (debug || report)
                 {
@@ -499,7 +643,7 @@ bool Foam::polyBoundaryMesh::checkParallelSync(const bool report) const
 
     // Have every processor check but only master print error.
 
-    for (label procI = 1; procI < allNames.size(); procI++)
+    for (label procI = 1; procI < allNames.size(); ++procI)
     {
         if
         (
@@ -507,7 +651,7 @@ bool Foam::polyBoundaryMesh::checkParallelSync(const bool report) const
          || (allTypes[procI] != allTypes[0])
         )
         {
-            boundaryError = true;
+            hasError = true;
 
             if (debug || (report && Pstream::master()))
             {
@@ -522,7 +666,7 @@ bool Foam::polyBoundaryMesh::checkParallelSync(const bool report) const
         }
     }
 
-    return boundaryError;
+    return hasError;
 }
 
 
@@ -531,13 +675,15 @@ bool Foam::polyBoundaryMesh::checkDefinition(const bool report) const
     label nextPatchStart = mesh().nInternalFaces();
     const polyBoundaryMesh& bm = *this;
 
-    bool boundaryError = false;
+    bool hasError = false;
 
-    forAll (bm, patchI)
+    HashSet<word> patchNames(2*size());
+
+    forAll(bm, patchI)
     {
-        if (bm[patchI].start() != nextPatchStart && !boundaryError)
+        if (bm[patchI].start() != nextPatchStart && !hasError)
         {
-            boundaryError = true;
+            hasError = true;
 
             Info<< " ****Problem with boundary patch " << patchI
                 << " named " << bm[patchI].name()
@@ -549,67 +695,134 @@ bool Foam::polyBoundaryMesh::checkDefinition(const bool report) const
                 << " Suppressing future warnings." << endl;
         }
 
+        if (!patchNames.insert(bm[patchI].name()) && !hasError)
+        {
+            hasError = true;
+
+            Info<< " ****Duplicate boundary patch " << patchI
+                << " named " << bm[patchI].name()
+                << " of type " <<  bm[patchI].type()
+                << "." << endl
+                << "Suppressing future warnings." << endl;
+        }
+
         nextPatchStart += bm[patchI].size();
     }
 
-    reduce(boundaryError, orOp<bool>());
+    reduce(hasError, orOp<bool>());
 
-    if (boundaryError)
+    if (debug || report)
     {
-        if (debug || report)
+        if (hasError)
         {
-            Pout << " ***Boundary definition is in error." << endl;
+            Pout<< " ***Boundary definition is in error." << endl;
         }
-
-        return true;
-    }
-    else
-    {
-        if (debug || report)
+        else
         {
-            Info << "    Boundary definition OK." << endl;
+            Info<< "    Boundary definition OK." << endl;
         }
-
-        return false;
     }
+
+    return hasError;
 }
 
 
 void Foam::polyBoundaryMesh::movePoints(const pointField& p)
 {
-    polyPatchList& patches = *this;
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
 
-    forAll(patches, patchi)
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        patches[patchi].initMovePoints(p);
+        forAll(*this, patchI)
+        {
+            operator[](patchI).initMovePoints(pBufs, p);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchI)
+        {
+            operator[](patchI).movePoints(pBufs, p);
+        }
     }
-
-    forAll(patches, patchi)
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
     {
-        patches[patchi].movePoints(p);
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
+
+        // Dummy.
+        pBufs.finishedSends();
+
+        forAll(patchSchedule, patchEvali)
+        {
+            const label patchI = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchI).initMovePoints(pBufs, p);
+            }
+            else
+            {
+                operator[](patchI).movePoints(pBufs, p);
+            }
+        }
     }
 }
 
 
 void Foam::polyBoundaryMesh::updateMesh()
 {
-    deleteDemandDrivenData(neighbourEdgesPtr_);
+    neighbourEdgesPtr_.clear();
+    patchIDPtr_.clear();
 
-    polyPatchList& patches = *this;
+    PstreamBuffers pBufs(Pstream::defaultCommsType);
 
-    forAll(patches, patchi)
+    if
+    (
+        Pstream::defaultCommsType == Pstream::blocking
+     || Pstream::defaultCommsType == Pstream::nonBlocking
+    )
     {
-        patches[patchi].initUpdateMesh();
+        forAll(*this, patchI)
+        {
+            operator[](patchI).initUpdateMesh(pBufs);
+        }
+
+        pBufs.finishedSends();
+
+        forAll(*this, patchI)
+        {
+            operator[](patchI).updateMesh(pBufs);
+        }
     }
-
-    forAll(patches, patchi)
+    else if (Pstream::defaultCommsType == Pstream::scheduled)
     {
-        patches[patchi].updateMesh();
+        const lduSchedule& patchSchedule = mesh().globalData().patchSchedule();
+
+        // Dummy.
+        pBufs.finishedSends();
+
+        forAll(patchSchedule, patchEvali)
+        {
+            const label patchI = patchSchedule[patchEvali].patch;
+
+            if (patchSchedule[patchEvali].init)
+            {
+                operator[](patchI).initUpdateMesh(pBufs);
+            }
+            else
+            {
+                operator[](patchI).updateMesh(pBufs);
+            }
+        }
     }
 }
 
 
-void Foam::polyBoundaryMesh::reorder(const UList<label>& oldToNew)
+void Foam::polyBoundaryMesh::reorder(const labelUList& oldToNew)
 {
     // Change order of patches
     polyPatchList::reorder(oldToNew);
@@ -617,9 +830,9 @@ void Foam::polyBoundaryMesh::reorder(const UList<label>& oldToNew)
     // Adapt indices
     polyPatchList& patches = *this;
 
-    forAll(patches, patchi)
+    forAll(patches, patchI)
     {
-        patches[patchi].index() = patchi;
+        patches[patchI].index() = patchI;
     }
 
     updateMesh();
@@ -632,11 +845,11 @@ bool Foam::polyBoundaryMesh::writeData(Ostream& os) const
 
     os  << patches.size() << nl << token::BEGIN_LIST << incrIndent << nl;
 
-    forAll(patches, patchi)
+    forAll(patches, patchI)
     {
-        os  << indent << patches[patchi].name() << nl
+        os  << indent << patches[patchI].name() << nl
             << indent << token::BEGIN_BLOCK << nl
-            << incrIndent << patches[patchi] << decrIndent
+            << incrIndent << patches[patchI] << decrIndent
             << indent << token::END_BLOCK << endl;
     }
 
@@ -657,6 +870,49 @@ bool Foam::polyBoundaryMesh::writeObject
 ) const
 {
     return regIOobject::writeObject(fmt, ver, IOstream::UNCOMPRESSED);
+}
+
+// * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * * //
+
+const Foam::polyPatch& Foam::polyBoundaryMesh::operator[]
+(
+    const word& patchName
+) const
+{
+    const label patchI = findPatchID(patchName);
+
+    if (patchI < 0)
+    {
+        FatalErrorIn
+        (
+            "polyBoundaryMesh::operator[](const word&) const"
+        )   << "Patch named " << patchName << " not found." << nl
+            << "Available patch names: " << names() << endl
+            << abort(FatalError);
+    }
+
+    return operator[](patchI);
+}
+
+
+Foam::polyPatch& Foam::polyBoundaryMesh::operator[]
+(
+    const word& patchName
+)
+{
+    const label patchI = findPatchID(patchName);
+
+    if (patchI < 0)
+    {
+        FatalErrorIn
+        (
+            "polyBoundaryMesh::operator[](const word&)"
+        )   << "Patch named " << patchName << " not found." << nl
+            << "Available patch names: " << names() << endl
+            << abort(FatalError);
+    }
+
+    return operator[](patchI);
 }
 
 

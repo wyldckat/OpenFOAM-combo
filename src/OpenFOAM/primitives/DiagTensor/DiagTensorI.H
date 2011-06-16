@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -298,7 +298,7 @@ inline Cmpt det(const DiagTensor<Cmpt>& t)
 template <class Cmpt>
 inline DiagTensor<Cmpt> inv(const DiagTensor<Cmpt>& dt)
 {
-    return DiagTensor<Cmpt>(1.0/dt.xx(), 1.0/dt.yy(), 1.0/dt.zz()); 
+    return DiagTensor<Cmpt>(1.0/dt.xx(), 1.0/dt.yy(), 1.0/dt.zz());
 }
 
 

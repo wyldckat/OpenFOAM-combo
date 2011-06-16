@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -12,13 +12,13 @@ FoamFile
     class       dictionary;
     object      decomposeParDict;
 }
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 numberOfSubdomains 6;
 
 method          hierarchical;
-//method          metis;
-//method          parMetis;
+// method          ptscotch;
 
 simpleCoeffs
 {
@@ -36,12 +36,6 @@ hierarchicalCoeffs
 manualCoeffs
 {
     dataFile        "cellDecomposition";
-}
-
-metisCoeffs
-{
-    //n                   (5 1 1);
-    //cellWeightsFile     "constant/cellWeightsFile";
 }
 
 

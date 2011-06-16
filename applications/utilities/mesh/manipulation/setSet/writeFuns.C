@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -85,20 +85,20 @@ void Foam::writeFuns::write
             fField.size()*sizeof(float)
         );
 
-        os << std::endl;
+        os  << std::endl;
     }
     else
     {
         forAll(fField, i)
         {
-            os << fField[i] << ' ';
+            os  << fField[i] << ' ';
 
             if (i > 0 && (i % 10) == 0)
             {
-                os << std::endl;
+                os  << std::endl;
             }
         }
-        os << std::endl;
+        os  << std::endl;
     }
 }
 
@@ -134,20 +134,20 @@ void Foam::writeFuns::write
             elems.size()*sizeof(label)
         );
 
-        os << std::endl;
+        os  << std::endl;
     }
     else
     {
         forAll(elems, i)
         {
-            os << elems[i] << ' ';
+            os  << elems[i] << ' ';
 
             if (i > 0 && (i % 10) == 0)
             {
-                os << std::endl;
+                os  << std::endl;
             }
         }
-        os << std::endl;
+        os  << std::endl;
     }
 }
 

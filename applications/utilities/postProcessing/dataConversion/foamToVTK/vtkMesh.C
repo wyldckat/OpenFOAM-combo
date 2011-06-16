@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "vtkMesh.H"
@@ -30,12 +28,8 @@ Description
 #include "Time.H"
 #include "cellSet.H"
 
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::vtkMesh::vtkMesh
 (
     fvMesh& baseMesh,
@@ -65,8 +59,8 @@ Foam::polyMesh::readUpdateState Foam::vtkMesh::readUpdate()
 
     if (meshState != polyMesh::UNCHANGED)
     {
-        // Note: since fvMeshSubset has no movePoints() functionality reconstruct
-        // the subset even if only movement.
+        // Note: since fvMeshSubset has no movePoints() functionality,
+        // reconstruct the subset even if only movement.
 
         topoPtr_.clear();
 

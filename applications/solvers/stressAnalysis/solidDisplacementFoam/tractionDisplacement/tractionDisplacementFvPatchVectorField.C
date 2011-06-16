@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -168,7 +168,7 @@ void tractionDisplacementFvPatchVectorField::updateCoeffs()
 
     scalar twoMuLambda = (2*mu + lambda).value();
 
-    vectorField n = patch().nf();
+    vectorField n(patch().nf());
 
     const fvPatchField<symmTensor>& sigmaD =
         patch().lookupPatchField<volSymmTensorField, symmTensor>("sigmaD");
@@ -176,7 +176,7 @@ void tractionDisplacementFvPatchVectorField::updateCoeffs()
     gradient() =
     (
         (traction_ + pressure_*n)/rho.value()
-      + twoMuLambda*fvPatchField<vector>::snGrad() - (n & sigmaD) 
+      + twoMuLambda*fvPatchField<vector>::snGrad() - (n & sigmaD)
     )/twoMuLambda;
 
     Switch thermalStress(thermalProperties.lookup("thermalStress"));
@@ -186,7 +186,7 @@ void tractionDisplacementFvPatchVectorField::updateCoeffs()
         dimensionedScalar alpha(thermalProperties.lookup("alpha"));
         dimensionedScalar threeKalpha = threeK*alpha;
 
-        const fvPatchField<scalar>& T = 
+        const fvPatchField<scalar>& T =
             patch().lookupPatchField<volScalarField, scalar>("T");
 
         gradient() += n*threeKalpha.value()*T/twoMuLambda;
@@ -207,7 +207,11 @@ void tractionDisplacementFvPatchVectorField::write(Ostream& os) const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchVectorField, tractionDisplacementFvPatchVectorField);
+makePatchTypeField
+(
+    fvPatchVectorField,
+    tractionDisplacementFvPatchVectorField
+);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

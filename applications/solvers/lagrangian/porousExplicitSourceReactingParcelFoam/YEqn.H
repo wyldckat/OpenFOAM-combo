@@ -11,9 +11,10 @@ tmp<fv::convectionScheme<scalar> > mvConvection
 );
 
 
+if (solveSpecies)
 {
     label inertIndex = -1;
-    volScalarField Yt = 0.0*Y[0];
+    volScalarField Yt(0.0*Y[0]);
 
     forAll(Y, i)
     {
@@ -26,7 +27,7 @@ tmp<fv::convectionScheme<scalar> > mvConvection
               + mvConvection->fvmDiv(phi, Yi)
               - fvm::laplacian(turbulence->muEff(), Yi)
               ==
-                parcels.Srho(i)
+                parcels.SYi(i, Yi)
               + kappa*chemistry.RR(i)().dimensionedInternalField()
               + massSource.Su(i),
                 mesh.solver("Yi")

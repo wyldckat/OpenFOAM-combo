@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -85,8 +85,8 @@ public:
 
         enum
         {
-            dim = 3,            // Dimensionality of space
-            nComponents = nCmpt // Number of components in this vector space
+            dim = 3,            //!< Dimensionality of space
+            nComponents = nCmpt //!< Number of components in this vector space
         };
 
 

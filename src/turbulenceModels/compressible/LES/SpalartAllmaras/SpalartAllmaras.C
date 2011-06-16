@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -56,7 +56,7 @@ void SpalartAllmaras::updateSubGridScaleFields()
 
 tmp<volScalarField> SpalartAllmaras::fv1() const
 {
-    volScalarField chi3 = pow3(rho()*nuTilda_/mu());
+    volScalarField chi3(pow3(rho()*nuTilda_/mu()));
     return chi3/(chi3 + pow3(Cv1_));
 }
 
@@ -69,8 +69,8 @@ tmp<volScalarField> SpalartAllmaras::fv2() const
 
 tmp<volScalarField> SpalartAllmaras::fv3() const
 {
-    volScalarField chi = rho()*nuTilda_/mu();
-    volScalarField chiByCv2 = (1/Cv2_)*chi;
+    volScalarField chi(rho()*nuTilda_/mu());
+    volScalarField chiByCv2((1/Cv2_)*chi);
 
     return
         (scalar(1) + chi*fv1())
@@ -82,18 +82,25 @@ tmp<volScalarField> SpalartAllmaras::fv3() const
 
 tmp<volScalarField> SpalartAllmaras::fw(const volScalarField& Stilda) const
 {
-    volScalarField r = min
+    volScalarField r
     (
-        nuTilda_
-       /(
-           max(Stilda, dimensionedScalar("SMALL", Stilda.dimensions(), SMALL))
-          *sqr(kappa_*dTilda_)
-        ),
-        scalar(10.0)
+        min
+        (
+            nuTilda_
+           /(
+               max
+               (
+                   Stilda,
+                   dimensionedScalar("SMALL", Stilda.dimensions(), SMALL)
+               )
+              *sqr(kappa_*dTilda_)
+            ),
+            scalar(10.0)
+        )
     );
     r.boundaryField() == 0.0;
 
-    volScalarField g = r + Cw2_*(pow6(r) - r);
+    volScalarField g(r + Cw2_*(pow6(r) - r));
 
     return g*pow((1.0 + pow6(Cw3_))/(pow6(g) + pow6(Cw3_)), 1.0/6.0);
 }
@@ -106,10 +113,12 @@ SpalartAllmaras::SpalartAllmaras
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, rho, U, phi, thermoPhysicalModel),
+    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
 
     sigmaNut_
     (
@@ -283,7 +292,7 @@ tmp<fvVectorMatrix> SpalartAllmaras::divDevRhoBeff(volVectorField& U) const
 {
     return
     (
-      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(fvc::grad(U)().T()))
+      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(T(fvc::grad(U))))
     );
 }
 
@@ -298,10 +307,12 @@ void SpalartAllmaras::correct(const tmp<volTensorField>& tgradU)
         dTilda_ = min(CDES_*delta(), wallDist(mesh_).y());
     }
 
-    volScalarField Stilda =
-        fv3()*::sqrt(2.0)*mag(skew(gradU)) + fv2()*nuTilda_/sqr(kappa_*dTilda_);
+    volScalarField Stilda
+    (
+        fv3()*::sqrt(2.0)*mag(skew(gradU)) + fv2()*nuTilda_/sqr(kappa_*dTilda_)
+    );
 
-    solve
+    tmp<fvScalarMatrix> nuTildaEqn
     (
         fvm::ddt(rho(), nuTilda_)
       + fvm::div(phi(), nuTilda_)
@@ -316,6 +327,9 @@ void SpalartAllmaras::correct(const tmp<volTensorField>& tgradU)
         rho()*Cb1_*Stilda*nuTilda_
       - fvm::Sp(rho()*Cw1_*fw(Stilda)*nuTilda_/sqr(dTilda_), nuTilda_)
     );
+
+    nuTildaEqn().relax();
+    nuTildaEqn().solve();
 
     bound(nuTilda_, dimensionedScalar("zero", nuTilda_.dimensions(), 0.0));
     nuTilda_.correctBoundaryConditions();

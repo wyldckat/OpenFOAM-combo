@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "CoEulerDdtScheme.H"
@@ -43,7 +43,7 @@ namespace fv
 template<class Type>
 tmp<volScalarField> CoEulerDdtScheme<Type>::CorDeltaT() const
 {
-    surfaceScalarField cofrDeltaT = CofrDeltaT();
+    const surfaceScalarField cofrDeltaT(CofrDeltaT());
 
     tmp<volScalarField> tcorDeltaT
     (
@@ -63,15 +63,15 @@ tmp<volScalarField> CoEulerDdtScheme<Type>::CorDeltaT() const
 
     volScalarField& corDeltaT = tcorDeltaT();
 
-    const unallocLabelList& owner = mesh().owner();
-    const unallocLabelList& neighbour = mesh().neighbour();
+    const labelUList& owner = mesh().owner();
+    const labelUList& neighbour = mesh().neighbour();
 
     forAll(owner, faceI)
     {
-        corDeltaT[owner[faceI]] = 
+        corDeltaT[owner[faceI]] =
             max(corDeltaT[owner[faceI]], cofrDeltaT[faceI]);
 
-        corDeltaT[neighbour[faceI]] = 
+        corDeltaT[neighbour[faceI]] =
             max(corDeltaT[neighbour[faceI]], cofrDeltaT[faceI]);
     }
 
@@ -81,7 +81,7 @@ tmp<volScalarField> CoEulerDdtScheme<Type>::CorDeltaT() const
             cofrDeltaT.boundaryField()[patchi];
 
         const fvPatch& p = pcofrDeltaT.patch();
-        const unallocLabelList& faceCells = p.patch().faceCells();
+        const labelUList& faceCells = p.patch().faceCells();
 
         forAll(pcofrDeltaT, patchFacei)
         {
@@ -126,7 +126,7 @@ tmp<surfaceScalarField> CoEulerDdtScheme<Type>::CofrDeltaT() const
         const volScalarField& rho =
             static_cast<const objectRegistry&>(mesh())
            .lookupObject<volScalarField>(rhoName_).oldTime();
- 
+
         surfaceScalarField Co
         (
             mesh().surfaceInterpolation::deltaCoeffs()
@@ -154,7 +154,7 @@ CoEulerDdtScheme<Type>::fvcDdt
     const dimensioned<Type>& dt
 )
 {
-    volScalarField rDeltaT = CorDeltaT();
+    const volScalarField rDeltaT(CorDeltaT());
 
     IOobject ddtIOobject
     (
@@ -213,7 +213,7 @@ CoEulerDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = CorDeltaT();
+    const volScalarField rDeltaT(CorDeltaT());
 
     IOobject ddtIOobject
     (
@@ -265,7 +265,7 @@ CoEulerDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = CorDeltaT();
+    const volScalarField rDeltaT(CorDeltaT());
 
     IOobject ddtIOobject
     (
@@ -317,7 +317,7 @@ CoEulerDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = CorDeltaT();
+    const volScalarField rDeltaT(CorDeltaT());
 
     IOobject ddtIOobject
     (
@@ -368,7 +368,7 @@ template<class Type>
 tmp<fvMatrix<Type> >
 CoEulerDdtScheme<Type>::fvmDdt
 (
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -382,10 +382,10 @@ CoEulerDdtScheme<Type>::fvmDdt
 
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = CorDeltaT()().internalField();
+    scalarField rDeltaT(CorDeltaT()().internalField());
 
     fvm.diag() = rDeltaT*mesh().V();
-    
+
     if (mesh().moving())
     {
         fvm.source() = rDeltaT*vf.oldTime().internalField()*mesh().V0();
@@ -404,7 +404,7 @@ tmp<fvMatrix<Type> >
 CoEulerDdtScheme<Type>::fvmDdt
 (
     const dimensionedScalar& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -417,10 +417,10 @@ CoEulerDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = CorDeltaT()().internalField();
+    scalarField rDeltaT(CorDeltaT()().internalField());
 
     fvm.diag() = rDeltaT*rho.value()*mesh().V();
-    
+
     if (mesh().moving())
     {
         fvm.source() = rDeltaT
@@ -441,7 +441,7 @@ tmp<fvMatrix<Type> >
 CoEulerDdtScheme<Type>::fvmDdt
 (
     const volScalarField& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -454,7 +454,7 @@ CoEulerDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = CorDeltaT()().internalField();
+    scalarField rDeltaT(CorDeltaT()().internalField());
 
     fvm.diag() = rDeltaT*rho.internalField()*mesh().V();
 
@@ -510,14 +510,14 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
     }
     else
     {
-        volScalarField rDeltaT = CorDeltaT();
+        const volScalarField rDeltaT(CorDeltaT());
 
         return tmp<fluxFieldType>
         (
             new fluxFieldType
             (
                 ddtIOobject,
-                fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())*
+                this->fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())*
                 (
                     fvc::interpolate(rDeltaT*rA)*phi.oldTime()
                   - (fvc::interpolate(rDeltaT*rA*U.oldTime()) & mesh().Sf())
@@ -565,7 +565,7 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
     }
     else
     {
-        volScalarField rDeltaT = CorDeltaT();
+        const volScalarField rDeltaT(CorDeltaT());
 
         if
         (
@@ -578,7 +578,7 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
+                    this->fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
                    *(
                         fvc::interpolate(rDeltaT*rA*rho.oldTime())*phi.oldTime()
                       - (fvc::interpolate(rDeltaT*rA*rho.oldTime()*U.oldTime())
@@ -587,7 +587,7 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
                 )
             );
         }
-        else if 
+        else if
         (
             U.dimensions() == dimVelocity
          && phi.dimensions() == dimDensity*dimVelocity*dimArea
@@ -598,7 +598,7 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff
+                    this->fvcDdtPhiCoeff
                     (
                         U.oldTime(),
                         phi.oldTime()/fvc::interpolate(rho.oldTime())
@@ -616,7 +616,7 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
                 )
             );
         }
-        else if 
+        else if
         (
             U.dimensions() == dimDensity*dimVelocity
          && phi.dimensions() == dimDensity*dimVelocity*dimArea
@@ -627,8 +627,9 @@ CoEulerDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff(rho.oldTime(), U.oldTime(), phi.oldTime())
-                   *(
+                    this->fvcDdtPhiCoeff
+                    (rho.oldTime(), U.oldTime(), phi.oldTime())
+                  * (
                         fvc::interpolate(rDeltaT*rA)*phi.oldTime()
                       - (
                             fvc::interpolate(rDeltaT*rA*U.oldTime())&mesh().Sf()

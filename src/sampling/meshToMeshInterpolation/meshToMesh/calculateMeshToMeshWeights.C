@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,14 +25,9 @@ License
 
 #include "meshToMesh.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void meshToMesh::calculateInverseDistanceWeights() const
+void Foam::meshToMesh::calculateInverseDistanceWeights() const
 {
     if (debug)
     {
@@ -55,7 +50,7 @@ void meshToMesh::calculateInverseDistanceWeights() const
     const vectorField& centreFrom = fromMesh_.C().internalField();
     const vectorField& centreTo = toMesh_.C().internalField();
 
-    forAll (cellAddressing_, celli)
+    forAll(cellAddressing_, celli)
     {
         if (cellAddressing_[celli] != -1)
         {
@@ -86,15 +81,15 @@ void meshToMesh::calculateInverseDistanceWeights() const
                 scalar sumInvDist = invDist;
 
                 // now add the neighbours
-                forAll (neighbours, ni)
+                forAll(neighbours, ni)
                 {
                     invDist = 1.0/mag(target - centreFrom[neighbours[ni]]);
                     invDistCoeffs[celli][ni + 1] = invDist;
                     sumInvDist += invDist;
                 }
-                
+
                 // divide by the total inverse-distance
-                forAll (invDistCoeffs[celli], i)
+                forAll(invDistCoeffs[celli], i)
                 {
                     invDistCoeffs[celli][i] /= sumInvDist;
                 }
@@ -106,19 +101,15 @@ void meshToMesh::calculateInverseDistanceWeights() const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-const scalarListList& meshToMesh::inverseDistanceWeights() const
+const Foam::scalarListList& Foam::meshToMesh::inverseDistanceWeights() const
 {
     if (!inverseDistanceWeightsPtr_)
     {
         calculateInverseDistanceWeights();
     }
-    
+
     return *inverseDistanceWeightsPtr_;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

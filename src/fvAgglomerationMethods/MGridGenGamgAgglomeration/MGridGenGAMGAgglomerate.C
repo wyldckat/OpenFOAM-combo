@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,18 +50,18 @@ makeCompactCellFaceAddressingAndFaceWeights
     const label nFineCells = fineAddressing.size();
     const label nFineFaces = fineAddressing.upperAddr().size();
 
-    const unallocLabelList& upperAddr = fineAddressing.upperAddr();
-    const unallocLabelList& lowerAddr = fineAddressing.lowerAddr();
+    const labelUList& upperAddr = fineAddressing.upperAddr();
+    const labelUList& lowerAddr = fineAddressing.lowerAddr();
 
     // Number of neighbours for each cell
     labelList nNbrs(nFineCells, 0);
 
-    forAll (upperAddr, facei)
+    forAll(upperAddr, facei)
     {
         nNbrs[upperAddr[facei]]++;
     }
 
-    forAll (lowerAddr, facei)
+    forAll(lowerAddr, facei)
     {
         nNbrs[lowerAddr[facei]]++;
     }
@@ -73,7 +73,7 @@ makeCompactCellFaceAddressingAndFaceWeights
 
 
     cellCellOffsets[0] = 0;
-    forAll (nNbrs, celli)
+    forAll(nNbrs, celli)
     {
         cellCellOffsets[celli+1] = cellCellOffsets[celli] + nNbrs[celli];
     }
@@ -81,7 +81,7 @@ makeCompactCellFaceAddressingAndFaceWeights
     // reset the whole list to use as counter
     nNbrs = 0;
 
-    forAll (upperAddr, facei)
+    forAll(upperAddr, facei)
     {
         label own = upperAddr[facei];
         label nei = lowerAddr[facei];
@@ -139,7 +139,7 @@ Foam::tmp<Foam::labelField> Foam::MGridGenGAMGAgglomeration::agglomerate
     // output: cell -> processor addressing
     List<int> finalAgglom(nFineCells);
     int nMoves = -1;
-        
+
     MGridGen
     (
         nFineCells,

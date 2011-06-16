@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,6 +51,7 @@ Description
 extern "C"
 {
 
+#include "USERD_API.H"
 #include "global_extern.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -72,7 +73,7 @@ extern "C"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 // slightly changed with 2.0 from 1.0
-// (to handle complex variables -  not used by FOAM anyway)
+// (to handle complex variables - not used by OpenFOAM anyway)
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "USERD_get_constant_val.H"
@@ -103,6 +104,7 @@ extern "C"
 #include "USERD_exit_routine.H"
 #include "USERD_get_model_extents.H"
 #include "USERD_get_reader_version.H"
+#include "USERD_get_reader_release.H"
 #include "USERD_get_number_timesets.H"
 #include "USERD_get_timeset_description.H"
 #include "USERD_get_geom_timeset_number.H"
@@ -129,7 +131,7 @@ extern "C"
 
 //**********************************************************************
 //======================================================================
-// STRUCTURED DATA STUFF - not used in foam
+// STRUCTURED DATA STUFF - not used in OpenFOAM
 //======================================================================
 //**********************************************************************
 

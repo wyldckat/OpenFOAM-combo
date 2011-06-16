@@ -54,16 +54,9 @@ label singleStepNMols = molecules.size();
 label singleStepDOFs = 0;
 
 {
-    IDLList<molecule>::iterator mol(molecules.begin());
-
-    for
-    (
-        mol = molecules.begin();
-        mol != molecules.end();
-        ++mol
-    )
+    forAllConstIter(IDLList<molecule>, molecules, mol)
     {
-        label molId = mol().id();
+        const label molId = mol().id();
 
         scalar molMass(molecules.constProps(molId).mass());
 
@@ -72,19 +65,14 @@ label singleStepDOFs = 0;
         //singleStepCentreOfMass += mol().position()*molMass;
     }
 
-    // if(singleStepNMols)
+    // if (singleStepNMols)
     // {
     //     singleStepCentreOfMass /= singleStepTotalMass;
     // }
 
-    for
-    (
-        mol = molecules.begin();
-        mol != molecules.end();
-        ++mol
-    )
+    forAllConstIter(IDLList<molecule>, molecules, mol)
     {
-        label molId = mol().id();
+        const label molId = mol().id();
 
         const molecule::constantProperties cP(molecules.constProps(molId));
 
@@ -103,7 +91,7 @@ label singleStepDOFs = 0;
         singleStepTotalAngularMomentum += molPiGlobal;
         //+((mol().position() - singleStepCentreOfMass) ^ (molV * molMass));
 
-        if(mag(molV) > singleStepMaxVelocityMag)
+        if (mag(molV) > singleStepMaxVelocityMag)
         {
             singleStepMaxVelocityMag = mag(molV);
         }
@@ -175,7 +163,7 @@ if (singleStepNMols)
         /singleStepNMols
         << endl;
 
-        // Info << singleStepNMols << " "
+        // Info<< singleStepNMols << " "
         //     << singleStepTotalMomentum/singleStepTotalMass << " "
         //     << singleStepMaxVelocityMag << " "
         //     << singleStepTotalKE/singleStepNMols << " "

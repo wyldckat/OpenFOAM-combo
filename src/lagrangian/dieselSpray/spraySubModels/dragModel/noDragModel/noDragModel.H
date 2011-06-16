@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,21 +51,17 @@ class noDragModel
 public:
 
     //- Runtime type information
-        TypeName("noDragModel");
+    TypeName("noDragModel");
 
 
     // Constructors
 
         //- Construct from components
-        noDragModel
-        (
-            const dictionary& dict
-        );
+        noDragModel(const dictionary& dict);
 
 
-    // Destructor
-
-        ~noDragModel();
+    //- Destructor
+    virtual ~noDragModel();
 
 
     // Member Functions
@@ -85,7 +81,6 @@ public:
             const scalar nu,
             const scalar deviation
         ) const;
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

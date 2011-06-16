@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,11 +45,11 @@ Description
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-//! @cond fileScope
+//! \cond fileScope
 //  The bytes used to pad buffer to the next 64-byte boundary.
 //  (RFC 1321, 3.1: Step 1)
 static const unsigned char fillbuf[64] = { 0x80, 0 /* , 0, 0, ...  */ };
-//! @endcond fileScope
+//! \endcond
 
 
 // * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * * //
@@ -60,7 +60,13 @@ inline uint32_t Foam::SHA1::swapBytes(uint32_t n)
 # if (__BYTE_ORDER == __BIG_ENDIAN)
     return n;
 # else
-    return (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24));
+    return
+    (
+        ((n) << 24)
+      | (((n) & 0xff00) << 8)
+      | (((n) >> 8) & 0xff00)
+      | ((n) >> 24)
+    );
 # endif
 
 #else
@@ -68,13 +74,19 @@ inline uint32_t Foam::SHA1::swapBytes(uint32_t n)
     const short x = 0x0100;
 
     // yields 0x01 for big endian
-    if (*(reinterpret_cast<const char *>(&x)))
+    if (*(reinterpret_cast<const char*>(&x)))
     {
         return n;
     }
     else
     {
-        return (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24));
+        return
+        (
+            ((n) << 24)
+          | (((n) & 0xff00) << 8)
+          | (((n) >> 8) & 0xff00)
+          | ((n) >> 24)
+        );
     }
 #endif
 }
@@ -119,7 +131,8 @@ void Foam::SHA1::processBytes(const void *data, size_t len)
             processBlock(buffer_, bufLen_ & ~63);
 
             bufLen_ &= 63;
-            // The regions in the following copy operation do not (cannot) overlap
+            // The regions in the following copy operation do not
+            // (cannot) overlap
             memcpy(buffer_, &bufp[(remaining + add) & ~63], bufLen_);
         }
 
@@ -135,9 +148,10 @@ void Foam::SHA1::processBytes(const void *data, size_t len)
 //# define UNALIGNED_P(p) (((size_t) p) % alignof (uint32_t) != 0)
 //        if (UNALIGNED_P (data))
 //        {
+//            while (len > 64)
             while (len >= 64)
             {
-                processBlock(memcpy (buffer_, data, 64), 64);
+                processBlock(memcpy(buffer_, data, 64), 64);
                 data = reinterpret_cast<const unsigned char*>(data) + 64;
                 len -= 64;
             }
@@ -163,7 +177,7 @@ void Foam::SHA1::processBytes(const void *data, size_t len)
         {
             processBlock(buffer_, 64);
             remaining -= 64;
-            memcpy (buffer_, &buffer_[16], remaining);
+            memcpy(buffer_, &buffer_[16], remaining);
         }
         bufLen_ = remaining;
     }
@@ -222,15 +236,15 @@ Foam::SHA1::processBlock(const void *data, size_t len)
     {                                                                         \
         E += rol_uint32(A, 5) + F(B, C, D) + K + M;                           \
         B = rol_uint32(B, 30);                                                \
-    } while(0)
+    } while (0)
 
     while (words < endp)
     {
         uint32_t tm;
-        for (int t = 0; t < 16; t++)
+        for (int t = 0; t < 16; ++t)
         {
-            x[t] = swapBytes (*words);
-            words++;
+            x[t] = swapBytes(*words);
+            ++words;
         }
 
         R( a, b, c, d, e, F1, K1, x[ 0] );
@@ -329,11 +343,11 @@ void Foam::SHA1::calcDigest(SHA1Digest& dig) const
     {
         unsigned char *r = dig.v_;
 
-        set_uint32 (r + 0 * sizeof(uint32_t), swapBytes(hashsumA_));
-        set_uint32 (r + 1 * sizeof(uint32_t), swapBytes(hashsumB_));
-        set_uint32 (r + 2 * sizeof(uint32_t), swapBytes(hashsumC_));
-        set_uint32 (r + 3 * sizeof(uint32_t), swapBytes(hashsumD_));
-        set_uint32 (r + 4 * sizeof(uint32_t), swapBytes(hashsumE_));
+        set_uint32(r + 0 * sizeof(uint32_t), swapBytes(hashsumA_));
+        set_uint32(r + 1 * sizeof(uint32_t), swapBytes(hashsumB_));
+        set_uint32(r + 2 * sizeof(uint32_t), swapBytes(hashsumC_));
+        set_uint32(r + 3 * sizeof(uint32_t), swapBytes(hashsumD_));
+        set_uint32(r + 4 * sizeof(uint32_t), swapBytes(hashsumE_));
     }
     else
     {
@@ -444,11 +458,6 @@ Foam::SHA1Digest Foam::SHA1::digest() const
 //             << abort(FatalError);
 //     }
 // }
-
-// * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * Friend Operators * * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,22 +21,14 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    
 \*---------------------------------------------------------------------------*/
 
 #include "IrreversibleReaction.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 template<class ReactionThermo, class ReactionRate>
-IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
+Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 (
     const Reaction<ReactionThermo>& reaction,
     const ReactionRate& k
@@ -47,9 +39,8 @@ IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 {}
 
 
-// Construct from components
 template<class ReactionThermo, class ReactionRate>
-IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
+Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 (
     const speciesTable& species,
     const HashPtrTable<ReactionThermo>& thermoDatabase,
@@ -61,9 +52,21 @@ IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 {}
 
 
-// Construct as copy given new speciesTable
 template<class ReactionThermo, class ReactionRate>
-IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
+Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
+(
+    const speciesTable& species,
+    const HashPtrTable<ReactionThermo>& thermoDatabase,
+    const dictionary& dict
+)
+:
+    Reaction<ReactionThermo>(species, thermoDatabase, dict),
+    k_(species, dict)
+{}
+
+
+template<class ReactionThermo, class ReactionRate>
+Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 (
     const IrreversibleReaction<ReactionThermo, ReactionRate>& irr,
     const speciesTable& species
@@ -77,7 +80,7 @@ IrreversibleReaction<ReactionThermo, ReactionRate>::IrreversibleReaction
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class ReactionThermo, class ReactionRate>
-scalar IrreversibleReaction<ReactionThermo, ReactionRate>::kf
+Foam::scalar Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::kf
 (
     const scalar T,
     const scalar p,
@@ -89,18 +92,14 @@ scalar IrreversibleReaction<ReactionThermo, ReactionRate>::kf
 
 
 template<class ReactionThermo, class ReactionRate>
-void IrreversibleReaction<ReactionThermo, ReactionRate>::write
+void Foam::IrreversibleReaction<ReactionThermo, ReactionRate>::write
 (
     Ostream& os
 ) const
 {
     Reaction<ReactionThermo>::write(os);
-    os  << token::SPACE << k_;
+    k_.write(os);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

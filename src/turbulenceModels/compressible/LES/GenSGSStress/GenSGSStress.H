@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,6 +82,9 @@ protected:
 
 public:
 
+    //- Partial Runtime type information
+    static const word typeName;
+
     // Constructors
 
         //- Constructor from components
@@ -90,7 +93,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -110,7 +115,7 @@ public:
         //- Return the SGS turbulent dissipation
         virtual tmp<volScalarField> epsilon() const
         {
-            volScalarField K = k();
+            const volScalarField K(k());
             return ce_*K*sqrt(K)/delta();
         }
 
@@ -124,15 +129,6 @@ public:
         virtual tmp<volScalarField> alphaSgs() const
         {
             return alphaSgs_;
-        }
-
-        //- Return thermal conductivity
-        virtual tmp<volScalarField> alphaEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphaSgs_ + alpha())
-            );
         }
 
         //- Return the sub-grid stress tensor

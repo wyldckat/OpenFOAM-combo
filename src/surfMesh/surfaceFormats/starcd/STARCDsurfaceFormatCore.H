@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,7 @@ SourceFiles
 #include "Ostream.H"
 #include "OFstream.H"
 #include "MeshedSurface.H"
+#include "STARCDCore.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,18 +53,14 @@ namespace fileFormats
 \*---------------------------------------------------------------------------*/
 
 class STARCDsurfaceFormatCore
+:
+    public STARCDCore
 {
 protected:
 
     // Protected Member Functions
 
-    static bool readHeader(IFstream&, const word&);
-
-    static void writeHeader(Ostream&, const char* filetype);
-
-    static bool readPoints(IFstream&, pointField&, labelList& ids);
-
-    static void writePoints(Ostream&, const pointField&);
+    static Map<word> readInpCellTable(IFstream&);
 
     static void writeCase
     (

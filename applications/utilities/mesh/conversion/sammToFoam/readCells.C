@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -162,7 +162,7 @@ void sammMesh::addSAMMcell
     // make a list of labels
     labelList sammCellLabels(curModel.nPoints(), -1);
 
-    forAll (sammCellLabels, labelI)
+    forAll(sammCellLabels, labelI)
     {
         sammCellLabels[labelI] = globalLabels[addressing[labelI]];
     }
@@ -220,7 +220,7 @@ void sammMesh::readCells()
     starCellLabelLookup_.setSize(maxLabel+1);
 
     // reset point labels to invalid value
-    forAll (starCellLabelLookup_, i)
+    forAll(starCellLabelLookup_, i)
     {
         starCellLabelLookup_[i] = -1;
     }

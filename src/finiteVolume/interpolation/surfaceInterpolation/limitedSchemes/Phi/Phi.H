@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -98,7 +98,7 @@ public:
         //scalar PLimiter =
         //    (1.0 - k_) + k_*(faceFlux - phiU)/stabilise(phiCD - phiU, SMALL);
 
-        scalar PLimiter = 
+        scalar PLimiter =
             ((faceFlux - phiU)/stabilise(phiCD - phiU, SMALL) + k_);
 
         // Limit the limiter between upwind and central

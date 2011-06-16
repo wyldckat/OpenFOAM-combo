@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -66,9 +66,8 @@ SIMPLE
 relaxationFactors
 {
     p               0.3;
-    U               0.7;
-    k               0.7;
-    omega           0.7;
+    "(U|k|omega)"   0.7;
+    "(U|k|omega)Final" 1.0;
 }
 
 cache

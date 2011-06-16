@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ License
 #include "topoCellLooper.H"
 #include "cellFeatures.H"
 #include "polyMesh.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "DynamicList.H"
 #include "ListOps.H"
 #include "meshTools.H"
@@ -34,9 +34,8 @@ License
 
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
 namespace Foam
 {
    defineTypeNameAndDebug(topoCellLooper, 0);
@@ -44,8 +43,7 @@ namespace Foam
 }
 
 // Angle for polys to be considered splitHexes.
-const Foam::scalar Foam::topoCellLooper::featureCos =
-    Foam::cos(10.0 * mathematicalConstant::pi/180.0);
+const Foam::scalar Foam::topoCellLooper::featureCos = Foam::cos(degToRad(10.0));
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //

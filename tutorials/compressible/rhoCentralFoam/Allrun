@@ -1,9 +1,8 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
-
-# Get application name
-application="rhoCentralFoam"
 
 cases=" \
 shockTube \
@@ -14,27 +13,30 @@ LadenburgJet60psi \
 biconic25-55Run35 \
 "
 
-moveTimeMeshToConstant ()
+moveTimeMeshToConstant()
 {
    DT=`foamInfoExec -times | tail -1`
-   if [ "$DT" != 0 ] ; then
+   if [ "$DT" != 0 ]
+   then
        mv ${DT}/polyMesh/* constant/polyMesh
        rm -rf ${DT}
    fi
 }
 
-for case in $cases
-do
-    (cd $case && runApplication blockMesh)
-#
-    if [ "$case" = "shockTube" ] ; then
-        (cd $case && runApplication setFields)
-    fi
-#
-    if [ "$case" = "biconic25-55Run35" ] ; then
-        cd $case
 
-        wmake datToFoam
+for caseName in $cases
+do
+(
+    cd $caseName || exit
+
+    runApplication blockMesh
+
+    case "$caseName" in
+    shockTube)
+        runApplication setFields
+        ;;
+
+    biconic25-55Run35)
         runApplication datToFoam grid256.dat
 
         CONST="constant"
@@ -46,9 +48,11 @@ do
         mv $CONST/polyMesh/boundary $CONST/polyMesh/boundary.bak
         sed -f $CONST/wedgeScr $CONST/polyMesh/boundary.bak > $CONST/polyMesh/boundary
         rm $CONST/polyMesh/boundary.bak
+        ;;
+    esac
 
-        cd ..
-    fi
-#
-    (cd $case && runApplication $application)
+    runApplication `getApplication`
+)
 done
+
+# ----------------------------------------------------------------- end-of-file

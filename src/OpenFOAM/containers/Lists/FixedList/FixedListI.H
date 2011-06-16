@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -204,6 +204,34 @@ inline T*
 Foam::FixedList<T, Size>::data()
 {
     return v_;
+}
+
+
+template<class T, unsigned Size>
+inline T& Foam::FixedList<T, Size>::first()
+{
+    return v_[0];
+}
+
+
+template<class T, unsigned Size>
+inline const T& Foam::FixedList<T, Size>::first() const
+{
+    return v_[0];
+}
+
+
+template<class T, unsigned Size>
+inline T& Foam::FixedList<T, Size>::last()
+{
+    return v_[Size-1];
+}
+
+
+template<class T, unsigned Size>
+inline const T& Foam::FixedList<T, Size>::last() const
+{
+    return v_[Size-1];
 }
 
 

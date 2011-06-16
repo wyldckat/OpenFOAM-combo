@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,12 +22,11 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::LESmodels::kOmegaSSTSAS
+    Foam::incompressible::LESModels::kOmegaSSTSAS
 
 Description
     kOmegaSSTSAS LES turbulence model for incompressible flows
 
-    Reference:
 
     DESider A European Effort on Hybrid RANS-LES Modelling:
     Results of the European-Union Funded Project, 2004 - 2007
@@ -65,7 +64,7 @@ class kOmegaSSTSAS
 :
     public LESModel
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Update sub-grid scale fields
         void updateSubGridScaleFields(const volScalarField& D);
@@ -103,8 +102,7 @@ protected:
             dimensionedScalar zetaTilda2_;
             dimensionedScalar FSAS_;
 
-            dimensionedScalar omega0_;
-            dimensionedScalar omegaSmall_;
+            dimensionedScalar omegaMin_;
 
             wallDist y_;
             dimensionedScalar Cmu_;
@@ -118,7 +116,7 @@ protected:
             volScalarField nuSgs_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         tmp<volScalarField> Lvk2
         (
@@ -185,6 +183,7 @@ public:
             const volVectorField& U,
             const surfaceScalarField& phi,
             transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Translates FOAM data to EnSight format.
+    Translates OpenFOAM data to EnSight format.
 
     An Ensight part is created for the internalMesh and for each patch.
 
@@ -30,19 +30,22 @@ Usage
     - foamToEnsight [OPTION] \n
     Translates OpenFOAM data to Ensight format
 
-    @param -ascii \n
+    \param -ascii \n
     Write Ensight data in ASCII format instead of "C Binary"
 
-    @param -patches patchList \n
+    \param -patches patchList \n
     Specify particular patches to write.
     Specifying an empty list suppresses writing the internalMesh.
 
-    @param -noPatches \n
+    \param -noPatches \n
     Suppress writing any patches.
+
+    \param -faceZones zoneList \n
+    Specify faceZones to write, with wildcards
 
 Note
     Parallel support for cloud data is not supported
-    - writes to @a EnSight directory to avoid collisions with foamToEnsightParts
+    - writes to \a EnSight directory to avoid collisions with foamToEnsightParts
 
 \*---------------------------------------------------------------------------*/
 
@@ -92,25 +95,47 @@ bool inFileNameList
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("ascii", "" );
-    argList::validOptions.insert("patches", "patchList");
-    argList::validOptions.insert("noPatches", "");
-
-#   include "addTimeOptions.H"
+    timeSelector::addOptions();
 #   include "addRegionOption.H"
+
+    argList::addBoolOption
+    (
+        "ascii",
+        "write in ASCII format instead of 'C Binary'"
+    );
+    argList::addBoolOption
+    (
+        "nodeValues",
+        "write values in nodes"
+    );
+    argList::addBoolOption
+    (
+        "noPatches",
+        "suppress writing any patches"
+    );
+    argList::addOption
+    (
+        "patches",
+        "wordReList",
+        "specify particular patches to write - eg '(outlet \"inlet.*\")'. "
+        "An empty list suppresses writing the internalMesh."
+    );
+    argList::addOption
+    (
+        "faceZones",
+        "wordReList",
+        "specify faceZones to write - eg '( slice \"mfp-.*\" )'."
+    );
+
 #   include "setRootCase.H"
 
     // Check options
-    bool binary = !args.optionFound("ascii");
+    const bool binary = !args.optionFound("ascii");
+    const bool nodeValues = args.optionFound("nodeValues");
 
 #   include "createTime.H"
 
-    // get the available time-steps
-    instantList Times = runTime.times();
-
-#   include "checkTimeOptions.H"
-
-    runTime.setTime(Times[startTime], startTime);
+    instantList Times = timeSelector::select0(runTime, args);
 
 #   include "createNamedMesh.H"
 
@@ -172,10 +197,32 @@ int main(int argc, char *argv[])
     OFstream& ensightCaseFile = *ensightCaseFilePtr;
 
     // Construct the EnSight mesh
-    ensightMesh eMesh(mesh, args, binary);
+    const bool selectedPatches = args.optionFound("patches");
+    wordReList patchPatterns;
+    if (selectedPatches)
+    {
+        patchPatterns = wordReList(args.optionLookup("patches")());
+    }
+    const bool selectedZones = args.optionFound("faceZones");
+    wordReList zonePatterns;
+    if (selectedZones)
+    {
+        zonePatterns = wordReList(args.optionLookup("faceZones")());
+    }
+
+    ensightMesh eMesh
+    (
+        mesh,
+        args.optionFound("noPatches"),
+        selectedPatches,
+        patchPatterns,
+        selectedZones,
+        zonePatterns,
+        binary
+    );
 
     // Set Time to the last time before looking for the lagrangian objects
-    runTime.setTime(Times[Times.size()-1], Times.size()-1);
+    runTime.setTime(Times.last(), Times.size()-1);
 
     IOobjectList objects(mesh, runTime.timeName());
 
@@ -200,9 +247,9 @@ int main(int argc, char *argv[])
 
     // Identify if lagrangian data exists at each time, and add clouds
     // to the 'allCloudNames' hash set
-    for (label n=startTime; n<endTime; n++)
+    forAll(Times, timeI)
     {
-        runTime.setTime(Times[n], n);
+        runTime.setTime(Times[timeI], timeI);
 
         fileNameList cloudDirs = readDir
         (
@@ -253,9 +300,9 @@ int main(int argc, char *argv[])
 
         // Loop over all times to build list of fields and field types
         // for each cloud
-        for (label n=startTime; n<endTime; n++)
+        forAll(Times, timeI)
         {
-            runTime.setTime(Times[n], n);
+            runTime.setTime(Times[timeI], timeI);
 
             IOobjectList cloudObjs
             (
@@ -282,20 +329,24 @@ int main(int argc, char *argv[])
     }
 
     label nTimeSteps = 0;
-    for (label n=startTime; n<endTime; n++)
+    forAll(Times, timeIndex)
     {
         nTimeSteps++;
-        runTime.setTime(Times[n], n);
-        label timeIndex = n - startTime;
+        runTime.setTime(Times[timeIndex], timeIndex);
 
         word timeName = itoa(timeIndex);
         word timeFile = prepend + timeName;
 
         Info<< "Translating time = " << runTime.timeName() << nl;
 
-#       include "moveMesh.H"
+        polyMesh::readUpdateState meshState = mesh.readUpdate();
 
-        if (timeIndex == 0 || mesh.moving())
+        if (meshState != polyMesh::UNCHANGED)
+        {
+            eMesh.correct();
+        }
+
+        if (timeIndex == 0 || (meshState != polyMesh::UNCHANGED))
         {
             eMesh.write
             (
@@ -323,9 +374,9 @@ int main(int argc, char *argv[])
         {
             wordList fieldNames = objects.names(volFieldTypes[i]);
 
-            for (label j=0; j<fieldNames.size(); j++)
+            forAll(fieldNames, j)
             {
-                word fieldName = fieldNames[j];
+                const word& fieldName = fieldNames[j];
 
 #               include "checkData.H"
 
@@ -353,6 +404,7 @@ int main(int argc, char *argv[])
                         prepend,
                         timeIndex,
                         binary,
+                        nodeValues,
                         ensightCaseFile
                     );
                 }
@@ -366,6 +418,7 @@ int main(int argc, char *argv[])
                         prepend,
                         timeIndex,
                         binary,
+                        nodeValues,
                         ensightCaseFile
                     );
                 }
@@ -379,6 +432,7 @@ int main(int argc, char *argv[])
                         prepend,
                         timeIndex,
                         binary,
+                        nodeValues,
                         ensightCaseFile
                     );
                 }
@@ -392,6 +446,7 @@ int main(int argc, char *argv[])
                         prepend,
                         timeIndex,
                         binary,
+                        nodeValues,
                         ensightCaseFile
                     );
                 }
@@ -405,6 +460,7 @@ int main(int argc, char *argv[])
                         prepend,
                         timeIndex,
                         binary,
+                        nodeValues,
                         ensightCaseFile
                     );
                 }

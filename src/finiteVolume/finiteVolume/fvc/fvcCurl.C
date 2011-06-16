@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,9 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
-    
 
 \*---------------------------------------------------------------------------*/
 
@@ -52,11 +49,11 @@ curl
     word nameCurlVf = "curl(" + vf.name() + ')';
 
     // Gausses theorem curl
-    // tmp<GeometricField<Type, fvPatchField, volMesh> > tcurlVf = 
+    // tmp<GeometricField<Type, fvPatchField, volMesh> > tcurlVf =
     //     fvc::surfaceIntegrate(vf.mesh().Sf() ^ fvc::interpolate(vf));
 
     // Calculate curl as the Hodge dual of the skew-symmetric part of grad
-    tmp<GeometricField<Type, fvPatchField, volMesh> > tcurlVf = 
+    tmp<GeometricField<Type, fvPatchField, volMesh> > tcurlVf =
         2.0*(*skew(fvc::grad(vf, nameCurlVf)));
 
     tcurlVf().rename(nameCurlVf);

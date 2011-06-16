@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,15 +42,14 @@ using namespace Foam;
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validArgs.append("surface file");
+    argList::validArgs.append("surfaceFile");
     argList::validArgs.append("merge distance");
-    argList::validArgs.append("output file");
+    argList::validArgs.append("output surfaceFile");
     argList args(argc, argv);
 
-    fileName surfFileName(args.additionalArgs()[0]);
-    scalar mergeTol(readScalar(IStringStream(args.additionalArgs()[1])()));
-    fileName outFileName(args.additionalArgs()[2]);
+    const fileName surfFileName = args[1];
+    const scalar   mergeTol = args.argRead<scalar>(2);
+    const fileName outFileName = args[3];
 
     Info<< "Reading surface from " << surfFileName << " ..." << endl;
     Info<< "Merging points within " << mergeTol << " meter." << endl;
@@ -64,7 +63,7 @@ int main(int argc, char *argv[])
 
     triSurface cleanSurf(surf1);
 
-    while(true)
+    while (true)
     {
         label nOldVert = cleanSurf.nPoints();
 
@@ -82,7 +81,7 @@ int main(int argc, char *argv[])
 
     cleanSurf.write(outFileName);
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

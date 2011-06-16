@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
             "mdInitialiseDict",
             runTime.system(),
             runTime,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     Info<< nl << "ClockTime = " << runTime.elapsedClockTime() << " s"
         << nl << endl;
 
-    Info << nl << "End\n" << endl;
+    Info<< "\nEnd\n" << endl;
 
     return 0;
 }

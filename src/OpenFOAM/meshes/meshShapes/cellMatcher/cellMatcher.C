@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "cellMatcher.H"
@@ -31,24 +29,11 @@ Description
 #include "Map.H"
 #include "faceList.H"
 #include "labelList.H"
-
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-Foam::labelList Foam::cellMatcher::makeIdentity(const label nElems)
-{
-    labelList result(nElems);
-
-    forAll(result, elemI)
-    {
-        result[elemI] = elemI;
-    }
-    return result;
-}
+#include "ListOps.H"
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::cellMatcher::cellMatcher
 (
     const label vertPerCell,
@@ -138,14 +123,9 @@ Foam::label Foam::cellMatcher::calcLocalFaces
     }
 
     // Create local to global vertex mapping
-    for
-    (
-        Map<label>::iterator iter = localPoint_.begin();
-        iter != localPoint_.end();
-        ++iter
-    )
+    forAllConstIter(Map<label>, localPoint_, iter)
     {
-        label fp = iter();
+        const label fp = iter();
         pointMap_[fp] = iter.key();
     }
 
@@ -176,7 +156,7 @@ void Foam::cellMatcher::calcEdgeAddressing(const label numVert)
         {
             label start = f[prevVertI];
             label end = f[fp];
-            
+
             label key1 = edgeKey(numVert, start, end);
             label key2 = edgeKey(numVert, end, start);
 
@@ -283,7 +263,7 @@ void Foam::cellMatcher::write(Foam::Ostream& os) const
     {
         os  << "    ";
 
-        for(label fp = 0; fp < faceSize_[faceI]; fp++)
+        for (label fp = 0; fp < faceSize_[faceI]; fp++)
         {
             os  << ' ' << localFaces_[faceI][fp];
         }

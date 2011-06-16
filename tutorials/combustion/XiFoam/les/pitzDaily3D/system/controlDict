@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -37,13 +37,13 @@ writeFormat     ascii;
 
 writePrecision  6;
 
-writeCompression compressed;
+writeCompression off;
 
 timeFormat      general;
 
 timePrecision   6;
 
-runTimeModifiable yes;
+runTimeModifiable true;
 
 adjustTimeStep  yes;
 
@@ -57,6 +57,7 @@ functions
         functionObjectLibs ( "libfieldFunctionObjects.so" );
         enabled         true;
         outputControl   outputTime;
+
         fields
         (
             U
@@ -75,6 +76,5 @@ functions
         );
     }
 }
-
 
 // ************************************************************************* //

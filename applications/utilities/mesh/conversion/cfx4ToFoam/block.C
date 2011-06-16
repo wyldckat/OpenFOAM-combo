@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,13 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
-
 \*---------------------------------------------------------------------------*/
 
 #include "error.H"
-
 #include "block.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -114,9 +110,9 @@ const labelListListList& block::boundaryPatches() const
 
 Ostream& operator<<(Ostream& os, const block& b)
 {
-    os << b.Vertices << nl
-       << b.Cells << nl
-       << b.BoundaryPatches << endl;
+    os  << b.Vertices << nl
+        << b.Cells << nl
+        << b.BoundaryPatches << endl;
 
     return os;
 }

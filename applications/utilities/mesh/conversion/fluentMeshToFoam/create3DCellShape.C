@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -90,7 +90,7 @@ cellShape create3DCellShape
     // make a list of outward-pointing faces
     labelListList localFaces(faceLabels.size());
 
-    forAll  (faceLabels, faceI)
+    forAll(faceLabels, faceI)
     {
         const label curFaceLabel = faceLabels[faceI];
 
@@ -154,7 +154,7 @@ cellShape create3DCellShape
 
     bool found = false;
 
-    forAll (localFaces, meshFaceI)
+    forAll(localFaces, meshFaceI)
     {
         if (localFaces[meshFaceI].size() == firstModelFace.size())
         {
@@ -165,7 +165,7 @@ cellShape create3DCellShape
 
             meshFaceUsed[meshFaceI] = true;
 
-            forAll (curMeshFace, pointI)
+            forAll(curMeshFace, pointI)
             {
                 pointLabels[firstModelFace[pointI]] = curMeshFace[pointI];
             }
@@ -198,7 +198,7 @@ cellShape create3DCellShape
         found = false;
 
         // Loop through mesh faces until a match is found
-        forAll (localFaces, meshFaceI)
+        forAll(localFaces, meshFaceI)
         {
             if
             (
@@ -219,7 +219,7 @@ cellShape create3DCellShape
                     // try matching the face
                     label nMatchedLabels = 0;
 
-                    forAll (meshFaceLabels, pointI)
+                    forAll(meshFaceLabels, pointI)
                     {
                         if
                         (
@@ -240,7 +240,7 @@ cellShape create3DCellShape
                     if (found)
                     {
                         // match found. Insert mesh face
-                        forAll (meshFaceLabels, pointI)
+                        forAll(meshFaceLabels, pointI)
                         {
                             pointLabels[curModelFace[pointI]] =
                                 meshFaceLabels[pointI];
@@ -260,7 +260,7 @@ cellShape create3DCellShape
                             meshFaceLabels[i - 1] = meshFaceLabels[i];
                         }
 
-                        meshFaceLabels[meshFaceLabels.size() - 1] = firstLabel;
+                        meshFaceLabels.last() = firstLabel;
                     }
                 }
 

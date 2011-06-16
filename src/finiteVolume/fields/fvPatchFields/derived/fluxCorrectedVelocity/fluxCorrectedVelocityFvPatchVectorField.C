@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -110,7 +110,7 @@ void Foam::fluxCorrectedVelocityFvPatchVectorField::evaluate
     const fvsPatchField<scalar>& phip =
         patch().patchField<surfaceScalarField, scalar>(phi);
 
-    vectorField n = patch().nf();
+    const vectorField n(patch().nf());
     const Field<scalar>& magS = patch().magSf();
 
     if (phi.dimensions() == dimVelocity*dimArea)
@@ -142,14 +142,8 @@ void Foam::fluxCorrectedVelocityFvPatchVectorField::evaluate
 void Foam::fluxCorrectedVelocityFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchVectorField::write(os);
-    if (phiName_ != "phi")
-    {
-        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
-    }
-    if (rhoName_ != "rho")
-    {
-        os.writeKeyword("rho") << rhoName_ << token::END_STATEMENT << nl;
-    }
+    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
+    writeEntryIfDifferent<word>(os, "rho", "rho", rhoName_);
     writeEntry("value", os);
 }
 

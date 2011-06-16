@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -117,7 +117,7 @@ void register_functions()
 
 
 //
-// Storage for all Foam state (mainly database & mesh)
+// Storage for all OpenFOAM state (mainly database & mesh)
 //
 static readerDatabase db_;
 
@@ -313,7 +313,7 @@ static void storeScalarField
         Info<< "Storing " << nTotPoints << " of dummy values of " << fieldName
             << endl;
 
-        for(label i = 0; i < nPoints; i++)
+        for (label i = 0; i < nPoints; i++)
         {
             vars[pointI++] = 0.0;
         }
@@ -387,7 +387,7 @@ static void storeVectorField
 
         for (direction d = 0; d < vector::nComponents; d++)
         {
-            for(label i = 0; i < nPoints; i++)
+            for (label i = 0; i < nPoints; i++)
             {
                 vars[pointI++] = 0.0;
             }
@@ -521,7 +521,7 @@ void user_query_file_function
             (
                 "Could not find system/ and constant/ directory in\n"
               + rootAndCase
-              + "\nPlease select a Foam case directory."
+              + "\nPlease select an OpenFOAM case directory."
             );
 
             *iret = 1;
@@ -1194,14 +1194,13 @@ void register_data_readers()
     /*
     ** like this for combined unstructured grids & results in a single file
     */
-    reg_single_unstruct_reader (
-	"Foam Reader",		       /* title you want for data reader */
-	user_query_file_function,      /* whatever you called this */
-	user_read_one_grid_function    /* whatever you called this */
-	);
+    reg_single_unstruct_reader
+    (
+        "Foam Reader",                 /* title you want for data reader */
+        user_query_file_function,      /* whatever you called this */
+        user_read_one_grid_function    /* whatever you called this */
+    );
 }
-
-
 
 
 }

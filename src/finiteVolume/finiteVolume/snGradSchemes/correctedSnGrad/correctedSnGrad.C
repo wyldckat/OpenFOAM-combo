@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,9 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Simple central-difference snGrad scheme with non-orthogonal correction.
-
 \*---------------------------------------------------------------------------*/
 
 #include "correctedSnGrad.H"
@@ -33,28 +30,44 @@ Description
 #include "fvcGrad.H"
 #include "gaussGrad.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace fv
-{
-
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 template<class Type>
-correctedSnGrad<Type>::~correctedSnGrad()
+Foam::fv::correctedSnGrad<Type>::~correctedSnGrad()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
-correctedSnGrad<Type>::correction
+Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
+Foam::fv::correctedSnGrad<Type>::fullGradCorrection
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vf
+) const
+{
+    const fvMesh& mesh = this->mesh();
+
+    // construct GeometricField<Type, fvsPatchField, surfaceMesh>
+    tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tssf =
+        mesh.correctionVectors()
+      & linear<typename outerProduct<vector, Type>::type>(mesh).interpolate
+        (
+            gradScheme<Type>::New
+            (
+                mesh,
+                mesh.gradScheme("grad(" + vf.name() + ')')
+            )().grad(vf, "grad(" + vf.name() + ')')
+        );
+    tssf().rename("snGradCorr(" + vf.name() + ')');
+
+    return tssf;
+}
+
+
+template<class Type>
+Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
+Foam::fv::correctedSnGrad<Type>::correction
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
@@ -95,7 +108,7 @@ correctedSnGrad<Type>::correction
                 gradScheme<typename pTraits<Type>::cmptType>::New
                 (
                     mesh,
-                    mesh.gradScheme(ssf.name())
+                    mesh.gradScheme("grad(" + ssf.name() + ')')
                 )()
                 //gaussGrad<typename pTraits<Type>::cmptType>(mesh)
                .grad(vf.component(cmpt))
@@ -106,13 +119,5 @@ correctedSnGrad<Type>::correction
     return tssf;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace fv
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

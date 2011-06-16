@@ -25,8 +25,11 @@ Class
     Foam::MixedDiffuseSpecular
 
 Description
-    Wall interaction setting microscopic velocity to a random one drawn from a
-    Maxwellian distribution corresponding to a specified temperature
+    Wall interaction setting microscopic velocity to a random one
+    drawn from a Maxwellian distribution corresponding to a specified
+    temperature for a specified fraction of collisions, and reversing
+    the wall-normal component of the particle velocity for the
+    remainder.
 
 \*---------------------------------------------------------------------------*/
 
@@ -70,7 +73,7 @@ public:
         );
 
 
-    // Destructor
+    //- Destructor
     virtual ~MixedDiffuseSpecular();
 
 
@@ -79,11 +82,8 @@ public:
         //- Apply wall correction
         virtual void correct
         (
-            const wallPolyPatch& wpp,
-            const label faceId,
-            vector& U,
-            scalar& Ei,
-            label typeId
+            typename CloudType::parcelType& p,
+            const wallPolyPatch& wpp
         );
 };
 

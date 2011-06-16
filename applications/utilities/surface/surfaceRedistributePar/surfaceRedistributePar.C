@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2007 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,7 +80,7 @@ void writeProcStats
     {
         const List<treeBoundBox>& bbs = meshBb[procI];
 
-        Info<< "processor" << procI << endl
+        Info<< "processor" << procI << nl
             << "\tMesh bounds          : " << bbs[0] << nl;
         for (label i = 1; i < bbs.size(); i++)
         {
@@ -99,24 +99,32 @@ void writeProcStats
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "redistribute a triSurface"
+    );
+
     argList::validArgs.append("triSurfaceMesh");
     argList::validArgs.append("distributionType");
+    argList::addBoolOption
+    (
+        "keepNonMapped",
+        "preserve surface outside of mesh bounds"
+    );
 
-    argList::validOptions.insert("keepNonMapped", "");
-#   include "setRootCase.H"
-#   include "createTime.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
 
-    fileName surfFileName(args.additionalArgs()[0]);
-    Info<< "Reading surface from " << surfFileName << nl << endl;
+    const fileName surfFileName = args[1];
+    const word distType = args[2];
 
-    const word distType(args.additionalArgs()[1]);
-
-    Info<< "Using distribution method "
+    Info<< "Reading surface from " << surfFileName << nl << nl
+        << "Using distribution method "
         << distributedTriSurfaceMesh::distributionTypeNames_[distType]
         << " " << distType << nl << endl;
 
-    bool keepNonMapped = args.options().found("keepNonMapped");
+    const bool keepNonMapped = args.options().found("keepNonMapped");
 
     if (keepNonMapped)
     {
@@ -138,7 +146,7 @@ int main(int argc, char *argv[])
     }
 
 
-#   include "createPolyMesh.H"
+    #include "createPolyMesh.H"
 
     Random rndGen(653213);
 
@@ -212,7 +220,7 @@ int main(int argc, char *argv[])
         (
             IOstream::ASCII,
             IOstream::currentVersion,
-            ioDict.time().writeCompression()        
+            ioDict.time().writeCompression()
         );
     }
 

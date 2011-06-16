@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -70,7 +70,7 @@ displacementInterpolationFvMotionSolver
                 "dynamicMeshDict",
                 mesh.time().constant(),
                 mesh,
-                IOobject::MUST_READ,
+                IOobject::MUST_READ_IF_MODIFIED,
                 IOobject::NO_WRITE,
                 false
             )
@@ -148,8 +148,7 @@ displacementInterpolationFvMotionSolver
         forAll(faceZoneToTable, i)
         {
             const word& zoneName = faceZoneToTable[i][0];
-            label zoneI = fZones.findZoneID(zoneName);
-            const faceZone& fz = fZones[zoneI];
+            const faceZone& fz = fZones[zoneName];
 
             scalar minCoord = VGREAT;
             scalar maxCoord = -VGREAT;
@@ -178,10 +177,10 @@ displacementInterpolationFvMotionSolver
 
         // Slightly tweak min and max face zone so points sort within
         zoneCoordinates[0] -= SMALL;
-        zoneCoordinates[zoneCoordinates.size()-1] += SMALL;
+        zoneCoordinates.last() += SMALL;
 
         // Check if we have static min and max mesh bounds
-        const scalarField meshCoords = points0().component(dir);
+        const scalarField meshCoords(points0().component(dir));
 
         scalar minCoord = gMin(meshCoords);
         scalar maxCoord = gMax(meshCoords);
@@ -236,7 +235,7 @@ displacementInterpolationFvMotionSolver
             }
             rangeI++;
         }
-        if (maxCoord > zoneCoordinates[zoneCoordinates.size()-1])
+        if (maxCoord > zoneCoordinates.last())
         {
             label sz = rangeToCoord.size();
             rangeToCoord.setSize(sz+1);

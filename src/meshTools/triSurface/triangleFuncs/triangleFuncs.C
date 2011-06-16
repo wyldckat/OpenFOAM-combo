@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -296,7 +296,7 @@ bool Foam::triangleFuncs::intersectBb
 //            return true;
 //        }
 //        if (tri.intersectionExact(cube3, cube0).hit())
-//        {   
+//        {
 //            return true;
 //        }
 //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,6 +69,10 @@ class objectRegistry
 
     // Private Member Functions
 
+        //- Is the objectRegistry parent_ different from time_
+        //  Used to terminate searching within the ancestors
+        bool parentNotTime() const;
+
         //- Disallow Copy constructor
         objectRegistry(const objectRegistry&);
 
@@ -101,9 +105,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~objectRegistry();
+    //- Destructor
+    virtual ~objectRegistry();
 
 
     // Member functions
@@ -131,8 +134,14 @@ public:
             //- Return the list of names of the IOobjects
             wordList names() const;
 
-            //- Return the list of names of the IOobjects of given class name
+            //- Return the sorted list of names of the IOobjects
+            wordList sortedNames() const;
+
+            //- Return the list of names of IOobjects of given class name
             wordList names(const word& className) const;
+
+            //- Return the sorted list of names of IOobjects of given class name
+            wordList sortedNames(const word& className) const;
 
             //- Return the list of names of the IOobjects of given type
             template<class Type>
@@ -141,11 +150,11 @@ public:
             //- Lookup and return a const sub-objectRegistry
             const objectRegistry& subRegistry(const word& name) const;
 
-            //- Lookup and return all the object of the given Type
+            //- Lookup and return all objects of the given Type
             template<class Type>
             HashTable<const Type*> lookupClass() const;
 
-            //- Is the named Type
+            //- Is the named Type found?
             template<class Type>
             bool foundObject(const word& name) const;
 
@@ -167,7 +176,6 @@ public:
 
             //- Remove an regIOobject from registry
             bool checkOut(regIOobject&) const;
-
 
         // Reading
 

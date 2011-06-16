@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -150,9 +150,9 @@ void Foam::normalToFace::applyToSet
 
         DynamicList<label> toBeRemoved(set.size()/10);
 
-        forAllIter(topoSet, set, iter)
+        forAllConstIter(topoSet, set, iter)
         {
-            label faceI = iter.key();
+            const label faceI = iter.key();
 
             vector n = mesh_.faceAreas()[faceI];
             n /= mag(n) + VSMALL;

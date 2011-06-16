@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,11 +28,12 @@ License
 #include "polyMesh.H"
 #include "repatchPolyTopoChanger.H"
 #include "faceList.H"
-#include "octree.H"
-#include "octreeDataFaceList.H"
+#include "indexedOctree.H"
+#include "treeDataPrimitivePatch.H"
 #include "triSurface.H"
 #include "SortableList.H"
 #include "OFstream.H"
+#include "uindirectPrimitivePatch.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -388,7 +389,7 @@ void Foam::boundaryMesh::markZone
     // Zones on all edges.
     labelList edgeZone(mesh().nEdges(), -1);
 
-    while(1)
+    while (true)
     {
         changedEdges = faceToEdge
         (
@@ -891,6 +892,17 @@ Foam::labelList Foam::boundaryMesh::getNearest
             << endl;
     }
 
+    uindirectPrimitivePatch leftPatch
+    (
+        UIndirectList<face>(mesh(), leftFaces),
+        mesh().points()
+    );
+    uindirectPrimitivePatch rightPatch
+    (
+        UIndirectList<face>(mesh(), rightFaces),
+        mesh().points()
+    );
+
 
     // Overall bb
     treeBoundBox overallBb(mesh().localPoints());
@@ -910,29 +922,35 @@ Foam::labelList Foam::boundaryMesh::getNearest
     bbMax.z() += 2*tol;
 
     // Create the octrees
-    octree<octreeDataFaceList> leftTree
+    indexedOctree
+    <
+        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+    > leftTree
     (
-        overallBb,
-        octreeDataFaceList
+        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
         (
-            mesh(),
-            leftFaces
+            false,          // cacheBb
+            leftPatch
         ),
-        1,
-        20,
-        10
+        overallBb,
+        10, // maxLevel
+        10, // leafSize
+        3.0 // duplicity
     );
-    octree<octreeDataFaceList> rightTree
+    indexedOctree
+    <
+        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+    > rightTree
     (
-        overallBb,
-        octreeDataFaceList
+        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
         (
-            mesh(),
-            rightFaces
+            false,          // cacheBb
+            rightPatch
         ),
-        1,
-        20,
-        10
+        overallBb,
+        10, // maxLevel
+        10, // leafSize
+        3.0 // duplicity
     );
 
     if (debug)
@@ -952,7 +970,7 @@ Foam::labelList Foam::boundaryMesh::getNearest
 
     treeBoundBox tightest;
 
-    const scalar searchDim = mag(searchSpan);
+    const scalar searchDimSqr = magSqr(searchSpan);
 
     forAll(nearestBFaceI, patchFaceI)
     {
@@ -981,50 +999,25 @@ Foam::labelList Foam::boundaryMesh::getNearest
         }
 
         // Search right tree
-        tightest.min() = ctr - searchSpan;
-        tightest.max() = ctr + searchSpan;
-        scalar rightDist = searchDim;
-        label rightI = rightTree.findNearest(ctr, tightest, rightDist);
-
+        pointIndexHit rightInfo = rightTree.findNearest(ctr, searchDimSqr);
 
         // Search left tree. Note: could start from rightDist bounding box
         // instead of starting from top.
-        tightest.min() = ctr - searchSpan;
-        tightest.max() = ctr + searchSpan;
-        scalar leftDist = searchDim;
-        label leftI = leftTree.findNearest(ctr, tightest, leftDist);
+        pointIndexHit leftInfo = leftTree.findNearest(ctr, searchDimSqr);
 
-
-        if (rightI == -1)
+        if (rightInfo.hit())
         {
-            // No face found in right tree.
-
-            if (leftI == -1)
-            {
-                // No face found in left tree.
-                nearestBFaceI[patchFaceI] = -1;
-            }
-            else
-            {
-                // Found in left but not in right. Choose left regardless if
-                // correct sign. Note: do we want this?
-                nearestBFaceI[patchFaceI] = leftFaces[leftI];
-            }
-        }
-        else
-        {
-            if (leftI == -1)
-            {
-                // Found in right but not in left. Choose right regardless if
-                // correct sign. Note: do we want this?
-                nearestBFaceI[patchFaceI] = rightFaces[rightI];
-            }
-            else
+            if (leftInfo.hit())
             {
                 // Found in both trees. Compare normals.
+                label rightFaceI = rightFaces[rightInfo.index()];
+                label leftFaceI = leftFaces[leftInfo.index()];
 
-                scalar rightSign = n & ns[rightFaces[rightI]];
-                scalar leftSign = n & ns[leftFaces[leftI]];
+                label rightDist = mag(rightInfo.hitPoint()-ctr);
+                label leftDist = mag(leftInfo.hitPoint()-ctr);
+
+                scalar rightSign = n & ns[rightFaceI];
+                scalar leftSign = n & ns[leftFaceI];
 
                 if
                 (
@@ -1035,11 +1028,11 @@ Foam::labelList Foam::boundaryMesh::getNearest
                     // Both same sign. Choose nearest.
                     if (rightDist < leftDist)
                     {
-                        nearestBFaceI[patchFaceI] = rightFaces[rightI];
+                        nearestBFaceI[patchFaceI] = rightFaceI;
                     }
                     else
                     {
-                        nearestBFaceI[patchFaceI] = leftFaces[leftI];
+                        nearestBFaceI[patchFaceI] = leftFaceI;
                     }
                 }
                 else
@@ -1058,11 +1051,11 @@ Foam::labelList Foam::boundaryMesh::getNearest
                         // Different sign and nearby. Choosing matching normal
                         if (rightSign > 0)
                         {
-                            nearestBFaceI[patchFaceI] = rightFaces[rightI];
+                            nearestBFaceI[patchFaceI] = rightFaceI;
                         }
                         else
                         {
-                            nearestBFaceI[patchFaceI] = leftFaces[leftI];
+                            nearestBFaceI[patchFaceI] = leftFaceI;
                         }
                     }
                     else
@@ -1070,14 +1063,37 @@ Foam::labelList Foam::boundaryMesh::getNearest
                         // Different sign but faraway. Choosing nearest.
                         if (rightDist < leftDist)
                         {
-                            nearestBFaceI[patchFaceI] = rightFaces[rightI];
+                            nearestBFaceI[patchFaceI] = rightFaceI;
                         }
                         else
                         {
-                            nearestBFaceI[patchFaceI] = leftFaces[leftI];
+                            nearestBFaceI[patchFaceI] = leftFaceI;
                         }
                     }
                 }
+            }
+            else
+            {
+                // Found in right but not in left. Choose right regardless if
+                // correct sign. Note: do we want this?
+                label rightFaceI = rightFaces[rightInfo.index()];
+                nearestBFaceI[patchFaceI] = rightFaceI;
+            }
+        }
+        else
+        {
+            // No face found in right tree.
+
+            if (leftInfo.hit())
+            {
+                // Found in left but not in right. Choose left regardless if
+                // correct sign. Note: do we want this?
+                nearestBFaceI[patchFaceI] = leftFaces[leftInfo.index()];
+            }
+            else
+            {
+                // No face found in left tree.
+                nearestBFaceI[patchFaceI] = -1;
             }
         }
     }
@@ -1109,13 +1125,11 @@ void Foam::boundaryMesh::patchify
     forAll(oldPatches, oldPatchI)
     {
         const polyPatch& patch = oldPatches[oldPatchI];
-
-        label newPatchI = findPatchID(patch.name());
+        const label newPatchI = findPatchID(patch.name());
 
         if (newPatchI != -1)
         {
             nameToIndex.insert(patch.name(), newPatchI);
-
             indexToName.insert(newPatchI, patch.name());
         }
     }
@@ -1129,7 +1143,6 @@ void Foam::boundaryMesh::patchify
         if (!nameToIndex.found(bp.name()))
         {
             nameToIndex.insert(bp.name(), bPatchI);
-
             indexToName.insert(bPatchI, bp.name());
         }
     }
@@ -1151,10 +1164,10 @@ void Foam::boundaryMesh::patchify
     {
         const boundaryPatch& bp = patches_[bPatchI];
 
-        label newPatchI = nameToIndex[bp.name()];
+        const label newPatchI = nameToIndex[bp.name()];
 
         // Find corresponding patch in polyMesh
-        label oldPatchI = findPatchID(oldPatches, bp.name());
+        const label oldPatchI = findPatchID(oldPatches, bp.name());
 
         if (oldPatchI == -1)
         {
@@ -1583,7 +1596,7 @@ void Foam::boundaryMesh::addPatch(const word& patchName)
 
 void Foam::boundaryMesh::deletePatch(const word& patchName)
 {
-    label delPatchI = findPatchID(patchName);
+    const label delPatchI = findPatchID(patchName);
 
     if (delPatchI == -1)
     {
@@ -1642,7 +1655,7 @@ void Foam::boundaryMesh::changePatchType
     const word& patchType
 )
 {
-    label changeI = findPatchID(patchName);
+    const label changeI = findPatchID(patchName);
 
     if (changeI == -1)
     {

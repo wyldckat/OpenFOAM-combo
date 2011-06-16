@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,8 +28,6 @@ License
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "surfaceFields.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -179,18 +177,9 @@ void Foam::totalTemperatureFvPatchScalarField::updateCoeffs()
 void Foam::totalTemperatureFvPatchScalarField::write(Ostream& os) const
 {
     fvPatchScalarField::write(os);
-    if (UName_ != "U")
-    {
-        os.writeKeyword("U") << UName_ << token::END_STATEMENT << nl;
-    }
-    if (phiName_ != "phi")
-    {
-        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
-    }
-    if (psiName_ != "psi")
-    {
-        os.writeKeyword("psi") << psiName_ << token::END_STATEMENT << nl;
-    }
+    writeEntryIfDifferent<word>(os, "U", "U", UName_);
+    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
+    writeEntryIfDifferent<word>(os, "psi", "psi", psiName_);
     os.writeKeyword("gamma") << gamma_ << token::END_STATEMENT << nl;
     T0_.writeEntry("T0", os);
     writeEntry("value", os);
@@ -203,7 +192,7 @@ namespace Foam
 {
     makePatchTypeField
     (
-        fvPatchScalarField, 
+        fvPatchScalarField,
         totalTemperatureFvPatchScalarField
     );
 }

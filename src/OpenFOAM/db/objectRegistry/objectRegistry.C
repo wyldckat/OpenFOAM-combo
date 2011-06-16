@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,6 +29,14 @@ License
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 defineTypeNameAndDebug(Foam::objectRegistry, 0);
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+bool Foam::objectRegistry::parentNotTime() const
+{
+    return (&parent_ != dynamic_cast<const objectRegistry*>(&time_));
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors *  * * * * * * * * * * * * * //
@@ -92,7 +100,7 @@ Foam::objectRegistry::~objectRegistry()
         }
     }
 
-    for (label i=0; i<nMyObjects; i++)
+    for (label i=0; i < nMyObjects; i++)
     {
         checkOut(*myObjects[i]);
     }
@@ -103,15 +111,13 @@ Foam::objectRegistry::~objectRegistry()
 
 Foam::wordList Foam::objectRegistry::names() const
 {
-    wordList objectNames(size());
+    return HashTable<regIOobject*>::toc();
+}
 
-    label count=0;
-    for (const_iterator iter = cbegin(); iter != cend(); ++iter)
-    {
-        objectNames[count++] = iter()->name();
-    }
 
-    return objectNames;
+Foam::wordList Foam::objectRegistry::sortedNames() const
+{
+    return HashTable<regIOobject*>::sortedToc();
 }
 
 
@@ -124,13 +130,22 @@ Foam::wordList Foam::objectRegistry::names(const word& ClassName) const
     {
         if (iter()->type() == ClassName)
         {
-            objectNames[count++] = iter()->name();
+            objectNames[count++] = iter.key();
         }
     }
 
     objectNames.setSize(count);
 
     return objectNames;
+}
+
+
+Foam::wordList Foam::objectRegistry::sortedNames(const word& ClassName) const
+{
+    wordList sortedLst = names(ClassName);
+    sort(sortedLst);
+
+    return sortedLst;
 }
 
 
@@ -150,8 +165,8 @@ Foam::label Foam::objectRegistry::getEvent() const
     if (event_ == labelMax)
     {
         WarningIn("objectRegistry::getEvent() const")
-            << "Event counter has overflowed. Resetting counter on all"
-            << " dependent objects." << endl
+            << "Event counter has overflowed. "
+            << "Resetting counter on all dependent objects." << nl
             << "This might cause extra evaluations." << endl;
 
         // Reset event counter
@@ -201,7 +216,7 @@ bool Foam::objectRegistry::checkOut(regIOobject& io) const
         if (objectRegistry::debug)
         {
             Pout<< "objectRegistry::checkOut(regIOobject&) : "
-                << name() << " : checking out " << io.name()
+                << name() << " : checking out " << iter.key()
                 << endl;
         }
 
@@ -210,7 +225,8 @@ bool Foam::objectRegistry::checkOut(regIOobject& io) const
             if (objectRegistry::debug)
             {
                 WarningIn("objectRegistry::checkOut(regIOobject&)")
-                    << name() << " : attempt to checkOut copy of " << io.name()
+                    << name() << " : attempt to checkOut copy of "
+                    << iter.key()
                     << endl;
             }
 
@@ -265,7 +281,7 @@ void Foam::objectRegistry::rename(const word& newName)
 
 bool Foam::objectRegistry::modified() const
 {
-    for (const_iterator iter = cbegin(); iter != cend(); ++iter)
+    forAllConstIter(HashTable<regIOobject*>, *this, iter)
     {
         if (iter()->modified())
         {
@@ -285,8 +301,7 @@ void Foam::objectRegistry::readModifiedObjects()
         {
             Pout<< "objectRegistry::readModifiedObjects() : "
                 << name() << " : Considering reading object "
-                << iter()->name()
-                << endl;
+                << iter.key() << endl;
         }
 
         iter()->readIfModified();
@@ -310,13 +325,13 @@ bool Foam::objectRegistry::writeObject
 {
     bool ok = true;
 
-    for (const_iterator iter = cbegin(); iter != cend(); ++iter)
+    forAllConstIter(HashTable<regIOobject*>, *this, iter)
     {
         if (objectRegistry::debug)
         {
             Pout<< "objectRegistry::write() : "
                 << name() << " : Considering writing object "
-                << iter()->name()
+                << iter.key()
                 << " with writeOpt " << iter()->writeOpt()
                 << " to file " << iter()->objectPath()
                 << endl;

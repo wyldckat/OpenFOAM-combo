@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,26 @@ Foam::incompressible::incompressible(Istream& is)
 }
 
 
+Foam::incompressible::incompressible(const dictionary& dict)
+:
+    specie(dict),
+    rho_(readScalar(dict.subDict("equationOfState").lookup("rho")))
+{}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::incompressible::write(Ostream& os) const
+{
+    specie::write(os);
+
+    dictionary dict("equationOfState");
+    dict.add("rho", rho_);
+
+    os  << dict;
+}
+
+
 // * * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * //
 
 Foam::Ostream& Foam::operator<<(Ostream& os, const incompressible& ico)
@@ -44,7 +64,7 @@ Foam::Ostream& Foam::operator<<(Ostream& os, const incompressible& ico)
     os  << static_cast<const specie&>(ico)
         << token::SPACE << ico.rho_;
 
-    os.check("Ostream& operator<<(Ostream& os, const incompressible& st)");
+    os.check("Ostream& operator<<(Ostream& os, const incompressible& ico)");
     return os;
 }
 

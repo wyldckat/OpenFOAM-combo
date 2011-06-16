@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,6 +60,47 @@ void Foam::pointConstraint::applyConstraint(const vector& cd)
     else if (first() == 2)
     {
         if (mag(cd & second()) > 1e-3)
+        {
+            first() = 3;
+            second() = vector::zero;
+        }
+    }
+}
+
+
+void Foam::pointConstraint::combine(const pointConstraint& pc)
+{
+    if (first() == 0)
+    {
+        operator=(pc);
+    }
+    else if (first() == 1)
+    {
+        // Save single normal
+        vector n = second();
+        // Apply to supplied point constaint
+        operator=(pc);
+        applyConstraint(n);
+    }
+    else if (first() == 2)
+    {
+        if (pc.first() == 0)
+        {}
+        else if (pc.first() == 1)
+        {
+            applyConstraint(pc.second());
+        }
+        else if (pc.first() == 2)
+        {
+            // Both constrained to line. Same (+-)direction?
+            if (mag(second() & pc.second()) <= (1.0-1e-3))
+            {
+                // Different directions
+                first() = 3;
+                second() = vector::zero;
+            }
+        }
+        else
         {
             first() = 3;
             second() = vector::zero;

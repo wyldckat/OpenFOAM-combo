@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Class
     Foam::ZoneMesh
 
 Description
-    List of mesh zones
+    A list of mesh zones.
 
 SourceFiles
     ZoneMesh.C
@@ -37,8 +37,9 @@ SourceFiles
 
 #include "List.H"
 #include "regIOobject.H"
-#include "HashSet.H"
 #include "pointFieldsFwd.H"
+#include "Map.H"
+#include "PackedBoolList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -73,7 +74,7 @@ class ZoneMesh
         mutable Map<label>* zoneMapPtr_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow construct as copy
         ZoneMesh(const ZoneMesh&);
@@ -105,12 +106,11 @@ public:
             const label size
         );
 
-    // Destructor
+    //- Destructor
+    ~ZoneMesh();
 
-        ~ZoneMesh();
 
-
-    // Member functions
+    // Member Functions
 
         //- Return the mesh reference
         const MeshType& mesh() const
@@ -122,8 +122,8 @@ public:
         //  Return -1 if the object is not in the zone
         const Map<label>& zoneMap() const;
 
-        //- Given a global object index, return the zone it is in.  If
-        //object does not belong to any zones, return -1
+        //- Given a global object index, return the zone it is in.
+        // If object does not belong to any zones, return -1
         label whichZone(const label objectIndex) const;
 
         //- Return a list of zone types
@@ -132,8 +132,17 @@ public:
         //- Return a list of zone names
         wordList names() const;
 
+        //- Return zone indices for all matches
+        labelList findIndices(const keyType&) const;
+
+        //- Return zone index for the first match, return -1 if not found
+        label findIndex(const keyType&) const;
+
         //- Find zone index given a name
         label findZoneID(const word& zoneName) const;
+
+        //- Mark cells that match the zone specification
+        PackedBoolList findMatching(const keyType&) const;
 
         //- Clear addressing
         void clearAddressing();
@@ -144,11 +153,26 @@ public:
         //- Check zone definition. Return true if in error.
         bool checkDefinition(const bool report = false) const;
 
+        //- Check whether all procs have all zones and in same order. Return
+        //  true if in error.
+        bool checkParallelSync(const bool report = false) const;
+
         //- Correct zone mesh after moving points
         void movePoints(const pointField&);
 
         //- writeData member function required by regIOobject
         bool writeData(Ostream&) const;
+
+    // Member Operators
+
+        //- Return const and non-const reference to ZoneType by index.
+        using PtrList<ZoneType>::operator[];
+
+        //- Return const reference to ZoneType by name.
+        const ZoneType& operator[](const word&) const;
+
+        //- Return reference to ZoneType by name.
+        ZoneType& operator[](const word&);
 
 
     // Ostream operator

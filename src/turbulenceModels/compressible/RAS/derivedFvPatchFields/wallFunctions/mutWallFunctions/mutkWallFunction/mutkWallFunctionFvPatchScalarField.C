@@ -82,7 +82,7 @@ tmp<scalarField> mutkWallFunctionFvPatchScalarField::calcMut() const
     const volScalarField& k = tk();
     const scalarField& muw = rasModel.mu().boundaryField()[patchI];
 
-    const scalar Cmu25 = pow(Cmu_, 0.25);
+    const scalar Cmu25 = pow025(Cmu_);
 
     tmp<scalarField> tmutw(new scalarField(patch().size(), 0.0));
     scalarField& mutw = tmutw();
@@ -210,11 +210,11 @@ tmp<scalarField> mutkWallFunctionFvPatchScalarField::yPlus() const
 
     const tmp<volScalarField> tk = rasModel.k();
     const volScalarField& k = tk();
-    const scalarField kwc = k.boundaryField()[patchI].patchInternalField();
+    const scalarField kwc(k.boundaryField()[patchI].patchInternalField());
     const scalarField& muw = rasModel.mu().boundaryField()[patchI];
     const scalarField& rhow = rasModel.rho().boundaryField()[patchI];
 
-    return pow(Cmu_, 0.25)*y*sqrt(kwc)/(muw/rhow);
+    return pow025(Cmu_)*y*sqrt(kwc)/(muw/rhow);
 }
 
 
@@ -228,7 +228,11 @@ void mutkWallFunctionFvPatchScalarField::write(Ostream& os) const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, mutkWallFunctionFvPatchScalarField);
+makePatchTypeField
+(
+    fvPatchScalarField,
+    mutkWallFunctionFvPatchScalarField
+);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -6,8 +6,6 @@ cd ${0%/*} || exit 1    # run from this directory
 
 cd wingMotion_snappyHexMesh
 cleanCase
-rm front.sMesh
-
 
 cd ../wingMotion2D_simpleFoam
 cleanCase

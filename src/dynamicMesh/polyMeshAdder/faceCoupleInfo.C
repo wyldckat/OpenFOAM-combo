@@ -1,8 +1,8 @@
-/*---------------------------------------------------------------------------*	\
+/*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -1535,7 +1535,7 @@ void Foam::faceCoupleInfo::perfectPointMatch
         FatalErrorIn
         (
             "faceCoupleInfo::perfectPointMatch"
-            "(const scalar&, const bool)"
+            "(const scalar, const bool)"
         )   << "Did not match all of the master faces to the slave faces"
             << endl
             << "This usually means that the slave patch and master patch"
@@ -1760,10 +1760,13 @@ void Foam::faceCoupleInfo::subDivisionMatch
                 writeOBJ
                 (
                     "errorEdges.obj",
-                    UIndirectList<edge>
+                    edgeList
                     (
-                        cutFaces().edges(),
-                        cutFaces().pointEdges()[cutPointI]
+                        UIndirectList<edge>
+                        (
+                            cutFaces().edges(),
+                            cutFaces().pointEdges()[cutPointI]
+                        )
                     ),
                     cutFaces().localPoints(),
                     false
@@ -1786,7 +1789,7 @@ void Foam::faceCoupleInfo::subDivisionMatch
 
             cutPointI = cutEdges[cutEdgeI].otherVertex(cutPointI);
 
-        } while(cutPointI != cutPoint1);
+        } while (cutPointI != cutPoint1);
     }
 
     if (debug)

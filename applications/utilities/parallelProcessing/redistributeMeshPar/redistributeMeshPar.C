@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,8 +32,8 @@ Description
     Balances mesh and writes new mesh to new time directory.
 
     Can also work like decomposePar:
-
-        # Create empty processors
+    \verbatim
+        # Create empty processor directories (have to exist for argList)
         mkdir processor0
                 ..
         mkdir processorN
@@ -43,11 +43,7 @@ Description
 
         # Distribute
         mpirun -np ddd redistributeMeshPar -parallel
-
-    Note: you might want to unset FOAM_SIGFPE and FOAM_SETNAN since
-    patchfields that hold additional data might not be initialised
-    (since mapped from 0 faces)
-
+    \endverbatim
 \*---------------------------------------------------------------------------*/
 
 #include "fvMesh.H"
@@ -57,6 +53,7 @@ Description
 #include "fvMeshDistribute.H"
 #include "mapDistributePolyMesh.H"
 #include "IOobjectList.H"
+#include "globalIndex.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -76,8 +73,8 @@ autoPtr<fvMesh> createMesh
     const bool haveMesh
 )
 {
-    Pout<< "Create mesh for time = "
-        << runTime.timeName() << nl << endl;
+    //Pout<< "Create mesh for time = "
+    //    << runTime.timeName() << nl << endl;
 
     IOobject io
     (
@@ -90,26 +87,68 @@ autoPtr<fvMesh> createMesh
     if (!haveMesh)
     {
         // Create dummy mesh. Only used on procs that don't have mesh.
+        IOobject noReadIO(io);
+        noReadIO.readOpt() = IOobject::NO_READ;
         fvMesh dummyMesh
         (
-            io,
+            noReadIO,
             xferCopy(pointField()),
             xferCopy(faceList()),
             xferCopy(labelList()),
             xferCopy(labelList()),
             false
         );
-        Pout<< "Writing dummy mesh to " << dummyMesh.polyMesh::objectPath()
-            << endl;
+        // Add some dummy zones so upon reading it does not read them
+        // from the undecomposed case. Should be done as extra argument to
+        // regIOobject::readStream?
+        List<pointZone*> pz
+        (
+            1,
+            new pointZone
+            (
+                "dummyPointZone",
+                labelList(0),
+                0,
+                dummyMesh.pointZones()
+            )
+        );
+        List<faceZone*> fz
+        (
+            1,
+            new faceZone
+            (
+                "dummyFaceZone",
+                labelList(0),
+                boolList(0),
+                0,
+                dummyMesh.faceZones()
+            )
+        );
+        List<cellZone*> cz
+        (
+            1,
+            new cellZone
+            (
+                "dummyCellZone",
+                labelList(0),
+                0,
+                dummyMesh.cellZones()
+            )
+        );
+        dummyMesh.addZones(pz, fz, cz);
+        //Pout<< "Writing dummy mesh to " << dummyMesh.polyMesh::objectPath()
+        //    << endl;
         dummyMesh.write();
     }
 
-    Pout<< "Reading mesh from " << io.objectPath() << endl;
+    //Pout<< "Reading mesh from " << io.objectPath() << endl;
     autoPtr<fvMesh> meshPtr(new fvMesh(io));
     fvMesh& mesh = meshPtr();
 
 
-    // Determine patches.
+    // Sync patches
+    // ~~~~~~~~~~~~
+
     if (Pstream::master())
     {
         // Send patches
@@ -120,14 +159,14 @@ autoPtr<fvMesh> createMesh
             slave++
         )
         {
-            OPstream toSlave(Pstream::blocking, slave);
+            OPstream toSlave(Pstream::scheduled, slave);
             toSlave << mesh.boundaryMesh();
         }
     }
     else
     {
         // Receive patches
-        IPstream fromMaster(Pstream::blocking, Pstream::masterNo());
+        IPstream fromMaster(Pstream::scheduled, Pstream::masterNo());
         PtrList<entry> patchEntries(fromMaster);
 
         if (haveMesh)
@@ -200,9 +239,8 @@ autoPtr<fvMesh> createMesh
                     break;
                 }
 
-                Pout<< "Adding patch:" << nPatches
-                    << " name:" << name
-                    << " type:" << type << endl;
+                //Pout<< "Adding patch:" << nPatches
+                //    << " name:" << name << " type:" << type << endl;
 
                 dictionary patchDict(e.dict());
                 patchDict.remove("nFaces");
@@ -226,17 +264,87 @@ autoPtr<fvMesh> createMesh
         }
     }
 
+
+    // Determine zones
+    // ~~~~~~~~~~~~~~~
+
+    wordList pointZoneNames(mesh.pointZones().names());
+    Pstream::scatter(pointZoneNames);
+    wordList faceZoneNames(mesh.faceZones().names());
+    Pstream::scatter(faceZoneNames);
+    wordList cellZoneNames(mesh.cellZones().names());
+    Pstream::scatter(cellZoneNames);
+
+    if (!haveMesh)
+    {
+        // Add the zones. Make sure to remove the old dummy ones first
+        mesh.pointZones().clear();
+        mesh.faceZones().clear();
+        mesh.cellZones().clear();
+
+        List<pointZone*> pz(pointZoneNames.size());
+        forAll(pointZoneNames, i)
+        {
+            pz[i] = new pointZone
+            (
+                pointZoneNames[i],
+                labelList(0),
+                i,
+                mesh.pointZones()
+            );
+        }
+        List<faceZone*> fz(faceZoneNames.size());
+        forAll(faceZoneNames, i)
+        {
+            fz[i] = new faceZone
+            (
+                faceZoneNames[i],
+                labelList(0),
+                boolList(0),
+                i,
+                mesh.faceZones()
+            );
+        }
+        List<cellZone*> cz(cellZoneNames.size());
+        forAll(cellZoneNames, i)
+        {
+            cz[i] = new cellZone
+            (
+                cellZoneNames[i],
+                labelList(0),
+                i,
+                mesh.cellZones()
+            );
+        }
+        mesh.addZones(pz, fz, cz);
+    }
+
+
     if (!haveMesh)
     {
         // We created a dummy mesh file above. Delete it.
-        Pout<< "Removing dummy mesh " << io.objectPath()
-            << endl;
+        //Pout<< "Removing dummy mesh " << io.objectPath() << endl;
         rmDir(io.objectPath());
     }
 
     // Force recreation of globalMeshData.
     mesh.clearOut();
     mesh.globalData();
+
+
+    // Do some checks.
+
+    // Check if the boundary definition is unique
+    mesh.boundaryMesh().checkDefinition(true);
+    // Check if the boundary processor patches are correct
+    mesh.boundaryMesh().checkParallelSync(true);
+    // Check names of zones are equal
+    mesh.cellZones().checkDefinition(true);
+    mesh.cellZones().checkParallelSync(true);
+    mesh.faceZones().checkDefinition(true);
+    mesh.faceZones().checkParallelSync(true);
+    mesh.pointZones().checkDefinition(true);
+    mesh.pointZones().checkParallelSync(true);
 
     return meshPtr;
 }
@@ -283,16 +391,112 @@ scalar getMergeDistance
 }
 
 
-void printMeshData(Ostream& os, const polyMesh& mesh)
+//void printMeshData(Ostream& os, const polyMesh& mesh)
+//{
+//    os  << "Number of points:           " << mesh.points().size() << nl
+//        << "          faces:            " << mesh.faces().size() << nl
+//        << "          internal faces:   " << mesh.faceNeighbour().size() << nl
+//        << "          cells:            " << mesh.cells().size() << nl
+//        << "          boundary patches: " << mesh.boundaryMesh().size() << nl
+//        << "          point zones:      " << mesh.pointZones().size() << nl
+//        << "          face zones:       " << mesh.faceZones().size() << nl
+//        << "          cell zones:       " << mesh.cellZones().size() << nl;
+//}
+
+
+void printMeshData(const polyMesh& mesh)
 {
-    os  << "Number of points:           " << mesh.points().size() << nl
-        << "          faces:            " << mesh.faces().size() << nl
-        << "          internal faces:   " << mesh.faceNeighbour().size() << nl
-        << "          cells:            " << mesh.cells().size() << nl
-        << "          boundary patches: " << mesh.boundaryMesh().size() << nl
-        << "          point zones:      " << mesh.pointZones().size() << nl
-        << "          face zones:       " << mesh.faceZones().size() << nl
-        << "          cell zones:       " << mesh.cellZones().size() << nl;
+    // Collect all data on master
+
+    globalIndex globalCells(mesh.nCells());
+    labelListList patchNeiProcNo(Pstream::nProcs());
+    labelListList patchSize(Pstream::nProcs());
+    const labelList& pPatches = mesh.globalData().processorPatches();
+    patchNeiProcNo[Pstream::myProcNo()].setSize(pPatches.size());
+    patchSize[Pstream::myProcNo()].setSize(pPatches.size());
+    forAll(pPatches, i)
+    {
+        const processorPolyPatch& ppp = refCast<const processorPolyPatch>
+        (
+            mesh.boundaryMesh()[pPatches[i]]
+        );
+        patchNeiProcNo[Pstream::myProcNo()][i] = ppp.neighbProcNo();
+        patchSize[Pstream::myProcNo()][i] = ppp.size();
+    }
+    Pstream::gatherList(patchNeiProcNo);
+    Pstream::gatherList(patchSize);
+
+
+    // Print stats
+
+    globalIndex globalBoundaryFaces(mesh.nFaces()-mesh.nInternalFaces());
+
+    label maxProcCells = 0;
+    label totProcFaces = 0;
+    label maxProcPatches = 0;
+    label totProcPatches = 0;
+    label maxProcFaces = 0;
+
+    for (label procI = 0; procI < Pstream::nProcs(); procI++)
+    {
+        Info<< endl
+            << "Processor " << procI << nl
+            << "    Number of cells = " << globalCells.localSize(procI)
+            << endl;
+
+        label nProcFaces = 0;
+
+        const labelList& nei = patchNeiProcNo[procI];
+
+        forAll(patchNeiProcNo[procI], i)
+        {
+            Info<< "    Number of faces shared with processor "
+                << patchNeiProcNo[procI][i] << " = " << patchSize[procI][i]
+                << endl;
+
+            nProcFaces += patchSize[procI][i];
+        }
+
+        Info<< "    Number of processor patches = " << nei.size() << nl
+            << "    Number of processor faces = " << nProcFaces << nl
+            << "    Number of boundary faces = "
+            << globalBoundaryFaces.localSize(procI) << endl;
+
+        maxProcCells = max(maxProcCells, globalCells.localSize(procI));
+        totProcFaces += nProcFaces;
+        totProcPatches += nei.size();
+        maxProcPatches = max(maxProcPatches, nei.size());
+        maxProcFaces = max(maxProcFaces, nProcFaces);
+    }
+
+    // Stats
+
+    scalar avgProcCells = scalar(globalCells.size())/Pstream::nProcs();
+    scalar avgProcPatches = scalar(totProcPatches)/Pstream::nProcs();
+    scalar avgProcFaces = scalar(totProcFaces)/Pstream::nProcs();
+
+    // In case of all faces on one processor. Just to avoid division by 0.
+    if (totProcPatches == 0)
+    {
+        avgProcPatches = 1;
+    }
+    if (totProcFaces == 0)
+    {
+        avgProcFaces = 1;
+    }
+
+    Info<< nl
+        << "Number of processor faces = " << totProcFaces/2 << nl
+        << "Max number of cells = " << maxProcCells
+        << " (" << 100.0*(maxProcCells-avgProcCells)/avgProcCells
+        << "% above average " << avgProcCells << ")" << nl
+        << "Max number of processor patches = " << maxProcPatches
+        << " (" << 100.0*(maxProcPatches-avgProcPatches)/avgProcPatches
+        << "% above average " << avgProcPatches << ")" << nl
+        << "Max number of faces between processors = " << maxProcFaces
+        << " (" << 100.0*(maxProcFaces-avgProcFaces)/avgProcFaces
+        << "% above average " << avgProcFaces << ")" << nl
+        << endl;
 }
 
 
@@ -404,6 +608,7 @@ void readFields
 
             // Receive field
             IPstream fromMaster(Pstream::blocking, Pstream::masterNo());
+            dictionary fieldDict(fromMaster);
 
             fields.set
             (
@@ -419,7 +624,7 @@ void readFields
                         IOobject::AUTO_WRITE
                     ),
                     mesh,
-                    fromMaster
+                    fieldDict
                 )
             );
 
@@ -483,7 +688,7 @@ void compareFields
             {
                 if (mag(aBoundary[i] - bBoundary[i]) > tolDim)
                 {
-                    FatalErrorIn
+                    WarningIn
                     (
                         "compareFields"
                         "(const scalar, const volVectorField&"
@@ -494,7 +699,9 @@ void compareFields
                         << " cc:" << endl
                         << "    real    :" << aBoundary[i] << endl
                         << "    mapped  :" << bBoundary[i] << endl
-                        << abort(FatalError);
+                        << "This might be just a precision entry"
+                        << " on writing the mesh." << endl;
+                        //<< abort(FatalError);
                 }
             }
         }
@@ -507,9 +714,25 @@ void compareFields
 int main(int argc, char *argv[])
 {
 #   include "addRegionOption.H"
-    argList::validOptions.insert("mergeTol", "relative merge distance");
-
+#   include "addOverwriteOption.H"
+    argList::addOption
+    (
+        "mergeTol",
+        "scalar",
+        "specify the merge distance relative to the bounding box size "
+        "(default 1E-6)"
+    );
 #   include "setRootCase.H"
+
+    if (env("FOAM_SIGFPE"))
+    {
+        WarningIn(args.executable())
+            << "Detected floating point exception trapping (FOAM_SIGFPE)."
+            << " This might give" << nl
+            << "    problems when mapping fields. Switch it off in case"
+            << " of problems." << endl;
+    }
+
 
     // Create processor directory if non-existing
     if (!Pstream::master() && !isDir(args.path()))
@@ -518,6 +741,9 @@ int main(int argc, char *argv[])
         mkDir(args.path());
     }
 
+
+    // Make sure we do not use the master-only reading.
+    regIOobject::fileModificationChecking = regIOobject::timeStamp;
 #   include "createTime.H"
 
     word regionName = polyMesh::defaultRegion;
@@ -532,6 +758,8 @@ int main(int argc, char *argv[])
         meshSubDir = polyMesh::meshSubDir;
     }
     Info<< "Using mesh subdirectory " << meshSubDir << nl << endl;
+
+    const bool overwrite = args.optionFound("overwrite");
 
 
     // Get time instance directory. Since not all processors have meshes
@@ -567,9 +795,11 @@ int main(int argc, char *argv[])
     );
     fvMesh& mesh = meshPtr();
 
-    Pout<< "Read mesh:" << endl;
-    printMeshData(Pout, mesh);
-    Pout<< endl;
+    //Pout<< "Read mesh:" << endl;
+    //printMeshData(Pout, mesh);
+    //Pout<< endl;
+
+
 
     IOdictionary decompositionDict
     (
@@ -578,7 +808,7 @@ int main(int argc, char *argv[])
             "decomposeParDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -591,8 +821,7 @@ int main(int argc, char *argv[])
         (
             decompositionMethod::New
             (
-                decompositionDict,
-                mesh
+                decompositionDict
             )
         );
 
@@ -609,11 +838,14 @@ int main(int argc, char *argv[])
                 << endl;
         }
 
-        finalDecomp = decomposer().decompose(mesh.cellCentres());
+        finalDecomp = decomposer().decompose(mesh, mesh.cellCentres());
     }
 
     // Dump decomposition to volScalarField
-    writeDecomposition("decomposition", mesh, finalDecomp);
+    if (!overwrite)
+    {
+        writeDecomposition("decomposition", mesh, finalDecomp);
+    }
 
 
     // Create 0 sized mesh to do all the generation of zero sized
@@ -767,21 +999,21 @@ int main(int argc, char *argv[])
 
     // Debugging: Create additional volField that will be mapped.
     // Used to test correctness of mapping
-    volVectorField mapCc("mapCc", 1*mesh.C());
+    //volVectorField mapCc("mapCc", 1*mesh.C());
 
     // Global matching tolerance
     const scalar tolDim = getMergeDistance
     (
         args,
         runTime,
-        mesh.globalData().bb()
+        mesh.bounds()
     );
 
     // Mesh distribution engine
     fvMeshDistribute distributor(mesh, tolDim);
 
-    Pout<< "Wanted distribution:"
-        << distributor.countCells(finalDecomp) << nl << endl;
+    //Pout<< "Wanted distribution:"
+    //    << distributor.countCells(finalDecomp) << nl << endl;
 
     // Do actual sending/receiving of mesh
     autoPtr<mapDistributePolyMesh> map = distributor.distribute(finalDecomp);
@@ -791,17 +1023,25 @@ int main(int argc, char *argv[])
 
 
     // Print a bit
-    Pout<< "After distribution mesh:" << endl;
-    printMeshData(Pout, mesh);
-    Pout<< endl;
+    // Print some statistics
+    Info<< "After distribution:" << endl;
+    printMeshData(mesh);
 
-    runTime++;
-    Pout<< "Writing redistributed mesh to " << runTime.timeName() << nl << endl;
+
+    if (!overwrite)
+    {
+        runTime++;
+    }
+    else
+    {
+        mesh.setInstance(masterInstDir);
+    }
+    Info<< "Writing redistributed mesh to " << runTime.timeName() << nl << endl;
     mesh.write();
 
 
     // Debugging: test mapped cellcentre field.
-    compareFields(tolDim, mesh.C(), mapCc);
+    //compareFields(tolDim, mesh.C(), mapCc);
 
     // Print nice message
     // ~~~~~~~~~~~~~~~~~~
@@ -843,7 +1083,7 @@ int main(int argc, char *argv[])
     Info<< endl;
 
 
-    Pout<< "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

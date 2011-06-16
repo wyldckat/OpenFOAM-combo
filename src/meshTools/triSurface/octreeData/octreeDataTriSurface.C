@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -45,7 +43,7 @@ Foam::scalar Foam::octreeDataTriSurface::tol(1E-6);
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 // Fast distance to triangle calculation. From
-// "Distance Between Point and Trangle in 3D"
+// "Distance Between Point and Triangle in 3D"
 // David Eberly, Magic Software Inc. Aug. 2003.
 // Works on function Q giving distance to point and tries to minimize this.
 void Foam::octreeDataTriSurface::nearestCoords
@@ -342,15 +340,7 @@ Foam::label Foam::octreeDataTriSurface::getSampleType
             << abort(FatalError);
     }
 
-    const pointField& pts = surface_.points();
-    const labelledTri& f = surface_[faceI];
-
-    pointHit curHit = triPointRef
-    (
-        pts[f[0]],
-        pts[f[1]],
-        pts[f[2]]
-    ).nearestPoint(sample);
+    pointHit curHit = surface_[faceI].nearestPoint(sample, surface_.points());
 
     // Get normal according to position on face. On point -> pointNormal,
     // on edge-> edge normal, face normal on interior.
@@ -389,17 +379,16 @@ bool Foam::octreeDataTriSurface::overlaps
     // Triangle points
     const pointField& points = surface_.points();
     const labelledTri& f = surface_[index];
-    const point& p0 = points[f[0]];
-    const point& p1 = points[f[1]];
-    const point& p2 = points[f[2]];
 
     // Check if one or more triangle point inside
-    if (cubeBb.contains(p0) || cubeBb.contains(p1) || cubeBb.contains(p2))
+    if (cubeBb.containsAny(points, f))
     {
-        // One or more points inside
         return true;
     }
 
+    const point& p0 = points[f[0]];
+    const point& p1 = points[f[1]];
+    const point& p2 = points[f[2]];
     // Now we have the difficult case: all points are outside but connecting
     // edges might go through cube. Use fast intersection of bounding box.
 
@@ -435,18 +424,18 @@ bool Foam::octreeDataTriSurface::intersects
         return false;
     }
 
-    const pointField& points = surface_.points();
-
-    const labelledTri& f = surface_[index];
-
-    triPointRef tri(points[f[0]], points[f[1]], points[f[2]]);
-
     const vector dir(end - start);
 
     // Disable picking up intersections behind us.
     scalar oldTol = intersection::setPlanarTol(0.0);
 
-    pointHit inter = tri.ray(start, dir, intersection::HALF_RAY);
+    pointHit inter = surface_[index].ray
+    (
+        start,
+        dir,
+        surface_.points(),
+        intersection::HALF_RAY
+    );
 
     intersection::setPlanarTol(oldTol);
 
@@ -514,10 +503,8 @@ Foam::scalar Foam::octreeDataTriSurface::calcSign
 {
     n = surface_.faceNormals()[index];
 
-    const labelledTri& tri = surface_[index];
-
-    // take vector from sample to any point on triangle (we use vertex 0)
-    vector vec = sample - surface_.points()[tri[0]];
+    // take vector from sample to any point on face (we use vertex 0)
+    vector vec = sample - surface_.points()[surface_[index][0]];
 
     vec /= mag(vec) + VSMALL;
 

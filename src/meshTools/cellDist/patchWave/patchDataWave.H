@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,6 +45,7 @@ SourceFiles
 #include "cellDistFuncs.H"
 #include "FieldField.H"
 #include "UPtrList.H"
+#include "MeshWave.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,7 +55,7 @@ namespace Foam
 // Forward declaration of classes
 class polyMesh;
 class wallPoint;
-template<class Type> class MeshWave;
+//template<class Type, class TrackingData> class MeshWave;
 
 /*---------------------------------------------------------------------------*\
                            Class patchDataWave Declaration
@@ -133,9 +134,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~patchDataWave();
+    //- Destructor
+    virtual ~patchDataWave();
 
 
     // Member Functions

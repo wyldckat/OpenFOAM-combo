@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,12 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "IOstream.H"
 #include "error.H"
+#include "Switch.H"
 #include <sstream>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -61,7 +60,14 @@ Foam::IOstream::formatEnum(const word& format)
 Foam::IOstream::compressionType
 Foam::IOstream::compressionEnum(const word& compression)
 {
-    if (compression == "uncompressed")
+    // get Switch (bool) value, but allow it to fail
+    Switch sw(compression, true);
+
+    if (sw.valid())
+    {
+        return sw ? IOstream::COMPRESSED : IOstream::UNCOMPRESSED;
+    }
+    else if (compression == "uncompressed")
     {
         return IOstream::UNCOMPRESSED;
     }
@@ -116,7 +122,7 @@ Foam::string Foam::IOstream::versionNumber::str() const
     std::ostringstream os;
     os.precision(1);
     os.setf(ios_base::fixed, ios_base::floatfield);
-    os << versionNumber_;
+    os  << versionNumber_;
     return os.str();
 }
 
@@ -203,11 +209,11 @@ Foam::Ostream& Foam::operator<<(Ostream& os, const IOstream::streamFormat& sf)
 {
     if (sf == IOstream::ASCII)
     {
-        os << "ascii";
+        os  << "ascii";
     }
     else
     {
-        os << "binary";
+        os  << "binary";
     }
 
     return os;
@@ -216,7 +222,7 @@ Foam::Ostream& Foam::operator<<(Ostream& os, const IOstream::streamFormat& sf)
 
 Foam::Ostream& Foam::operator<<(Ostream& os, const IOstream::versionNumber& vn)
 {
-    os << vn.str().c_str();
+    os  << vn.str().c_str();
     return os;
 }
 

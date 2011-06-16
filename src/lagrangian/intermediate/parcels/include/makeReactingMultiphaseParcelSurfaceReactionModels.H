@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,46 +28,14 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "thermoPhysicsTypes.H"
-#include "ReactingMultiphaseCloud.H"
-
 #include "NoSurfaceReaction.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeReactingMultiphaseSurfaceReactionModels(ParcelType)               \
+#define makeReactingMultiphaseParcelSurfaceReactionModels(CloudType)          \
                                                                               \
-    makeReactingMultiphaseSurfaceReactionModelThermoType                      \
-    (                                                                         \
-        ParcelType,                                                           \
-        constGasThermoPhysics                                                 \
-    );                                                                        \
-    makeReactingMultiphaseSurfaceReactionModelThermoType                      \
-    (                                                                         \
-        ParcelType,                                                           \
-        gasThermoPhysics                                                      \
-    );                                                                        \
-    makeReactingMultiphaseSurfaceReactionModelThermoType                      \
-    (                                                                         \
-        ParcelType,                                                           \
-        icoPoly8ThermoPhysics                                                 \
-    );
-
-
-#define makeReactingMultiphaseSurfaceReactionModelThermoType(ParcelType, ThermoType)\
-                                                                              \
-    makeSurfaceReactionModel                                                  \
-    (                                                                         \
-        ReactingMultiphaseCloud<ParcelType<ThermoType> >                      \
-    );                                                                        \
-                                                                              \
-    makeSurfaceReactionModelThermoType                                        \
-    (                                                                         \
-        NoSurfaceReaction,                                                    \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );
+    makeSurfaceReactionModel(CloudType);                                      \
+    makeSurfaceReactionModelType(NoSurfaceReaction, CloudType);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

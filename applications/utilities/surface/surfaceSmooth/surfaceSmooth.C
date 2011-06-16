@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,14 +22,15 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Example of simple laplacian smoother
+    Example of a simple laplacian smoother
 
 \*---------------------------------------------------------------------------*/
 
-#include "triSurface.H"
 #include "argList.H"
 #include "OFstream.H"
 #include "boundBox.H"
+
+#include "MeshedSurfaces.H"
 
 using namespace Foam;
 
@@ -41,43 +42,40 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validOptions.clear();
-    argList::validArgs.clear();
-    argList::validArgs.append("surface file");
+    argList::validArgs.append("surfaceFile");
     argList::validArgs.append("underrelax factor (0..1)");
     argList::validArgs.append("iterations");
-    argList::validArgs.append("output file");
+    argList::validArgs.append("output surfaceFile");
     argList args(argc, argv);
 
-    fileName surfFileName(args.additionalArgs()[0]);
-    scalar relax(readScalar(IStringStream(args.additionalArgs()[1])()));
-    if ((relax <= 0) || (relax > 1))
+    const fileName surfFileName = args[1];
+    const scalar relax = args.argRead<scalar>(2);
+    const label  iters = args.argRead<label>(3);
+    const fileName outFileName = args[4];
+
+    if (relax <= 0 || relax > 1)
     {
         FatalErrorIn(args.executable()) << "Illegal relaxation factor "
             << relax << endl
             << "0: no change   1: move vertices to average of neighbours"
             << exit(FatalError);
     }
-    label iters(readLabel(IStringStream(args.additionalArgs()[2])()));
-    fileName outFileName(args.additionalArgs()[3]);
 
-    Info<< "Relax:" << relax << endl;
-    Info<< "Iters:" << iters << endl;
+    Info<< "Relax:" << relax << nl
+        << "Iters:" << iters << nl
+        << "Reading surface from " << surfFileName << " ..." << endl;
 
+    meshedSurface surf1(surfFileName);
 
-    Info<< "Reading surface from " << surfFileName << " ..." << endl;
-
-    triSurface surf1(surfFileName);
-
-    Info<< "Triangles    : " << surf1.size() << endl;
-    Info<< "Vertices     : " << surf1.nPoints() << endl;
-    Info<< "Bounding Box : " << boundBox(surf1.localPoints()) << endl;
+    Info<< "Faces        : " << surf1.size() << nl
+        << "Vertices     : " << surf1.nPoints() << nl
+        << "Bounding Box : " << boundBox(surf1.localPoints()) << endl;
 
     pointField newPoints(surf1.localPoints());
 
     const labelListList& pointEdges = surf1.pointEdges();
 
-
-    for(label iter = 0; iter < iters; iter++)
+    for (label iter = 0; iter < iters; iter++)
     {
         forAll(pointEdges, vertI)
         {
@@ -99,18 +97,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    triSurface surf2
-    (
-        surf1.localFaces(),
-        surf1.patches(),
-        newPoints
-    );
-
     Info<< "Writing surface to " << outFileName << " ..." << endl;
 
-    surf2.write(outFileName);
+    meshedSurface
+    (
+        xferMove(newPoints),
+        xferCopy(surf1.localFaces()),
+        xferCopy(surf1.surfZones())
+    ).write(outFileName);
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

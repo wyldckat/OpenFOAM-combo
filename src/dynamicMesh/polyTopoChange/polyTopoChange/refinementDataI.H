@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,10 +22,6 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 \*---------------------------------------------------------------------------*/
-
-
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -51,18 +47,21 @@ inline Foam::refinementData::refinementData
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-inline bool Foam::refinementData::valid() const
+template<class TrackingData>
+inline bool Foam::refinementData::valid(TrackingData& td) const
 {
     return count_ != -1;
 }
 
 
 // No geometric data so never any problem on cyclics
+template<class TrackingData>
 inline bool Foam::refinementData::sameGeometry
 (
     const polyMesh&,
     const refinementData&,
-    const scalar
+    const scalar,
+    TrackingData& td
 ) const
 {
     return true;
@@ -70,47 +69,55 @@ inline bool Foam::refinementData::sameGeometry
 
 
 // No geometric data.
+template<class TrackingData>
 inline void Foam::refinementData::leaveDomain
 (
     const polyMesh&,
     const polyPatch& patch,
     const label patchFaceI,
-    const point& faceCentre
+    const point& faceCentre,
+    TrackingData& td
 )
 {}
 
 
 // No geometric data.
+template<class TrackingData>
 inline void Foam::refinementData::transform
 (
     const polyMesh&,
-    const tensor& rotTensor
+    const tensor& rotTensor,
+    TrackingData& td
 )
 {}
 
 
 // No geometric data.
+template<class TrackingData>
 inline void Foam::refinementData::enterDomain
 (
     const polyMesh&,
     const polyPatch& patch,
     const label patchFaceI,
-    const point& faceCentre
+    const point& faceCentre,
+    TrackingData& td
 )
 {}
 
 
 // Update cell with neighbouring face information
+template<class TrackingData>
 inline bool Foam::refinementData::updateCell
 (
     const polyMesh&,
     const label thisCellI,
     const label neighbourFaceI,
     const refinementData& neighbourInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    if (!valid())
+    if (!valid(td))
     {
         FatalErrorIn("refinementData::updateCell") << "problem"
             << abort(FatalError);
@@ -161,17 +168,19 @@ inline bool Foam::refinementData::updateCell
 
 
 // Update face with neighbouring cell information
+template<class TrackingData>
 inline bool Foam::refinementData::updateFace
 (
     const polyMesh&,
     const label thisFaceI,
     const label neighbourCellI,
     const refinementData& neighbourInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     // From cell to its faces.
-    if (!valid())
+    if (!valid(td))
     {
         refinementCount_ = neighbourInfo.refinementCount();
         count_ = neighbourInfo.count();
@@ -194,16 +203,18 @@ inline bool Foam::refinementData::updateFace
 
 
 // Update face with coupled face information
+template<class TrackingData>
 inline bool Foam::refinementData::updateFace
 (
     const polyMesh&,
     const label thisFaceI,
     const refinementData& neighbourInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     // From face to face (e.g. coupled faces)
-    if (!valid())
+    if (!valid(td))
     {
         refinementCount_ = neighbourInfo.refinementCount();
         count_ = neighbourInfo.count();
@@ -222,7 +233,18 @@ inline bool Foam::refinementData::updateFace
 
         return true;
     }
-}    
+}
+
+
+template <class TrackingData>
+inline bool Foam::refinementData::equal
+(
+    const refinementData& rhs,
+    TrackingData& td
+) const
+{
+    return operator==(rhs);
+}
 
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //

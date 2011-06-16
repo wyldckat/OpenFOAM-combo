@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,41 +45,41 @@ namespace Foam
 
 // Forward declaration of friend functions and operators
 
-template<class thermo> class specieThermo;
+template<class Thermo> class specieThermo;
 
-template<class thermo>
-inline specieThermo<thermo> operator+
+template<class Thermo>
+inline specieThermo<Thermo> operator+
 (
-    const specieThermo<thermo>&,
-    const specieThermo<thermo>&
+    const specieThermo<Thermo>&,
+    const specieThermo<Thermo>&
 );
 
-template<class thermo>
-inline specieThermo<thermo> operator-
+template<class Thermo>
+inline specieThermo<Thermo> operator-
 (
-    const specieThermo<thermo>&,
-    const specieThermo<thermo>&
+    const specieThermo<Thermo>&,
+    const specieThermo<Thermo>&
 );
 
-template<class thermo>
-inline specieThermo<thermo> operator*
+template<class Thermo>
+inline specieThermo<Thermo> operator*
 (
     const scalar,
-    const specieThermo<thermo>&
+    const specieThermo<Thermo>&
 );
 
-template<class thermo>
-inline specieThermo<thermo> operator==
+template<class Thermo>
+inline specieThermo<Thermo> operator==
 (
-    const specieThermo<thermo>&,
-    const specieThermo<thermo>&
+    const specieThermo<Thermo>&,
+    const specieThermo<Thermo>&
 );
 
-template<class thermo>
+template<class Thermo>
 Ostream& operator<<
 (
     Ostream&,
-    const specieThermo<thermo>&
+    const specieThermo<Thermo>&
 );
 
 
@@ -87,10 +87,10 @@ Ostream& operator<<
                            Class specieThermo Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class thermo>
+template<class Thermo>
 class specieThermo
 :
-    public thermo
+    public Thermo
 {
     // Private data
 
@@ -101,7 +101,7 @@ class specieThermo
         static const int maxIter_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- return the temperature corresponding to the value of the
         //  thermodynamic property f, given the function f = F(T) and dF(T)/dT
@@ -119,10 +119,13 @@ public:
     // Constructors
 
         //- construct from components
-        inline specieThermo(const thermo& sp);
+        inline specieThermo(const Thermo& sp);
 
         //- Construct from Istream
         specieThermo(Istream&);
+
+        //- Construct from dictionary
+        specieThermo(const dictionary& dict);
 
         //- Construct as named copy
         inline specieThermo(const word& name, const specieThermo&);
@@ -130,23 +133,23 @@ public:
 
     // Member Functions
 
-        // Fundamaental properties
+        // Fundamental properties
         // (These functions must be provided in derived types)
 
             // Heat capacity at constant pressure [J/(kmol K)]
-            //scalar cp(const scalar) const;
+            // scalar cp(const scalar) const;
 
             // Enthalpy [J/kmol]
-            //scalar h(const scalar) const;
+            // scalar h(const scalar) const;
 
             // Sensible enthalpy [J/kmol]
-            //scalar hs(const scalar) const;
+            // scalar hs(const scalar) const;
 
             // Chemical enthalpy [J/kmol]
-            //scalar hc(const scalar) const;
+            // scalar hc(const scalar) const;
 
             // Entropy [J/(kmol K)]
-            //scalar s(const scalar) const;
+            // scalar s(const scalar) const;
 
 
         // Calculate and return derived properties
@@ -248,6 +251,12 @@ public:
             inline scalar TE(const scalar E, const scalar T0) const;
 
 
+        // I-O
+
+            //- Write to Ostream
+            void write(Ostream& os) const;
+
+
     // Member operators
 
         inline void operator+=(const specieThermo&);
@@ -258,25 +267,25 @@ public:
 
     // Friend operators
 
-        friend specieThermo operator+ <thermo>
+        friend specieThermo operator+ <Thermo>
         (
             const specieThermo&,
             const specieThermo&
         );
 
-        friend specieThermo operator- <thermo>
+        friend specieThermo operator- <Thermo>
         (
             const specieThermo&,
             const specieThermo&
         );
 
-        friend specieThermo operator* <thermo>
+        friend specieThermo operator* <Thermo>
         (
             const scalar s,
             const specieThermo&
         );
 
-        friend specieThermo operator== <thermo>
+        friend specieThermo operator== <Thermo>
         (
             const specieThermo&,
             const specieThermo&
@@ -285,7 +294,7 @@ public:
 
     // Ostream Operator
 
-        friend Ostream& operator<< <thermo>
+        friend Ostream& operator<< <Thermo>
         (
             Ostream&,
             const specieThermo&

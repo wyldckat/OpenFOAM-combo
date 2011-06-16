@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,40 +28,35 @@ License
 #include "fvcMeshPhi.H"
 #include "surfaceInterpolate.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(layeredEngineMesh, 0);
+    addToRunTimeSelectionTable(engineMesh, layeredEngineMesh, IOobject);
+}
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(layeredEngineMesh, 0);
-
-addToRunTimeSelectionTable(engineMesh, layeredEngineMesh, IOobject);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-layeredEngineMesh::layeredEngineMesh(const IOobject& io)
+Foam::layeredEngineMesh::layeredEngineMesh(const IOobject& io)
 :
     engineMesh(io),
     pistonLayers_("pistonLayers", dimLength, 0.0)
 {
-    if (engineDB_.engineDict().found("pistonLayers"))
-    {
-        engineDB_.engineDict().lookup("pistonLayers") >> pistonLayers_;
-    }
+    engineDB_.engineDict().readIfPresent("pistonLayers", pistonLayers_);
 }
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-layeredEngineMesh::~layeredEngineMesh()
+Foam::layeredEngineMesh::~layeredEngineMesh()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void layeredEngineMesh::move()
+void Foam::layeredEngineMesh::move()
 {
     scalar deltaZ = engineDB_.pistonDisplacement().value();
     Info<< "deltaZ = " << deltaZ << endl;
@@ -69,9 +64,9 @@ void layeredEngineMesh::move()
     // Position of the top of the static mesh layers above the piston
     scalar pistonPlusLayers = pistonPosition_.value() + pistonLayers_.value();
 
-    pointField newPoints = points();
+    pointField newPoints(points());
 
-    forAll (newPoints, pointi)
+    forAll(newPoints, pointi)
     {
         point& p = newPoints[pointi];
 
@@ -81,7 +76,7 @@ void layeredEngineMesh::move()
         }
         else if (p.z() < deckHeight_.value())   // In liner region
         {
-            p.z() += 
+            p.z() +=
                 deltaZ
                *(deckHeight_.value() - p.z())
                /(deckHeight_.value() - pistonPlusLayers);
@@ -90,14 +85,14 @@ void layeredEngineMesh::move()
 
     if (engineDB_.foundObject<surfaceScalarField>("phi"))
     {
-        surfaceScalarField& phi = 
+        surfaceScalarField& phi =
             const_cast<surfaceScalarField&>
             (engineDB_.lookupObject<surfaceScalarField>("phi"));
 
         const volScalarField& rho =
             engineDB_.lookupObject<volScalarField>("rho");
 
-        const volVectorField& U = 
+        const volVectorField& U =
             engineDB_.lookupObject<volVectorField>("U");
 
         bool absolutePhi = false;
@@ -120,15 +115,11 @@ void layeredEngineMesh::move()
     }
 
     pistonPosition_.value() += deltaZ;
-    scalar pistonSpeed = deltaZ/engineDB_.deltaT().value();
+    scalar pistonSpeed = deltaZ/engineDB_.deltaTValue();
 
     Info<< "clearance: " << deckHeight_.value() - pistonPosition_.value() << nl
         << "Piston speed = " << pistonSpeed << " m/s" << endl;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

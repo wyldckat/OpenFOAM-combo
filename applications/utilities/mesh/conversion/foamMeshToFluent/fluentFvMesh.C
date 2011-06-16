@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
         ).c_str()
     );
 
-    Info << "Writing Header" << endl;
+    Info<< "Writing Header" << endl;
 
     fluentMeshFile
         << "(0 \"FOAM to Fluent Mesh File\")" << std::endl << std::endl
@@ -112,7 +112,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
 
     const pointField& p = points();
 
-    forAll (p, pointI)
+    forAll(p, pointI)
     {
         fluentMeshFile
             << "    "
@@ -124,8 +124,8 @@ void Foam::fluentFvMesh::writeFluentMesh() const
     fluentMeshFile
         << "))" << std::endl << std::endl;
 
-    const unallocLabelList& own = owner();
-    const unallocLabelList& nei = neighbour();
+    const labelUList& own = owner();
+    const labelUList& nei = neighbour();
 
     const faceList& fcs = faces();
 
@@ -134,7 +134,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
         << "(13 (2 1 "
         << own.size() << " 2 0)" << std::endl << "(" << std::endl;
 
-    forAll (own, faceI)
+    forAll(own, faceI)
     {
         const labelList& l = fcs[faceI];
 
@@ -142,7 +142,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
 
         fluentMeshFile << l.size() << " ";
 
-        forAll (l, lI)
+        forAll(l, lI)
         {
             fluentMeshFile << l[lI] + 1 << " ";
         }
@@ -156,9 +156,9 @@ void Foam::fluentFvMesh::writeFluentMesh() const
     label nWrittenFaces = own.size();
 
     // Writing boundary faces
-    forAll (boundary(), patchI)
+    forAll(boundary(), patchI)
     {
-        const unallocFaceList& patchFaces = boundaryMesh()[patchI];
+        const faceUList& patchFaces = boundaryMesh()[patchI];
 
         const labelList& patchFaceCells =
             boundaryMesh()[patchI].faceCells();
@@ -189,7 +189,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
         fluentMeshFile
             <<" 0)" << std::endl << "(" << std::endl;
 
-        forAll (patchFaces, faceI)
+        forAll(patchFaces, faceI)
         {
             const labelList& l = patchFaces[faceI];
 
@@ -198,7 +198,8 @@ void Foam::fluentFvMesh::writeFluentMesh() const
             fluentMeshFile << l.size() << " ";
 
             // Note: In Fluent, all boundary faces point inwards, which is
-            // opposite from the FOAM convention. Turn them round on printout
+            // opposite from the OpenFOAM convention.
+            // Turn them around on printout
             forAllReverse (l, lI)
             {
                 fluentMeshFile << l[lI] + 1 << " ";
@@ -224,7 +225,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
 
     bool hasWarned = false;
 
-    forAll (cells, cellI)
+    forAll(cells, cellI)
     {
         if (cells[cellI].model() == tet)
         {
@@ -269,7 +270,7 @@ void Foam::fluentFvMesh::writeFluentMesh() const
     fluentMeshFile << "(39 (2 interior interior-1)())" << std::endl;
 
     // Writing boundary patch types
-    forAll (boundary(), patchI)
+    forAll(boundary(), patchI)
     {
         fluentMeshFile
             << "(39 (" << patchI + 10 << " ";

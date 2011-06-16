@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,15 +57,15 @@ void Foam::meshReader::warnDuplicates
     // warn about duplicate names
     if (duplicates)
     {
-        Info << nl << "WARNING: " << context << " with identical names:";
+        Info<< nl << "WARNING: " << context << " with identical names:";
         forAllConstIter(HashTable<label>, hashed, iter)
         {
             if (*iter > 1)
             {
-                Info << "  " << iter.key();
+                Info<< "  " << iter.key();
             }
         }
-        Info << nl << endl;
+        Info<< nl << endl;
     }
 }
 

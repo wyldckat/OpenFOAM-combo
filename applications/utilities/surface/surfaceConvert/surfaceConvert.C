@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,13 +30,13 @@ Description
 Usage
     - surfaceConvert inputFile outputFile [OPTION]
 
-    @param -clean \n
+    \param -clean \n
     Perform some surface checking/cleanup on the input surface
 
-    @param -scale \<scale\> \n
+    \param -scale \<scale\> \n
     Specify a scaling factor for writing the files
 
-    @param -group \n
+    \param -group \n
     Orders faces by region
 
 Note
@@ -58,19 +58,36 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "convert between surface formats"
+    );
+
     argList::noParallel();
-    argList::validArgs.clear();
     argList::validArgs.append("inputFile");
     argList::validArgs.append("outputFile");
-    argList::validOptions.insert("clean", "");
-    argList::validOptions.insert("scale", "scale");
-    argList::validOptions.insert("group", "");
+
+    argList::addBoolOption
+    (
+        "clean",
+        "perform some surface checking/cleanup on the input surface"
+    );
+    argList::addBoolOption
+    (
+        "group",
+        "reorder faces into groups; one per region"
+    );
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
 
     argList args(argc, argv);
-    const stringList& params = args.additionalArgs();
 
-    fileName importName(params[0]);
-    fileName exportName(params[1]);
+    const fileName importName = args[1];
+    const fileName exportName = args[2];
 
     if (importName == exportName)
     {
@@ -96,8 +113,7 @@ int main(int argc, char *argv[])
         Info<< endl;
     }
 
-    bool sortByRegion = args.optionFound("group");
-
+    const bool sortByRegion = args.optionFound("group");
     if (sortByRegion)
     {
         Info<< "Reordering faces into groups; one per region." << endl;

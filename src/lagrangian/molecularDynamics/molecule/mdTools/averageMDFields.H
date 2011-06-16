@@ -6,7 +6,7 @@ if (runTime.outputTime())
 
     scalarField totalRhoN_sum(mesh.nCells(), 0.0);
 
-    forAll (allSpeciesRhoN, rN)
+    forAll(allSpeciesRhoN, rN)
     {
         allSpeciesRhoN[rN].internalField() =
             allSpeciesN_RU[rN]
@@ -25,7 +25,7 @@ if (runTime.outputTime())
 
     scalarField totalRhoM_sum(mesh.nCells(), 0.0);
 
-    forAll (allSpeciesRhoM, rM)
+    forAll(allSpeciesRhoM, rM)
     {
         allSpeciesRhoM[rM].internalField() =
             allSpeciesM_RU[rM]
@@ -45,7 +45,7 @@ if (runTime.outputTime())
 
     scalarField totalMass_sum(mesh.nCells(), 0.0);
 
-    forAll (allSpeciesVelocity, v)
+    forAll(allSpeciesVelocity, v)
     {
         // A check for 1/0 molecules is required.
 
@@ -99,7 +99,7 @@ if (runTime.outputTime())
 
     scalarField totalN_sum(mesh.nCells(), 0.0);
 
-    forAll (allSpeciesTemperature, t)
+    forAll(allSpeciesTemperature, t)
     {
         // A check for 1/0 molecules is required.
 
@@ -152,7 +152,7 @@ if (runTime.outputTime())
 
     forAll(totalTemperature.internalField(), tT)
     {
-        if(totalN_sum[tT] > 0)
+        if (totalN_sum[tT] > 0)
         {
             totalTemperature.internalField()[tT] =
                 totalTemperatureVTerms_sum[tT]
@@ -170,7 +170,7 @@ if (runTime.outputTime())
 
     scalarField totalKE_sum(mesh.nCells(), 0.0);
 
-    forAll (allSpeciesMeanKE, mKE)
+    forAll(allSpeciesMeanKE, mKE)
     {
         // A check for 1/0 molecules is required.
 
@@ -181,7 +181,7 @@ if (runTime.outputTime())
 
         forAll(singleSpeciesMeanKE, sSMKE)
         {
-            if(allSpeciesN_RU[mKE][sSMKE])
+            if (allSpeciesN_RU[mKE][sSMKE])
             {
                 singleSpeciesMeanKE[sSMKE] =
                     allSpeciesM_RU[mKE][sSMKE]
@@ -208,7 +208,7 @@ if (runTime.outputTime())
 
     forAll(totalMeanKE.internalField(), tMKE)
     {
-        if(totalN_sum[tMKE] > 0)
+        if (totalN_sum[tMKE] > 0)
         {
             totalMeanKE.internalField()[tMKE] =
                 totalKE_sum[tMKE]

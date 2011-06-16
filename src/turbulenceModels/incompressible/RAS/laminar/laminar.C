@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,10 +46,12 @@ laminar::laminar
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel)
+    RASModel(modelName, U, phi, transport, turbulenceModelName)
 {}
 
 
@@ -70,7 +72,7 @@ tmp<volScalarField> laminar::nut() const
                 IOobject::NO_WRITE
             ),
             mesh_,
-            dimensionedScalar("nut", nu().dimensions(), 0.0)
+            dimensionedScalar("nut", nu()().dimensions(), 0.0)
         )
     );
 }
@@ -170,7 +172,7 @@ tmp<fvVectorMatrix> laminar::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 

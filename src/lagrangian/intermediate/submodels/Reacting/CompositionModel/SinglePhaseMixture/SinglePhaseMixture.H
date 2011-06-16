@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,7 @@ class SinglePhaseMixture
             label idSolid_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Construct the indices and check correct specification of
         //  1 gas or 1 liquid or 1 solid
@@ -75,13 +75,25 @@ class SinglePhaseMixture
 public:
 
     //- Runtime type information
-    TypeName("SinglePhaseMixture");
+    TypeName("singlePhaseMixture");
 
 
     // Constructors
 
         //- Construct from dictionary
         SinglePhaseMixture(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
+        SinglePhaseMixture(const SinglePhaseMixture<CloudType>& cm);
+
+        //- Construct and return a clone
+        virtual autoPtr<CompositionModel<CloudType> > clone() const
+        {
+            return autoPtr<CompositionModel<CloudType> >
+            (
+                new SinglePhaseMixture<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor

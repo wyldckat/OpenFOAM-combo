@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,19 +59,27 @@ volScalarField locDynOneEqEddy::ck
     const volScalarField& KK
 ) const
 {
-    volSymmTensorField LL =
-        simpleFilter_(dev(filter_(sqr(U())) - (sqr(filter_(U())))));
+    const volSymmTensorField LL
+    (
+        simpleFilter_(dev(filter_(sqr(U())) - (sqr(filter_(U())))))
+    );
 
-    volSymmTensorField MM = simpleFilter_(-2.0*delta()*pow(KK, 0.5)*filter_(D));
+    const volSymmTensorField MM
+    (
+        simpleFilter_(-2.0*delta()*pow(KK, 0.5)*filter_(D))
+    );
 
-    volScalarField ck =
+    const volScalarField ck
+    (
         simpleFilter_(0.5*(LL && MM))
        /(
             simpleFilter_(magSqr(MM))
           + dimensionedScalar("small", sqr(MM.dimensions()), VSMALL)
-        );
+        )
+    );
 
-    return 0.5*(mag(ck) + ck);
+    tmp<volScalarField> tfld = 0.5*(mag(ck) + ck);
+    return tfld();
 }
 
 
@@ -81,11 +89,14 @@ volScalarField locDynOneEqEddy::ce
     const volScalarField& KK
 ) const
 {
-    volScalarField ce =
+    const volScalarField ce
+    (
         simpleFilter_(nuEff()*(filter_(magSqr(D)) - magSqr(filter_(D))))
-       /simpleFilter_(pow(KK, 1.5)/(2.0*delta()));
+       /simpleFilter_(pow(KK, 1.5)/(2.0*delta()))
+    );
 
-    return 0.5*(mag(ce) + ce);
+    tmp<volScalarField> tfld = 0.5*(mag(ce) + ce);
+    return tfld();
 }
 
 
@@ -95,10 +106,12 @@ locDynOneEqEddy::locDynOneEqEddy
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
     GenEddyVisc(U, phi, transport),
 
     k_
@@ -118,7 +131,9 @@ locDynOneEqEddy::locDynOneEqEddy
     filterPtr_(LESfilter::New(U.mesh(), coeffDict())),
     filter_(filterPtr_())
 {
-    volScalarField KK = 0.5*(filter_(magSqr(U)) - magSqr(filter_(U)));
+    bound(k_, kMin_);
+
+    const volScalarField KK(0.5*(filter_(magSqr(U)) - magSqr(filter_(U))));
     updateSubGridScaleFields(symm(fvc::grad(U)), KK);
 
     printCoeffs();
@@ -131,14 +146,14 @@ void locDynOneEqEddy::correct(const tmp<volTensorField>& gradU)
 {
     LESModel::correct(gradU);
 
-    volSymmTensorField D = symm(gradU);
+    const volSymmTensorField D(symm(gradU));
 
-    volScalarField KK = 0.5*(filter_(magSqr(U())) - magSqr(filter_(U())));
+    volScalarField KK(0.5*(filter_(magSqr(U())) - magSqr(filter_(U()))));
     KK.max(dimensionedScalar("small", KK.dimensions(), SMALL));
 
-    volScalarField P = 2.0*nuSgs_*magSqr(D);
+    const volScalarField P(2.0*nuSgs_*magSqr(D));
 
-    fvScalarMatrix kEqn
+    tmp<fvScalarMatrix> kEqn
     (
        fvm::ddt(k_)
      + fvm::div(phi(), k_)
@@ -148,10 +163,10 @@ void locDynOneEqEddy::correct(const tmp<volTensorField>& gradU)
      - fvm::Sp(ce(D, KK)*sqrt(k_)/delta(), k_)
     );
 
-    kEqn.relax();
-    kEqn.solve();
+    kEqn().relax();
+    kEqn().solve();
 
-    bound(k_, k0());
+    bound(k_, kMin_);
 
     updateSubGridScaleFields(D, KK);
 }

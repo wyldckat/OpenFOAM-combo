@@ -11,4 +11,3 @@ EXE_LIBS = \
     -lcompressibleRASModels \
     -lfiniteVolume \
     -lgenericPatchFields
-

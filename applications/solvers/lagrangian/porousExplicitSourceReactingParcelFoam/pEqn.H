@@ -1,7 +1,11 @@
 {
     rho = thermo.rho();
 
-    volScalarField rAU = 1.0/UEqn.A();
+    // Thermodynamic density needs to be updated by psi*d(p) after the
+    // pressure solution - done in 2 parts. Part 1:
+    thermo.rho() -= psi*p;
+
+    volScalarField rAU(1.0/UEqn.A());
     U = rAU*UEqn.H();
 
     if (pZones.size() > 0)
@@ -19,45 +23,36 @@
             );
     }
 
+    fvScalarMatrix pDDtEqn
+    (
+        fvc::ddt(rho) + psi*correction(fvm::ddt(p))
+      + fvc::div(phi)
+     ==
+        parcels.Srho()
+      + massSource.SuTot()
+    );
+
+    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
     {
-        fvScalarMatrix pDDtEqn
+        fvScalarMatrix pEqn
         (
-            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
-          + fvc::div(phi)
+            pDDtEqn
+          - fvm::laplacian(rho*rAU, p)
         );
 
-        // Thermodynamic density needs to be updated by psi*d(p) after the
-        // pressure solution - done in 2 parts. Part 1:
-        thermo.rho() -= psi*p;
+        pEqn.solve
+        (
+            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
+        );
 
-        for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+        if (nonOrth == pimple.nNonOrthCorr())
         {
-            fvScalarMatrix pEqn
-            (
-                pDDtEqn - fvm::laplacian(rho*rAU, p)
-             ==
-                parcels.Srho()
-              + massSource.SuTot()
-            );
-
-            if (corr == nCorr-1 && nonOrth == nNonOrthCorr)
-            {
-                pEqn.solve(mesh.solver("pFinal"));
-            }
-            else
-            {
-                pEqn.solve();
-            }
-
-            if (nonOrth == nNonOrthCorr)
-            {
-                phi += pEqn.flux();
-            }
+            phi += pEqn.flux();
         }
-
-        // Second part of thermodynamic density update
-        thermo.rho() += psi*p;
     }
+
+    // Second part of thermodynamic density update
+    thermo.rho() += psi*p;
 
     #include "rhoEqn.H"
     #include "compressibleContinuityErrs.H"

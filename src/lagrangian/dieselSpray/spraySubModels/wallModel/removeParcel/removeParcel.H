@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class removeParcel Declaration
+                        Class removeParcel Declaration
 \*---------------------------------------------------------------------------*/
 
 class removeParcel
@@ -65,21 +65,15 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~removeParcel();
+    //- Destructor
+    virtual ~removeParcel();
 
 
     // Member Functions
 
         //- Return true if parcel is to be kept, and false if it is to be
         // removed
-        bool wallTreatment
-        (
-            parcel& parcel,
-            const label facei
-        ) const;
-
+        bool wallTreatment(parcel& parcel, const label faceI) const;
 };
 
 

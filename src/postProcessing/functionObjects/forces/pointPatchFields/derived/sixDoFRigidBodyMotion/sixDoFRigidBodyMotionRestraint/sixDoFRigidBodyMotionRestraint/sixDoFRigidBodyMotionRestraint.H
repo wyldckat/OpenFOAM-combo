@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2010-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,7 @@ Description
 
 SourceFiles
     sixDoFRigidBodyMotionRestraint.C
-    newDynamicFvMesh.C
+    sixDoFRigidBodyMotionRestraintNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -112,9 +112,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~sixDoFRigidBodyMotionRestraint();
+    //- Destructor
+    virtual ~sixDoFRigidBodyMotionRestraint();
 
 
     // Member Functions

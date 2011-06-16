@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,9 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
+#include "UOPstream.H"
 #include "OPstream.H"
+#include "UIPstream.H"
 #include "IPstream.H"
 #include "contiguous.H"
 
@@ -43,15 +45,15 @@ namespace Foam
 template <class T, class BinaryOp>
 void Pstream::gather
 (
-    const List<Pstream::commsStruct>& comms,
+    const List<UPstream::commsStruct>& comms,
     T& Value,
     const BinaryOp& bop
 )
 {
-    if (Pstream::parRun())
+    if (UPstream::parRun())
     {
         // Get my communication order
-        const commsStruct& myComm = comms[Pstream::myProcNo()];
+        const commsStruct& myComm = comms[UPstream::myProcNo()];
 
         // Receive from my downstairs neighbours
         forAll(myComm.below(), belowI)
@@ -60,9 +62,9 @@ void Pstream::gather
 
             if (contiguous<T>())
             {
-                IPstream::read
+                UIPstream::read
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.below()[belowI],
                     reinterpret_cast<char*>(&value),
                     sizeof(T)
@@ -70,7 +72,7 @@ void Pstream::gather
             }
             else
             {
-                IPstream fromBelow(Pstream::scheduled, myComm.below()[belowI]);
+                IPstream fromBelow(UPstream::scheduled, myComm.below()[belowI]);
                 fromBelow >> value;
             }
 
@@ -82,9 +84,9 @@ void Pstream::gather
         {
             if (contiguous<T>())
             {
-                OPstream::write
+                UOPstream::write
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.above(),
                     reinterpret_cast<const char*>(&Value),
                     sizeof(T)
@@ -92,7 +94,7 @@ void Pstream::gather
             }
             else
             {
-                OPstream toAbove(Pstream::scheduled, myComm.above());
+                OPstream toAbove(UPstream::scheduled, myComm.above());
                 toAbove << Value;
             }
         }
@@ -103,33 +105,33 @@ void Pstream::gather
 template <class T, class BinaryOp>
 void Pstream::gather(T& Value, const BinaryOp& bop)
 {
-    if (Pstream::nProcs() < Pstream::nProcsSimpleSum)
+    if (UPstream::nProcs() < UPstream::nProcsSimpleSum)
     {
-        gather(Pstream::linearCommunication(), Value, bop);
+        gather(UPstream::linearCommunication(), Value, bop);
     }
     else
     {
-        gather(Pstream::treeCommunication(), Value, bop);
+        gather(UPstream::treeCommunication(), Value, bop);
     }
 }
 
 
 template <class T>
-void Pstream::scatter(const List<Pstream::commsStruct>& comms, T& Value)
+void Pstream::scatter(const List<UPstream::commsStruct>& comms, T& Value)
 {
-    if (Pstream::parRun())
+    if (UPstream::parRun())
     {
         // Get my communication order
-        const commsStruct& myComm = comms[Pstream::myProcNo()];
+        const commsStruct& myComm = comms[UPstream::myProcNo()];
 
         // Reveive from up
         if (myComm.above() != -1)
         {
             if (contiguous<T>())
             {
-                IPstream::read
+                UIPstream::read
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.above(),
                     reinterpret_cast<char*>(&Value),
                     sizeof(T)
@@ -137,7 +139,7 @@ void Pstream::scatter(const List<Pstream::commsStruct>& comms, T& Value)
             }
             else
             {
-                IPstream fromAbove(Pstream::scheduled, myComm.above());
+                IPstream fromAbove(UPstream::scheduled, myComm.above());
                 fromAbove >> Value;
             }
         }
@@ -147,9 +149,9 @@ void Pstream::scatter(const List<Pstream::commsStruct>& comms, T& Value)
         {
             if (contiguous<T>())
             {
-                OPstream::write
+                UOPstream::write
                 (
-                    Pstream::scheduled,
+                    UPstream::scheduled,
                     myComm.below()[belowI],
                     reinterpret_cast<const char*>(&Value),
                     sizeof(T)
@@ -157,7 +159,7 @@ void Pstream::scatter(const List<Pstream::commsStruct>& comms, T& Value)
             }
             else
             {
-                OPstream toBelow(Pstream::scheduled,myComm.below()[belowI]);
+                OPstream toBelow(UPstream::scheduled,myComm.below()[belowI]);
                 toBelow << Value;
             }
         }
@@ -168,13 +170,13 @@ void Pstream::scatter(const List<Pstream::commsStruct>& comms, T& Value)
 template <class T>
 void Pstream::scatter(T& Value)
 {
-    if (Pstream::nProcs() < Pstream::nProcsSimpleSum)
+    if (UPstream::nProcs() < UPstream::nProcsSimpleSum)
     {
-        scatter(Pstream::linearCommunication(), Value);
+        scatter(UPstream::linearCommunication(), Value);
     }
     else
     {
-        scatter(Pstream::treeCommunication(), Value);
+        scatter(UPstream::treeCommunication(), Value);
     }
 }
 

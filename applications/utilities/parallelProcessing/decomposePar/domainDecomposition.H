@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,10 +25,11 @@ Class
     Foam::domainDecomposition
 
 Description
-    Automatic domain decomposition class for FOAM meshes
+    Automatic domain decomposition class for finite-volume meshes
 
 SourceFiles
     domainDecomposition.C
+    decomposeMesh.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -43,13 +44,12 @@ SourceFiles
 #include "Time.H"
 #include "volFields.H"
 
-#ifndef namespaceFoam
-#define namespaceFoam
-    using namespace Foam;
-#endif
+
+namespace Foam
+{
 
 /*---------------------------------------------------------------------------*\
-                           Class domainDecomposition Declaration
+                     Class domainDecomposition Declaration
 \*---------------------------------------------------------------------------*/
 
 class domainDecomposition
@@ -57,6 +57,9 @@ class domainDecomposition
     public fvMesh
 {
     // Private data
+
+        //- Optional: points at the facesInstance
+        autoPtr<pointIOField> facesInstancePointsPtr_;
 
         //- Mesh decomposition control dictionary
         IOdictionary decompositionDict_;
@@ -79,15 +82,12 @@ class domainDecomposition
         // index is negative, the processor face is the reverse of the
         // original face. In order to do this properly, all face
         // indices will be incremented by 1 and the decremented as
-        // necessary t avoid the problem of face number zero having no
+        // necessary to avoid the problem of face number zero having no
         // sign.
-        labelListList procFaceAddressing_;
+        List<DynamicList<label> > procFaceAddressing_;
 
         //- Labels of cells for each processor
         labelListList procCellAddressing_;
-
-        //- Original patch index for every processor patch
-        labelListList procBoundaryAddressing_;
 
         //- Sizes for processor mesh patches
         // Excludes inter-processor boundaries
@@ -97,21 +97,23 @@ class domainDecomposition
         // Excludes inter-processor boundaries
         labelListList procPatchStartIndex_;
 
+
+        // Per inter-processor patch information
+
         //- Neighbour processor ID for inter-processor boundaries
         labelListList procNeighbourProcessors_;
 
         //- Sizes for inter-processor patches
         labelListList procProcessorPatchSize_;
 
-        //- Start indices for inter-processor patches
+        //- Start indices (in procFaceAddressing_) for inter-processor patches
         labelListList procProcessorPatchStartIndex_;
 
-        //- List of globally shared point labels
-        labelList globallySharedPoints_;
+        //- Sub patch IDs for inter-processor patches
+        List<labelListList> procProcessorPatchSubPatchIDs_;
 
-        //- Are there cyclic-parallel faces
-        bool cyclicParallel_;
-
+        //- Sub patch sizes for inter-processor patches
+        List<labelListList> procProcessorPatchSubPatchStarts_;
 
     // Private Member Functions
 
@@ -125,6 +127,21 @@ class domainDecomposition
             labelList& elementToZone
         );
 
+        //- Append single element to list
+        static void append(labelList&, const label);
+
+        //- Add face to interProcessor patch.
+        void addInterProcFace
+        (
+            const label facei,
+            const label ownerProc,
+            const label nbrProc,
+
+            List<Map<label> >&,
+            List<DynamicList<DynamicList<label> > >&
+        ) const;
+
+
 public:
 
     // Constructors
@@ -133,9 +150,8 @@ public:
         domainDecomposition(const IOobject& io);
 
 
-    // Destructor
-
-        ~domainDecomposition();
+    //- Destructor
+    ~domainDecomposition();
 
 
     // Member Functions
@@ -152,8 +168,8 @@ public:
             return distributed_;
         }
 
-        //- Decompose mesh. Optionally remove zero-sized patches.
-        void decomposeMesh(const bool filterEmptyPatches);
+        //- Decompose mesh.
+        void decomposeMesh();
 
         //- Write decomposition
         bool writeDecomposition();
@@ -164,6 +180,11 @@ public:
             return cellToProc_;
         }
 };
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

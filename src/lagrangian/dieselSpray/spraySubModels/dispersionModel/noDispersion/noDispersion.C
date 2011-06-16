@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,31 +28,24 @@ License
 #include "noDispersion.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noDispersion, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(noDispersion, 0);
-
-addToRunTimeSelectionTable
-(
-    dispersionModel,
-    noDispersion,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        dispersionModel,
+        noDispersion,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noDispersion::noDispersion
-(
-    const dictionary& dict,
-    spray& sm
-)
+Foam::noDispersion::noDispersion(const dictionary& dict, spray& sm)
 :
     dispersionModel(dict, sm)
 {}
@@ -60,20 +53,16 @@ noDispersion::noDispersion
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noDispersion::~noDispersion()
+Foam::noDispersion::~noDispersion()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void noDispersion::disperseParcels() const
+void Foam::noDispersion::disperseParcels() const
 {
     // Do nothing
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

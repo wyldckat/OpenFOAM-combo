@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,8 @@ template<class Type>
 void MapVolFields
 (
     const IOobjectList& objects,
-    const meshToMesh& meshToMeshInterp
+    const meshToMesh& meshToMeshInterp,
+    const meshToMesh::order& mapOrder
 )
 {
     const fvMesh& meshSource = meshToMeshInterp.fromMesh();
@@ -52,12 +53,7 @@ void MapVolFields
 
     IOobjectList fields = objects.lookupClass(fieldClassName);
 
-    for
-    (
-        IOobjectList::iterator fieldIter = fields.begin();
-        fieldIter != fields.end();
-        ++fieldIter
-    )
+    forAllIter(IOobjectList, fields, fieldIter)
     {
         IOobject fieldTargetIOobject
         (
@@ -88,12 +84,7 @@ void MapVolFields
             );
 
             // Interpolate field
-            meshToMeshInterp.interpolate
-            (
-                fieldTarget,
-                fieldSource,
-                meshToMesh::INTERPOLATE
-            );
+            meshToMeshInterp.interpolate(fieldTarget, fieldSource, mapOrder);
 
             // Write field
             fieldTarget.write();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,18 +28,12 @@ License
 #include "breakupModel.H"
 #include "collisionModel.H"
 #include "dispersionModel.H"
-#include "interpolationCellPoint.H"
+#include "interpolation.H"
 #include "processorPolyPatch.H"
-#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-void spray::evolve()
+void Foam::spray::evolve()
 {
     sms_.setSize(rho_.size());
     shs_.setSize(rho_.size());
@@ -58,7 +52,7 @@ void spray::evolve()
 
     calculateAmbientPressure();
     calculateAmbientTemperature();
-    collisions().collideParcels(runTime_.deltaT().value());
+    collisions().collideParcels(runTime_.deltaTValue());
     move();
     dispersion().disperseParcels();
     inject();
@@ -72,7 +66,7 @@ void spray::evolve()
 }
 
 
-void spray::move()
+void Foam::spray::move()
 {
     // Reset Spray Source Terms
     sms_ = vector::zero;
@@ -82,11 +76,12 @@ void spray::move()
         srhos_[i] = 0.0;
     }
 
-    Cloud<parcel>::move(*this);
+    parcel::trackingData td(*this);
+    Cloud<parcel>::move(td, runTime_.deltaTValue());
 }
 
 
-void spray::breakupLoop()
+void Foam::spray::breakupLoop()
 {
     forAllIter(spray, *this, elmnt)
     {
@@ -94,7 +89,7 @@ void spray::breakupLoop()
         vector velocity = UInterpolator().interpolate
         (
             elmnt().position(),
-            elmnt().cell()
+            elmnt().currentTetIndices()
         );
 
         // liquidCore < 0.5 indicates discrete drops
@@ -103,7 +98,7 @@ void spray::breakupLoop()
             breakup().updateParcelProperties
             (
                 elmnt(),
-                runTime_.deltaT().value(),
+                runTime_.deltaTValue(),
                 velocity,
                 fuels_
             );
@@ -111,7 +106,7 @@ void spray::breakupLoop()
             breakup().breakupParcel
             (
                 elmnt(),
-                runTime_.deltaT().value(),
+                runTime_.deltaTValue(),
                 velocity,
                 fuels_
             );
@@ -120,7 +115,7 @@ void spray::breakupLoop()
 }
 
 
-void spray::atomizationLoop()
+void Foam::spray::atomizationLoop()
 {
     forAllIter(spray, *this, elmnt)
     {
@@ -128,7 +123,7 @@ void spray::atomizationLoop()
         vector velocity = UInterpolator().interpolate
         (
             elmnt().position(),
-            elmnt().cell()
+            elmnt().currentTetIndices()
         );
 
         // liquidCore > 0.5 indicates a liquid core
@@ -137,7 +132,7 @@ void spray::atomizationLoop()
             atomization().atomizeParcel
             (
                 elmnt(),
-                runTime_.deltaT().value(),
+                runTime_.deltaTValue(),
                 velocity,
                 fuels_
             );
@@ -145,9 +140,5 @@ void spray::atomizationLoop()
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

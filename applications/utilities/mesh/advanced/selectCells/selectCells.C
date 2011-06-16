@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,6 +55,7 @@ Description
 #include "edgeStats.H"
 #include "treeDataTriSurface.H"
 #include "indexedOctree.H"
+#include "globalMeshData.H"
 
 using namespace Foam;
 
@@ -298,7 +299,7 @@ label selectOutsideCells
         mesh,
         outsideFaces.shrink(),
         outsideFacesInfo.shrink(),
-        mesh.nCells()  // max iterations
+        mesh.globalData().nTotalCells()+1   // max iterations
     );
 
     // Now regionCalc should hold info on cells that are reachable from
@@ -346,7 +347,7 @@ int main(int argc, char *argv[])
             "selectCellsDict",
             runTime.system(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -469,7 +470,7 @@ int main(int argc, char *argv[])
             MESH,       // meshType
             NONMESH,    // fill type
             mesh.nCells()
-        ); 
+        );
 
 
         Info<< "Removing points connecting cells unconnected by faces ..."
@@ -510,7 +511,7 @@ int main(int argc, char *argv[])
     writeSet(selectedCells, "cells selected for meshing");
 
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -119,7 +119,7 @@ template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 linearInterpolate(const tmp<GeometricField<Type, fvPatchField, volMesh> >& tvf)
 {
-    tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tinterp = 
+    tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tinterp =
         linearInterpolate(tvf());
     tvf.clear();
     return tinterp;

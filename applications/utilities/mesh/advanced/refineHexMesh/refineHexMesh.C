@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,8 +51,9 @@ using namespace Foam;
 // Main program:
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("overwrite", "");
+#   include "addOverwriteOption.H"
     argList::validArgs.append("cellSet");
+
 #   include "setRootCase.H"
 #   include "createTime.H"
     runTime.functionObjects().off();
@@ -62,7 +63,7 @@ int main(int argc, char *argv[])
     pointMesh pMesh(mesh);
 
     word cellSetName(args.args()[1]);
-    bool overwrite = args.optionFound("overwrite");
+    const bool overwrite = args.optionFound("overwrite");
 
     Info<< "Reading cells to refine from cellSet " << cellSetName
         << nl << endl;

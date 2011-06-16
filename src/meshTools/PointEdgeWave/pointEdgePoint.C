@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,17 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "pointEdgePoint.H"
-
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-Foam::point Foam::pointEdgePoint::greatPoint(GREAT, GREAT, GREAT);
-
-
 
 // * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
@@ -44,9 +36,11 @@ Foam::Ostream& Foam::operator<<
     return os << wDist.origin() << wDist.distSqr();
 }
 
+
 Foam::Istream& Foam::operator>>(Foam::Istream& is, Foam::pointEdgePoint& wDist)
 {
     return is >> wDist.origin_ >> wDist.distSqr_;
 }
+
 
 // ************************************************************************* //

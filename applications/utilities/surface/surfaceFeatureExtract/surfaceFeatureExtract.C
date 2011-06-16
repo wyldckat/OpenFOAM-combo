@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,13 +29,18 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
+
 #include "triangle.H"
 #include "triSurface.H"
 #include "argList.H"
+#include "Time.H"
 #include "surfaceFeatures.H"
+#include "featureEdgeMesh.H"
+#include "extendedFeatureEdgeMesh.H"
 #include "treeBoundBox.H"
 #include "meshTools.H"
 #include "OFstream.H"
+#include "unitConversion.H"
 
 using namespace Foam;
 
@@ -45,7 +50,7 @@ void dumpBox(const treeBoundBox& bb, const fileName& fName)
 {
     OFstream str(fName);
 
-    Pout<< "Dumping bounding box " << bb << " as lines to obj file "
+    Info<< "Dumping bounding box " << bb << " as lines to obj file "
         << str.name() << endl;
 
 
@@ -78,13 +83,58 @@ void deleteBox
     {
         const point eMid = surf.edges()[edgeI].centre(surf.localPoints());
 
-        if
-        (
-            (removeInside && bb.contains(eMid))
-         || (!removeInside && !bb.contains(eMid))
-        )
+        if (removeInside ? bb.contains(eMid) : !bb.contains(eMid))
         {
             edgeStat[edgeI] = surfaceFeatures::NONE;
+        }
+    }
+}
+
+
+// Unmark non-manifold edges if individual triangles are not features
+void unmarkBaffles
+(
+    const triSurface& surf,
+    const scalar includedAngle,
+    List<surfaceFeatures::edgeStatus>& edgeStat
+)
+{
+    scalar minCos = Foam::cos(degToRad(180.0 - includedAngle));
+
+    const labelListList& edgeFaces = surf.edgeFaces();
+
+    forAll(edgeFaces, edgeI)
+    {
+        const labelList& eFaces = edgeFaces[edgeI];
+
+        if (eFaces.size() > 2)
+        {
+            label i0 = eFaces[0];
+            //const labelledTri& f0 = surf[i0];
+            const vector& n0 = surf.faceNormals()[i0];
+
+            //Pout<< "edge:" << edgeI << " n0:" << n0 << endl;
+
+            bool same = true;
+
+            for (label i = 1; i < eFaces.size(); i++)
+            {
+                //const labelledTri& f = surf[i];
+                const vector& n = surf.faceNormals()[eFaces[i]];
+
+                //Pout<< "    mag(n&n0): " << mag(n&n0) << endl;
+
+                if (mag(n&n0) < minCos)
+                {
+                    same = false;
+                    break;
+                }
+            }
+
+            if (same)
+            {
+                edgeStat[edgeI] = surfaceFeatures::NONE;
+            }
         }
     }
 }
@@ -94,31 +144,72 @@ void deleteBox
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "extract and write surface features to file"
+    );
     argList::noParallel();
-
-    argList::validArgs.clear();
     argList::validArgs.append("surface");
     argList::validArgs.append("output set");
 
-    argList::validOptions.insert("includedAngle", "included angle [0..180]");
-    argList::validOptions.insert("set", "input feature set");
+    argList::addOption
+    (
+        "includedAngle",
+        "degrees",
+        "construct feature set from included angle [0..180]"
+    );
+    argList::addOption
+    (
+        "set",
+        "name",
+        "use existing feature set from file"
+    );
+    argList::addOption
+    (
+        "minLen",
+        "scalar",
+        "remove features shorter than the specified cumulative length"
+    );
+    argList::addOption
+    (
+        "minElem",
+        "int",
+        "remove features with fewer than the specified number of edges"
+    );
+    argList::addOption
+    (
+        "subsetBox",
+        "((x0 y0 z0)(x1 y1 z1))",
+        "remove edges outside specified bounding box"
+    );
+    argList::addOption
+    (
+        "deleteBox",
+        "((x0 y0 z0)(x1 y1 z1))",
+        "remove edges within specified bounding box"
+    );
+    argList::addBoolOption
+    (
+        "writeObj",
+        "write extendedFeatureEdgeMesh obj files"
+    );
 
-    argList::validOptions.insert("minLen", "cumulative length of feature");
-    argList::validOptions.insert("minElem", "number of edges in feature");
-    argList::validOptions.insert("subsetBox", "((x0 y0 z0)(x1 y1 z1))");
-    argList::validOptions.insert("deleteBox", "((x0 y0 z0)(x1 y1 z1))");
-    argList args(argc, argv);
+#   include "setRootCase.H"
+#   include "createTime.H"
 
-    Pout<< "Feature line extraction is only valid on closed manifold surfaces."
+    Info<< "Feature line extraction is only valid on closed manifold surfaces."
         << endl;
 
+    bool writeObj = args.optionFound("writeObj");
 
-    fileName surfFileName(args.additionalArgs()[0]);
-    fileName outFileName(args.additionalArgs()[1]);
+    const fileName surfFileName = args[1];
+    const fileName outFileName  = args[2];
 
-    Pout<< "Surface            : " << surfFileName << nl
+    Info<< "Surface            : " << surfFileName << nl
         << "Output feature set : " << outFileName << nl
         << endl;
+
+    fileName sFeatFileName = surfFileName.lessExt().name();
 
 
     // Read
@@ -126,11 +217,9 @@ int main(int argc, char *argv[])
 
     triSurface surf(surfFileName);
 
-    Pout<< "Statistics:" << endl;
-    surf.writeStats(Pout);
-    Pout<< endl;
-
-
+    Info<< "Statistics:" << endl;
+    surf.writeStats(Info);
+    Info<< endl;
 
 
     // Either construct features from surface&featureangle or read set.
@@ -140,24 +229,24 @@ int main(int argc, char *argv[])
 
     if (args.optionFound("set"))
     {
-        fileName setName(args.option("set"));
+        const fileName setName = args["set"];
 
-        Pout<< "Reading existing feature set from file " << setName << endl;
+        Info<< "Reading existing feature set from file " << setName << endl;
 
         set = surfaceFeatures(surf, setName);
     }
     else if (args.optionFound("includedAngle"))
     {
-        scalar includedAngle = args.optionRead<scalar>("includedAngle");
+        const scalar includedAngle = args.optionRead<scalar>("includedAngle");
 
-        Pout<< "Constructing feature set from included angle " << includedAngle
+        Info<< "Constructing feature set from included angle " << includedAngle
             << endl;
 
         set = surfaceFeatures(surf, includedAngle);
 
-        Pout<< endl << "Writing initial features" << endl;
-        set.write("initial.fSet");
-        set.writeObj("initial");
+        // Info<< nl << "Writing initial features" << endl;
+        // set.write("initial.fSet");
+        // set.writeObj("initial");
     }
     else
     {
@@ -168,8 +257,7 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
-
-    Pout<< nl
+    Info<< nl
         << "Initial feature set:" << nl
         << "    feature points : " << set.featurePoints().size() << nl
         << "    feature edges  : " << set.featureEdges().size() << nl
@@ -180,30 +268,27 @@ int main(int argc, char *argv[])
         << endl;
 
 
-
-
     // Trim set
     // ~~~~~~~~
 
     scalar minLen = -GREAT;
     if (args.optionReadIfPresent("minLen", minLen))
     {
-        Pout<< "Removing features of length < " << minLen << endl;
+        Info<< "Removing features of length < " << minLen << endl;
     }
 
     label minElem = 0;
     if (args.optionReadIfPresent("minElem", minElem))
     {
-        Pout<< "Removing features with number of edges < " << minElem << endl;
+        Info<< "Removing features with number of edges < " << minElem << endl;
     }
 
     // Trim away small groups of features
-    if (minLen > 0 || minLen > 0)
+    if (minElem > 0 || minLen > 0)
     {
         set.trimFeatures(minLen, minElem);
-        Pout<< endl << "Removed small features" << endl;
+        Info<< endl << "Removed small features" << endl;
     }
-
 
 
     // Subset
@@ -214,9 +299,12 @@ int main(int argc, char *argv[])
 
     if (args.optionFound("subsetBox"))
     {
-        treeBoundBox bb(args.optionLookup("subsetBox")());
+        treeBoundBox bb
+        (
+            args.optionLookup("subsetBox")()
+        );
 
-        Pout<< "Removing all edges outside bb " << bb << endl;
+        Info<< "Removing all edges outside bb " << bb << endl;
         dumpBox(bb, "subsetBox.obj");
 
         deleteBox
@@ -229,9 +317,12 @@ int main(int argc, char *argv[])
     }
     else if (args.optionFound("deleteBox"))
     {
-        treeBoundBox bb(args.optionLookup("deleteBox")());
+        treeBoundBox bb
+        (
+            args.optionLookup("deleteBox")()
+        );
 
-        Pout<< "Removing all edges inside bb " << bb << endl;
+        Info<< "Removing all edges inside bb " << bb << endl;
         dumpBox(bb, "deleteBox.obj");
 
         deleteBox
@@ -246,14 +337,13 @@ int main(int argc, char *argv[])
     surfaceFeatures newSet(surf);
     newSet.setFromStatus(edgeStat);
 
-    Pout<< endl << "Writing trimmed features to " << outFileName << endl;
+    Info<< endl << "Writing trimmed features to " << outFileName << endl;
     newSet.write(outFileName);
 
-    Pout<< endl << "Writing edge objs." << endl;
-    newSet.writeObj("final");
+    // Info<< endl << "Writing edge objs." << endl;
+    // newSet.writeObj("final");
 
-
-    Pout<< nl
+    Info<< nl
         << "Final feature set:" << nl
         << "    feature points : " << newSet.featurePoints().size() << nl
         << "    feature edges  : " << newSet.featureEdges().size() << nl
@@ -263,7 +353,51 @@ int main(int argc, char *argv[])
         << "        internal edges : " << newSet.nInternalEdges() << nl
         << endl;
 
-    Pout<< "End\n" << endl;
+    // Extracting and writing a extendedFeatureEdgeMesh
+
+    extendedFeatureEdgeMesh feMesh
+    (
+        newSet,
+        runTime,
+        sFeatFileName + ".extendedFeatureEdgeMesh"
+    );
+
+    Info<< nl << "Writing extendedFeatureEdgeMesh to " << feMesh.objectPath()
+        << endl;
+
+    if (writeObj)
+    {
+        feMesh.writeObj(surfFileName.lessExt().name());
+    }
+
+    feMesh.write();
+
+
+    // Write a featureEdgeMesh for backwards compatibility
+    {
+        featureEdgeMesh bfeMesh
+        (
+            IOobject
+            (
+                surfFileName.lessExt().name() + ".eMesh",   // name
+                runTime.constant(), // instance
+                "triSurface",
+                runTime,            // registry
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE,
+                false
+            ),
+            feMesh.points(),
+            feMesh.edges()
+        );
+
+        Info<< nl << "Writing featureEdgeMesh to "
+            << bfeMesh.objectPath() << endl;
+
+        bfeMesh.regIOobject::write();
+    }
+
+    Info<< "End\n" << endl;
 
     return 0;
 }

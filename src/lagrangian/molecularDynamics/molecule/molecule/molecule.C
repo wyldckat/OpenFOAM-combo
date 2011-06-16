@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,46 +63,29 @@ Foam::tensor Foam::molecule::rotationTensorZ(scalar phi) const
 }
 
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
-
-Foam::molecule::trackData::trackData
-(
-    moleculeCloud& molCloud,
-    label part
-)
-:
-    Particle<molecule>::trackData(molCloud),
-    molCloud_(molCloud),
-    part_(part)
-{}
-
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-
-bool Foam::molecule::move(molecule::trackData& td)
+bool Foam::molecule::move(molecule::trackingData& td, const scalar trackTime)
 {
     td.switchProcessor = false;
     td.keepParticle = true;
 
-    const constantProperties& constProps(td.molCloud().constProps(id_));
-
-    scalar deltaT = cloud().pMesh().time().deltaT().value();
+    const constantProperties& constProps(td.cloud().constProps(id_));
 
     if (td.part() == 0)
     {
         // First leapfrog velocity adjust part, required before tracking+force
         // part
 
-        v_ += 0.5*deltaT*a_;
+        v_ += 0.5*trackTime*a_;
 
-        pi_ += 0.5*deltaT*tau_;
+        pi_ += 0.5*trackTime*tau_;
     }
     else if (td.part() == 1)
     {
         // Leapfrog tracking part
 
-        scalar tEnd = (1.0 - stepFraction())*deltaT;
+        scalar tEnd = (1.0 - stepFraction())*trackTime;
         scalar dtMax = tEnd;
 
         while (td.keepParticle && !td.switchProcessor && tEnd > ROOTVSMALL)
@@ -113,7 +96,7 @@ bool Foam::molecule::move(molecule::trackData& td)
             dt *= trackToFace(position() + dt*v_, td);
 
             tEnd -= dt;
-            stepFraction() = 1.0 - tEnd/deltaT;
+            stepFraction() = 1.0 - tEnd/trackTime;
         }
     }
     else if (td.part() == 2)
@@ -130,26 +113,26 @@ bool Foam::molecule::move(molecule::trackData& td)
 
             if (!constProps.linearMolecule())
             {
-                R = rotationTensorX(0.5*deltaT*pi_.x()/momentOfInertia.xx());
+                R = rotationTensorX(0.5*trackTime*pi_.x()/momentOfInertia.xx());
                 pi_ = pi_ & R;
                 Q_ = Q_ & R;
             }
 
-            R = rotationTensorY(0.5*deltaT*pi_.y()/momentOfInertia.yy());
+            R = rotationTensorY(0.5*trackTime*pi_.y()/momentOfInertia.yy());
             pi_ = pi_ & R;
             Q_ = Q_ & R;
 
-            R = rotationTensorZ(deltaT*pi_.z()/momentOfInertia.zz());
+            R = rotationTensorZ(trackTime*pi_.z()/momentOfInertia.zz());
             pi_ = pi_ & R;
             Q_ = Q_ & R;
 
-            R = rotationTensorY(0.5*deltaT*pi_.y()/momentOfInertia.yy());
+            R = rotationTensorY(0.5*trackTime*pi_.y()/momentOfInertia.yy());
             pi_ = pi_ & R;
             Q_ = Q_ & R;
 
             if (!constProps.linearMolecule())
             {
-                R = rotationTensorX(0.5*deltaT*pi_.x()/momentOfInertia.xx());
+                R = rotationTensorX(0.5*trackTime*pi_.x()/momentOfInertia.xx());
                 pi_ = pi_ & R;
                 Q_ = Q_ & R;
             }
@@ -177,9 +160,9 @@ bool Foam::molecule::move(molecule::trackData& td)
             tau_ += (constProps.siteReferencePositions()[s] ^ (Q_.T() & f));
         }
 
-        v_ += 0.5*deltaT*a_;
+        v_ += 0.5*trackTime*a_;
 
-        pi_ += 0.5*deltaT*tau_;
+        pi_ += 0.5*trackTime*tau_;
 
         if (constProps.pointMolecule())
         {
@@ -197,9 +180,8 @@ bool Foam::molecule::move(molecule::trackData& td)
     }
     else
     {
-        FatalErrorIn("molecule::move(molecule::trackData& td)") << nl
-            << td.part()
-            << " is an invalid part of the integration method."
+        FatalErrorIn("molecule::move(trackingData&, const scalar)") << nl
+            << td.part() << " is an invalid part of the integration method."
             << abort(FatalError);
     }
 
@@ -209,7 +191,19 @@ bool Foam::molecule::move(molecule::trackData& td)
 
 void Foam::molecule::transformProperties(const tensor& T)
 {
+    particle::transformProperties(T);
+
     Q_ = T & Q_;
+
+    v_ = transform(T, v_);
+
+    a_ = transform(T, a_);
+
+    pi_ = Q_.T() & transform(T, Q_ & pi_);
+
+    tau_ = Q_.T() & transform(T, Q_ & tau_);
+
+    rf_ = transform(T, rf_);
 
     sitePositions_ = position_ + (T & (sitePositions_ - position_));
 
@@ -219,10 +213,14 @@ void Foam::molecule::transformProperties(const tensor& T)
 
 void Foam::molecule::transformProperties(const vector& separation)
 {
+    particle::transformProperties(separation);
+
     if (special_ == SPECIAL_TETHERED)
     {
         specialPosition_ += separation;
     }
+
+    sitePositions_ = sitePositions_ + separation;
 }
 
 
@@ -243,19 +241,10 @@ void Foam::molecule::setSiteSizes(label size)
 bool Foam::molecule::hitPatch
 (
     const polyPatch&,
-    molecule::trackData&,
-    const label
-)
-{
-    return false;
-}
-
-
-bool Foam::molecule::hitPatch
-(
-    const polyPatch&,
-    int&,
-    const label
+    trackingData&,
+    const label,
+    const scalar,
+    const tetIndices&
 )
 {
     return false;
@@ -265,28 +254,23 @@ bool Foam::molecule::hitPatch
 void Foam::molecule::hitProcessorPatch
 (
     const processorPolyPatch&,
-    molecule::trackData& td
+    trackingData& td
 )
 {
     td.switchProcessor = true;
 }
 
 
-void Foam::molecule::hitProcessorPatch
-(
-    const processorPolyPatch&,
-    int&
-)
-{}
-
-
 void Foam::molecule::hitWallPatch
 (
     const wallPolyPatch& wpp,
-    molecule::trackData& td
+    trackingData& td,
+    const tetIndices& tetIs
 )
 {
-    vector nw = wpp.faceAreas()[wpp.whichFace(face())];
+    // Use of the normal from tetIs is not required as
+    // hasWallImpactDistance for a moleculeCloud is false.
+    vector nw = normal();
     nw /= mag(nw);
 
     scalar vn = v_ & nw;
@@ -299,30 +283,14 @@ void Foam::molecule::hitWallPatch
 }
 
 
-void Foam::molecule::hitWallPatch
-(
-    const wallPolyPatch&,
-    int&
-)
-{}
-
-
 void Foam::molecule::hitPatch
 (
     const polyPatch&,
-    molecule::trackData& td
+    trackingData& td
 )
 {
     td.keepParticle = false;
 }
-
-
-void Foam::molecule::hitPatch
-(
-    const polyPatch&,
-    int&
-)
-{}
 
 
 // ************************************************************************* //

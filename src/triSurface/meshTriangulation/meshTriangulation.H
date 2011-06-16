@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -112,7 +112,7 @@ public:
 
         //- Construct from selected mesh cell and region number to be used
         //  for triangles resulting from internal faces. (all boundary triangles
-        //  get polyMesh patch id). 
+        //  get polyMesh patch id).
         //  faceCentreDecomposition = true  : decomposition around face centre
         //                            false : decomposition using
         //                                    existing vertices

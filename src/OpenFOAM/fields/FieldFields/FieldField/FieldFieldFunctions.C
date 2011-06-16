@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -411,7 +411,7 @@ template<template<class> class Field, class Type>
 Type max(const FieldField<Field, Type>& f)
 {
     label i = 0;
-    while(i < f.size() && !f[i].size()) i++;
+    while (i < f.size() && !f[i].size()) i++;
 
     if (i < f.size())
     {
@@ -439,12 +439,12 @@ template<template<class> class Field, class Type>
 Type min(const FieldField<Field, Type>& f)
 {
     label i = 0;
-    while(i < f.size() && !f[i].size()) i++;
+    while (i < f.size() && !f[i].size()) i++;
 
     if (i < f.size())
     {
         label i = 0;
-        while(!f[i].size()) i++;
+        while (!f[i].size()) i++;
 
         Type Min(min(f[i]));
 

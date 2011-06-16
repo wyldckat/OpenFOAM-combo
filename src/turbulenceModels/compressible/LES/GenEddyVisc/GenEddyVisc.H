@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,12 +75,14 @@ protected:
 
     // Fields
 
-        volScalarField k_;
         volScalarField muSgs_;
         volScalarField alphaSgs_;
 
 
 public:
+
+    //- Partial Runtime type information
+    static const word typeName;
 
     // Constructors
 
@@ -90,7 +92,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -101,16 +105,10 @@ public:
 
     // Member Functions
 
-        //- Return SGS kinetic energy
-        virtual tmp<volScalarField> k() const
-        {
-            return k_;
-        }
-
         //- Return sub-grid disipation rate
         virtual tmp<volScalarField> epsilon() const
         {
-            return ce_*k_*sqrt(k_)/delta();
+            return ce_*k()*sqrt(k())/delta();
         }
 
         //- Return viscosity
@@ -123,15 +121,6 @@ public:
         virtual tmp<volScalarField> alphaSgs() const
         {
             return alphaSgs_;
-        }
-
-        //- Return thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphaSgs_ + alpha())
-            );
         }
 
         //- Return the sub-grid stress tensor.

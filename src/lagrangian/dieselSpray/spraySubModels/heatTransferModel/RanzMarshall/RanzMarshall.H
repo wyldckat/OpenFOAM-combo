@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ Description
 namespace Foam
 {
 /*---------------------------------------------------------------------------*\
-                           Class RanzMarshall Declaration
+                        Class RanzMarshall Declaration
 \*---------------------------------------------------------------------------*/
 
 class RanzMarshall
@@ -55,6 +55,7 @@ private:
         scalar ReExponent_;
         scalar PrExponent_;
 
+
 public:
 
     //- Runtime type information
@@ -64,15 +65,11 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        RanzMarshall
-        (
-            const dictionary& dict
-        );
+        RanzMarshall(const dictionary& dict);
 
 
-    // Destructor
-
-        ~RanzMarshall();
+    //- Destructor
+    virtual ~RanzMarshall();
 
 
     // Member Functions
@@ -97,7 +94,6 @@ public:
         ) const;
 
         scalar fCorrection(const scalar z) const;
-
 };
 
 

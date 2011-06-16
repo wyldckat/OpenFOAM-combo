@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,6 +36,8 @@ Description
 #include "fileName.H"
 #include "fileStat.H"
 #include "timer.H"
+#include "IFstream.H"
+#include "DynamicList.H"
 
 #include <fstream>
 #include <cstdlib>
@@ -50,6 +52,8 @@ Description
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <dlfcn.h>
+#include <link.h>
 
 #include <netinet/in.h>
 
@@ -61,28 +65,28 @@ defineTypeNameAndDebug(Foam::POSIX, 0);
 
 pid_t Foam::pid()
 {
-    return getpid();
+    return ::getpid();
 }
 
 pid_t Foam::ppid()
 {
-    return getppid();
+    return ::getppid();
 }
 
 pid_t Foam::pgid()
 {
-    return getpgrp();
+    return ::getpgrp();
 }
 
 bool Foam::env(const word& envName)
 {
-    return getenv(envName.c_str()) != NULL;
+    return ::getenv(envName.c_str()) != NULL;
 }
 
 
 Foam::string Foam::getEnv(const word& envName)
 {
-    char* env = getenv(envName.c_str());
+    char* env = ::getenv(envName.c_str());
 
     if (env)
     {
@@ -100,7 +104,7 @@ Foam::string Foam::getEnv(const word& envName)
 bool Foam::setEnv
 (
     const word& envName,
-    const string& value,
+    const std::string& value,
     const bool overwrite
 )
 {
@@ -108,18 +112,49 @@ bool Foam::setEnv
 }
 
 
-Foam::word Foam::hostName()
+Foam::word Foam::hostName(bool full)
 {
-    char buffer[256];
-    gethostname(buffer, 256);
+    char buf[128];
+    ::gethostname(buf, sizeof(buf));
 
-    return buffer;
+    // implementation as per hostname from net-tools
+    if (full)
+    {
+        struct hostent *hp = ::gethostbyname(buf);
+        if (hp)
+        {
+            return hp->h_name;
+        }
+    }
+
+    return buf;
+}
+
+
+Foam::word Foam::domainName()
+{
+    char buf[128];
+    ::gethostname(buf, sizeof(buf));
+
+    // implementation as per hostname from net-tools
+    struct hostent *hp = ::gethostbyname(buf);
+    if (hp)
+    {
+        char *p = ::strchr(hp->h_name, '.');
+        if (p)
+        {
+            ++p;
+            return p;
+        }
+    }
+
+    return word::null;
 }
 
 
 Foam::word Foam::userName()
 {
-    struct passwd* pw = getpwuid(getuid());
+    struct passwd* pw = ::getpwuid(::getuid());
 
     if (pw != NULL)
     {
@@ -132,10 +167,16 @@ Foam::word Foam::userName()
 }
 
 
+bool Foam::isAdministrator()
+{
+    return (::geteuid() == 0);
+}
+
+
 // use $HOME environment variable or passwd info
 Foam::fileName Foam::home()
 {
-    char* env = getenv("HOME");
+    char* env = ::getenv("HOME");
 
     if (env != NULL)
     {
@@ -143,7 +184,7 @@ Foam::fileName Foam::home()
     }
     else
     {
-        struct passwd* pw = getpwuid(getuid());
+        struct passwd* pw = ::getpwuid(getuid());
 
         if (pw != NULL)
         {
@@ -163,18 +204,18 @@ Foam::fileName Foam::home(const word& userName)
 
     if (userName.size())
     {
-        pw = getpwnam(userName.c_str());
+        pw = ::getpwnam(userName.c_str());
     }
     else
     {
-        char* env = getenv("HOME");
+        char* env = ::getenv("HOME");
 
         if (env != NULL)
         {
             return fileName(env);
         }
 
-        pw = getpwuid(getuid());
+        pw = ::getpwuid(::getuid());
     }
 
     if (pw != NULL)
@@ -190,8 +231,8 @@ Foam::fileName Foam::home(const word& userName)
 
 Foam::fileName Foam::cwd()
 {
-    char buf[255];
-    if (getcwd(buf, 255))
+    char buf[256];
+    if (::getcwd(buf, sizeof(buf)))
     {
         return buf;
     }
@@ -208,25 +249,26 @@ Foam::fileName Foam::cwd()
 
 bool Foam::chDir(const fileName& dir)
 {
-    return chdir(dir.c_str()) != 0;
+    return ::chdir(dir.c_str()) == 0;
 }
 
 
 Foam::fileName Foam::findEtcFile(const fileName& name, bool mandatory)
 {
-    // Search user files:
-    // ~~~~~~~~~~~~~~~~~~
+    //
+    // search for user files in
+    // * ~/.OpenFOAM/VERSION
+    // * ~/.OpenFOAM
+    //
     fileName searchDir = home()/".OpenFOAM";
     if (isDir(searchDir))
     {
-        // Check for user file in ~/.OpenFOAM/VERSION
         fileName fullName = searchDir/FOAMversion/name;
         if (isFile(fullName))
         {
             return fullName;
         }
 
-        // Check for version-independent user file in ~/.OpenFOAM
         fullName = searchDir/name;
         if (isFile(fullName))
         {
@@ -235,32 +277,61 @@ Foam::fileName Foam::findEtcFile(const fileName& name, bool mandatory)
     }
 
 
-    // Search site files:
-    // ~~~~~~~~~~~~~~~~~~
-    searchDir = getEnv("WM_PROJECT_INST_DIR");
-    if (isDir(searchDir))
+    //
+    // search for group (site) files in
+    // * $WM_PROJECT_SITE/VERSION
+    // * $WM_PROJECT_SITE
+    //
+    searchDir = getEnv("WM_PROJECT_SITE");
+    if (searchDir.size())
     {
-        // Check for site file in $WM_PROJECT_INST_DIR/site/VERSION
-        fileName fullName = searchDir/"site"/FOAMversion/name;
-        if (isFile(fullName))
+        if (isDir(searchDir))
         {
-            return fullName;
-        }
+            fileName fullName = searchDir/FOAMversion/name;
+            if (isFile(fullName))
+            {
+                return fullName;
+            }
 
-        // Check for version-independent site file in $WM_PROJECT_INST_DIR/site
-        fullName = searchDir/"site"/name;
-        if (isFile(fullName))
+            fullName = searchDir/name;
+            if (isFile(fullName))
+            {
+                return fullName;
+            }
+        }
+    }
+    else
+    {
+        //
+        // OR search for group (site) files in
+        // * $WM_PROJECT_INST_DIR/site/VERSION
+        // * $WM_PROJECT_INST_DIR/site
+        //
+        searchDir = getEnv("WM_PROJECT_INST_DIR");
+        if (isDir(searchDir))
         {
-            return fullName;
+            fileName fullName = searchDir/"site"/FOAMversion/name;
+            if (isFile(fullName))
+            {
+                return fullName;
+            }
+
+            fullName = searchDir/"site"/name;
+            if (isFile(fullName))
+            {
+                return fullName;
+            }
         }
     }
 
-    // Search installation files:
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    //
+    // search for other (shipped) files in
+    // * $WM_PROJECT_DIR/etc
+    //
     searchDir = getEnv("WM_PROJECT_DIR");
     if (isDir(searchDir))
     {
-        // Check for shipped OpenFOAM file in $WM_PROJECT_DIR/etc
         fileName fullName = searchDir/"etc"/name;
         if (isFile(fullName))
         {
@@ -272,7 +343,8 @@ Foam::fileName Foam::findEtcFile(const fileName& name, bool mandatory)
     // abort if the file is mandatory, otherwise return null
     if (mandatory)
     {
-        cerr<< "--> FOAM FATAL ERROR in Foam::findEtcFile() :"
+        std::cerr
+            << "--> FOAM FATAL ERROR in Foam::findEtcFile() :"
                " could not find mandatory file\n    '"
             << name.c_str() << "'\n\n" << std::endl;
         ::exit(1);
@@ -552,7 +624,7 @@ Foam::fileNameList Foam::readDir
     label nEntries = 0;
 
     // Attempt to open directory and set the structure pointer
-    if ((source = opendir(directory.c_str())) == NULL)
+    if ((source = ::opendir(directory.c_str())) == NULL)
     {
         dirEntries.setSize(0);
 
@@ -566,7 +638,7 @@ Foam::fileNameList Foam::readDir
     else
     {
         // Read and parse all the entries in the directory
-        while ((list = readdir(source)) != NULL)
+        while ((list = ::readdir(source)) != NULL)
         {
             fileName fName(list->d_name);
 
@@ -612,7 +684,7 @@ Foam::fileNameList Foam::readDir
         // Reset the length of the entries list
         dirEntries.setSize(nEntries);
 
-        closedir(source);
+        ::closedir(source);
     }
 
     return dirEntries;
@@ -742,7 +814,7 @@ bool Foam::ln(const fileName& src, const fileName& dst)
         return false;
     }
 
-    if (symlink(src.c_str(), dst.c_str()) == 0)
+    if (::symlink(src.c_str(), dst.c_str()) == 0)
     {
         return true;
     }
@@ -771,11 +843,11 @@ bool Foam::mv(const fileName& src, const fileName& dst)
     {
         const fileName dstName(dst/src.name());
 
-        return rename(src.c_str(), dstName.c_str()) == 0;
+        return ::rename(src.c_str(), dstName.c_str()) == 0;
     }
     else
     {
-        return rename(src.c_str(), dst.c_str()) == 0;
+        return ::rename(src.c_str(), dst.c_str()) == 0;
     }
 }
 
@@ -807,7 +879,7 @@ bool Foam::mvBak(const fileName& src, const std::string& ext)
             // possible index where we have no choice
             if (!exists(dstName, false) || n == maxIndex)
             {
-                return rename(src.c_str(), dstName.c_str()) == 0;
+                return ::rename(src.c_str(), dstName.c_str()) == 0;
             }
 
         }
@@ -834,7 +906,7 @@ bool Foam::rm(const fileName& file)
     }
     else
     {
-        return remove(string(file + ".gz").c_str()) == 0;
+        return ::remove(string(file + ".gz").c_str()) == 0;
     }
 }
 
@@ -853,7 +925,7 @@ bool Foam::rmDir(const fileName& directory)
     struct dirent *list;
 
     // Attempt to open directory and set the structure pointer
-    if ((source = opendir(directory.c_str())) == NULL)
+    if ((source = ::opendir(directory.c_str())) == NULL)
     {
         WarningIn("rmDir(const fileName&)")
             << "cannot open directory " << directory << endl;
@@ -863,7 +935,7 @@ bool Foam::rmDir(const fileName& directory)
     else
     {
         // Read and parse all the entries in the directory
-        while ((list = readdir(source)) != NULL)
+        while ((list = ::readdir(source)) != NULL)
         {
             fileName fName(list->d_name);
 
@@ -880,7 +952,7 @@ bool Foam::rmDir(const fileName& directory)
                             << " while removing directory " << directory
                             << endl;
 
-                        closedir(source);
+                        ::closedir(source);
 
                         return false;
                     }
@@ -894,7 +966,7 @@ bool Foam::rmDir(const fileName& directory)
                             << " while removing directory " << directory
                             << endl;
 
-                        closedir(source);
+                        ::closedir(source);
 
                         return false;
                     }
@@ -908,12 +980,12 @@ bool Foam::rmDir(const fileName& directory)
             WarningIn("rmDir(const fileName&)")
                 << "failed to remove directory " << directory << endl;
 
-            closedir(source);
+            ::closedir(source);
 
             return false;
         }
 
-        closedir(source);
+        ::closedir(source);
 
         return true;
     }
@@ -946,29 +1018,25 @@ bool Foam::ping
     const label timeOut
 )
 {
-    char *serverAddress;
-    struct in_addr *ptr;
     struct hostent *hostPtr;
     volatile int sockfd;
     struct sockaddr_in destAddr;      // will hold the destination addr
     u_int addr;
 
-    if ((hostPtr = gethostbyname(destName.c_str())) == NULL)
+    if ((hostPtr = ::gethostbyname(destName.c_str())) == NULL)
     {
         FatalErrorIn
         (
-            "Foam::ping(const word&, const label)"
+            "Foam::ping(const word&, ...)"
         )   << "gethostbyname error " << h_errno << " for host " << destName
             << abort(FatalError);
     }
 
     // Get first of the SLL of addresses
-    serverAddress = *(hostPtr->h_addr_list);
-    ptr = reinterpret_cast<struct in_addr*>(serverAddress);
-    addr = ptr->s_addr;
+    addr = (reinterpret_cast<struct in_addr*>(*(hostPtr->h_addr_list)))->s_addr;
 
     // Allocate socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
         FatalErrorIn
@@ -979,7 +1047,7 @@ bool Foam::ping
     }
 
     // Fill sockaddr_in structure with dest address and port
-    memset (reinterpret_cast<char *>(&destAddr), '\0', sizeof(destAddr));
+    memset(reinterpret_cast<char *>(&destAddr), '\0', sizeof(destAddr));
     destAddr.sin_family = AF_INET;
     destAddr.sin_port = htons(ushort(destPort));
     destAddr.sin_addr.s_addr = addr;
@@ -996,7 +1064,7 @@ bool Foam::ping
 
     if
     (
-        connect
+        ::connect
         (
             sockfd,
             reinterpret_cast<struct sockaddr*>(&destAddr),
@@ -1031,9 +1099,125 @@ bool Foam::ping(const word& hostname, const label timeOut)
 }
 
 
-int Foam::system(const string& command)
+int Foam::system(const std::string& command)
 {
     return ::system(command.c_str());
+}
+
+
+void* Foam::dlOpen(const fileName& lib)
+{
+    if (POSIX::debug)
+    {
+        std::cout<< "dlOpen(const fileName&)"
+            << " : dlopen of " << lib << std::endl;
+    }
+    void* handle = ::dlopen(lib.c_str(), RTLD_LAZY|RTLD_GLOBAL);
+
+    if (POSIX::debug)
+    {
+        std::cout
+            << "dlOpen(const fileName&)"
+            << " : dlopen of " << lib
+            << " handle " << handle << std::endl;
+    }
+
+    return handle;
+}
+
+
+bool Foam::dlClose(void* handle)
+{
+    if (POSIX::debug)
+    {
+        std::cout
+            << "dlClose(void*)"
+            << " : dlclose of handle " << handle << std::endl;
+    }
+    return ::dlclose(handle) == 0;
+}
+
+
+void* Foam::dlSym(void* handle, const std::string& symbol)
+{
+    if (POSIX::debug)
+    {
+        std::cout
+            << "dlSym(void*, const std::string&)"
+            << " : dlsym of " << symbol << std::endl;
+    }
+    // clear any old errors - see manpage dlopen
+    (void) ::dlerror();
+
+    // get address of symbol
+    void* fun = ::dlsym(handle, symbol.c_str());
+
+    // find error (if any)
+    char *error = ::dlerror();
+
+    if (error)
+    {
+        WarningIn("dlSym(void*, const std::string&)")
+            << "Cannot lookup symbol " << symbol << " : " << error
+            << endl;
+    }
+
+    return fun;
+}
+
+
+bool Foam::dlSymFound(void* handle, const std::string& symbol)
+{
+    if (handle && !symbol.empty())
+    {
+        if (POSIX::debug)
+        {
+            std::cout
+                << "dlSymFound(void*, const std::string&)"
+                << " : dlsym of " << symbol << std::endl;
+        }
+
+        // clear any old errors - see manpage dlopen
+        (void) ::dlerror();
+
+        // get address of symbol
+        (void) ::dlsym(handle, symbol.c_str());
+
+        // symbol can be found if there was no error
+        return !::dlerror();
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+static int collectLibsCallback
+(
+    struct dl_phdr_info *info,
+    size_t size,
+    void *data
+)
+{
+    Foam::DynamicList<Foam::fileName>* ptr =
+        reinterpret_cast<Foam::DynamicList<Foam::fileName>*>(data);
+    ptr->append(info->dlpi_name);
+    return 0;
+}
+
+
+Foam::fileNameList Foam::dlLoaded()
+{
+    DynamicList<fileName> libs;
+    dl_iterate_phdr(collectLibsCallback, &libs);
+    if (POSIX::debug)
+    {
+        std::cout
+            << "dlLoaded()"
+            << " : determined loaded libraries :" << libs.size() << std::endl;
+    }
+    return libs;
 }
 
 

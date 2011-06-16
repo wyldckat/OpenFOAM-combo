@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
             "postChannelDict",
             mesh.time().constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 #       include "collapse.H"
     }
 
-    Info<< "\nEnd" << endl;
+    Info<< "\nEnd\n" << endl;
 
     return 0;
 }

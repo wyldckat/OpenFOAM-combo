@@ -7,13 +7,15 @@
             "turbulenceProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
 
-    volVectorField force =
-        U/dimensionedScalar("dt", dimTime, runTime.deltaT().value());
+    volVectorField force
+    (
+        U/dimensionedScalar("dt", dimTime, runTime.deltaTValue())
+    );
 
     Kmesh K(mesh);
-    UOprocess forceGen(K, runTime.deltaT().value(), turbulenceProperties);
+    UOprocess forceGen(K, runTime.deltaTValue(), turbulenceProperties);

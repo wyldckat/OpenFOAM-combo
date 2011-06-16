@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "gnuplotGraph.H"
@@ -37,7 +35,7 @@ namespace Foam
 {
     typedef graph::writer graphWriter;
     addToRunTimeSelectionTable(graphWriter, gnuplotGraph, word);
-};
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -53,7 +51,7 @@ void Foam::gnuplotGraph::write(const graph& g, Ostream& os) const
 
     bool firstField = true;
 
-    for (graph::const_iterator iter = g.begin(); iter != g.end(); ++iter)
+    forAllConstIter(graph, g, iter)
     {
         if (!firstField)
         {
@@ -66,9 +64,9 @@ void Foam::gnuplotGraph::write(const graph& g, Ostream& os) const
     os << "; pause -1" << endl;
 
 
-    for (graph::const_iterator iter = g.begin(); iter != g.end(); ++iter)
+    forAllConstIter(graph, g, iter)
     {
-        os << endl;
+        os  << endl;
         writeXY(g.x(), *iter(), os);
     }
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,7 +66,7 @@ class ILList
 :
     public UILList<LListBase, T>
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Read from Istream using given Istream constructor class
         template<class INew>
@@ -120,9 +120,8 @@ public:
         ILList(Istream&, const INew&);
 
 
-    // Destructor
-
-        ~ILList();
+    //- Destructor
+    ~ILList();
 
 
     // Member Functions
@@ -139,7 +138,7 @@ public:
             void clear();
 
             //- Transfer the contents of the argument into this List
-            //  and annull the argument list.
+            //  and annul the argument list.
             void transfer(ILList<LListBase, T>&);
 
 

@@ -15,14 +15,14 @@ wallFunctions = derivedFvPatchFields/wallFunctions
 
 alphatWallFunctions = $(wallFunctions)/alphatWallFunctions
 $(alphatWallFunctions)/alphatWallFunction/alphatWallFunctionFvPatchScalarField.C
+$(alphatWallFunctions)/alphatJayatillekeWallFunction/alphatJayatillekeWallFunctionFvPatchScalarField.C
 
 mutWallFunctions = $(wallFunctions)/mutWallFunctions
+$(mutWallFunctions)/mutkRoughWallFunction/mutkRoughWallFunctionFvPatchScalarField.C
 $(mutWallFunctions)/mutkWallFunction/mutkWallFunctionFvPatchScalarField.C
-$(mutWallFunctions)/mutWallFunction/mutWallFunctionFvPatchScalarField.C
-$(mutWallFunctions)/mutRoughWallFunction/mutRoughWallFunctionFvPatchScalarField.C
-$(mutWallFunctions)/mutSpalartAllmarasWallFunction/mutSpalartAllmarasWallFunctionFvPatchScalarField.C
-$(mutWallFunctions)/mutSpalartAllmarasStandardWallFunction/mutSpalartAllmarasStandardWallFunctionFvPatchScalarField.C
-$(mutWallFunctions)/mutSpalartAllmarasStandardRoughWallFunction/mutSpalartAllmarasStandardRoughWallFunctionFvPatchScalarField.C
+$(mutWallFunctions)/mutURoughWallFunction/mutURoughWallFunctionFvPatchScalarField.C
+$(mutWallFunctions)/mutUSpaldingWallFunction/mutUSpaldingWallFunctionFvPatchScalarField.C
+$(mutWallFunctions)/mutUWallFunction/mutUWallFunctionFvPatchScalarField.C
 $(mutWallFunctions)/mutLowReWallFunction/mutLowReWallFunctionFvPatchScalarField.C
 
 epsilonWallFunctions = $(wallFunctions)/epsilonWallFunctions
@@ -35,13 +35,9 @@ kqRWallFunctions = $(wallFunctions)/kqRWallFunctions
 $(kqRWallFunctions)/kqRWallFunction/kqRWallFunctionFvPatchFields.C
 
 /* Patch fields */
-derivedFvPatchFields/turbulentHeatFluxTemperature/turbulentHeatFluxTemperatureFvPatchScalarField.C
+derivedFvPatchFields/htcConv/htcConvFvPatchScalarField.C
 derivedFvPatchFields/turbulentMixingLengthDissipationRateInlet/turbulentMixingLengthDissipationRateInletFvPatchScalarField.C
 derivedFvPatchFields/turbulentMixingLengthFrequencyInlet/turbulentMixingLengthFrequencyInletFvPatchScalarField.C
-derivedFvPatchFields/turbulentTemperatureCoupledBaffle/turbulentTemperatureCoupledBaffleFvPatchScalarField.C
-derivedFvPatchFields/turbulentTemperatureCoupledBaffle/regionProperties.C
-derivedFvPatchFields/turbulentTemperatureCoupledBaffleMixed/turbulentTemperatureCoupledBaffleMixedFvPatchScalarField.C
-
 backwardsCompatibility/wallFunctions/backwardsCompatibilityWallFunctions.C
 
 LIB = $(FOAM_LIBBIN)/libcompressibleRASModels

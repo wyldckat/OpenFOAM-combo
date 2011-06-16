@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
     - user defined:
       - inner/outer cone angle vs. time
-      - droplet PDF
+      - droplet distribution model
 
 \*---------------------------------------------------------------------------*/
 
@@ -38,14 +38,14 @@ Description
 
 #include "injectorModel.H"
 #include "vector.H"
-#include "pdf.H"
+#include "distributionModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 /*---------------------------------------------------------------------------*\
-                           Class definedHollowConeInjector Declaration
+                  Class definedHollowConeInjector Declaration
 \*---------------------------------------------------------------------------*/
 
 class definedHollowConeInjector
@@ -60,12 +60,13 @@ private:
         typedef VectorSpace<Vector<scalar>, scalar, 2> pair;
 
         dictionary definedHollowConeDict_;
-        autoPtr<pdfs::pdf> dropletPDF_;
+        autoPtr<distributionModels::distributionModel> sizeDistribution_;
 
         // inner and outer cone angle time histories
         // 2 column vectors = (time, coneAngle)
         List<pair> innerConeAngle_;
         List<pair> outerConeAngle_;
+
 
 public:
 
@@ -76,16 +77,11 @@ public:
     // Constructors
 
         //- Construct from components
-        definedHollowConeInjector
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        definedHollowConeInjector(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~definedHollowConeInjector();
+    //- Destructor
+    virtual ~definedHollowConeInjector();
 
 
     // Member Functions
@@ -102,17 +98,9 @@ public:
             const scalar d
         ) const;
 
-        scalar velocity
-        (
-            const label i,
-            const scalar time
-        ) const;
+        scalar velocity(const label i, const scalar time) const;
 
-        scalar averageVelocity
-        (
-            const label i
-        ) const;
-
+        scalar averageVelocity( const label i) const;
 };
 
 

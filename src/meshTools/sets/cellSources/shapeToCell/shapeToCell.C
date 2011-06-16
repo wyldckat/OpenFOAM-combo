@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ License
 
 #include "shapeToCell.H"
 #include "polyMesh.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "hexMatcher.H"
 #include "cellFeatures.H"
 
@@ -55,8 +55,7 @@ Foam::topoSetSource::addToUsageTable Foam::shapeToCell::usage_
 
 
 // Angle for polys to be considered splitHexes.
-Foam::scalar Foam::shapeToCell::featureCos =
-    Foam::cos(10.0 * mathematicalConstant::pi/180.0);
+Foam::scalar Foam::shapeToCell::featureCos = Foam::cos(degToRad(10.0));
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //

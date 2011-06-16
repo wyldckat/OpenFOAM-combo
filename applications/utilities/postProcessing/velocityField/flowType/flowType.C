@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,7 @@ Description
     The -noWrite option has no meaning.
 
     The flow type parameter is obtained according to the following equation:
-    @verbatim
+    \verbatim
                  |D| - |Omega|
         lambda = -------------
                  |D| + |Omega|
@@ -38,7 +38,7 @@ Description
         -1 = rotational flow
          0 = simple shear flow
          1 = planar extensional flow
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -62,9 +62,9 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
         Info<< "    Reading U" << endl;
         volVectorField U(Uheader, mesh);
 
-        volTensorField gradU = fvc::grad(U);
-        volScalarField magD = mag(symm(gradU));
-        volScalarField magOmega = mag(skew(gradU));
+        volTensorField gradU(fvc::grad(U));
+        volScalarField magD(mag(symm(gradU)));
+        volScalarField magOmega (mag(skew(gradU)));
         dimensionedScalar smallMagD("smallMagD", magD.dimensions(), SMALL);
 
         Info<< "    Calculating flowType" << endl;

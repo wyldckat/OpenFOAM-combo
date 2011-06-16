@@ -1,14 +1,14 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
     version     2.0;
-    format      binary;
+    format      ascii;
     class       dictionary;
     location    "system";
     object      fvSchemes;
@@ -32,12 +32,12 @@ divSchemes
 
     div(phi,U)      Gauss limitedLinearV 1;
     div(phi,Yi_h)   Gauss limitedLinear01 1;
-    div(phi,hs)     Gauss limitedLinear 1;
+    div(phi,h)      Gauss limitedLinear 1;
     div(phiU,p)     Gauss limitedLinear 1;
     div(phid,p)     Gauss limitedLinear 1;
     div(phi,epsilon) Gauss limitedLinear 1;
     div(phi,k) Gauss limitedLinear 1;
-    div((muEff*dev2(grad(U).T()))) Gauss linear;
+    div((muEff*dev2(T(grad(U))))) Gauss linear;
 }
 
 laplacianSchemes
@@ -48,7 +48,7 @@ laplacianSchemes
     laplacian(DkEff,k) Gauss linear uncorrected;
     laplacian(DepsilonEff,epsilon) Gauss linear uncorrected;
     laplacian((rho*(1|A(U))),p) Gauss linear uncorrected;
-    laplacian(alphaEff,hs) Gauss linear uncorrected;
+    laplacian(alphaEff,h) Gauss linear uncorrected;
 }
 
 interpolationSchemes

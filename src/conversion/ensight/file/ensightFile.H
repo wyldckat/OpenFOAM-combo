@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,7 +58,7 @@ class ensightFile
         static scalar undefValue_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow default bitwise assignment
         void operator=(const ensightFile&);
@@ -79,7 +79,7 @@ public:
         );
 
 
-    // Destructor
+    //- Destructor
     ~ensightFile();
 
 
@@ -102,7 +102,7 @@ public:
         //- Assign the value to represent undef in the results
         //  Returns the previous value
         //  NB: do not use values larger than floatScalarVGREAT
-        static scalar undefValue(const scalar&);
+        static scalar undefValue(const scalar);
 
 
     // Output
@@ -123,13 +123,13 @@ public:
         Ostream& write(const string& value);
 
         //- write integer as "%10d" or as binary
-        Ostream& write(const label& value);
+        Ostream& write(const label value);
 
         //- write integer with specified width or as binary
-        Ostream& write(const label& value, const label fieldWidth);
+        Ostream& write(const label value, const label fieldWidth);
 
         //- write float as "%12.5e" or as binary
-        Ostream& write(const scalar& value);
+        Ostream& write(const scalar value);
 
         //- Add carriage return to ascii stream
         void newline();

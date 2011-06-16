@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,7 @@ Description
 
 SourceFiles
     laminarFlameSpeed.C
-    newLaminarFlameSpeed.C
+    laminarFlameSpeedNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -74,7 +74,7 @@ protected:
 
 private:
 
-    // Private member functions
+    // Private Member Functions
 
         //- Construct as copy (not implemented)
         laminarFlameSpeed(const laminarFlameSpeed&);
@@ -120,9 +120,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~laminarFlameSpeed();
+    //- Destructor
+    virtual ~laminarFlameSpeed();
 
 
     // Member functions

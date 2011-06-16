@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,23 +29,25 @@ License
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 // Update this with w2 if w2 nearer to pt.
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::update
 (
     const point& pt,
     const pointEdgePoint& w2,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     scalar dist2 = magSqr(pt - w2.origin());
 
-    if (!valid())
+    if (!valid(td))
     {
         // current not yet set so use any value
         distSqr_ = dist2;
         origin_ = w2.origin();
 
         return true;
-    }        
+    }
 
     scalar diff = distSqr_ - dist2;
 
@@ -70,22 +72,24 @@ inline bool Foam::pointEdgePoint::update
     }
 }
 
-    
+
 // Update this with w2 (information on same point)
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::update
 (
     const pointEdgePoint& w2,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    if (!valid())
+    if (!valid(td))
     {
         // current not yet set so use any value
         distSqr_ = w2.distSqr();
         origin_ = w2.origin();
 
         return true;
-    }        
+    }
 
     scalar diff = distSqr_ - w2.distSqr();
 
@@ -110,12 +114,13 @@ inline bool Foam::pointEdgePoint::update
     }
 }
 
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Null constructor
 inline Foam::pointEdgePoint::pointEdgePoint()
 :
-    origin_(greatPoint),
+    origin_(point::max),
     distSqr_(GREAT)
 {}
 
@@ -123,7 +128,7 @@ inline Foam::pointEdgePoint::pointEdgePoint()
 // Construct from origin, distance
 inline Foam::pointEdgePoint::pointEdgePoint
 (
-    const point& origin, 
+    const point& origin,
     const scalar distSqr
 )
 :
@@ -154,17 +159,20 @@ inline Foam::scalar Foam::pointEdgePoint::distSqr() const
 }
 
 
-inline bool Foam::pointEdgePoint::valid() const
+template<class TrackingData>
+inline bool Foam::pointEdgePoint::valid(TrackingData& td) const
 {
-    return origin_ != greatPoint;
+    return origin_ != point::max;
 }
 
 
 // Checks for cyclic points
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::sameGeometry
 (
     const pointEdgePoint& w2,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 ) const
 {
     scalar diff = Foam::mag(distSqr() - w2.distSqr());
@@ -187,18 +195,25 @@ inline bool Foam::pointEdgePoint::sameGeometry
 }
 
 
+template<class TrackingData>
 inline void Foam::pointEdgePoint::leaveDomain
 (
     const polyPatch& patch,
     const label patchPointI,
-    const point& coord
+    const point& coord,
+    TrackingData& td
 )
 {
     origin_ -= coord;
 }
 
 
-inline void Foam::pointEdgePoint::transform(const tensor& rotTensor)
+template<class TrackingData>
+inline void Foam::pointEdgePoint::transform
+(
+    const tensor& rotTensor,
+    TrackingData& td
+)
 {
     origin_ = Foam::transform(rotTensor, origin_);
 }
@@ -206,11 +221,13 @@ inline void Foam::pointEdgePoint::transform(const tensor& rotTensor)
 
 // Update absolute geometric quantities. Note that distance (distSqr_)
 // is not affected by leaving/entering domain.
+template<class TrackingData>
 inline void Foam::pointEdgePoint::enterDomain
 (
     const polyPatch& patch,
     const label patchPointI,
-    const point& coord
+    const point& coord,
+    TrackingData& td
 )
 {
     // back to absolute form
@@ -219,79 +236,75 @@ inline void Foam::pointEdgePoint::enterDomain
 
 
 // Update this with information from connected edge
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::updatePoint
 (
     const polyMesh& mesh,
     const label pointI,
     const label edgeI,
     const pointEdgePoint& edgeInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    return 
-        update
-        (
-            mesh.points()[pointI],
-            edgeInfo,
-            tol
-        );
-    }    
+    return update(mesh.points()[pointI], edgeInfo, tol, td);
+}
 
 
 // Update this with new information on same point
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::updatePoint
 (
     const polyMesh& mesh,
     const label pointI,
     const pointEdgePoint& newPointInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    return
-        update
-        (
-            mesh.points()[pointI],
-            newPointInfo,
-            tol
-        );
-}    
+    return update(mesh.points()[pointI], newPointInfo, tol, td);
+}
 
 
 // Update this with new information on same point. No extra information.
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::updatePoint
 (
     const pointEdgePoint& newPointInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    return update(newPointInfo, tol);
-}    
+    return update(newPointInfo, tol, td);
+}
 
 
 // Update this with information from connected point
+template<class TrackingData>
 inline bool Foam::pointEdgePoint::updateEdge
 (
     const polyMesh& mesh,
     const label edgeI,
     const label pointI,
     const pointEdgePoint& pointInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
-    const pointField& points = mesh.points();
-
     const edge& e = mesh.edges()[edgeI];
+    return update(e.centre(mesh.points()), pointInfo, tol, td);
+}
 
-    const point edgeMid(0.5*(points[e[0]] + points[e[1]]));
 
-    return
-        update
-        (
-            edgeMid,
-            pointInfo,
-            tol
-        );
-}    
+template <class TrackingData>
+inline bool Foam::pointEdgePoint::equal
+(
+    const pointEdgePoint& rhs,
+    TrackingData& td
+) const
+{
+    return operator==(rhs);
+}
 
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,25 +33,32 @@ Description
     path, a reference to a objectRegistry, and parameters determining its
     storage status.
 
-    @par Read options
+    \par Read options
 
     Define what is done on object construction and explicit reads:
-    @param MUST_READ
+    \param MUST_READ
         Object must be read from Istream on construction. \n
         Error if Istream does not exist or can't be read.
-    @param READ_IF_PRESENT
+        Does not check timestamp or re-read.
+    \param MUST_READ_IF_MODIFIED
+        Object must be read from Istream on construction. \n
+        Error if Istream does not exist or can't be read. If object is
+        registered its timestamp will be checked every timestep and possibly
+        re-read.
+    \param READ_IF_PRESENT
         Read object from Istream if Istream exists, otherwise don't. \n
         Error only if Istream exists but can't be read.
-    @param NO_READ
+        Does not check timestamp or re-read.
+    \param NO_READ
           Don't read
 
-    @par Write options
+    \par Write options
 
     Define what is done on object destruction and explicit writes:
-    @param AUTO_WRITE
+    \param AUTO_WRITE
         Object is written automatically when requested to by the
         objectRegistry.
-    @param NO_WRITE
+    \param NO_WRITE
         No automatic write on destruction but can be written explicitly
 
 SourceFiles
@@ -100,6 +107,7 @@ public:
         enum readOption
         {
             MUST_READ,
+            MUST_READ_IF_MODIFIED,
             READ_IF_PRESENT,
             NO_READ
         };
@@ -148,11 +156,15 @@ private:
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Construct and return an IFstream for the object.
         //  The results is NULL if the stream construction failed
         Istream* objectStream();
+
+        //- Construct and return an IFstream for the object given the
+        //  exact file. The results is NULL if the stream construction failed
+        Istream* objectStream(const fileName&);
 
         //- Set the object state to bad
         void setBad(const string&);
@@ -219,9 +231,8 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~IOobject();
+    //- Destructor
+    virtual ~IOobject();
 
 
     // Member Functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -102,9 +102,9 @@ const Foam::GAMGAgglomeration& Foam::GAMGAgglomeration::New
         )
     )
     {
-        word agglomeratorType(controlDict.lookup("agglomerator"));
+        const word agglomeratorType(controlDict.lookup("agglomerator"));
 
-        dlLibraryTable::open
+        const_cast<Time&>(mesh.thisDb().time()).libs().open
         (
             controlDict,
             "geometricGAMGAgglomerationLibs",
@@ -157,9 +157,9 @@ const Foam::GAMGAgglomeration& Foam::GAMGAgglomeration::New
         )
     )
     {
-        word agglomeratorType(controlDict.lookup("agglomerator"));
+        const word agglomeratorType(controlDict.lookup("agglomerator"));
 
-        dlLibraryTable::open
+        const_cast<Time&>(mesh.thisDb().time()).libs().open
         (
             controlDict,
             "algebraicGAMGAgglomerationLibs",
@@ -202,7 +202,7 @@ Foam::GAMGAgglomeration::~GAMGAgglomeration()
     {
         lduInterfacePtrsList& curLevel = interfaceLevels_[leveli];
 
-        forAll (curLevel, i)
+        forAll(curLevel, i)
         {
             if (curLevel.set(i))
             {

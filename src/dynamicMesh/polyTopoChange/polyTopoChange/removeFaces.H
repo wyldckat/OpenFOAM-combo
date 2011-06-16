@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -136,8 +136,7 @@ class removeFaces
             ) const;
 
             //- Return face with all pointsToRemove removed.
-            face filterFace(const labelHashSet& pointsToRemove, const label)
-             const;
+            face filterFace(const labelHashSet&, const label) const;
 
             //- Wrapper for meshMod.modifyFace. Reverses face if own>nei.
             void modFace
@@ -179,7 +178,8 @@ public:
 
     // Member Functions
 
-        //- Given set of faces to pierce calculates:
+        //- Find faces including those with cells which have the same mastercell
+        //  Given set of faces to pierce calculates:
         //  - region for connected cells
         //  - mastercell for each region. This is the lowest numbered cell
         //    of all cells that get merged.

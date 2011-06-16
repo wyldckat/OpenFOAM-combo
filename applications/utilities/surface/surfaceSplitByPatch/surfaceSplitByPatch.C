@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,12 +36,16 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "write surface mesh regions to separate files"
+    );
+
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validArgs.append("input file");
+    argList::validArgs.append("input surfaceFile");
     argList args(argc, argv);
 
-    fileName surfName(args.additionalArgs()[0]);
+    const fileName surfName = args[1];
 
     Info<< "Reading surf from " << surfName << " ..." << nl << endl;
 
@@ -104,8 +108,7 @@ int main(int argc, char *argv[])
         subSurf.write(outFile);
     }
 
-
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

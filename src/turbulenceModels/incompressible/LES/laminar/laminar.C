@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,10 +47,12 @@ laminar::laminar
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport)
+    LESModel(modelName, U, phi, transport, turbulenceModelName)
 {}
 
 
@@ -96,7 +98,7 @@ tmp<volScalarField> laminar::nuSgs() const
                 IOobject::NO_WRITE
             ),
             mesh_,
-            dimensionedScalar("nuSgs", nu().dimensions(), 0.0)
+            dimensionedScalar("nuSgs", nu()().dimensions(), 0.0)
         )
     );
 }
@@ -144,7 +146,7 @@ tmp<fvVectorMatrix> laminar::divDevBeff(volVectorField& U) const
 {
     return
     (
-      - fvm::laplacian(nu(), U) - fvc::div(nu()*dev(fvc::grad(U)().T()))
+      - fvm::laplacian(nu(), U) - fvc::div(nu()*dev(T(fvc::grad(U))))
     );
 }
 

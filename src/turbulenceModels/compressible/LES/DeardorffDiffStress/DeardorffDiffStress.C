@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,10 +60,12 @@ DeardorffDiffStress::DeardorffDiffStress
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, rho, U, phi, thermoPhysicalModel),
+    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
     GenSGSStress(rho, U, phi, thermoPhysicalModel),
 
     ck_
@@ -99,13 +101,13 @@ void DeardorffDiffStress::correct(const tmp<volTensorField>& tgradU)
 
     GenSGSStress::correct(gradU);
 
-    volSymmTensorField D = symm(gradU);
+    volSymmTensorField D(symm(gradU));
 
-    volSymmTensorField P = -rho()*twoSymm(B_ & gradU);
+    volSymmTensorField P(-rho()*twoSymm(B_ & gradU));
 
-    volScalarField K = 0.5*tr(B_);
+    volScalarField K(0.5*tr(B_));
 
-    solve
+    tmp<fvSymmTensorMatrix> BEqn
     (
         fvm::ddt(rho(), B_)
       + fvm::div(phi(), B_)
@@ -117,6 +119,8 @@ void DeardorffDiffStress::correct(const tmp<volTensorField>& tgradU)
       - (2*ce_ - 0.667*cm_)*I*rho()*epsilon()
     );
 
+    BEqn().relax();
+    BEqn().solve();
 
     // Bounding the component kinetic energies
 
@@ -131,7 +135,7 @@ void DeardorffDiffStress::correct(const tmp<volTensorField>& tgradU)
     }
 
     K = 0.5*tr(B_);
-    bound(K, k0());
+    bound(K, kMin_);
 
     updateSubGridScaleFields(K);
 }

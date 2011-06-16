@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,6 +41,7 @@ SourceFiles
 #include "IOobject.H"
 #include "typeInfo.H"
 #include "OSspecific.H"
+#include "NamedEnum.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,6 +58,20 @@ class regIOobject
     public IOobject
 {
 
+public:
+
+    //- Types of communications
+    enum fileCheckTypes
+    {
+        timeStamp,
+        timeStampMaster,
+        inotify,
+        inotifyMaster
+    };
+
+    static const NamedEnum<fileCheckTypes, 4> fileCheckTypesNames;
+
+
 private:
 
     // Private data
@@ -67,8 +82,8 @@ private:
         //- Is this object owned by the registry
         bool ownedByRegistry_;
 
-        //- Time of last modification
-        mutable time_t lastModified_;
+        //- Modification watch index
+        mutable label watchIndex_;
 
         //- eventNo of last update
         label eventNo_;
@@ -77,7 +92,7 @@ private:
         Istream* isPtr_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Return Istream
         Istream& readStream();
@@ -95,6 +110,8 @@ public:
 
         static int fileModificationSkew;
 
+        static fileCheckTypes fileModificationChecking;
+
 
     // Constructors
 
@@ -110,9 +127,8 @@ public:
         regIOobject(const regIOobject&, bool registerCopy);
 
 
-    // Destructor
-
-        virtual ~regIOobject();
+    //- Destructor
+    virtual ~regIOobject();
 
 
     // Member functions
@@ -153,19 +169,38 @@ public:
             //- Event number at last update.
             inline label& eventNo();
 
-            //- Am I uptodate with respect to other regIOobjects
-            bool upToDate(const word&) const;
-            bool upToDate(const word&, const word&) const;
-            bool upToDate(const word&, const word&, const word&) const;
+            //- Return true if up-to-date with respect to given object
+            //  otherwise false
+            bool upToDate(const regIOobject&) const;
+
+            //- Return true if up-to-date with respect to given objects
+            //  otherwise false
             bool upToDate
             (
-                const word&,
-                const word&,
-                const word&,
-                const word&
+                const regIOobject&,
+                const regIOobject&
             ) const;
 
-            //- Flag me as up to date
+            //- Return true if up-to-date with respect to given objects
+            //  otherwise false
+            bool upToDate
+            (
+                const regIOobject&,
+                const regIOobject&,
+                const regIOobject&
+            ) const;
+
+            //- Return true if up-to-date with respect to given objects
+            //  otherwise false
+            bool upToDate
+            (
+                const regIOobject&,
+                const regIOobject&,
+                const regIOobject&,
+                const regIOobject&
+            ) const;
+
+            //- Set up to date (obviously)
             void setUpToDate();
 
 
@@ -191,10 +226,17 @@ public:
             //- Read object
             virtual bool read();
 
-            //- Return true if the object's file has been modified
+            //- Return file-monitoring handle
+            inline label watchIndex() const;
+
+            //- Return file-monitoring handle
+            inline label& watchIndex();
+
+            //- Return true if the object's file (or files for objectRegistry)
+            //  have been modified. (modified state is cached by Time)
             virtual bool modified() const;
 
-            //- Read object if modified
+            //- Read object if modified (as set by call to modified)
             virtual bool readIfModified();
 
 

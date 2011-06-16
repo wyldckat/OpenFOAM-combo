@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,11 @@ Class
 Description
     IOdictionary wrapper around OutputFilter to allow them to read from
     their associated dictionaries.
+
+Note
+    The IOobject or the objectRegistry will normally have to be
+    derived from a fvMesh for a subsequent cast (within OutputFilter)
+    to work correctly.
 
 SourceFiles
     IOOutputFilter.C
@@ -68,6 +73,15 @@ public:
 
     // Constructors
 
+        //- Construct from an IOobject for IOdictionary
+        //  Allow the possibility to load fields from files
+        IOOutputFilter
+        (
+            const word& outputFilterName,
+            const IOobject& ioDict,
+            const bool loadFromFile = false
+        );
+
         //- Construct for given objectRegistry and dictionary
         //  Allow dictionary to be optional
         //  Allow the possibility to load fields from files
@@ -76,7 +90,7 @@ public:
             const word& outputFilterName,
             const objectRegistry&,
             const fileName& dictName = OutputFilter::typeName() + "Dict",
-            const IOobject::readOption rOpt = IOobject::MUST_READ,
+            const IOobject::readOption rOpt = IOobject::MUST_READ_IF_MODIFIED,
             const bool loadFromFile = false
         );
 
@@ -93,7 +107,7 @@ public:
             return IOdictionary::name();
         }
 
-        //- Read the probes
+        //- Read output filter properties
         virtual bool read();
 
         //- Sample and write

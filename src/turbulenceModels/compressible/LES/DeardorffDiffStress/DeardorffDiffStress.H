@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,10 +30,13 @@ Description
     The DSEM uses a model version of the full balance equation for the SGS
     stress tensor to simulate the behaviour of B.
     Thus,
-    @verbatim
+    \verbatim
         d/dt(rho*B) + div(rho*U*B) - div(muSgs*grad(B))
-        =
-        P - c1*rho*epsilon/k*B - 0.667*(1 - c1)*rho*epsilon*I - c2*(P - 0.333*trP*I)
+          =
+            P
+          - c1*rho*epsilon/k*B
+          - 0.667*(1 - c1)*rho*epsilon*I
+          - c2*(P - 0.333*trP*I)
 
     where
 
@@ -43,7 +46,7 @@ Description
         P = -rho*(B'L + L'B)
         muSgs = ck*rho*sqrt(k)*delta
         muEff = muSgs + mu
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     DeardorffDiffStress.C
@@ -101,7 +104,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,42 +28,38 @@ License
 #include "noDragModel.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noDragModel, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        dragModel,
+        noDragModel,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(noDragModel, 0);
-
-addToRunTimeSelectionTable
-(
-    dragModel,
-    noDragModel,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noDragModel::noDragModel
-(
-    const dictionary& dict
-)
+Foam::noDragModel::noDragModel(const dictionary& dict)
 :
     dragModel(dict)
 {}
 
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noDragModel::~noDragModel()
+Foam::noDragModel::~noDragModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-scalar noDragModel::Cd
+Foam::scalar Foam::noDragModel::Cd
 (
     const scalar,
     const scalar
@@ -73,7 +69,7 @@ scalar noDragModel::Cd
 }
 
 
-scalar noDragModel::relaxationTime
+Foam::scalar Foam::noDragModel::relaxationTime
 (
     const vector&,
     const scalar,
@@ -86,8 +82,5 @@ scalar noDragModel::relaxationTime
     return GREAT;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

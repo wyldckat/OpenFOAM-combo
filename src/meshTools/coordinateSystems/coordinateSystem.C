@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,7 +59,7 @@ Foam::coordinateSystem::coordinateSystem
     note_(),
     origin_(cs.origin_),
     R_(cs.R_),
-    Rtr_(cs.Rtr_)
+    Rtr_(R_.T())
 {}
 
 
@@ -110,10 +110,7 @@ Foam::coordinateSystem::coordinateSystem
 }
 
 
-Foam::coordinateSystem::coordinateSystem
-(
-    const dictionary& dict
-)
+Foam::coordinateSystem::coordinateSystem(const dictionary& dict)
 :
     name_(type()),
     note_(),
@@ -139,37 +136,36 @@ Foam::coordinateSystem::coordinateSystem
 {
     const entry* entryPtr = dict.lookupEntryPtr(typeName_(), false, false);
 
-    // a simple entry is a lookup into global coordinateSystems
+    // non-dictionary entry is a lookup into global coordinateSystems
     if (entryPtr && !entryPtr->isDict())
     {
-        word csName;
-        entryPtr->stream() >> csName;
+        keyType key(entryPtr->stream());
 
-        const coordinateSystems& csLst = coordinateSystems::New(obr);
+        const coordinateSystems& lst = coordinateSystems::New(obr);
+        const label index = lst.findIndex(key);
 
-        label csId = csLst.find(csName);
         if (debug)
         {
             Info<< "coordinateSystem::coordinateSystem"
                 "(const dictionary&, const objectRegistry&):"
                 << nl << "using global coordinate system: "
-                << csName << "=" << csId << endl;
+                << key << "=" << index << endl;
         }
 
-        if (csId < 0)
+        if (index < 0)
         {
             FatalErrorIn
             (
                 "coordinateSystem::coordinateSystem"
                 "(const dictionary&, const objectRegistry&)"
-            )   << "could not find coordinate system: " << csName << nl
-                << "available coordinate systems: " << csLst.toc() << nl << nl
+            )   << "could not find coordinate system: " << key << nl
+                << "available coordinate systems: " << lst.toc() << nl << nl
                 << exit(FatalError);
         }
 
         // copy coordinateSystem, but assign the name as the typeName
         // to avoid strange things in writeDict()
-        operator=(csLst[csId]);
+        operator=(lst[index]);
         name_ = typeName_();
     }
     else
@@ -294,6 +290,15 @@ Foam::tmp<Foam::vectorField> Foam::coordinateSystem::globalToLocal
 }
 
 
+void Foam::coordinateSystem::clear()
+{
+    note_.clear();
+    origin_ = point::zero;
+    R_.clear();
+    Rtr_ = sphericalTensor::I;
+}
+
+
 void Foam::coordinateSystem::write(Ostream& os) const
 {
     os  << type()
@@ -321,15 +326,16 @@ void Foam::coordinateSystem::writeDict(Ostream& os, bool subDict) const
         os.writeKeyword("note") << note_ << token::END_STATEMENT << nl;
     }
 
-    os.writeKeyword("origin") << origin_  << token::END_STATEMENT << nl;
-    os.writeKeyword("e1")     << e1()     << token::END_STATEMENT << nl;
-    os.writeKeyword("e3")     << e3()     << token::END_STATEMENT << nl;
+    os.writeKeyword("origin") << origin_ << token::END_STATEMENT << nl;
+    os.writeKeyword("e1") << e1() << token::END_STATEMENT << nl;
+    os.writeKeyword("e3") << e3() << token::END_STATEMENT << nl;
 
     if (subDict)
     {
-        os << decrIndent << indent << token::END_BLOCK << endl;
+        os  << decrIndent << indent << token::END_BLOCK << endl;
     }
 }
+
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 

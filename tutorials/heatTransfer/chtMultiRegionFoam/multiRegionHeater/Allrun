@@ -1,28 +1,24 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
 
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 
-rm -rf constant/polyMesh/sets
-
 runApplication blockMesh
 runApplication setSet -batch makeCellSets.setSet
-
-rm -f constant/polyMesh/sets/*_old
-
-runApplication setsToZones -noFlipMap
 runApplication splitMeshRegions -cellZones -overwrite
 
 # remove fluid fields from solid regions (important for post-processing)
 for i in heater leftSolid rightSolid
 do
-   rm -f 0*/$i/{mut,alphat,epsilon,k,p_rgh,p,U}
+   rm -f 0*/$i/{mut,alphat,epsilon,k,p,U,p_rgh}
 done
 
 # remove solid fields from fluid regions (important for post-processing)
 for i in bottomAir topAir
 do
-   rm -f 0*/$i/{cp,K,rho}
+   rm -f 0*/$i/{Ychar,Ypmma}
 done
 
 for i in bottomAir topAir heater leftSolid rightSolid
@@ -32,7 +28,7 @@ done
 
 
 #-- Run on single processor
-#runApplication chtMultiRegionFoam
+#runApplication `getApplication`
 
 # Decompose
 for i in bottomAir topAir heater leftSolid rightSolid
@@ -41,12 +37,12 @@ do
 done
 
 # Run
-runParallel chtMultiRegionFoam 4
+runParallel `getApplication` 4
 
 # Reconstruct
 for i in bottomAir topAir heater leftSolid rightSolid
 do
-   reconstructPar -region $i > log.reconstructPar.$i 2>&1
+   reconstructPar -region $i > log.reconstructPar.$i2 >&1
 done
 
 
@@ -58,4 +54,4 @@ do
    paraFoam -touch -region $i
 done
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------- end-of-file

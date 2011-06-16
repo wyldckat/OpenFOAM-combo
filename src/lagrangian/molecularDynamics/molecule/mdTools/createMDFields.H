@@ -37,9 +37,9 @@ PtrList<volScalarField> allSpeciesRhoN
     molecules.potential().nIds()
 );
 
-forAll (allSpeciesRhoN, rN)
+forAll(allSpeciesRhoN, rN)
 {
-    Info << "    Creating number density field for "
+    Info<< "    Creating number density field for "
         << molecules.potential().idList()[rN] << endl;
 
     allSpeciesRhoN.set
@@ -92,9 +92,9 @@ PtrList<volScalarField> allSpeciesRhoM
     molecules.potential().nIds()
 );
 
-forAll (allSpeciesRhoM, rM)
+forAll(allSpeciesRhoM, rM)
 {
-    Info << "    Creating mass density field for "
+    Info<< "    Creating mass density field for "
         << molecules.potential().idList()[rM] << endl;
 
     allSpeciesRhoM.set
@@ -147,9 +147,9 @@ PtrList<volVectorField> allSpeciesVelocity
     molecules.potential().nIds()
 );
 
-forAll (allSpeciesVelocity, v)
+forAll(allSpeciesVelocity, v)
 {
-    Info << "    Creating velocity field for "
+    Info<< "    Creating velocity field for "
         << molecules.potential().idList()[v] << endl;
 
     allSpeciesVelocity.set
@@ -221,9 +221,9 @@ PtrList<volScalarField> allSpeciesTemperature
     molecules.potential().nIds()
 );
 
-forAll (allSpeciesTemperature, t)
+forAll(allSpeciesTemperature, t)
 {
-    Info << "    Creating temperature field for "
+    Info<< "    Creating temperature field for "
         << molecules.potential().idList()[t] << endl;
 
     allSpeciesTemperature.set
@@ -277,9 +277,9 @@ PtrList<volScalarField> allSpeciesMeanKE
     molecules.potential().nIds()
 );
 
-forAll (allSpeciesMeanKE, mKE)
+forAll(allSpeciesMeanKE, mKE)
 {
-    Info << "    Creating mean kinetic energy field for "
+    Info<< "    Creating mean kinetic energy field for "
         << molecules.potential().idList()[mKE] << endl;
 
     allSpeciesMeanKE.set

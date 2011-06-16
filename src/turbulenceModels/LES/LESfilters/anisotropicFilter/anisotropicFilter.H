@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,13 +27,13 @@ Class
 Description
     anisotropic filter
 
-    @verbatim
+    \verbatim
     Kernel                 as filter          as Test filter with ratio 2
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Box filter:            g = delta2/24  ->  g = delta2/6
     Spherical box filter:  g = delta2/64  ->  g = delta2/16
     Gaussian filter:       g = delta2/24  ->  g = delta2/6
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     anisotropicFilter.C
@@ -98,16 +98,25 @@ public:
 
     // Member Operators
 
-        virtual tmp<volScalarField> operator()(const tmp<volScalarField>&) const;
+        virtual tmp<volScalarField> operator()
+        (
+            const tmp<volScalarField>&
+        ) const;
 
-        virtual tmp<volVectorField> operator()(const tmp<volVectorField>&) const;
+        virtual tmp<volVectorField> operator()
+        (
+            const tmp<volVectorField>&
+        ) const;
 
         virtual tmp<volSymmTensorField> operator()
         (
             const tmp<volSymmTensorField>&
         ) const;
 
-        virtual tmp<volTensorField> operator()(const tmp<volTensorField>&) const;
+        virtual tmp<volTensorField> operator()
+        (
+            const tmp<volTensorField>&
+        ) const;
 };
 
 

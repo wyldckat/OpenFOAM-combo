@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,23 +32,23 @@ Usage
     - foamToEnsightParts [OPTION] \n
     Translates OpenFOAM data to Ensight format
 
-    @param -ascii \n
+    \param -ascii \n
     Write Ensight data in ASCII format instead of "C Binary"
 
-    @param -noZero \n
+    \param -noZero \n
     Exclude the often incomplete initial conditions.
 
-    @param -index \<start\>\n
+    \param -index \<start\>\n
     Ignore the time index contained in the time file and use a
-    simple indexing when creating the @c Ensight/data/######## files.
+    simple indexing when creating the \c Ensight/data/######## files.
 
-    @param -noMesh \n
+    \param -noMesh \n
     Suppress writing the geometry. Can be useful for converting partial
     results for a static geometry.
 
 Note
     - no parallel data.
-    - writes to @a Ensight directory to avoid collisions with foamToEnsight.
+    - writes to \a Ensight directory to avoid collisions with foamToEnsight.
 
 \*---------------------------------------------------------------------------*/
 
@@ -78,9 +78,24 @@ int main(int argc, char *argv[])
     // afterwards anyhow
     timeSelector::addOptions(true, false);
     argList::noParallel();
-    argList::validOptions.insert("ascii", "");
-    argList::validOptions.insert("index",  "start");
-    argList::validOptions.insert("noMesh", "");
+    argList::addBoolOption
+    (
+        "ascii",
+        "write in ASCII format instead of 'C Binary'"
+    );
+    argList::addOption
+    (
+        "index",
+        "start",
+        "ignore the time index contained in the uniform/time file "
+        "and use simple indexing when creating the files"
+    );
+    argList::addBoolOption
+    (
+        "noMesh",
+        "suppress writing the geometry. "
+        "Can be useful for converting partial results for a static geometry"
+    );
 
     // the volume field types that we handle
     wordHashSet volFieldTypes;
@@ -112,13 +127,8 @@ int main(int argc, char *argv[])
     }
 
     // control for renumbering iterations
-    bool optIndex = false;
     label indexingNumber = 0;
-    if (args.optionFound("index"))
-    {
-        optIndex = true;
-        indexingNumber = args.optionRead<label>("index");
-    }
+    bool optIndex = args.optionReadIfPresent("index", indexingNumber);
 
     // always write the geometry, unless the -noMesh option is specified
     bool optNoMesh = args.optionFound("noMesh");
@@ -133,7 +143,7 @@ int main(int argc, char *argv[])
     // or a particular time interval
     if (isDir(ensightDir))
     {
-        Info<<"Warning: reusing existing directory" << nl
+        Info<<"Warning: re-using existing directory" << nl
             << "    " << ensightDir << endl;
     }
     mkDir(ensightDir);

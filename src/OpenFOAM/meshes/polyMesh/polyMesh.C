@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,6 +33,10 @@ License
 #include "processorPolyPatch.H"
 #include "OSspecific.H"
 #include "demandDrivenData.H"
+#include "polyMeshTetDecomposition.H"
+#include "indexedOctree.H"
+#include "treeDataCell.H"
+#include "SubField.H"
 
 #include "pointMesh.H"
 
@@ -204,6 +208,7 @@ Foam::polyMesh::polyMesh(const IOobject& io)
     bounds_(points_),
     geometricD_(Vector<label>::zero),
     solutionD_(Vector<label>::zero),
+    tetBasePtIsPtr_(NULL),
     pointZones_
     (
         IOobject
@@ -270,7 +275,7 @@ Foam::polyMesh::polyMesh(const IOobject& io)
     }
     else
     {
-        cellIOList cLst
+        cellCompactIOList cLst
         (
             IOobject
             (
@@ -307,6 +312,9 @@ Foam::polyMesh::polyMesh(const IOobject& io)
         WarningIn("polyMesh(const IOobject&)")
             << "no cells in mesh" << endl;
     }
+
+    // Initialise demand-driven data
+    calcDirections();
 }
 
 
@@ -392,6 +400,7 @@ Foam::polyMesh::polyMesh
     bounds_(points_, syncPar),
     geometricD_(Vector<label>::zero),
     solutionD_(Vector<label>::zero),
+    tetBasePtIsPtr_(NULL),
     pointZones_
     (
         IOobject
@@ -441,7 +450,7 @@ Foam::polyMesh::polyMesh
     oldPointsPtr_(NULL)
 {
     // Check if the faces and cells are valid
-    forAll (faces_, faceI)
+    forAll(faces_, faceI)
     {
         const face& curFace = faces_[faceI];
 
@@ -548,6 +557,7 @@ Foam::polyMesh::polyMesh
     bounds_(points_, syncPar),
     geometricD_(Vector<label>::zero),
     solutionD_(Vector<label>::zero),
+    tetBasePtIsPtr_(NULL),
     pointZones_
     (
         IOobject
@@ -597,7 +607,7 @@ Foam::polyMesh::polyMesh
     oldPointsPtr_(NULL)
 {
     // Check if faces are valid
-    forAll (faces_, faceI)
+    forAll(faces_, faceI)
     {
         const face& curFace = faces_[faceI];
 
@@ -622,7 +632,7 @@ Foam::polyMesh::polyMesh
     cellList cLst(cells);
 
     // Check if cells are valid
-    forAll (cLst, cellI)
+    forAll(cLst, cellI)
     {
         const cell& curCell = cLst[cellI];
 
@@ -704,7 +714,7 @@ void Foam::polyMesh::resetPrimitives
     setInstance(time().timeName());
 
     // Check if the faces and cells are valid
-    forAll (faces_, faceI)
+    forAll(faces_, faceI)
     {
         const face& curFace = faces_[faceI];
 
@@ -720,6 +730,7 @@ void Foam::polyMesh::resetPrimitives
                 "    const Xfer<labelList>& neighbour,\n"
                 "    const labelList& patchSizes,\n"
                 "    const labelList& patchStarts\n"
+                "    const bool validBoundary\n"
                 ")\n"
             )   << "Face " << faceI << " contains vertex labels out of range: "
                 << curFace << " Max point index = " << points_.size()
@@ -846,6 +857,28 @@ Foam::label Foam::polyMesh::nSolutionD() const
 }
 
 
+const Foam::labelList& Foam::polyMesh::tetBasePtIs() const
+{
+    if (!tetBasePtIsPtr_)
+    {
+        if (debug)
+        {
+            WarningIn("const labelList& polyMesh::tetBasePtIs() const")
+                << "Tet base point indices not available.  "
+                << "Forcing storage of base points."
+                << endl;
+        }
+
+        tetBasePtIsPtr_ = new labelList
+        (
+            polyMeshTetDecomposition::findFaceBasePts(*this)
+        );
+    }
+
+    return *tetBasePtIsPtr_;
+}
+
+
 // Add boundary patches. Constructor helper
 void Foam::polyMesh::addPatches
 (
@@ -869,7 +902,7 @@ void Foam::polyMesh::addPatches
     boundary_.setSize(p.size());
 
     // Copy the patch pointers
-    forAll (p, pI)
+    forAll(p, pI)
     {
         boundary_.set(pI, p[pI]);
     }
@@ -921,7 +954,7 @@ void Foam::polyMesh::addZones
         pointZones_.setSize(pz.size());
 
         // Copy the zone pointers
-        forAll (pz, pI)
+        forAll(pz, pI)
         {
             pointZones_.set(pI, pz[pI]);
         }
@@ -935,7 +968,7 @@ void Foam::polyMesh::addZones
         faceZones_.setSize(fz.size());
 
         // Copy the zone pointers
-        forAll (fz, fI)
+        forAll(fz, fI)
         {
             faceZones_.set(fI, fz[fI]);
         }
@@ -949,7 +982,7 @@ void Foam::polyMesh::addZones
         cellZones_.setSize(cz.size());
 
         // Copy the zone pointers
-        forAll (cz, cI)
+        forAll(cz, cI)
         {
             cellZones_.set(cI, cz[cI]);
         }
@@ -1156,9 +1189,122 @@ void Foam::polyMesh::removeFiles(const fileName& instanceDir) const
     }
 }
 
+
 void Foam::polyMesh::removeFiles() const
 {
     removeFiles(instance());
+}
+
+
+void Foam::polyMesh::findCellFacePt
+(
+    const point& pt,
+    label& cellI,
+    label& tetFaceI,
+    label& tetPtI
+) const
+{
+    cellI = -1;
+    tetFaceI = -1;
+    tetPtI = -1;
+
+    const indexedOctree<treeDataCell>& tree = cellTree();
+
+    // Find nearest cell to the point
+
+    pointIndexHit info = tree.findNearest(pt, sqr(GREAT));
+
+    if (info.hit())
+    {
+        label nearestCellI = tree.shapes().cellLabels()[info.index()];
+
+        // Check the nearest cell to see if the point is inside.
+        findTetFacePt(nearestCellI, pt, tetFaceI, tetPtI);
+
+        if (tetFaceI != -1)
+        {
+            // Point was in the nearest cell
+
+            cellI = nearestCellI;
+
+            return;
+        }
+        else
+        {
+            // Check the other possible cells that the point may be in
+
+            labelList testCells = tree.findIndices(pt);
+
+            forAll(testCells, pCI)
+            {
+                label testCellI = tree.shapes().cellLabels()[testCells[pCI]];
+
+                if (testCellI == nearestCellI)
+                {
+                    // Don't retest the nearest cell
+
+                    continue;
+                }
+
+                // Check the test cell to see if the point is inside.
+                findTetFacePt(testCellI, pt, tetFaceI, tetPtI);
+
+                if (tetFaceI != -1)
+                {
+                    // Point was in the test cell
+
+                    cellI = testCellI;
+
+                    return;
+                }
+            }
+        }
+    }
+    else
+    {
+        FatalErrorIn
+        (
+            "void Foam::polyMesh::findCellFacePt"
+            "("
+                "const point&, "
+                "label&, "
+                "label&, "
+                "label&"
+            ") const"
+        )   << "Did not find nearest cell in search tree."
+            << abort(FatalError);
+    }
+}
+
+
+void Foam::polyMesh::findTetFacePt
+(
+    const label cellI,
+    const point& pt,
+    label& tetFaceI,
+    label& tetPtI
+) const
+{
+    const polyMesh& mesh = *this;
+
+    tetFaceI = -1;
+    tetPtI = -1;
+
+    List<tetIndices> cellTets =
+        polyMeshTetDecomposition::cellTetIndices(mesh, cellI);
+
+    forAll(cellTets, tetI)
+    {
+        const tetIndices& cellTetIs = cellTets[tetI];
+
+        if (cellTetIs.tet(mesh).inside(pt))
+        {
+            tetFaceI = cellTetIs.face();
+            tetPtI = cellTetIs.tetPt();
+
+            return;
+        }
+    }
 }
 
 

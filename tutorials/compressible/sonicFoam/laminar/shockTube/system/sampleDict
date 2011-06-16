@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -25,15 +25,12 @@ sets
     {
         type    uniform;
         axis    x;
-        start   ( -4.995 0 0 );
-        end     ( 4.995 0 0 );
+        start   (-4.995 0 0);
+        end     (4.995 0 0);
         nPoints 1000;
     }
 );
 
-surfaces        ();
-
-fields          ( T magU p );
-
+fields          (T magU p);
 
 // ************************************************************************* //

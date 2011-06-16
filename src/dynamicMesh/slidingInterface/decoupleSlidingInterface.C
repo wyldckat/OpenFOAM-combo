@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,14 +82,14 @@ void Foam::slidingInterface::decoupleInterface
 
     // Recover faces in master patch
 
-    forAll (masterPatchAddr, faceI)
+    forAll(masterPatchAddr, faceI)
     {
         // Make a copy of the face and turn it if necessary
         face newFace = faces[masterPatchAddr[faceI]];
 
         if (masterPatchFlip[faceI])
         {
-            newFace = newFace.reverseFace();
+            newFace.flip();
         }
 
         ref.setAction
@@ -107,7 +107,13 @@ void Foam::slidingInterface::decoupleInterface
                 false                            // zone flip.  Face corrected
             )
         );
-//         Pout << "Modifying master patch face no " << masterPatchAddr[faceI] << " face: " << faces[masterPatchAddr[faceI]] << " old owner: " << own[masterPatchAddr[faceI]] << " new owner: " << masterFc[faceI] << endl;
+
+        // Pout<< "Modifying master patch face no "
+        //     << masterPatchAddr[faceI]
+        //     << " face: " << faces[masterPatchAddr[faceI]]
+        //     << " old owner: " << own[masterPatchAddr[faceI]]
+        //     << " new owner: " << masterFc[faceI]
+        //     << endl;
     }
 
     // Slave side
@@ -128,24 +134,27 @@ void Foam::slidingInterface::decoupleInterface
 
     // Recover faces in slave patch
 
-    forAll (slavePatchAddr, faceI)
+    forAll(slavePatchAddr, faceI)
     {
         // Make a copy of face and turn it if necessary
         face newFace = faces[slavePatchAddr[faceI]];
 
         if (slavePatchFlip[faceI])
         {
-            newFace = newFace.reverseFace();
+            newFace.flip();
         }
 
         // Recover retired points on the slave side
-        forAll (newFace, pointI)
+        forAll(newFace, pointI)
         {
             Map<label>::const_iterator rpmIter = rpm.find(newFace[pointI]);
             if (rpmIter != rpm.end())
             {
                 // Master of retired point; grab its original
-//                 Pout << "Reinstating retired point: " << newFace[pointI] << " with old: " << rpm.find(newFace[pointI])() << endl;
+                // Pout<< "Reinstating retired point: " << newFace[pointI]
+                //     << " with old: " << rpm.find(newFace[pointI])()
+                //     << endl;
+
                 newFace[pointI] = rpmIter();
             }
         }
@@ -172,7 +181,7 @@ void Foam::slidingInterface::decoupleInterface
     // Grab the list of faces in the layer
     const labelList& masterStickOuts = masterStickOutFaces();
 
-    forAll (masterStickOuts, faceI)
+    forAll(masterStickOuts, faceI)
     {
         // Renumber the face and remove additional points
 
@@ -184,7 +193,7 @@ void Foam::slidingInterface::decoupleInterface
 
         bool changed = false;
 
-        forAll (oldFace, pointI)
+        forAll(oldFace, pointI)
         {
             // Check if the point is removed
             if (ref.pointRemoved(oldFace[pointI]))
@@ -228,7 +237,10 @@ void Foam::slidingInterface::decoupleInterface
             face newFace;
             newFace.transfer(newFaceLabels);
 
-//             Pout << "Modifying master stick-out face " << curFaceID << " old face: " << oldFace << " new face: " << newFace << endl;
+            // Pout<< "Modifying master stick-out face " << curFaceID
+            //     << " old face: " << oldFace
+            //     << " new face: " << newFace
+            //     << endl;
 
             // Modify the face
             ref.setAction
@@ -256,11 +268,11 @@ void Foam::slidingInterface::decoupleInterface
         primitiveMesh::facesPerCell_*(masterPatch.size() + slavePatch.size())
     );
 
-    forAll (slaveFc, faceI)
+    forAll(slaveFc, faceI)
     {
         const labelList& curFaces = cells[slaveFc[faceI]];
 
-        forAll (curFaces, faceI)
+        forAll(curFaces, faceI)
         {
             // Check if the face belongs to the slave face zone; and
             // if it has been removed; if not add it
@@ -283,7 +295,7 @@ void Foam::slidingInterface::decoupleInterface
     // Grab master point mapping
     const Map<label>& masterPm = masterPatch.meshPointMap();
 
-    forAll (slaveStickOuts, faceI)
+    forAll(slaveStickOuts, faceI)
     {
         // Renumber the face and remove additional points
 
@@ -295,14 +307,18 @@ void Foam::slidingInterface::decoupleInterface
 
         bool changed = false;
 
-        forAll (oldFace, pointI)
+        forAll(oldFace, pointI)
         {
             // Check if the point is removed or retired
             if (rpm.found(oldFace[pointI]))
             {
                 // Master of retired point; grab its original
                 changed = true;
-//                 Pout << "Reinstating retired point: " << oldFace[pointI] << " with old: " << rpm.find(oldFace[pointI])() << endl;
+
+                // Pout<< "Reinstating retired point: " << oldFace[pointI]
+                //     << " with old: " << rpm.find(oldFace[pointI])()
+                //     << endl;
+
                 newFaceLabels.append(rpm.find(oldFace[pointI])());
             }
             else if (ref.pointRemoved(oldFace[pointI]))
@@ -351,7 +367,10 @@ void Foam::slidingInterface::decoupleInterface
             face newFace;
             newFace.transfer(newFaceLabels);
 
-//             Pout << "Modifying slave stick-out face " << curFaceID << " old face: " << oldFace << " new face: " << newFace << endl;
+            // Pout<< "Modifying slave stick-out face " << curFaceID
+            //     << " old face: " << oldFace
+            //     << " new face: " << newFace
+            //     << endl;
 
             // Modify the face
             ref.setAction
@@ -378,7 +397,7 @@ void Foam::slidingInterface::decoupleInterface
     const labelList& slaveMeshPoints =
         mesh.faceZones()[slaveFaceZoneID_.index()]().meshPoints();
 
-    forAll (slaveMeshPoints, pointI)
+    forAll(slaveMeshPoints, pointI)
     {
         ref.setAction
         (

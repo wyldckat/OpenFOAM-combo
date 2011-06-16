@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ void Foam::pointMapper::calcAddressing() const
 
         label nInsertedPoints = 0;
 
-        forAll (directAddr, pointI)
+        forAll(directAddr, pointI)
         {
             if (directAddr[pointI] < 0)
             {
@@ -89,7 +89,7 @@ void Foam::pointMapper::calcAddressing() const
         // Points created from other points (i.e. points merged into it).
         const List<objectMap>& cfc = mpm_.pointsFromPointsMap();
 
-        forAll (cfc, cfcI)
+        forAll(cfc, cfcI)
         {
             // Get addressing
             const labelList& mo = cfc[cfcI].masterObjects();
@@ -115,7 +115,7 @@ void Foam::pointMapper::calcAddressing() const
 
         const labelList& cm = mpm_.pointMap();
 
-        forAll (cm, pointI)
+        forAll(cm, pointI)
         {
             if (cm[pointI] > -1 && addr[pointI].empty())
             {
@@ -132,7 +132,7 @@ void Foam::pointMapper::calcAddressing() const
 
         label nInsertedPoints = 0;
 
-        forAll (addr, pointI)
+        forAll(addr, pointI)
         {
             if (addr[pointI].empty())
             {
@@ -198,7 +198,7 @@ Foam::pointMapper::pointMapper(const pointMesh& pMesh, const mapPolyMesh& mpm)
 
         const List<objectMap>& cfc = mpm_.pointsFromPointsMap();
 
-        forAll (cfc, cfcI)
+        forAll(cfc, cfcI)
         {
             cm[cfc[cfcI].index()] = 0;
         }
@@ -233,13 +233,13 @@ Foam::label Foam::pointMapper::sizeBeforeMapping() const
 }
 
 
-const Foam::unallocLabelList& Foam::pointMapper::directAddressing() const
+const Foam::labelUList& Foam::pointMapper::directAddressing() const
 {
     if (!direct())
     {
         FatalErrorIn
         (
-            "const unallocLabelList& pointMapper::directAddressing() const"
+            "const labelUList& pointMapper::directAddressing() const"
         )   << "Requested direct addressing for an interpolative mapper."
             << abort(FatalError);
     }
@@ -318,7 +318,7 @@ const Foam::labelList& Foam::pointMapper::insertedObjectLabels() const
 
     return *insertedPointLabelsPtr_;
 }
-        
+
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 

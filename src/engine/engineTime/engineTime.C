@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "engineTime.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -72,7 +72,7 @@ Foam::engineTime::engineTime
             "engineGeometry",
             constant(),
             *this,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -122,12 +122,6 @@ bool Foam::engineTime::read()
 }
 
 
-Foam::scalar Foam::engineTime::degToRad(const scalar deg) const
-{
-    return mathematicalConstant::pi*deg/180.0;
-}
-
-
 Foam::scalar Foam::engineTime::degToTime(const scalar theta) const
 {
     // 6 * rpm => deg/s
@@ -170,7 +164,7 @@ Foam::scalar Foam::engineTime::thetaRevolution() const
 
 Foam::scalar Foam::engineTime::deltaTheta() const
 {
-    return timeToDeg(deltaT().value());
+    return timeToDeg(deltaTValue());
 }
 
 
@@ -221,7 +215,7 @@ Foam::dimensionedScalar Foam::engineTime::pistonSpeed() const
     (
         "pistonSpeed",
         dimVelocity,
-        pistonDisplacement().value()/(deltaT().value() + VSMALL)
+        pistonDisplacement().value()/(deltaTValue() + VSMALL)
     );
 }
 
@@ -237,7 +231,5 @@ Foam::scalar Foam::engineTime::timeToUserTime(const scalar t) const
     return timeToDeg(t);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // ************************************************************************* //

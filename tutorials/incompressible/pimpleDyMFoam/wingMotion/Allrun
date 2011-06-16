@@ -12,7 +12,6 @@ runApplication snappyHexMesh -overwrite
 # Make a 2D mesh by extruding a patch and solve to steady state.
 cd ../wingMotion2D_simpleFoam
 runApplication extrudeMesh
-runApplication autoPatch 90 -overwrite
 runApplication createPatch -overwrite
 runApplication simpleFoam
 
@@ -24,7 +23,7 @@ cp -r 0.org 0
 runApplication mapFields ../wingMotion2D_simpleFoam -sourceTime latestTime -consistent
 mv 0/pointDisplacement.unmapped 0/pointDisplacement
 runApplication decomposePar
-runParallel pimpleDyMFoam 3
+runParallel `getApplication` 4
 runApplication reconstructPar
 
 # ----------------------------------------------------------------- end-of-file

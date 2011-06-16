@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,6 +42,10 @@ SourceFiles
 #include "point.H"
 #include "primitiveFieldsFwd.H"
 #include "pointHit.H"
+#include "cachedRandom.H"
+#include "Random.H"
+#include "FixedList.H"
+#include "UList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -104,6 +108,13 @@ public:
             const Point& d
         );
 
+        //- Construct from four points in the list of points
+        inline tetrahedron
+        (
+            const UList<Point>&,
+            const FixedList<label, 4>& indices
+        );
+
         //- Construct from Istream
         inline tetrahedron(Istream&);
 
@@ -144,6 +155,34 @@ public:
 
             //- Return circum-radius
             inline scalar circumRadius() const;
+
+            //- Return quality: Ratio of tetrahedron and circum-sphere
+            //  volume, scaled so that a regular tetrahedron has a
+            //  quality of 1
+            inline scalar quality() const;
+
+            //- Return a random point in the tetrahedron from a
+            //  uniform distribution
+            inline Point randomPoint(Random& rndGen) const;
+
+            //- Return a random point in the tetrahedron from a
+            //  uniform distribution
+            inline Point randomPoint(cachedRandom& rndGen) const;
+
+            //- Calculate the barycentric coordinates of the given
+            //  point, in the same order as a, b, c, d.  Returns the
+            //  determinant of the solution.
+            inline scalar barycentric
+            (
+                const point& pt,
+                List<scalar>& bary
+            ) const;
+
+            //- Return nearest point to p on tetrahedron
+            inline pointHit nearestPoint(const point& p) const;
+
+            //- Return true if point is inside tetrahedron
+            inline bool inside(const point& pt) const;
 
             //- Return (min)containment sphere, i.e. the smallest sphere with
             //  all points inside. Returns pointHit with:

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,10 +58,11 @@ LESModel::LESModel
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName
 )
 :
-    turbulenceModel(rho, U, phi, thermoPhysicalModel),
+    turbulenceModel(rho, U, phi, thermoPhysicalModel, turbulenceModelName),
 
     IOdictionary
     (
@@ -70,7 +71,7 @@ LESModel::LESModel
             "LESProperties",
             U.time().constant(),
             U.db(),
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -78,11 +79,11 @@ LESModel::LESModel
     printCoeffs_(lookupOrDefault<Switch>("printCoeffs", false)),
     coeffDict_(subOrEmptyDict(type + "Coeffs")),
 
-    k0_("k0", dimVelocity*dimVelocity, SMALL),
+    kMin_("kMin", sqr(dimVelocity), SMALL),
 
     delta_(LESdelta::New("delta", U.mesh(), *this))
 {
-    readIfPresent("k0", k0_);
+    kMin_.readIfPresent(*this);
 
     // Force the construction of the mesh deltaCoeffs which may be needed
     // for the construction of the derived models and BCs
@@ -97,49 +98,56 @@ autoPtr<LESModel> LESModel::New
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName
 )
 {
-    word modelName;
-
-    // Enclose the creation of the dictionary to ensure it is deleted
-    // before the turbulenceModel is created otherwise the dictionary is
-    // entered in the database twice
-    {
-        IOdictionary dict
+    // get model name, but do not register the dictionary
+    // otherwise it is registered in the database twice
+    const word modelType
+    (
+        IOdictionary
         (
             IOobject
             (
                 "LESProperties",
                 U.time().constant(),
                 U.db(),
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
-        );
+        ).lookup("LESModel")
+    );
 
-        dict.lookup("LESModel") >> modelName;
-    }
-
-    Info<< "Selecting LES turbulence model " << modelName << endl;
+    Info<< "Selecting LES turbulence model " << modelType << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn
         (
-            "LESModel::New(const volVectorField& U, const "
-            "surfaceScalarField& phi, const basicThermo&)"
-        )   << "Unknown LESModel type " << modelName
-            << endl << endl
-            << "Valid LESModel types are :" << endl
+            "LESModel::New"
+            "("
+                "const volScalarField&, "
+                "const volVectorField&, "
+                "const surfaceScalarField&, "
+                "const basicThermo&, "
+                "const word&"
+            ")"
+        )   << "Unknown LESModel type "
+            << modelType << nl << nl
+            << "Valid LESModel types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
-    return autoPtr<LESModel>(cstrIter()(rho, U, phi, thermoPhysicalModel));
+    return autoPtr<LESModel>
+    (
+        cstrIter()(rho, U, phi, thermoPhysicalModel, turbulenceModelName)
+    );
 }
 
 
@@ -159,14 +167,27 @@ void LESModel::correct()
 
 bool LESModel::read()
 {
-    if (regIOobject::read())
+    // Bit of trickery : we are both IOdictionary ('RASProperties') and
+    // an regIOobject (from the turbulenceModel). Problem is to distinguish
+    // between the two - we only want to reread the IOdictionary.
+    
+    bool ok = IOdictionary::readData
+    (
+        IOdictionary::readStream
+        (
+            IOdictionary::type()
+        )
+    );
+    IOdictionary::close();
+
+    if (ok)
     {
         if (const dictionary* dictPtr = subDictPtr(type() + "Coeffs"))
         {
             coeffDict_ <<= *dictPtr;
         }
 
-        readIfPresent("k0", k0_);
+        kMin_.readIfPresent(*this);
 
         delta_().read(*this);
 

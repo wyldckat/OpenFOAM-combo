@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "patchDataWave.H"
-#include "MeshWave.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -93,7 +92,7 @@ Foam::label Foam::patchDataWave<TransferType>::getValues
 
         scalar dist = wpn.distSqr();
 
-        if (cellInfo[cellI].valid())
+        if (cellInfo[cellI].valid(waveInfo.data()))
         {
             distance_[cellI] = Foam::sqrt(dist);
 
@@ -105,7 +104,7 @@ Foam::label Foam::patchDataWave<TransferType>::getValues
 
             distance_[cellI] = dist;
 
-            //cellData_[cellI] = wallPoint::greatPoint;
+            //cellData_[cellI] = point::max;
             cellData_[cellI] = cellInfo[cellI].data();
 
             nIllegal++;
@@ -138,7 +137,7 @@ Foam::label Foam::patchDataWave<TransferType>::getValues
 
             scalar dist = faceInfo[meshFaceI].distSqr();
 
-            if (faceInfo[meshFaceI].valid())
+            if (faceInfo[meshFaceI].valid(waveInfo.data()))
             {
                 // Adding SMALL to avoid problems with /0 in the turbulence
                 // models
@@ -152,7 +151,7 @@ Foam::label Foam::patchDataWave<TransferType>::getValues
 
                 patchField[patchFaceI] = dist;
 
-                //patchDataField[patchFaceI] = wallPoint::greatPoint;
+                //patchDataField[patchFaceI] = point::max;
                 patchDataField[patchFaceI] = faceInfo[meshFaceI].data();
 
                 nIllegal++;
@@ -225,7 +224,7 @@ void Foam::patchDataWave<TransferType>::correct()
         mesh(),
         changedFaces,
         faceDist,
-        mesh().globalData().nTotalCells() // max iterations
+        mesh().globalData().nTotalCells()+1 // max iterations
     );
 
 

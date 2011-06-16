@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,7 +42,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class evaporationModel Declaration
+                      Class evaporationModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class evaporationModel
@@ -53,14 +53,15 @@ protected:
 
         const dictionary& dict_;
 
+
 public:
 
     //- Runtime type information
-        TypeName("evaporationModel");
+    TypeName("evaporationModel");
 
-    //- Evaluate the gaseous properties Tand Y (implicit/explicit)
-    //word gasPropertyEvaluation_;
-    //label nEvapIter_;
+    //- Evaluate the gaseous properties T and Y (implicit/explicit)
+    // word gasPropertyEvaluation_;
+    // label nEvapIter_;
 
 
     // Declare runtime constructor selection table
@@ -80,28 +81,21 @@ public:
     // Constructors
 
         //- Construct from components
-        evaporationModel
-        (
-            const dictionary& dict
-        );
+        evaporationModel(const dictionary&);
 
 
-    // Destructor
-
-        virtual ~evaporationModel();
+    //- Destructor
+    virtual ~evaporationModel();
 
 
     // Selector
 
-        static autoPtr<evaporationModel> New
-        (
-            const dictionary& dict
-        );
+        static autoPtr<evaporationModel> New(const dictionary&);
 
 
     // Member Functions
 
-    //- evaporation on/off
+        //- evaporation on/off
         virtual bool evaporation() const = 0;
 
         //- The Sherwood number

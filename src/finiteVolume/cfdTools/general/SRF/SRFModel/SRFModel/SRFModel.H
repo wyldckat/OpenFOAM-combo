@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,7 +75,7 @@ protected:
         //- Reference to the mesh
         const fvMesh& mesh_;
 
-        //- Axis of rotation
+        //- Axis of rotation, a direction vector which passes through the origin
         vector axis_;
 
         //- SRF model coeficients dictionary
@@ -135,9 +135,8 @@ public:
          );
 
 
-    // Destructor
-
-        virtual ~SRFModel();
+    //- Destructor
+    virtual ~SRFModel();
 
 
     // Member Functions

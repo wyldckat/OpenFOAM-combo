@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "processorPointPatchField.H"
-#include "transformField.H"
+//#include "transformField.H"
 #include "processorPolyPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -95,67 +95,67 @@ processorPointPatchField<Type>::~processorPointPatchField()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-void processorPointPatchField<Type>::initSwapAdd(Field<Type>& pField) const
+void processorPointPatchField<Type>::initSwapAddSeparated
+(
+    const Pstream::commsTypes commsType,
+    Field<Type>& pField
+)
+const
 {
-    if (Pstream::parRun())
-    {
-        // Get internal field into my point order
-        Field<Type> pf(this->patchInternalField(pField));
-
-        OPstream::write
-        (
-            Pstream::blocking,
-            procPatch_.neighbProcNo(),
-            reinterpret_cast<const char*>(pf.begin()),
-            pf.byteSize()
-        );
-    }
+//    if (Pstream::parRun())
+//    {
+//        // Get internal field into correct order for opposite side
+//        Field<Type> pf
+//        (
+//            this->patchInternalField
+//            (
+//                pField,
+//                procPatch_.reverseMeshPoints()
+//            )
+//        );
+//
+//        OPstream::write
+//        (
+//            commsType,
+//            procPatch_.neighbProcNo(),
+//            reinterpret_cast<const char*>(pf.begin()),
+//            pf.byteSize(),
+//            procPatch_.tag()
+//        );
+//    }
 }
 
 
 template<class Type>
-void processorPointPatchField<Type>::swapAdd(Field<Type>& pField) const
+void processorPointPatchField<Type>::swapAddSeparated
+(
+    const Pstream::commsTypes commsType,
+    Field<Type>& pField
+) const
 {
-    if (Pstream::parRun())
-    {
-        Field<Type> pnf(this->size());
-
-        IPstream::read
-        (
-            Pstream::blocking,
-            procPatch_.neighbProcNo(),
-            reinterpret_cast<char*>(pnf.begin()),
-            pnf.byteSize()
-        );
-
-        if (doTransform())
-        {
-            const processorPolyPatch& ppp = procPatch_.procPolyPatch();
-            const tensorField& forwardT = ppp.forwardT();
-
-            if (forwardT.size() == 1)
-            {
-                transform(pnf, forwardT[0], pnf);
-            }
-            else
-            {
-                const labelList& nonGlobalPatchPoints =
-                    procPatch_.nonGlobalPatchPoints();
-                const labelListList& pointFaces = ppp.pointFaces();
-
-                forAll(nonGlobalPatchPoints, pfi)
-                {
-                    pnf[pfi] = transform
-                    (
-                        forwardT[pointFaces[nonGlobalPatchPoints[pfi]][0]],
-                        pnf[pfi]
-                    );
-                }
-            }
-        }
-
-        addToInternalField(pField, pnf);
-    }
+//    if (Pstream::parRun())
+//    {
+//        Field<Type> pnf(this->size());
+//
+//        IPstream::read
+//        (
+//            commsType,
+//            procPatch_.neighbProcNo(),
+//            reinterpret_cast<char*>(pnf.begin()),
+//            pnf.byteSize(),
+//            procPatch_.tag()
+//        );
+//
+//        if (doTransform())
+//        {
+//            const processorPolyPatch& ppp = procPatch_.procPolyPatch();
+//            const tensor& forwardT = ppp.forwardT();
+//
+//            transform(pnf, forwardT, pnf);
+//        }
+//
+//        addToInternalField(pField, pnf, procPatch_.separatedPoints());
+//    }
 }
 
 

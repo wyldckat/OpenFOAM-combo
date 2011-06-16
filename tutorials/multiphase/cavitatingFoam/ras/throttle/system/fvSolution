@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,37 +17,22 @@ FoamFile
 
 solvers
 {
-    omega
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-08;
-        relTol          0;
-    }
-
-    k
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-08;
-        relTol          0;
-    }
-
     rho
     {
         solver          PBiCG;
         preconditioner  DILU;
         tolerance       1e-08;
-        relTol          0;
+        relTol          0.1;
     }
 
-    U
+    rhoFinal
     {
         solver          PBiCG;
         preconditioner  DILU;
         tolerance       1e-08;
         relTol          0;
     }
+
 
     p
     {
@@ -65,27 +50,32 @@ solvers
 
     pFinal
     {
-        solver          GAMG;
+        $p;
         tolerance       1e-08;
         relTol          0;
-        smoother        GaussSeidel;
-        nPreSweeps      0;
-        nPostSweeps     2;
-        cacheAgglomeration true;
-        nCellsInCoarsestLevel 10;
-        agglomerator    faceAreaPair;
-        mergeLevels     1;
+    }
+
+    "(U|k|omega)"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "(U|k|omega)Final"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0;
     }
 }
 
-PISO
+PIMPLE
 {
-    nCorrectors     2;
-    nNonOrthogonalCorrectors 1;
-}
-
-SIMPLE
-{
+    nCorrectors     3;
+    nNonOrthogonalCorrectors 0;
 }
 
 

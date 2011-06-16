@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -64,7 +64,7 @@ class GuldersEGR
         scalar beta_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         inline scalar SuRef
         (
@@ -115,9 +115,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~GuldersEGR();
+    //- Destructor
+    virtual ~GuldersEGR();
 
 
     // Member functions

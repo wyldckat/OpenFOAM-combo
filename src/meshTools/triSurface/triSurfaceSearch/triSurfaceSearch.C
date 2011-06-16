@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,20 +31,15 @@ License
 #include "line.H"
 #include "cpuTime.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-const point triSurfaceSearch::greatPoint(GREAT, GREAT, GREAT);
+const Foam::point Foam::triSurfaceSearch::greatPoint(GREAT, GREAT, GREAT);
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Construct from surface. Holds reference!
-triSurfaceSearch::triSurfaceSearch(const triSurface& surface)
+Foam::triSurfaceSearch::triSurfaceSearch(const triSurface& surface)
 :
     surface_(surface),
     treePtr_(NULL)
@@ -69,7 +64,11 @@ triSurfaceSearch::triSurfaceSearch(const triSurface& surface)
     (
         new indexedOctree<treeDataTriSurface>
         (
-            treeDataTriSurface(surface_),
+            treeDataTriSurface
+            (
+                surface_,
+                indexedOctree<treeDataTriSurface>::perturbTol()
+            ),
             treeBb,
             8,      // maxLevel
             10,     // leafsize
@@ -82,7 +81,10 @@ triSurfaceSearch::triSurfaceSearch(const triSurface& surface)
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 // Determine inside/outside for samples
-boolList triSurfaceSearch::calcInside(const pointField& samples) const
+Foam::boolList Foam::triSurfaceSearch::calcInside
+(
+    const pointField& samples
+) const
 {
     boolList inside(samples.size());
 
@@ -111,7 +113,7 @@ boolList triSurfaceSearch::calcInside(const pointField& samples) const
 }
 
 
-labelList triSurfaceSearch::calcNearestTri
+Foam::labelList Foam::triSurfaceSearch::calcNearestTri
 (
     const pointField& samples,
     const vector& span
@@ -142,7 +144,7 @@ labelList triSurfaceSearch::calcNearestTri
 
 
 // Nearest point on surface
-tmp<pointField> triSurfaceSearch::calcNearest
+Foam::tmp<Foam::pointField> Foam::triSurfaceSearch::calcNearest
 (
     const pointField& samples,
     const vector& span
@@ -173,17 +175,17 @@ tmp<pointField> triSurfaceSearch::calcNearest
 }
 
 
-pointIndexHit triSurfaceSearch::nearest(const point& pt, const vector& span)
- const
+Foam::pointIndexHit Foam::triSurfaceSearch::nearest
+(
+    const point& pt,
+    const vector& span
+)
+const
 {
     const scalar nearestDistSqr = 0.25*magSqr(span);
 
     return tree().findNearest(pt, nearestDistSqr);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

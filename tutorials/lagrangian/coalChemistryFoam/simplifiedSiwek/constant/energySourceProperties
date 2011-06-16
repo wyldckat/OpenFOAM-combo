@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -20,10 +20,10 @@ FoamFile
     {
         active          true;
         timeStart       0.15;
-        duration        0.20;
+        duration        0.2;
         selectionMode   cellSet;
         volumeMode      absolute;
-        fieldData       5000;
+        fieldData       20000;
         cellSet         ignitionCells;
     }
 );

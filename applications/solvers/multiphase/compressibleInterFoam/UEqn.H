@@ -16,7 +16,7 @@
 
     UEqn.relax();
 
-    if (momentumPredictor)
+    if (pimple.momentumPredictor())
     {
         solve
         (
@@ -29,7 +29,6 @@
                   - ghf*fvc::snGrad(rho)
                   - fvc::snGrad(p_rgh)
                 ) * mesh.magSf()
-            ),
-            mesh.solver(U.select(oCorr == nOuterCorr-1))
+            )
         );
     }

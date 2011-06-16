@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     zipUpMesh
 
 Description
-    Reads in a mesh with hanging vertices and zips up the cells to guarantee 
+    Reads in a mesh with hanging vertices and zips up the cells to guarantee
     that all polyhedral cells of valid shape are closed.
 
     Meshes with hanging vertices may occur as a result of split

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,10 +28,9 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::RK, 0);
-
 namespace Foam
 {
+    defineTypeNameAndDebug(Foam::RK, 0);
     addToRunTimeSelectionTable(ODESolver, RK, ODE);
 
 const scalar
@@ -50,7 +49,7 @@ const scalar
     RK::dc1 = RK::c1 - 2825.0/27648.0, RK::dc3 = RK::c3 - 18575.0/48384.0,
     RK::dc4 = RK::c4 - 13525.0/55296.0, RK::dc5 = -277.00/14336.0,
     RK::dc6 = RK::c6 - 0.25;
-};
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -84,28 +83,28 @@ void Foam::RK::solve
 {
     forAll(yTemp_, i)
     {
-    	yTemp_[i] = y[i] + b21*h*dydx[i];
+        yTemp_[i] = y[i] + b21*h*dydx[i];
     }
 
     ode.derivatives(x + a2*h, yTemp_, ak2_);
 
     forAll(yTemp_, i)
     {
-    	yTemp_[i] = y[i] + h*(b31*dydx[i] + b32*ak2_[i]);
+        yTemp_[i] = y[i] + h*(b31*dydx[i] + b32*ak2_[i]);
     }
 
     ode.derivatives(x + a3*h, yTemp_, ak3_);
 
     forAll(yTemp_, i)
     {
-    	yTemp_[i] = y[i] + h*(b41*dydx[i] + b42*ak2_[i] + b43*ak3_[i]);
+        yTemp_[i] = y[i] + h*(b41*dydx[i] + b42*ak2_[i] + b43*ak3_[i]);
     }
 
     ode.derivatives(x + a4*h, yTemp_, ak4_);
 
     forAll(yTemp_, i)
     {
-    	yTemp_[i] = y[i]
+        yTemp_[i] = y[i]
           + h*(b51*dydx[i] + b52*ak2_[i] + b53*ak3_[i] + b54*ak4_[i]);
     }
 
@@ -113,7 +112,7 @@ void Foam::RK::solve
 
     forAll(yTemp_, i)
     {
-    	yTemp_[i] = y[i]
+        yTemp_[i] = y[i]
           + h*
             (
                 b61*dydx[i] + b62*ak2_[i] + b63*ak3_[i]
@@ -125,13 +124,13 @@ void Foam::RK::solve
 
     forAll(yout, i)
     {
-    	yout[i] = y[i]
+        yout[i] = y[i]
           + h*(c1*dydx[i] + c3*ak3_[i] + c4*ak4_[i] + c6*ak6_[i]);
     }
 
     forAll(yerr, i)
     {
-    	yerr[i] =
+        yerr[i] =
             h*
             (
                 dc1*dydx[i] + dc3*ak3_[i] + dc4*ak4_[i]
@@ -159,16 +158,16 @@ void Foam::RK::solve
 
     for (;;)
     {
-    	solve(ode, x, y, dydx, h, yTemp2_, yErr_);
+        solve(ode, x, y, dydx, h, yTemp2_, yErr_);
 
-    	maxErr = 0.0;
-    	for (register label i=0; i<n_; i++)
+        maxErr = 0.0;
+        for (register label i=0; i<n_; i++)
         {
             maxErr = max(maxErr, mag(yErr_[i]/yScale[i]));
         }
-    	maxErr /= eps;
+        maxErr /= eps;
 
-    	if (maxErr <= 1.0)
+        if (maxErr <= 1.0)
         {
             break;
         }
@@ -178,7 +177,7 @@ void Foam::RK::solve
             h = (h >= 0.0 ? max(hTemp, 0.1*h) : min(hTemp, 0.1*h));
         }
 
-    	if (h < VSMALL)
+        if (h < VSMALL)
         {
             FatalErrorIn("RK::solve")
                 << "stepsize underflow"

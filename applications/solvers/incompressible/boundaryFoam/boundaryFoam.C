@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,8 +25,8 @@ Application
     boundaryFoam
 
 Description
-    Steady-state solver for 1D turbulent flow, typically to generate boundary
-    layer conditions at an inlet, for use in a simulation.
+    Steady-state solver for incompressible, 1D turbulent flow, typically to
+    generate boundary layer conditions at an inlet, for use in a simulation.
 
     Boundary layer code to calculate the U, k and epsilon distributions.
     Used to create inlet boundary conditions for experimental comparisons
@@ -41,7 +41,6 @@ Description
 #include "wallFvPatch.H"
 #include "makeGraph.H"
 
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -51,6 +50,7 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
     #include "createFields.H"
+    #include "interrogateWallPatches.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        fvVectorMatrix divR = turbulence->divDevReff(U);
+        fvVectorMatrix divR(turbulence->divDevReff(U));
         divR.source() = flowMask & divR.source();
 
         fvVectorMatrix UEqn
@@ -73,66 +73,24 @@ int main(int argc, char *argv[])
         UEqn.solve();
 
 
-        // Correct driving force for a constant mass flow rate
-
+        // Correct driving force for a constant volume flow rate
         dimensionedVector UbarStar = flowMask & U.weightedAverage(mesh.V());
 
         U += (Ubar - UbarStar);
         gradP += (Ubar - UbarStar)/(1.0/UEqn.A())().weightedAverage(mesh.V());
 
-        label id = y.size() - 1;
-
-        scalar wallShearStress =
-            flowDirection & turbulence->R()()[id] & wallNormal;
-
-        scalar yplusWall
-//            = ::sqrt(mag(wallShearStress))*y[id]/laminarTransport.nu()()[id];
-            = ::sqrt(mag(wallShearStress))*y[id]/turbulence->nuEff()()[id];
-
-        Info<< "Uncorrected Ubar = " << (flowDirection & UbarStar.value())<< tab
-            << "pressure gradient = " << (flowDirection & gradP.value()) << tab
-            << "min y+ = " << yplusWall << endl;
-
 
         turbulence->correct();
 
+        Info<< "Uncorrected Ubar = " << (flowDirection & UbarStar.value())
+            << ", pressure gradient = " << (flowDirection & gradP.value())
+            << endl;
+
+        #include "evaluateNearWall.H"
 
         if (runTime.outputTime())
         {
-            volSymmTensorField R
-            (
-                IOobject
-                (
-                    "R",
-                    runTime.timeName(),
-                    mesh,
-                    IOobject::NO_READ,
-                    IOobject::AUTO_WRITE
-                ),
-                turbulence->R()
-            );
-
-            runTime.write();
-
-            const word& gFormat = runTime.graphFormat();
-
-            makeGraph(y, flowDirection & U, "Uf", gFormat);
-
-            makeGraph(y, laminarTransport.nu(), gFormat);
-
-            makeGraph(y, turbulence->k(), gFormat);
-            makeGraph(y, turbulence->epsilon(), gFormat);
-
-            //makeGraph(y, flowDirection & R & flowDirection, "Rff", gFormat);
-            //makeGraph(y, wallNormal & R & wallNormal, "Rww", gFormat);
-            //makeGraph(y, flowDirection & R & wallNormal, "Rfw", gFormat);
-
-            //makeGraph(y, sqrt(R.component(tensor::XX)), "u", gFormat);
-            //makeGraph(y, sqrt(R.component(tensor::YY)), "v", gFormat);
-            //makeGraph(y, sqrt(R.component(tensor::ZZ)), "w", gFormat);
-            makeGraph(y, R.component(tensor::XY), "uv", gFormat);
-
-            makeGraph(y, mag(fvc::grad(U)), "gammaDot", gFormat);
+            #include "makeGraphs.H"
         }
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

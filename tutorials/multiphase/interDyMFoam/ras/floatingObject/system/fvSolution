@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -40,7 +40,7 @@ solvers
             smoother        DICGaussSeidel;
             nPreSweeps      0;
             nPostSweeps     2;
-            nBottomSweeps   2;
+            nFinestSweeps   2;
             cacheAgglomeration false;
             nCellsInCoarsestLevel 10;
             agglomerator    faceAreaPair;
@@ -91,7 +91,16 @@ solvers
         maxIter         20;
     }
 
-    U
+    "(U|k|epsilon)"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        nSweeps         1;
+    }
+
+    "(U|k|epsilon)Final"
     {
         solver          smoothSolver;
         smoother        GaussSeidel;
@@ -99,17 +108,9 @@ solvers
         relTol          0;
         nSweeps         1;
     }
-
-    "(k|epsilon|omega|R|nuTilda)"
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-8;
-        relTol          0;
-    }
 }
 
-PISO
+PIMPLE
 {
     momentumPredictor no;
     nCorrectors     2;
@@ -122,7 +123,7 @@ PISO
 
 relaxationFactors
 {
-    "(U|k|epsilon|omega|R|nuTilda)"               1;
+    "(U|k|epsilon|omega|R|nuTilda)" 1;
 }
 
 

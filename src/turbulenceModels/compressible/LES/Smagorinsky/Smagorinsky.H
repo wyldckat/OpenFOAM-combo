@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,7 @@ Description
     Algebraic eddy viscosity SGS model founded on the assumption that
     local equilibrium prevails.
     Thus,
-    @verbatim
+    \verbatim
 
         B = 2/3*k*I - 2*nuSgs*dev(D)
 
@@ -39,7 +39,7 @@ Description
         D = symm(grad(U));
         k from rho*D:B + ce*rho*k^3/2/delta = 0
         muSgs = ck*rho*sqrt(k)*delta
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     Smagorinsky.C
@@ -96,7 +96,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -106,6 +108,20 @@ public:
 
 
     // Member Functions
+
+        //- Return SGS kinetic energy
+        //  calculated from the given velocity gradient
+        tmp<volScalarField> k(const tmp<volTensorField>& gradU) const
+        {
+            return (2.0*ck_/ce_)*sqr(delta())*magSqr(dev(symm(gradU)));
+        }
+
+        //- Return SGS kinetic energy
+        virtual tmp<volScalarField> k() const
+        {
+            return k(fvc::grad(U()));
+        }
+
 
         //- Correct Eddy-Viscosity and related properties
         virtual void correct(const tmp<volTensorField>& gradU);

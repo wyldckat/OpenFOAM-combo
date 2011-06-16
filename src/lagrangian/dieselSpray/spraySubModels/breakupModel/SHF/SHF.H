@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,12 +29,12 @@ Description
     bag, molutimode, shear....
 
     Accurate description in
-    @verbatim
+    \verbatim
     R. Schmehl, G. Maier, S. Witting
     "CFD Analysis of Fuel Atomization, Secondary Droplet Breakup and Spray
     Dispersion in the Premix Duct of a LPP Combustor".
     Eight International Conference on Liquid Atomization and Spray Systems, 2000
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -65,8 +65,6 @@ private:
 
         // reference to gravity
         const vector& g_;
-
-        Random& rndGen_;
 
         // model constants
 
@@ -111,6 +109,7 @@ private:
 
         scalar corePerc_;
 
+
 public:
 
     //- Runtime type information
@@ -120,16 +119,11 @@ public:
     // Constructors
 
         //- Construct from components
-        SHF
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        SHF(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~SHF();
+    //- Destructor
+    virtual ~SHF();
 
 
     // Member Operators
@@ -139,9 +133,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
 };
 
 

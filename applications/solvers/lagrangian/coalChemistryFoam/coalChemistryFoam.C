@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,11 +39,13 @@ Description
 #include "hCombustionThermo.H"
 #include "turbulenceModel.H"
 #include "basicThermoCloud.H"
-#include "CoalCloud.H"
+#include "coalCloud.H"
 #include "psiChemistryModel.H"
 #include "chemistrySolver.H"
 #include "timeActivatedExplicitSource.H"
 #include "radiationModel.H"
+#include "SLGThermo.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,6 +65,8 @@ int main(int argc, char *argv[])
     #include "compressibleCourantNo.H"
     #include "setInitialDeltaT.H"
 
+    pimpleControl pimple(mesh);
+
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
@@ -70,7 +74,6 @@ int main(int argc, char *argv[])
     while (runTime.run())
     {
         #include "readTimeControls.H"
-        #include "readPISOControls.H"
         #include "compressibleCourantNo.H"
         #include "setDeltaT.H"
 
@@ -88,21 +91,24 @@ int main(int argc, char *argv[])
         #include "chemistry.H"
         #include "rhoEqn.H"
 
-        // --- PIMPLE loop
-        for (int ocorr=1; ocorr<=nOuterCorr; ocorr++)
+        // --- Pressure-velocity PIMPLE corrector loop
+        for (pimple.start(); pimple.loop(); pimple++)
         {
             #include "UEqn.H"
             #include "YEqn.H"
             #include "hsEqn.H"
 
             // --- PISO loop
-            for (int corr=1; corr<=nCorr; corr++)
+            for (int corr=0; corr<pimple.nCorr(); corr++)
             {
                 #include "pEqn.H"
             }
-        }
 
-        turbulence->correct();
+            if (pimple.turbCorr())
+            {
+                turbulence->correct();
+            }
+        }
 
         rho = thermo.rho();
 

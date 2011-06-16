@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,26 +32,26 @@ Description
 Usage
     - surfaceMeshImport inputFile [OPTION]
 
-    @param -clean \n
+    \param -clean \n
     Perform some surface checking/cleanup on the input surface.
 
-    @param -name \<name\> \n
+    \param -name \<name\> \n
     Specify an alternative surface name when writing.
 
-    @param -scaleIn \<scale\> \n
+    \param -scaleIn \<scale\> \n
     Specify a scaling factor when reading files.
 
-    @param -scaleOut \<scale\> \n
+    \param -scaleOut \<scale\> \n
     Specify a scaling factor when writing files.
 
-    @param -dict \<dictionary\> \n
+    \param -dict \<dictionary\> \n
     Specify an alternative dictionary for constant/coordinateSystems.
 
-    @param -from \<coordinateSystem\> \n
-    Specify a coordinate System when reading files.
+    \param -from \<coordinateSystem\> \n
+    Specify a coordinate system when reading files.
 
-    @param -to \<coordinateSystem\> \n
-    Specify a coordinate System when writing files.
+    \param -to \<coordinateSystem\> \n
+    Specify a coordinate system when writing files.
 
 Note
     The filename extensions are used to determine the file format type.
@@ -72,20 +72,59 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "import from various third-party surface formats into surfMesh"
+    );
+
     argList::noParallel();
     argList::validArgs.append("inputFile");
-    argList::validOptions.insert("name",  "name");
-    argList::validOptions.insert("clean", "");
-    argList::validOptions.insert("scaleIn",  "scale");
-    argList::validOptions.insert("scaleOut", "scale");
-    argList::validOptions.insert("dict", "coordinateSystemsDict");
-    argList::validOptions.insert("from", "sourceCoordinateSystem");
-    argList::validOptions.insert("to",   "targetCoordinateSystem");
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    argList::addBoolOption
+    (
+        "clean",
+        "perform some surface checking/cleanup on the input surface"
+    );
+    argList::addOption
+    (
+        "name",
+        "name",
+        "specify an alternative surface name when writing - "
+        "default is 'default'"
+    );
+    argList::addOption
+    (
+        "scaleIn",
+        "factor",
+        "geometry scaling factor on input - default is 1"
+    );
+    argList::addOption
+    (
+        "scaleOut",
+        "factor",
+        "geometry scaling factor on output - default is 1"
+    );
+    argList::addOption
+    (
+        "dict",
+        "file",
+        "specify an alternative dictionary for constant/coordinateSystems"
+    );
+    argList::addOption
+    (
+        "from",
+        "coordinateSystem",
+        "specify a local coordinate system when reading files."
+    );
+    argList::addOption
+    (
+        "to",
+        "coordinateSystem",
+        "specify a local coordinate system when writing files."
+    );
 
-    const stringList& params = args.additionalArgs();
+    #include "setRootCase.H"
+    #include "createTime.H"
 
     // try for the latestTime, but create "constant" as needed
     instantList Times = runTime.times();
@@ -100,9 +139,8 @@ int main(int argc, char *argv[])
     }
 
 
-    fileName importName(params[0]);
-    word exportName("default");
-    args.optionReadIfPresent("name", exportName);
+    const fileName importName = args[1];
+    const word exportName = args.optionLookupOrDefault<word>("name", "default");
 
     // check that reading is supported
     if (!MeshedSurface<face>::canRead(importName, true))
@@ -121,7 +159,7 @@ int main(int argc, char *argv[])
 
         if (args.optionFound("dict"))
         {
-            fileName dictPath(args.option("dict"));
+            const fileName dictPath = args["dict"];
 
             ioPtr.set
             (
@@ -168,10 +206,10 @@ int main(int argc, char *argv[])
 
         if (args.optionFound("from"))
         {
-            const word csName(args.option("from"));
+            const word csName = args["from"];
 
-            label csId = csLst.find(csName);
-            if (csId < 0)
+            const label csIndex = csLst.findIndex(csName);
+            if (csIndex < 0)
             {
                 FatalErrorIn(args.executable())
                     << "Cannot find -from " << csName << nl
@@ -179,15 +217,15 @@ int main(int argc, char *argv[])
                     << exit(FatalError);
             }
 
-            fromCsys.reset(new coordinateSystem(csLst[csId]));
+            fromCsys.reset(new coordinateSystem(csLst[csIndex]));
         }
 
         if (args.optionFound("to"))
         {
-            const word csName(args.option("to"));
+            const word csName = args["to"];
 
-            label csId = csLst.find(csName);
-            if (csId < 0)
+            const label csIndex = csLst.findIndex(csName);
+            if (csIndex < 0)
             {
                 FatalErrorIn(args.executable())
                     << "Cannot find -to " << csName << nl
@@ -195,7 +233,7 @@ int main(int argc, char *argv[])
                     << exit(FatalError);
             }
 
-            toCsys.reset(new coordinateSystem(csLst[csId]));
+            toCsys.reset(new coordinateSystem(csLst[csIndex]));
         }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,27 +27,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(SHF, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(SHF, 0);
-
-addToRunTimeSelectionTable
-(
-    breakupModel,
-    SHF,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        breakupModel,
+        SHF,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-SHF::SHF
+Foam::SHF::SHF
 (
     const dictionary& dict,
     spray& sm
@@ -56,7 +53,6 @@ SHF::SHF
     breakupModel(dict, sm),
     coeffsDict_(dict.subDict(typeName + "Coeffs")),
     g_(sm.g()),
-    rndGen_(sm.rndGen()),
     weCorrCoeff_(readScalar(coeffsDict_.lookup("weCorrCoeff"))),
     weBuCrit_(readScalar(coeffsDict_.lookup("weBuCrit"))),
     weBuBag_(readScalar(coeffsDict_.lookup("weBuBag"))),
@@ -91,70 +87,61 @@ SHF::SHF
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-SHF::~SHF()
+Foam::SHF::~SHF()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void SHF::breakupParcel
+void Foam::SHF::breakupParcel
 (
     parcel& p,
     const scalar deltaT,
     const vector& vel,
-    const liquidMixture& fuels
+    const liquidMixtureProperties& fuels
 ) const
 {
-
-    label celli = p.cell();
+    label cellI = p.cell();
     scalar T = p.T();
-    scalar pc = spray_.p()[celli];
+    scalar pc = spray_.p()[cellI];
 
     scalar sigma = fuels.sigma(pc, T, p.X());
     scalar rhoLiquid = fuels.rho(pc, T, p.X());
     scalar muLiquid = fuels.mu(pc, T, p.X());
-    scalar rhoGas = spray_.rho()[celli];
+    scalar rhoGas = spray_.rho()[cellI];
 
-    scalar weGas      = p.We(vel, rhoGas, sigma);
-    scalar weLiquid   = p.We(vel, rhoLiquid, sigma);
+    scalar weGas = p.We(vel, rhoGas, sigma);
+    scalar weLiquid = p.We(vel, rhoLiquid, sigma);
 
     // correct the Reynolds number. Reitz is using radius instead of diameter
 
     scalar reLiquid   = p.Re(rhoLiquid, vel, muLiquid);
     scalar ohnesorge  = sqrt(weLiquid)/(reLiquid + VSMALL);
 
-    vector acceleration = p.Urel(vel)/p.tMom();
-    vector trajectory = p.U()/mag(p.U());
-
     vector vRel = p.Urel(vel);
 
-    scalar weGasCorr = weGas/(1.0 + weCorrCoeff_ * ohnesorge);
+    scalar weGasCorr = weGas/(1.0 + weCorrCoeff_*ohnesorge);
 
     // droplet deformation characteristic time
 
     scalar tChar = p.d()/mag(vRel)*sqrt(rhoLiquid/rhoGas);
 
-    scalar tFirst = cInit_ * tChar;
+    scalar tFirst = cInit_*tChar;
 
     scalar tSecond = 0;
     scalar tCharSecond = 0;
-
-    bool bag = false;
-    bool multimode = false;
-    bool shear = false;
-    bool success = false;
 
 
     //  updating the droplet characteristic time
     p.ct() += deltaT;
 
-    if(weGas > weConst_)
+    if (weGas > weConst_)
     {
-        if(weGas < weCrit1_)
+        if (weGas < weCrit1_)
         {
             tCharSecond = c1_*pow((weGas - weConst_),cExp1_);
         }
-        else if(weGas >= weCrit1_ && weGas <= weCrit2_)
+        else if (weGas >= weCrit1_ && weGas <= weCrit2_)
         {
             tCharSecond = c2_*pow((weGas - weConst_),cExp2_);
         }
@@ -164,101 +151,94 @@ void SHF::breakupParcel
         }
     }
 
-    scalar weC = weBuCrit_*(1.0+ohnCoeffCrit_*pow(ohnesorge,ohnExpCrit_));
+    scalar weC = weBuCrit_*(1.0+ohnCoeffCrit_*pow(ohnesorge, ohnExpCrit_));
     scalar weB = weBuBag_*(1.0+ohnCoeffBag_*pow(ohnesorge, ohnExpBag_));
     scalar weMM = weBuMM_*(1.0+ohnCoeffMM_*pow(ohnesorge, ohnExpMM_));
 
-    if(weGas > weC && weGas < weB)
-    {
-        bag = true;
-    }
+    bool bag = (weGas > weC && weGas < weB);
 
-    if(weGas >= weB && weGas <= weMM)
-    {
-        multimode = true;
-    }
+    bool multimode = (weGas >= weB && weGas <= weMM);
 
-    if(weGas > weMM)
-    {
-        shear = true;
-    }
+    bool shear = (weGas > weMM);
 
-    tSecond = tCharSecond * tChar;
+    tSecond = tCharSecond*tChar;
 
     scalar tBreakUP = tFirst + tSecond;
-    if(p.ct() > tBreakUP)
+    if (p.ct() > tBreakUP)
     {
 
-        scalar d32 = coeffD_*p.d()*pow(ohnesorge,onExpD_)*pow(weGasCorr,weExpD_);
+        scalar d32 =
+            coeffD_*p.d()*pow(ohnesorge, onExpD_)*pow(weGasCorr, weExpD_);
 
-        if(bag || multimode)
+        if (bag || multimode)
         {
 
-            scalar d05 = d32Coeff_ * d32;
+            scalar d05 = d32Coeff_*d32;
 
             scalar x = 0.0;
             scalar y = 0.0;
             scalar d = 0.0;
+            scalar px = 0.0;
 
-            while(!success)
+            do
             {
-                x = cDmaxBM_*rndGen_.scalar01();
+                x = cDmaxBM_*rndGen_.sample01<scalar>();
                 d = sqr(x)*d05;
-                y = rndGen_.scalar01();
+                y = rndGen_.sample01<scalar>();
 
-                scalar p = x/(2.0*sqrt(2.0*mathematicalConstant::pi)*sigma_)*exp(-0.5*sqr((x-mu_)/sigma_));
+                px =
+                    x
+                   /(2.0*sqrt(constant::mathematical::twoPi)*sigma_)
+                   *exp(-0.5*sqr((x-mu_)/sigma_));
 
-                if (y<p)
-                {
-                    success = true;
-                }
-            }
+            } while (y >= px);
 
             p.d() = d;
             p.ct() = 0.0;
         }
 
-        if(shear)
+        if (shear)
         {
             scalar dC = weConst_*sigma/(rhoGas*sqr(mag(vRel)));
-            scalar d32Red = 4.0*(d32 * dC)/(5.0 * dC - d32);
+            scalar d32Red = 4.0*(d32*dC)/(5.0*dC - d32);
             scalar initMass = p.m();
 
-            scalar d05 = d32Coeff_ * d32Red;
+            scalar d05 = d32Coeff_*d32Red;
 
             scalar x = 0.0;
             scalar y = 0.0;
             scalar d = 0.0;
+            scalar px = 0.0;
 
-            while(!success)
+            do
             {
 
-                x = cDmaxS_*rndGen_.scalar01();
+                x = cDmaxS_*rndGen_.sample01<scalar>();
                 d = sqr(x)*d05;
-                y = rndGen_.scalar01();
+                y = rndGen_.sample01<scalar>();
 
-                scalar p = x/(2.0*sqrt(2.0*mathematicalConstant::pi)*sigma_)*exp(-0.5*sqr((x-mu_)/sigma_));
-
-                if (y<p)
-                {
-                    success = true;
-                }
-            }
+                px =
+                    x
+                   /(2.0*sqrt(constant::mathematical::twoPi)*sigma_)
+                   *exp(-0.5*sqr((x-mu_)/sigma_));
+            } while (y >= px);
 
             p.d() = dC;
-            p.m() = corePerc_ * initMass;
+            p.m() = corePerc_*initMass;
 
             spray_.addParticle
             (
                 new parcel
                 (
-                    spray_,
+                    p.mesh(),
                     p.position(),
                     p.cell(),
+                    p.tetFace(),
+                    p.tetPt(),
                     p.n(),
                     d,
                     p.T(),
-                    (1.0 - corePerc_)* initMass,
+                    (1.0 - corePerc_)*initMass,
                     0.0,
                     0.0,
                     0.0,
@@ -278,9 +258,5 @@ void SHF::breakupParcel
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

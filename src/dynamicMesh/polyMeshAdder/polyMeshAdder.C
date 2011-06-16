@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,7 @@ License
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-//- Append all mapped elements of a list to a DynamicList
+// Append all mapped elements of a list to a DynamicList
 void Foam::polyMeshAdder::append
 (
     const labelList& map,
@@ -50,7 +50,7 @@ void Foam::polyMeshAdder::append
 
     forAll(lst, i)
     {
-        label newElem = map[lst[i]];
+        const label newElem = map[lst[i]];
 
         if (newElem != -1)
         {
@@ -60,7 +60,7 @@ void Foam::polyMeshAdder::append
 }
 
 
-//- Append all mapped elements of a list to a DynamicList
+// Append all mapped elements of a list to a DynamicList
 void Foam::polyMeshAdder::append
 (
     const labelList& map,
@@ -73,7 +73,7 @@ void Foam::polyMeshAdder::append
 
     forAll(lst, i)
     {
-        label newElem = map[lst[i]];
+        const label newElem = map[lst[i]];
 
         if (newElem != -1 && findSortedIndex(sortedLst, newElem) == -1)
         {
@@ -127,7 +127,7 @@ Foam::label Foam::polyMeshAdder::patchIndex
             << pName << " in mesh " << caseName
             << " already exists, but patch types"
             << " do not match.\nCreating a composite name as "
-            << allPatchNames[allPatchNames.size() - 1] << endl;
+            << allPatchNames.last() << endl;
 
         return allPatchNames.size() - 1;
     }
@@ -170,8 +170,8 @@ void Foam::polyMeshAdder::mergePatchNames
 )
 {
     // Insert the mesh0 patches and zones
-    append(patches0.names(), allPatchNames);
-    append(patches0.types(), allPatchTypes);
+    allPatchNames.append(patches0.names());
+    allPatchTypes.append(patches0.types());
 
 
     // Patches
@@ -265,7 +265,7 @@ Foam::List<Foam::polyPatch*> Foam::polyMeshAdder::combinePatches
 
     // Copy patches0 with new sizes. First patches always come from
     // mesh0 and will always be present.
-    for (label patchI = 0; patchI < patches0.size(); patchI++)
+    forAll(patches0, patchI)
     {
         // Originates from mesh0. Clone with new size & filter out empty
         // patch.
@@ -363,7 +363,7 @@ Foam::labelList Foam::polyMeshAdder::getFaceOrder
     labelList oldToNew(owner.size(), -1);
 
     // Leave boundary faces in order
-    for (label faceI = nInternalFaces; faceI < owner.size(); faceI++)
+    for (label faceI = nInternalFaces; faceI < owner.size(); ++faceI)
     {
         oldToNew[faceI] = faceI;
     }
@@ -924,13 +924,11 @@ void Foam::polyMeshAdder::mergePointZones
 )
 {
     zoneNames.setCapacity(pz0.size() + pz1.size());
-
-    // Names
-    append(pz0.names(), zoneNames);
+    zoneNames.append(pz0.names());
 
     from1ToAll.setSize(pz1.size());
 
-    forAll (pz1, zoneI)
+    forAll(pz1, zoneI)
     {
         from1ToAll[zoneI] = zoneIndex(pz1[zoneI].name(), zoneNames);
     }
@@ -959,7 +957,7 @@ void Foam::polyMeshAdder::mergePointZones
     forAll(pz1, zoneI)
     {
         // Relabel all points of zone and add to correct pzPoints.
-        label allZoneI = from1ToAll[zoneI];
+        const label allZoneI = from1ToAll[zoneI];
 
         append
         (
@@ -991,12 +989,11 @@ void Foam::polyMeshAdder::mergeFaceZones
 )
 {
     zoneNames.setCapacity(fz0.size() + fz1.size());
-
-    append(fz0.names(), zoneNames);
+    zoneNames.append(fz0.names());
 
     from1ToAll.setSize(fz1.size());
 
-    forAll (fz1, zoneI)
+    forAll(fz1, zoneI)
     {
         from1ToAll[zoneI] = zoneIndex(fz1[zoneI].name(), zoneNames);
     }
@@ -1092,11 +1089,10 @@ void Foam::polyMeshAdder::mergeCellZones
 )
 {
     zoneNames.setCapacity(cz0.size() + cz1.size());
-
-    append(cz0.names(), zoneNames);
+    zoneNames.append(cz0.names());
 
     from1ToAll.setSize(cz1.size());
-    forAll (cz1, zoneI)
+    forAll(cz1, zoneI)
     {
         from1ToAll[zoneI] = zoneIndex(cz1[zoneI].name(), zoneNames);
     }
@@ -1108,14 +1104,14 @@ void Foam::polyMeshAdder::mergeCellZones
     forAll(cz0, zoneI)
     {
         // Insert mesh0 cells
-        append(cz0[zoneI], czCells[zoneI]);
+        czCells[zoneI].append(cz0[zoneI]);
     }
 
 
     // Cell mapping is trivial.
     forAll(cz1, zoneI)
     {
-        label allZoneI = from1ToAll[zoneI];
+        const label allZoneI = from1ToAll[zoneI];
 
         append(from1ToAllCells, cz1[zoneI], czCells[allZoneI]);
     }

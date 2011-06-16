@@ -5,8 +5,8 @@ int USERD_get_part_node_ids
 )
 {
 #ifdef ENSIGHTDEBUG
-    Info << "Entering: USERD_get_part_node_ids" << endl 
-        << "part_number = " << part_number << endl 
+    Info<< "Entering: USERD_get_part_node_ids" << endl
+        << "part_number = " << part_number << endl
         << flush;
 #endif
 
@@ -17,7 +17,7 @@ int USERD_get_part_node_ids
             nodeid_array[indx] = indx + 1;
         }
     }
-    else if  (part_number < nPatches+2)
+    else if (part_number < nPatches+2)
     {
 
         label patchi = part_number-2;
@@ -25,25 +25,21 @@ int USERD_get_part_node_ids
         const vectorField& points = bMesh[patchi].points();
 
         label nPoints = points.size();
-        
+
         for (label indx=0; indx<nPoints; indx++)
         {
             nodeid_array[indx] = indx + 1;
         }
 
     }
-    else if  (part_number == nPatches+2)
+    else if (part_number == nPatches+2)
     {
         label indx = 0;
-        for
-        (
-            Cloud<passiveParticle>::iterator elmnt = sprayPtr->begin();
-            elmnt != sprayPtr->end();
-            ++elmnt
-        )
+
+        forAllConstIter(Cloud<passiveParticle>, *sprayPtr, iter)
         {
-             nodeid_array[indx] = indx + 1;
-             indx++;
+            nodeid_array[indx] = indx + 1;
+            indx++;
         }
     }
     else
@@ -52,7 +48,7 @@ int USERD_get_part_node_ids
     }
 
 #ifdef ENSIGHTDEBUG
-    Info << "Leaving: USERD_get_part_node_ids" << endl 
+    Info<< "Leaving: USERD_get_part_node_ids" << endl
         << flush;
 #endif
 

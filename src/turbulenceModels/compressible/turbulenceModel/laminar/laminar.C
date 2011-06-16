@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,10 +51,11 @@ laminar::laminar
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel
+    const basicThermo& thermophysicalModel,
+    const word& turbulenceModelName
 )
 :
-    turbulenceModel(rho, U, phi, thermophysicalModel)
+    turbulenceModel(rho, U, phi, thermophysicalModel, turbulenceModelName)
 {}
 
 
@@ -65,10 +66,14 @@ autoPtr<laminar> laminar::New
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel
+    const basicThermo& thermophysicalModel,
+    const word& turbulenceModelName
 )
 {
-    return autoPtr<laminar>(new laminar(rho, U, phi, thermophysicalModel));
+    return autoPtr<laminar>
+    (
+        new laminar(rho, U, phi, thermophysicalModel, turbulenceModelName)
+    );
 }
 
 
@@ -90,6 +95,27 @@ tmp<volScalarField> laminar::mut() const
             ),
             mesh_,
             dimensionedScalar("mut", mu().dimensions(), 0.0)
+        )
+    );
+}
+
+
+tmp<volScalarField> laminar::alphat() const
+{
+    return tmp<volScalarField>
+    (
+        new volScalarField
+        (
+            IOobject
+            (
+                "alphat",
+                runTime_.timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh_,
+            dimensionedScalar("alphat", alpha().dimensions(), 0.0)
         )
     );
 }
@@ -189,20 +215,20 @@ tmp<fvVectorMatrix> laminar::divDevRhoReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(muEff(), U)
-      - fvc::div(muEff()*dev2(fvc::grad(U)().T()))
+      - fvc::div(muEff()*dev2(T(fvc::grad(U))))
     );
-}
-
-
-bool laminar::read()
-{
-    return true;
 }
 
 
 void laminar::correct()
 {
     turbulenceModel::correct();
+}
+
+
+bool laminar::read()
+{
+    return true;
 }
 
 

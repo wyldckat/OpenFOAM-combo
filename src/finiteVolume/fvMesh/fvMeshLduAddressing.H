@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,7 +60,7 @@ class fvMeshLduAddressing
         const labelList& upperAddr_;
 
         //- Patch addressing as a list of sublists
-        List<const unallocLabelList*> patchAddr_;
+        List<const labelUList*> patchAddr_;
 
         //- Patch field evaluation schedule
         const lduSchedule& patchSchedule_;
@@ -95,35 +95,34 @@ public:
             patchAddr_(mesh.boundary().size()),
             patchSchedule_(mesh.globalData().patchSchedule())
         {
-            forAll (mesh.boundary(), patchI)
+            forAll(mesh.boundary(), patchI)
             {
                 patchAddr_[patchI] = &mesh.boundary()[patchI].faceCells();
             }
         }
 
 
-    // Destructor
-
-        ~fvMeshLduAddressing()
-        {}
+    //- Destructor
+    ~fvMeshLduAddressing()
+    {}
 
 
     // Member Functions
 
         //- Return lower addressing (i.e. lower label = upper triangle)
-        const unallocLabelList& lowerAddr() const
+        const labelUList& lowerAddr() const
         {
             return lowerAddr_;
         }
 
         //- Return upper addressing (i.e. upper label)
-        const unallocLabelList& upperAddr() const
+        const labelUList& upperAddr() const
         {
             return upperAddr_;
         }
 
         //- Return patch addressing
-        const unallocLabelList& patchAddr(const label i) const
+        const labelUList& patchAddr(const label i) const
         {
             return *patchAddr_[i];
         }

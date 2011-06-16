@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,9 @@ Class
 Description
     Reading of the (now deprecated and infrequently used)
     Foam Trisurface Format.
+
+Deprecated
+    Other formats are better. (deprecated Mar 2009)
 
 SourceFiles
     FTRsurfaceFormat.C
@@ -111,10 +114,9 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~FTRsurfaceFormat()
-        {}
+    //- Destructor
+    virtual ~FTRsurfaceFormat()
+    {}
 
 
     // Member Functions

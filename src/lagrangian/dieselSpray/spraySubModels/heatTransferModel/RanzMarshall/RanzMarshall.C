@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,29 +28,24 @@ License
 #include "RanzMarshall.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(RanzMarshall, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        heatTransferModel,
+        RanzMarshall,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(RanzMarshall, 0);
-
-addToRunTimeSelectionTable
-(
-    heatTransferModel,
-    RanzMarshall,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-RanzMarshall::RanzMarshall
-(
-    const dictionary& dict
-)
+Foam::RanzMarshall::RanzMarshall(const dictionary& dict)
 :
     heatTransferModel(dict),
     heatDict_(dict.subDict(typeName + "Coeffs")),
@@ -59,29 +54,36 @@ RanzMarshall::RanzMarshall
     PrExponent_(readScalar(heatDict_.lookup("PrExponent")))
 {}
 
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-RanzMarshall::~RanzMarshall()
+Foam::RanzMarshall::~RanzMarshall()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool RanzMarshall::heatTransfer() const
+bool Foam::RanzMarshall::heatTransfer() const
 {
     return true;
 }
 
-scalar RanzMarshall::Nu
+
+Foam::scalar Foam::RanzMarshall::Nu
 (
     const scalar ReynoldsNumber,
     const scalar PrandtlNumber
 ) const
 {
-    return 2.0 + preRePrFactor_ * pow(ReynoldsNumber, ReExponent_) * pow(PrandtlNumber, PrExponent_);
+    return
+        2.0
+      + preRePrFactor_
+       *pow(ReynoldsNumber, ReExponent_)
+       *pow(PrandtlNumber, PrExponent_);
 }
 
-scalar RanzMarshall::relaxationTime
+
+Foam::scalar Foam::RanzMarshall::relaxationTime
 (
     const scalar liquidDensity,
     const scalar diameter,
@@ -91,14 +93,19 @@ scalar RanzMarshall::relaxationTime
     const scalar PrandtlNumber
 ) const
 {
-    scalar time = liquidDensity*pow(diameter, 2.0)*liquidcL/(6.0*kappa*Nu(ReynoldsNumber, PrandtlNumber));
+    scalar time =
+        liquidDensity
+       *sqr(diameter)
+       *liquidcL
+       /(6.0*kappa*Nu(ReynoldsNumber, PrandtlNumber));
 
     time = max(SMALL, time);
 
     return time;
 }
 
-scalar RanzMarshall::fCorrection(const scalar z) const
+
+Foam::scalar Foam::RanzMarshall::fCorrection(const scalar z) const
 {
     scalar correct;
     if (z > 0.01)
@@ -111,7 +118,6 @@ scalar RanzMarshall::fCorrection(const scalar z) const
         {
             correct = SMALL;
         }
-
     }
     else
     {
@@ -122,8 +128,5 @@ scalar RanzMarshall::fCorrection(const scalar z) const
     return correct;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

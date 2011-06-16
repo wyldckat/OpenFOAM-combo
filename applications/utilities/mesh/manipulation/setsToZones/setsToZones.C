@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,14 +57,23 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("noFlipMap", "");
+    argList::addNote
+    (
+        "add point/face/cell Zones from similar named point/face/cell Sets"
+    );
 
-#   include "addRegionOption.H"
-#   include "addTimeOptions.H"
-#   include "setRootCase.H"
-#   include "createTime.H"
+    argList::addBoolOption
+    (
+        "noFlipMap",
+        "ignore orientation of faceSet"
+    );
 
-    bool noFlipMap = args.optionFound("noFlipMap");
+    #include "addRegionOption.H"
+    #include "addTimeOptions.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
+
+    const bool noFlipMap = args.optionFound("noFlipMap");
 
     // Get times list
     instantList Times = runTime.times();
@@ -73,21 +82,24 @@ int main(int argc, char *argv[])
     label endTime = Times.size();
 
     // check -time and -latestTime options
-#   include "checkTimeOption.H"
+    #include "checkTimeOption.H"
 
     runTime.setTime(Times[startTime], startTime);
 
-#   include "createNamedPolyMesh.H"
+    #include "createNamedPolyMesh.H"
 
     // Search for list of objects for the time of the mesh
-    IOobjectList objects
+    word setsInstance = runTime.findInstance
     (
-        mesh,
-        mesh.pointsInstance(),
-        polyMesh::meshSubDir/"sets"
+        polyMesh::meshSubDir/"sets",
+        word::null,
+        IOobject::MUST_READ,
+        mesh.facesInstance()
     );
 
-    Info<< "Searched : " << mesh.pointsInstance()/polyMesh::meshSubDir/"sets"
+    IOobjectList objects(mesh, setsInstance, polyMesh::meshSubDir/"sets");
+
+    Info<< "Searched : " << setsInstance/polyMesh::meshSubDir/"sets"
         << nl
         << "Found    : " << objects.names() << nl
         << endl;
@@ -97,12 +109,7 @@ int main(int argc, char *argv[])
 
     //Pout<< "pointSets:" << pointObjects.names() << endl;
 
-    for
-    (
-        IOobjectList::const_iterator iter = pointObjects.begin();
-        iter != pointObjects.end();
-        ++iter
-    )
+    forAllConstIter(IOobjectList, pointObjects, iter)
     {
         // Not in memory. Load it.
         pointSet set(*iter());
@@ -146,12 +153,7 @@ int main(int argc, char *argv[])
 
     //Pout<< "faceSets:" << faceObjects.names() << endl;
 
-    for
-    (
-        IOobjectList::const_iterator iter = faceObjects.begin();
-        iter != faceObjects.end();
-        ++iter
-    )
+    forAllConstIter(IOobjectList, faceObjects, iter)
     {
         // Not in memory. Load it.
         faceSet set(*iter());
@@ -160,9 +162,19 @@ int main(int argc, char *argv[])
         DynamicList<label> addressing(set.size());
         DynamicList<bool> flipMap(set.size());
 
-        if (!noFlipMap)
+        if (noFlipMap)
         {
-            word setName(set.name() + "SlaveCells");
+            // No flip map.
+            forAll(faceLabels, i)
+            {
+                label faceI = faceLabels[i];
+                addressing.append(faceI);
+                flipMap.append(false);
+            }
+        }
+        else
+        {
+            const word setName(set.name() + "SlaveCells");
 
             Info<< "Trying to load cellSet " << setName
                 << " to find out the slave side of the zone." << nl
@@ -233,16 +245,6 @@ int main(int argc, char *argv[])
                 flipMap.append(flip);
             }
         }
-        else
-        {
-            // No flip map.
-            forAll(faceLabels, i)
-            {
-                label faceI = faceLabels[i];
-                addressing.append(faceI);
-                flipMap.append(false);
-            }
-        }
 
         label zoneID = mesh.faceZones().findZoneID(set.name());
         if (zoneID == -1)
@@ -285,12 +287,7 @@ int main(int argc, char *argv[])
 
     //Pout<< "cellSets:" << cellObjects.names() << endl;
 
-    for
-    (
-        IOobjectList::const_iterator iter = cellObjects.begin();
-        iter != cellObjects.end();
-        ++iter
-    )
+    forAllConstIter(IOobjectList, cellObjects, iter)
     {
         if (!slaveCellSets.found(iter.key()))
         {
@@ -340,7 +337,7 @@ int main(int argc, char *argv[])
             << exit(FatalError);
     }
 
-    Info<< nl << "End" << endl;
+    Info<< "\nEnd\n" << endl;
 
     return 0;
 }

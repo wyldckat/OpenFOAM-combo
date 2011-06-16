@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,14 +27,14 @@ Class
 Description
     The TAB Method for Numerical Calculation of Spray Droplet Breakup.
 
-    @verbatim
+    \verbatim
         O'Rourke, P.J. and Amsden, A.A.,
         "The TAB Method for Numerical Calculation of Spray Droplet Breakup,"
         1987 SAE International Fuels and Lubricants Meeting and Exposition,
         Toronto, Ontario, November 2-5, 1987,
         Los Alamos National Laboratory document LA-UR-87-2105;
         SAE Technical Paper Series, Paper 872089.
-    @endverbatim
+    \endverbatim
 
     This implementation follows the kiva version.
 
@@ -72,9 +72,9 @@ private:
 
         dictionary coeffsDict_;
 
-    // inverse function approximation
-    // of the Rossin-Rammler Distribution
-    // used when calculating the droplet size after breakup
+        // inverse function approximation
+        // of the Rossin-Rammler Distribution
+        // used when calculating the droplet size after breakup
         scalar rrd_[100];
 
         // model constants
@@ -82,6 +82,7 @@ private:
         scalar Cmu_;
         scalar Comega_;
         scalar WeCrit_;
+
 
 public:
 
@@ -93,16 +94,11 @@ public:
     // Constructors
 
         //- Construct from components
-        TAB
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        TAB(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~TAB();
+    //- Destructor
+    virtual ~TAB();
 
 
     // Member Functions
@@ -112,9 +108,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& Ug,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
 };
 
 

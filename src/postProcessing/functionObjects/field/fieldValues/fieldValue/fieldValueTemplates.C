@@ -30,10 +30,7 @@ License
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-Foam::tmp<Foam::Field<Type> > Foam::fieldValue::combineFields
-(
-    const Field<Type>& field
-) const
+void Foam::fieldValue::combineFields(Field<Type>& field)
 {
     List<Field<Type> > allValues(Pstream::nProcs());
 
@@ -43,22 +40,20 @@ Foam::tmp<Foam::Field<Type> > Foam::fieldValue::combineFields
 
     if (Pstream::master())
     {
-        return tmp<Field<Type> >
-        (
-            new Field<Type>
+        field =
+            ListListOps::combine<Field<Type> >
             (
-                ListListOps::combine<Field<Type> >
-                (
-                    allValues,
-                    accessOp<Field<Type> >()
-                )
-            )
-        );
+                allValues,
+                accessOp<Field<Type> >()
+            );
     }
-    else
-    {
-        return field;
-    }
+}
+
+
+template<class Type>
+void Foam::fieldValue::combineFields(tmp<Field<Type> >& field)
+{
+    combineFields(field());
 }
 
 

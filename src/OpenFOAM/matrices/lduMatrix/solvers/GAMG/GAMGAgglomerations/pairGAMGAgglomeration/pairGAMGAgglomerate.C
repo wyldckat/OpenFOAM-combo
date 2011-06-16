@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,8 +37,8 @@ Foam::tmp<Foam::labelField> Foam::pairGAMGAgglomeration::agglomerate
 {
     const label nFineCells = fineMatrixAddressing.size();
 
-    const unallocLabelList& upperAddr = fineMatrixAddressing.upperAddr();
-    const unallocLabelList& lowerAddr = fineMatrixAddressing.lowerAddr();
+    const labelUList& upperAddr = fineMatrixAddressing.upperAddr();
+    const labelUList& lowerAddr = fineMatrixAddressing.lowerAddr();
 
     // For each cell calculate faces
     labelList cellFaces(upperAddr.size() + lowerAddr.size());
@@ -48,18 +48,18 @@ Foam::tmp<Foam::labelField> Foam::pairGAMGAgglomeration::agglomerate
     {
         labelList nNbrs(nFineCells, 0);
 
-        forAll (upperAddr, facei)
+        forAll(upperAddr, facei)
         {
             nNbrs[upperAddr[facei]]++;
         }
 
-        forAll (lowerAddr, facei)
+        forAll(lowerAddr, facei)
         {
             nNbrs[lowerAddr[facei]]++;
         }
 
         cellFaceOffsets[0] = 0;
-        forAll (nNbrs, celli)
+        forAll(nNbrs, celli)
         {
             cellFaceOffsets[celli+1] = cellFaceOffsets[celli] + nNbrs[celli];
         }
@@ -67,7 +67,7 @@ Foam::tmp<Foam::labelField> Foam::pairGAMGAgglomeration::agglomerate
         // reset the whole list to use as counter
         nNbrs = 0;
 
-        forAll (upperAddr, facei)
+        forAll(upperAddr, facei)
         {
             cellFaces
             [
@@ -77,7 +77,7 @@ Foam::tmp<Foam::labelField> Foam::pairGAMGAgglomeration::agglomerate
             nNbrs[upperAddr[facei]]++;
         }
 
-        forAll (lowerAddr, facei)
+        forAll(lowerAddr, facei)
         {
             cellFaces
             [
@@ -187,7 +187,7 @@ Foam::tmp<Foam::labelField> Foam::pairGAMGAgglomeration::agglomerate
     // (doesn't always help and is sometimes detrimental)
     nCoarseCells--;
 
-    forAll (coarseCellMap, celli)
+    forAll(coarseCellMap, celli)
     {
         coarseCellMap[celli] = nCoarseCells - coarseCellMap[celli];
     }

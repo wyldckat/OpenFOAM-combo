@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,10 +81,10 @@ void Foam::skewCorrectionVectors::makeSkewCorrectionVectors() const
     const surfaceVectorField& Cf = mesh_.Cf();
     const surfaceVectorField& Sf = mesh_.Sf();
 
-    const unallocLabelList& owner = mesh_.owner();
+    const labelUList& owner = mesh_.owner();
 
     // Build the d-vectors
-    surfaceVectorField d = Sf/(mesh_.magSf()*mesh_.deltaCoeffs());
+    surfaceVectorField d(Sf/(mesh_.magSf()*mesh_.deltaCoeffs()));
 
     if (!mesh_.orthogonal())
     {
@@ -112,7 +112,7 @@ void Foam::skewCorrectionVectors::makeSkewCorrectionVectors() const
         else
         {
             const fvPatch& p = patchSkewCorrVecs.patch();
-            const unallocLabelList& faceCells = p.faceCells();
+            const labelUList& faceCells = p.faceCells();
             const vectorField& patchFaceCentres = Cf.boundaryField()[patchI];
             const vectorField& patchSf = Sf.boundaryField()[patchI];
             const vectorField& patchD = d.boundaryField()[patchI];

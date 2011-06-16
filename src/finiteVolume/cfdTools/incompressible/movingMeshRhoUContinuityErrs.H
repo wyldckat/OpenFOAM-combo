@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,11 +31,11 @@ Description
 
 if (mesh.moving())
 {
-    scalar sumLocalContErr = runTime.deltaT().value()*
+    scalar sumLocalContErr = runTime.deltaTValue()*
         mag(fvc::div(phi + fvc::meshPhi(rho, U)))()
        .weightedAverage(mesh.V()).value();
 
-    scalar globalContErr = runTime.deltaT().value()*
+    scalar globalContErr = runTime.deltaTValue()*
         fvc::div(phi + fvc::meshPhi(rho, U))()
        .weightedAverage(mesh.V()).value();
 

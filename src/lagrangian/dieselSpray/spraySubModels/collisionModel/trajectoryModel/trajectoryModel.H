@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,12 +54,16 @@ class trajectoryCollisionModel
 {
 
 private:
-    // Reference to the cell volumes
+
+    // Private data
+
+        // Reference to the cell volumes
         dictionary coeffsDict_;
 
         scalar cSpace_;
         scalar cTime_;
         Switch coalescence_;
+
 
 public:
 
@@ -74,12 +78,12 @@ public:
         (
             const dictionary& dict,
             spray& sm,
-            Random& rndGen
+            cachedRandom& rndGen
         );
 
-    // Destructor
 
-        ~trajectoryCollisionModel();
+    //- Destructor
+    virtual ~trajectoryCollisionModel();
 
 
     // Member Functions

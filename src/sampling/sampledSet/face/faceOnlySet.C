@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,10 +28,6 @@ License
 #include "DynamicList.H"
 #include "polyMesh.H"
 
-#include "Cloud.H"
-#include "passiveParticle.H"
-#include "IDLList.H"
-
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -45,11 +41,9 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-
-// Sample singly connected segment. Returns false if end_ reached.
 bool Foam::faceOnlySet::trackToBoundary
 (
-    Particle<passiveParticle>& singleParticle,
+    passiveParticle& singleParticle,
     DynamicList<point>& samplingPts,
     DynamicList<label>& samplingCells,
     DynamicList<label>& samplingFaces,
@@ -61,6 +55,9 @@ bool Foam::faceOnlySet::trackToBoundary
     const vector smallVec = tol*offset;
     const scalar smallDist = mag(smallVec);
 
+    passiveParticleCloud particleCloud(mesh());
+    particle::TrackingData<passiveParticleCloud> trackData(particleCloud);
+
     // Alias
     const point& trackPt = singleParticle.position();
 
@@ -68,7 +65,7 @@ bool Foam::faceOnlySet::trackToBoundary
     {
         point oldPoint = trackPt;
 
-        singleParticle.trackToFace(end_);
+        singleParticle.trackToFace(end_, trackData);
 
         if (singleParticle.face() != -1 && mag(oldPoint - trackPt) > smallDist)
         {
@@ -118,6 +115,8 @@ void Foam::faceOnlySet::calcSamples
     const vector smallVec = tol*offset;
     const scalar smallDist = mag(smallVec);
 
+    // Force calculation of minimum-tet decomposition.
+    (void) mesh().tetBasePtIs();
 
     // Get all boundary intersections
     List<pointIndexHit> bHits = searchEngine().intersections
@@ -210,11 +209,9 @@ void Foam::faceOnlySet::calcSamples
         }
 
         // Initialize tracking starting from trackPt
-        Cloud<passiveParticle> particles(mesh(), IDLList<passiveParticle>());
-
         passiveParticle singleParticle
         (
-            particles,
+            mesh(),
             trackPt,
             trackCellI
         );
@@ -229,7 +226,7 @@ void Foam::faceOnlySet::calcSamples
         );
 
         // fill sampleSegments
-        for(label i = samplingPts.size() - 1; i >= startSegmentI; --i)
+        for (label i = samplingPts.size() - 1; i >= startSegmentI; --i)
         {
             samplingSegments.append(segmentI);
         }
@@ -378,14 +375,6 @@ Foam::faceOnlySet::faceOnlySet
 
 Foam::faceOnlySet::~faceOnlySet()
 {}
-
-
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-Foam::point Foam::faceOnlySet::getRefPoint(const List<point>& pts) const
-{
-    return start_;
-}
 
 
 // ************************************************************************* //

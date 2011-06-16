@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,32 +25,30 @@ License
 
 #include "trajectoryModel.H"
 #include "addToRunTimeSelectionTable.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
+#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(trajectoryCollisionModel, 0);
+namespace Foam
+{
+    defineTypeNameAndDebug(trajectoryCollisionModel, 0);
 
-addToRunTimeSelectionTable
-(
-    collisionModel,
-    trajectoryCollisionModel,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        collisionModel,
+        trajectoryCollisionModel,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-trajectoryCollisionModel::trajectoryCollisionModel
+Foam::trajectoryCollisionModel::trajectoryCollisionModel
 (
     const dictionary& dict,
     spray& sm,
-    Random& rndGen
+    cachedRandom& rndGen
 )
 :
     collisionModel(dict, sm, rndGen),
@@ -64,13 +62,13 @@ trajectoryCollisionModel::trajectoryCollisionModel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-trajectoryCollisionModel::~trajectoryCollisionModel()
+Foam::trajectoryCollisionModel::~trajectoryCollisionModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void trajectoryCollisionModel::collideParcels(const scalar dt) const
+void Foam::trajectoryCollisionModel::collideParcels(const scalar dt) const
 {
     if (spray_.size() < 2)
     {
@@ -87,22 +85,21 @@ void trajectoryCollisionModel::collideParcels(const scalar dt) const
 
         while (p2 != p1)
         {
-#           include "trajectoryCM.H"
+            #include "trajectoryCM.H"
 
             // remove coalesced droplets
-            if (p2().m() < VSMALL) 
+            if (p2().m() < VSMALL)
             {
                 spray::iterator tmpElmnt = p2;
                 ++tmpElmnt;
                 spray_.deleteParticle(p2());
                 p2 = tmpElmnt;
             }
-            else 
+            else
             {
                 ++p2;
             }
-
-        } // end - inner loop
+        }
 
         // remove coalesced droplets
         if (p1().m() < VSMALL)
@@ -116,13 +113,8 @@ void trajectoryCollisionModel::collideParcels(const scalar dt) const
         {
             ++p1;
         }
-    } // end - outer loop
+    }
+}
 
-} // end
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,24 +21,75 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Simple extension of ReactionThermo to handle Reaction kinetics in addition
-    to the equilibrium thermodynamics already handled.
-
 \*---------------------------------------------------------------------------*/
 
 #include "Reaction.H"
 #include "DynamicList.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * Static Data * * * * * * * * * * * * * * * //
 
-namespace Foam
+template<class ReactionThermo>
+Foam::label Foam::Reaction<ReactionThermo>::nUnNamedReactions = 0;
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+template<class ReactionThermo>
+Foam::label Foam::Reaction<ReactionThermo>::getNewReactionID()
 {
+    return nUnNamedReactions++;
+}
+
+
+template<class ReactionThermo>
+Foam::string Foam::Reaction<ReactionThermo>::reactionStr() const
+{
+    OStringStream reaction;
+
+    for (label i = 0; i < lhs_.size(); ++i)
+    {
+        if (i > 0)
+        {
+            reaction << " + ";
+        }
+        if (mag(lhs_[i].stoichCoeff - 1) > SMALL)
+        {
+            reaction << lhs_[i].stoichCoeff;
+        }
+        reaction << species_[lhs_[i].index];
+        if (mag(lhs_[i].exponent - lhs_[i].stoichCoeff) > SMALL)
+        {
+            reaction << "^" << lhs_[i].exponent;
+        }
+    }
+
+    reaction << " = ";
+
+    for (label i = 0; i < rhs_.size(); ++i)
+    {
+        if (i > 0)
+        {
+            reaction << " + ";
+        }
+        if (mag(rhs_[i].stoichCoeff - 1) > SMALL)
+        {
+            reaction << rhs_[i].stoichCoeff;
+        }
+        reaction << species_[rhs_[i].index];
+        if (mag(rhs_[i].exponent - rhs_[i].stoichCoeff) > SMALL)
+        {
+            reaction << "^" << rhs_[i].exponent;
+        }
+    }
+
+    return reaction.str();
+}
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class ReactionThermo>
-void Reaction<ReactionThermo>::setThermo
+void Foam::Reaction<ReactionThermo>::setThermo
 (
     const HashPtrTable<ReactionThermo>& thermoDatabase
 )
@@ -48,17 +99,17 @@ void Reaction<ReactionThermo>::setThermo
         rhs_[0].stoichCoeff*(*thermoDatabase[species_[rhs_[0].index]])
     );
 
-    for (label i=1; i<rhs_.size(); i++)
+    for (label i=1; i<rhs_.size(); ++i)
     {
-        operator+=
+        this->operator+=
         (
             rhs_[i].stoichCoeff*(*thermoDatabase[species_[rhs_[i].index]])
         );
     }
 
-    for (label i=0; i<lhs_.size(); i++)
+    forAll(lhs_, i)
     {
-        operator-=
+        this->operator-=
         (
             lhs_[i].stoichCoeff*(*thermoDatabase[species_[lhs_[i].index]])
         );
@@ -66,9 +117,8 @@ void Reaction<ReactionThermo>::setThermo
 }
 
 
-// Construct from components
 template<class ReactionThermo>
-Reaction<ReactionThermo>::Reaction
+Foam::Reaction<ReactionThermo>::Reaction
 (
     const speciesTable& species,
     const List<specieCoeffs>& lhs,
@@ -77,6 +127,7 @@ Reaction<ReactionThermo>::Reaction
 )
 :
     ReactionThermo(*thermoDatabase[species[0]]),
+    name_("un-named-reaction-" + Foam::name(getNewReactionID())),
     species_(species),
     lhs_(lhs),
     rhs_(rhs)
@@ -85,15 +136,15 @@ Reaction<ReactionThermo>::Reaction
 }
 
 
-// Construct as copy given new speciesTable
 template<class ReactionThermo>
-Reaction<ReactionThermo>::Reaction
+Foam::Reaction<ReactionThermo>::Reaction
 (
     const Reaction<ReactionThermo>& r,
     const speciesTable& species
 )
 :
     ReactionThermo(r),
+    name_(r.name() + "Copy"),
     species_(species),
     lhs_(r.lhs_),
     rhs_(r.rhs_)
@@ -101,7 +152,7 @@ Reaction<ReactionThermo>::Reaction
 
 
 template<class ReactionThermo>
-Reaction<ReactionThermo>::specieCoeffs::specieCoeffs
+Foam::Reaction<ReactionThermo>::specieCoeffs::specieCoeffs
 (
     const speciesTable& species,
     Istream& is
@@ -150,7 +201,7 @@ Reaction<ReactionThermo>::specieCoeffs::specieCoeffs
 
 
 template<class ReactionThermo>
-void Reaction<ReactionThermo>::setLRhs(Istream& is)
+void Foam::Reaction<ReactionThermo>::setLRhs(Istream& is)
 {
     DynamicList<specieCoeffs> dlrhs;
 
@@ -185,15 +236,14 @@ void Reaction<ReactionThermo>::setLRhs(Istream& is)
         }
     }
 
-    FatalIOErrorIn("Reaction<ReactionThermo>::lrhs(Istream& is)", is)
+    FatalIOErrorIn("Reaction<ReactionThermo>::setLRhs(Istream& is)", is)
         << "Cannot continue reading reaction data from stream"
         << exit(FatalIOError);
 }
 
 
-//- Construct from Istream
 template<class ReactionThermo>
-Reaction<ReactionThermo>::Reaction
+Foam::Reaction<ReactionThermo>::Reaction
 (
     const speciesTable& species,
     const HashPtrTable<ReactionThermo>& thermoDatabase,
@@ -201,17 +251,36 @@ Reaction<ReactionThermo>::Reaction
 )
 :
     ReactionThermo(*thermoDatabase[species[0]]),
+    name_("un-named-reaction" + Foam::name(getNewReactionID())),
     species_(species)
 {
     setLRhs(is);
     setThermo(thermoDatabase);
 }
-    
+
+
+template<class ReactionThermo>
+Foam::Reaction<ReactionThermo>::Reaction
+(
+    const speciesTable& species,
+    const HashPtrTable<ReactionThermo>& thermoDatabase,
+    const dictionary& dict
+)
+:
+    ReactionThermo(*thermoDatabase[species[0]]),
+    name_(dict.dictName()),
+    species_(species)
+{
+    setLRhs(IStringStream(dict.lookup("reaction"))());
+    setThermo(thermoDatabase);
+}
+
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
 template<class ReactionThermo>
-autoPtr<Reaction<ReactionThermo> > Reaction<ReactionThermo>::New
+Foam::autoPtr<Foam::Reaction<ReactionThermo> >
+Foam::Reaction<ReactionThermo>::New
 (
     const speciesTable& species,
     const HashPtrTable<ReactionThermo>& thermoDatabase,
@@ -222,16 +291,16 @@ autoPtr<Reaction<ReactionThermo> > Reaction<ReactionThermo>::New
     {
         FatalIOErrorIn
         (
-            "Reaction<ReactionThermo>::New(const speciesTable& species,"
-            " const HashPtrTable<ReactionThermo>& thermoDatabase, Istream&)",
+            "Reaction<ReactionThermo>::New(const speciesTable&, "
+            " const HashPtrTable<ReactionThermo>&, Istream&)",
             is
-        )   << "Reaction type not specified" << endl << endl
-            << "Valid Reaction types are :" << endl
+        )   << "Reaction type not specified" << nl << nl
+            << "Valid Reaction types are :" << nl
             << IstreamConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
     }
 
-    word reactionTypeName(is);
+    const word reactionTypeName(is);
 
     typename IstreamConstructorTable::iterator cstrIter
         = IstreamConstructorTablePtr_->find(reactionTypeName);
@@ -240,11 +309,12 @@ autoPtr<Reaction<ReactionThermo> > Reaction<ReactionThermo>::New
     {
         FatalIOErrorIn
         (
-            "Reaction<ReactionThermo>::New(const speciesTable& species,"
-            " const HashPtrTable<ReactionThermo>& thermoDatabase, Istream&)",
+            "Reaction<ReactionThermo>::New(const speciesTable&, "
+            " const HashPtrTable<ReactionThermo>&, Istream&)",
             is
-        )   << "Unknown reaction type " << reactionTypeName << endl << endl
-            << "Valid reaction types are :" << endl
+        )   << "Unknown reaction type "
+            << reactionTypeName << nl << nl
+            << "Valid reaction types are :" << nl
             << IstreamConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
     }
@@ -256,65 +326,55 @@ autoPtr<Reaction<ReactionThermo> > Reaction<ReactionThermo>::New
 }
 
 
+template<class ReactionThermo>
+Foam::autoPtr<Foam::Reaction<ReactionThermo> >
+Foam::Reaction<ReactionThermo>::New
+(
+    const speciesTable& species,
+    const HashPtrTable<ReactionThermo>& thermoDatabase,
+    const dictionary& dict
+)
+{
+    const word& reactionTypeName = dict.lookup("type");
+
+    typename dictionaryConstructorTable::iterator cstrIter
+        = dictionaryConstructorTablePtr_->find(reactionTypeName);
+
+    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    {
+        FatalErrorIn
+        (
+            "Reaction<ReactionThermo>::New"
+            "("
+                "const speciesTable&, "
+                "const HashPtrTable<ReactionThermo>&, "
+                "const dictionary&"
+            ")"
+        )   << "Unknown reaction type "
+            << reactionTypeName << nl << nl
+            << "Valid reaction types are :" << nl
+            << dictionaryConstructorTablePtr_->sortedToc()
+            << exit(FatalError);
+    }
+
+    return autoPtr<Reaction<ReactionThermo> >
+    (
+        cstrIter()(species, thermoDatabase, dict)
+    );
+}
+
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class ReactionThermo>
-void Reaction<ReactionThermo>::write(Ostream& os) const
+void Foam::Reaction<ReactionThermo>::write(Ostream& os) const
 {
-    os << type() << nl << "    ";
-
-    forAll(lhs_, i)
-    {
-        const typename Reaction<ReactionThermo>::specieCoeffs& sc = lhs_[i];
-
-        if (sc.stoichCoeff != 1)
-        {
-            os << sc.stoichCoeff;
-        }
-
-        os << species_[sc.index];
-
-        if (sc.exponent != sc.stoichCoeff)
-        {
-            os << '^' << sc.exponent;
-        }
-
-        if (i < lhs_.size() - 1)
-        {
-            os << " + ";
-        }
-    }
-
-    os << " = ";
-
-    forAll(rhs_, i)
-    {
-        const typename Reaction<ReactionThermo>::specieCoeffs& sc = rhs_[i];
-
-        if (sc.stoichCoeff != 1)
-        {
-            os << sc.stoichCoeff;
-        }
-
-        os << species_[sc.index];
-
-        if (sc.exponent != sc.stoichCoeff)
-        {
-            os << '^' << sc.exponent;
-        }
-
-        if (i < rhs_.size() - 1)
-        {
-            os << " + ";
-        }
-    }
-
-    os  << endl << "   ";
+    os.writeKeyword("reaction") << reactionStr() << token::END_STATEMENT << nl;
 }
 
 
 template<class ReactionThermo>
-scalar Reaction<ReactionThermo>::kf
+Foam::scalar Foam::Reaction<ReactionThermo>::kf
 (
     const scalar T,
     const scalar p,
@@ -326,7 +386,7 @@ scalar Reaction<ReactionThermo>::kf
 
 
 template<class ReactionThermo>
-scalar Reaction<ReactionThermo>::kr
+Foam::scalar Foam::Reaction<ReactionThermo>::kr
 (
     const scalar kfwd,
     const scalar T,
@@ -337,8 +397,9 @@ scalar Reaction<ReactionThermo>::kr
     return 0.0;
 }
 
+
 template<class ReactionThermo>
-scalar Reaction<ReactionThermo>::kr
+Foam::scalar Foam::Reaction<ReactionThermo>::kr
 (
     const scalar T,
     const scalar p,
@@ -348,9 +409,5 @@ scalar Reaction<ReactionThermo>::kr
     return 0.0;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,12 +45,12 @@ Foam::graph Foam::kShellIntegration
     // spectra E(k). int E(k) dk is now the total energy in a box
     // of side 2pi
 
-    y *= sqr(x)*4.0*mathematicalConstant::pi;
+    y *= sqr(x)*4.0*constant::mathematical::pi;
 
     // now scale this to get the energy in a box of side l0
 
     scalar l0(K.sizeOfBox()[0]*(scalar(K.nn()[0])/(scalar(K.nn()[0])-1.0)));
-    scalar factor = pow((l0/(2.0*mathematicalConstant::pi)),3.0);
+    scalar factor = pow((l0/(2.0*constant::mathematical::pi)),3.0);
 
     y *= factor;
 

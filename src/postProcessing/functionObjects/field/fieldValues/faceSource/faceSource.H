@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,8 +37,8 @@ Description
         log             true;       // log to screen?
         valueOutput     true;       // Write values at run-time output times?
         source          faceZone;   // Type of face source:
-                                    // faceZone, patch, sampledSurface
-        sourceName      f0;         // faceZone or patch, see below
+                                    // faceZone,patch,sampledSurface
+        sourceName      f0;         // faceZone name, see below
         operation       sum;
         fields
         (
@@ -141,7 +141,7 @@ public:
 
 private:
 
-    // Private member functions
+    // Private Member Functions
 
         //- Set faces to evaluate based on a face zone
         void setFaceZoneFaces();
@@ -169,6 +169,7 @@ protected:
         //- Global number of faces
         label nFaces_;
 
+
         // If operating on mesh faces (faceZone,patch)
 
             //- Local list of face IDs
@@ -177,7 +178,8 @@ protected:
             //- Local list of patch ID per face
             labelList facePatchId_;
 
-            //- List of +1/-1 representing face flip map (1 use as is, -1 negate)
+            //- List of +1/-1 representing face flip map
+            //  (1 use as is, -1 negate)
             labelList faceSign_;
 
         // If operating on sampledSurface
@@ -186,7 +188,8 @@ protected:
             autoPtr<sampledSurface> surfacePtr_;
 
 
-    // Protected member functions
+
+    // Protected Member Functions
 
         //- Initialise, e.g. face addressing
         void initialise(const dictionary& dict);
@@ -197,7 +200,7 @@ protected:
 
         //- Return field values by looking up field name
         template<class Type>
-        tmp<Field<Type> > setFieldValues(const word& fieldName) const;
+        tmp<Field<Type> > getFieldValues(const word& fieldName) const;
 
         //- Apply the 'operation' to the values
         template<class Type>
@@ -232,7 +235,7 @@ public:
     virtual ~faceSource();
 
 
-    // Public member functions
+    // Public Member Functions
 
         // Access
 

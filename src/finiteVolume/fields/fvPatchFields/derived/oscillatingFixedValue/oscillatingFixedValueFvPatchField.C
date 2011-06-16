@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,8 +38,8 @@ scalar oscillatingFixedValueFvPatchField<Type>::currentScale() const
 {
     return
         1.0
-      + amplitude_*
-        sin(2*mathematicalConstant::pi*frequency_*this->db().time().value());
+      + amplitude_
+       *sin(constant::mathematical::twoPi*frequency_*this->db().time().value());
 }
 
 

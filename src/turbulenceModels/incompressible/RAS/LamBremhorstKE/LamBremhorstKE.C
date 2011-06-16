@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,10 +48,12 @@ LamBremhorstKE::LamBremhorstKE
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -118,7 +120,7 @@ LamBremhorstKE::LamBremhorstKE
 
     y_(mesh_),
 
-    Rt_(sqr(k_)/(nu()*epsilon_)),
+    Rt_(sqr(k_)/(nu()*bound(epsilon_, epsilonMin_))),
 
     fMu_
     (
@@ -139,7 +141,10 @@ LamBremhorstKE::LamBremhorstKE
         autoCreateLowReNut("nut", mesh_)
     )
 {
-    nut_ = Cmu_*fMu_*sqr(k_)/(epsilon_ + epsilonSmall_);
+    bound(k_, kMin_);
+    // already bounded: bound(epsilon_, epsilonMin_);
+
+    nut_ = Cmu_*fMu_*sqr(k_)/epsilon_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -194,7 +199,7 @@ tmp<fvVectorMatrix> LamBremhorstKE::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -237,12 +242,12 @@ void LamBremhorstKE::correct()
     // Calculate parameters and coefficients for low-Reynolds number model
 
     Rt_ = sqr(k_)/(nu()*epsilon_);
-    volScalarField Ry = sqrt(k_)*y_/nu();
+    tmp<volScalarField> Ry = sqrt(k_)*y_/nu();
 
     fMu_ = sqr(scalar(1) - exp(-0.0165*Ry))*(scalar(1) + 20.5/(Rt_ + SMALL));
 
-    volScalarField f1 = scalar(1) + pow(0.05/(fMu_ + SMALL), 3);
-    volScalarField f2 = scalar(1) - exp(-sqr(Rt_));
+    tmp<volScalarField> f1 = scalar(1) + pow(0.05/(fMu_ + SMALL), 3);
+    tmp<volScalarField> f2 = scalar(1) - exp(-sqr(Rt_));
 
 
     // Dissipation equation
@@ -259,7 +264,7 @@ void LamBremhorstKE::correct()
 
     epsEqn().relax();
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -275,7 +280,7 @@ void LamBremhorstKE::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

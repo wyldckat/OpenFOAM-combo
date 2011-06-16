@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,60 +68,57 @@ public:
         inline autoPtr(const autoPtr<T>&);
 
 
-    // Destructor
-
-        //- Delete object if pointer is not NULL
-        inline ~autoPtr();
+    //- Destructor, delete object if pointer is not NULL
+    inline ~autoPtr();
 
 
     // Member Functions
 
-    // Check
+        // Check
 
-        //- Return true if the autoPtr is empty (ie, no pointer set).
-        inline bool empty() const;
+            //- Return true if the autoPtr is empty (ie, no pointer set).
+            inline bool empty() const;
 
-        //- Return true if the autoPtr valid (ie, the pointer is set).
-        inline bool valid() const;
-
-
-    // Edit
-
-        //- Return object pointer for reuse
-        inline T* ptr();
-
-        //- Set pointer to that given.
-        //  If object pointer already set issue a FatalError.
-        inline void set(T*);
-
-        //- If object pointer already set, delete object and set to given pointer
-        inline void reset(T* = 0);
-
-        //- Delete object and set pointer to NULL, if the pointer is valid.
-        inline void clear();
+            //- Return true if the autoPtr valid (ie, the pointer is set).
+            inline bool valid() const;
 
 
-    // Member operators
+        // Edit
 
-        //- Return reference to the object data
-        inline T& operator()();
+            //- Return object pointer for reuse
+            inline T* ptr();
 
-        //- Return const reference to the object data
-        inline const T& operator()() const;
+            //- Set pointer to that given.
+            //  If object pointer already set issue a FatalError.
+            inline void set(T*);
 
-        // inline T& operator*();
-        // inline const T& operator*() const;
+            //- If object pointer already set, delete object and set to given
+            //  pointer
+            inline void reset(T* = 0);
 
-        inline operator const T&() const;
+            //- Delete object (if the pointer is valid) and set pointer to NULL.
+            inline void clear();
 
-        //- Return object pointer
-        inline T* operator->();
 
-        //- Return const object pointer
-        inline const T* operator->() const;
+        // Member operators
 
-        //- Take over object pointer from parameter
-        inline void operator=(const autoPtr<T>&);
+            //- Return reference to the object data
+            inline T& operator()();
+
+            //- Return const reference to the object data
+            inline const T& operator()() const;
+
+            //- Const cast to the underlying type reference
+            inline operator const T&() const;
+
+            //- Return object pointer
+            inline T* operator->();
+
+            //- Return const object pointer
+            inline const T* operator->() const;
+
+            //- Take over the object pointer from parameter
+            inline void operator=(const autoPtr<T>&);
 };
 
 

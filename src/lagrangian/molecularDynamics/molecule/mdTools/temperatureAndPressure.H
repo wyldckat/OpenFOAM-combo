@@ -52,11 +52,11 @@ if (runTime.outputTime())
 {
     if (accumulatedNMols)
     {
-        Info << "calculating averages" << endl;
+        Info<< "calculating averages" << endl;
 
         averageTemperature =
         (
-            2.0/(moleculeCloud::kb * accumulatedDOFs)
+            2.0/(physicoChemical::k.value()*accumulatedDOFs)
             *
             (
                 accumulatedTotalLinearKE + accumulatedTotalAngularKE
@@ -69,16 +69,14 @@ if (runTime.outputTime())
         (
             (
                 (accumulatedNMols/nAveragingSteps)
-                *
-                moleculeCloud::kb * averageTemperature
-                +
-                accumulatedTotalrDotfSum/(6.0 * nAveragingSteps)
+               *physicoChemical::k.value()*averageTemperature
+              + accumulatedTotalrDotfSum/(6.0*nAveragingSteps)
             )
             /
             meshVolume
         );
 
-        Info << "----------------------------------------" << nl
+        Info<< "----------------------------------------" << nl
             << "Averaged properties" << nl
             << "Average |velocity| = "
             << mag(accumulatedTotalLinearMomentum)/accumulatedTotalMass << nl

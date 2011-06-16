@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,13 +34,20 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(cellToFace, 0);
+    addToRunTimeSelectionTable(topoSetSource, cellToFace, word);
+    addToRunTimeSelectionTable(topoSetSource, cellToFace, istream);
 
-defineTypeNameAndDebug(cellToFace, 0);
-
-addToRunTimeSelectionTable(topoSetSource, cellToFace, word);
-
-addToRunTimeSelectionTable(topoSetSource, cellToFace, istream);
-
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::cellToFace::cellAction,
+        2
+    >::names[] =
+    {
+        "all",
+        "both"
+    };
 }
 
 
@@ -51,13 +58,6 @@ Foam::topoSetSource::addToUsageTable Foam::cellToFace::usage_
     "    Select -all : all faces of cells in the cellSet\n"
     "           -both: faces where both neighbours are in the cellSet\n\n"
 );
-
-template<>
-const char* Foam::NamedEnum<Foam::cellToFace::cellAction, 2>::names[] =
-{
-    "all",
-    "both"
-};
 
 const Foam::NamedEnum<Foam::cellToFace::cellAction, 2>
     Foam::cellToFace::cellActionNames_;
@@ -79,15 +79,9 @@ void Foam::cellToFace::combine(topoSet& set, const bool add) const
     if (option_ == ALL)
     {
         // Add all faces from cell
-        for
-        (
-            cellSet::const_iterator iter = loadedSet.begin();
-            iter != loadedSet.end();
-            ++iter
-        )
+        forAllConstIter(cellSet, loadedSet, iter)
         {
-            label cellI = iter.key();
-
+            const label cellI = iter.key();
             const labelList& cFaces = mesh_.cells()[cellI];
 
             forAll(cFaces, cFaceI)
@@ -100,7 +94,7 @@ void Foam::cellToFace::combine(topoSet& set, const bool add) const
     {
         // Add all faces whose both neighbours are in set.
 
-        label nInt = mesh_.nInternalFaces();
+        const label nInt = mesh_.nInternalFaces();
         const labelList& own = mesh_.faceOwner();
         const labelList& nei = mesh_.faceNeighbour();
         const polyBoundaryMesh& patches = mesh_.boundaryMesh();
@@ -133,7 +127,7 @@ void Foam::cellToFace::combine(topoSet& set, const bool add) const
                 }
             }
         }
-        syncTools::swapBoundaryFaceList(mesh_, neiInSet, false);
+        syncTools::swapBoundaryFaceList(mesh_, neiInSet);
 
 
         // Check all boundary faces

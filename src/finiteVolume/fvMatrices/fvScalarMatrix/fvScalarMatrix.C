@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,7 +66,7 @@ Foam::fvMatrix<Foam::scalar>::solver
             << endl;
     }
 
-    scalarField saveDiag = diag();
+    scalarField saveDiag(diag());
     addBoundaryDiag(diag(), 0);
 
     autoPtr<fvMatrix<scalar>::fvSolver> solverPtr
@@ -98,23 +98,32 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Foam::scalar>::fvSolver::solve
     const dictionary& solverControls
 )
 {
-    scalarField saveDiag = fvMat_.diag();
+    GeometricField<scalar, fvPatchField, volMesh>& psi =
+        const_cast<GeometricField<scalar, fvPatchField, volMesh>&>
+        (fvMat_.psi());
+
+    scalarField saveDiag(fvMat_.diag());
     fvMat_.addBoundaryDiag(fvMat_.diag(), 0);
 
-    scalarField totalSource = fvMat_.source();
+    scalarField totalSource(fvMat_.source());
     fvMat_.addBoundarySource(totalSource, false);
 
     // assign new solver controls
     solver_->read(solverControls);
 
-    lduMatrix::solverPerformance solverPerf =
-        solver_->solve(fvMat_.psi().internalField(), totalSource);
+    lduMatrix::solverPerformance solverPerf = solver_->solve
+    (
+        psi.internalField(),
+        totalSource
+    );
 
     solverPerf.print();
 
     fvMat_.diag() = saveDiag;
 
-    fvMat_.psi().correctBoundaryConditions();
+    psi.correctBoundaryConditions();
+
+    psi.mesh().setSolverPerformance(psi.name(), solverPerf);
 
     return solverPerf;
 }
@@ -133,28 +142,33 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Foam::scalar>::solve
             << endl;
     }
 
-    scalarField saveDiag = diag();
+    GeometricField<scalar, fvPatchField, volMesh>& psi =
+       const_cast<GeometricField<scalar, fvPatchField, volMesh>&>(psi_);
+
+    scalarField saveDiag(diag());
     addBoundaryDiag(diag(), 0);
 
-    scalarField totalSource = source_;
+    scalarField totalSource(source_);
     addBoundarySource(totalSource, false);
 
     // Solver call
     lduMatrix::solverPerformance solverPerf = lduMatrix::solver::New
     (
-        psi_.name(),
+        psi.name(),
         *this,
         boundaryCoeffs_,
         internalCoeffs_,
-        psi_.boundaryField().interfaces(),
+        psi.boundaryField().interfaces(),
         solverControls
-    )->solve(psi_.internalField(), totalSource);
+    )->solve(psi.internalField(), totalSource);
 
     solverPerf.print();
 
     diag() = saveDiag;
 
-    psi_.correctBoundaryConditions();
+    psi.correctBoundaryConditions();
+
+    psi.mesh().setSolverPerformance(psi.name(), solverPerf);
 
     return solverPerf;
 }

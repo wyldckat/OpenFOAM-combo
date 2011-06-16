@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -122,7 +122,7 @@ public:
         //- Return true if this scheme uses an explicit correction
         virtual bool corrected() const
         {
-            return 
+            return
                 tScheme_().corrected()
              || skewCorrectionVectors::New(this->mesh()).skew();
         }
@@ -143,7 +143,7 @@ public:
                 (
                     IOobject
                     (
-                        vf.name(),
+                        "skewCorrected::skewCorrection(" + vf.name() + ')',
                         mesh.time().timeName(),
                         mesh
                     ),
@@ -206,8 +206,11 @@ public:
             }
             else
             {
-                return 
-                    tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >(NULL);
+                return
+                    tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
+                    (
+                        NULL
+                    );
             }
         }
 };

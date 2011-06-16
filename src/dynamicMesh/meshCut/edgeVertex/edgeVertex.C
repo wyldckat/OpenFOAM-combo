@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -70,12 +68,7 @@ void Foam::edgeVertex::updateLabels
     // Iterate over map to see if anything changed
     bool changed = false;
 
-    for
-    (
-        Map<label>::const_iterator iter = cellPairs.begin();
-        iter != cellPairs.end();
-        ++iter
-    )
+    forAllConstIter(Map<label>, cellPairs, iter)
     {
         label newMaster = map[iter.key()];
 
@@ -99,12 +92,7 @@ void Foam::edgeVertex::updateLabels
     {
         Map<label> newCellPairs(2*cellPairs.size());
 
-        for
-        (
-            Map<label>::const_iterator iter = cellPairs.begin();
-            iter != cellPairs.end();
-            ++iter
-        )
+        forAllConstIter(Map<label>, cellPairs, iter)
         {
             label newMaster = map[iter.key()];
 
@@ -146,14 +134,9 @@ void Foam::edgeVertex::updateLabels
     // Iterate over map to see if anything changed
     bool changed = false;
 
-    for
-    (
-        labelHashSet::const_iterator iter = cells.begin();
-        iter != cells.end();
-        ++iter
-    )
+    forAllConstIter(labelHashSet, cells, iter)
     {
-        label newCellI = map[iter.key()];
+        const label newCellI = map[iter.key()];
 
         if (newCellI != iter.key())
         {
@@ -168,14 +151,9 @@ void Foam::edgeVertex::updateLabels
     {
         labelHashSet newCells(2*cells.size());
 
-        for
-        (
-            labelHashSet::const_iterator iter = cells.begin();
-            iter != cells.end();
-            ++iter
-        )
+        forAllConstIter(labelHashSet, cells, iter)
         {
-            label newCellI = map[iter.key()];
+            const label newCellI = map[iter.key()];
 
             if (newCellI != -1)
             {

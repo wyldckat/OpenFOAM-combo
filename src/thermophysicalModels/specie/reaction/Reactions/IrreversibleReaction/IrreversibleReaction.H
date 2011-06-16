@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class IrreversibleReaction Declaration
+                    Class IrreversibleReaction Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class ReactionThermo, class ReactionRate>
@@ -96,6 +96,14 @@ public:
             Istream& is
         );
 
+        //- Construct from dictionary
+        IrreversibleReaction
+        (
+            const speciesTable& species,
+            const HashPtrTable<ReactionThermo>& thermoDatabase,
+            const dictionary& dict
+        );
+
         //- Construct and return a clone
         virtual autoPtr<Reaction<ReactionThermo> > clone() const
         {
@@ -122,10 +130,9 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~IrreversibleReaction()
-        {}
+    //- Destructor
+    virtual ~IrreversibleReaction()
+    {}
 
 
     // Member Functions

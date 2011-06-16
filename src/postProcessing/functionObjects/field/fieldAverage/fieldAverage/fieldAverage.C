@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,7 +69,7 @@ void Foam::fieldAverage::initialize()
     totalIter_.setSize(faItems_.size(), 1);
 
     totalTime_.clear();
-    totalTime_.setSize(faItems_.size(), obr_.time().deltaT().value());
+    totalTime_.setSize(faItems_.size(), obr_.time().deltaTValue());
 
 
     // Add mean fields to the field lists
@@ -169,7 +169,7 @@ void Foam::fieldAverage::calcAverages()
     forAll(faItems_, fieldI)
     {
         totalIter_[fieldI]++;
-        totalTime_[fieldI] += obr_.time().deltaT().value();
+        totalTime_[fieldI] += obr_.time().deltaTValue();
     }
 
     addMeanSqrToPrime2Mean<scalar, scalar>
@@ -258,7 +258,7 @@ void Foam::fieldAverage::readAveragingProperties()
             obr_.time().timeName(),
             "uniform",
             obr_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         );

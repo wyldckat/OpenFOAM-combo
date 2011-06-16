@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,27 +27,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(ChomiakInjector, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(ChomiakInjector, 0);
-
-addToRunTimeSelectionTable
-(
-    injectorModel,
-    ChomiakInjector,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        injectorModel,
+        ChomiakInjector,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-ChomiakInjector::ChomiakInjector
+Foam::ChomiakInjector::ChomiakInjector
 (
     const dictionary& dict,
     spray& sm
@@ -55,11 +52,11 @@ ChomiakInjector::ChomiakInjector
 :
     injectorModel(dict, sm),
     ChomiakDict_(dict.subDict(typeName + "Coeffs")),
-    dropletPDF_
+    sizeDistribution_
     (
-        pdfs::pdf::New
+        distributionModels::distributionModel::New
         (
-            ChomiakDict_.subDict("dropletPDF"),
+            ChomiakDict_.subDict("sizeDistribution"),
             sm.rndGen()
         )
     ),
@@ -68,7 +65,8 @@ ChomiakInjector::ChomiakInjector
 
     if (sm.injectors().size() != maxSprayAngle_.size())
     {
-        FatalError << "ChomiakInjector::ChomiakInjector"
+        FatalError
+            << "ChomiakInjector::ChomiakInjector"
             << "(const dictionary& dict, spray& sm)\n"
             << "Wrong number of entries in maxSprayAngle"
             << abort(FatalError);
@@ -79,7 +77,11 @@ ChomiakInjector::ChomiakInjector
     // correct velocityProfile
     forAll(sm.injectors(), i)
     {
-        sm.injectors()[i].properties()->correctProfiles(sm.fuels(), referencePressure);
+        sm.injectors()[i].properties()->correctProfiles
+        (
+            sm.fuels(),
+            referencePressure
+        );
     }
 
 }
@@ -87,23 +89,23 @@ ChomiakInjector::ChomiakInjector
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-ChomiakInjector::~ChomiakInjector()
+Foam::ChomiakInjector::~ChomiakInjector()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-scalar ChomiakInjector::d0
+Foam::scalar Foam::ChomiakInjector::d0
 (
     const label,
     const scalar
 ) const
 {
-    return dropletPDF_->sample();
+    return sizeDistribution_->sample();
 }
 
 
-vector ChomiakInjector::direction
+Foam::vector Foam::ChomiakInjector::direction
 (
     const label n,
     const label hole,
@@ -111,14 +113,17 @@ vector ChomiakInjector::direction
     const scalar d
 ) const
 {
-    scalar dMin = dropletPDF_->minValue();
-    scalar dMax = dropletPDF_->maxValue();
+    scalar dMin = sizeDistribution_->minValue();
+    scalar dMax = sizeDistribution_->maxValue();
 
-    scalar angle = (d-dMax)*maxSprayAngle_[n]/(dMin-dMax)*mathematicalConstant::pi/360.0;
+    scalar angle =
+        (d - dMax)*maxSprayAngle_[n]
+       /(dMin - dMax)
+       *constant::mathematical::pi/360.0;
     scalar alpha = sin(angle);
     scalar dcorr = cos(angle);
 
-    scalar beta = 2.0*mathematicalConstant::pi*rndGen_.scalar01();
+    scalar beta = constant::mathematical::twoPi*rndGen_.sample01<scalar>();
 
     // randomly distributed vector normal to the injection vector
     vector normal = vector::zero;
@@ -128,34 +133,38 @@ vector ChomiakInjector::direction
         scalar reduce = 0.01;
         // correct beta if this is a 2D run
         // map it onto the 'angleOfWedge'
-        beta *= (1.0-2.0*reduce)*0.5*sm_.angleOfWedge()/mathematicalConstant::pi;
+        beta *=
+            (1.0-2.0*reduce)*0.5*sm_.angleOfWedge()/constant::mathematical::pi;
         beta += reduce*sm_.angleOfWedge();
 
-        normal = alpha*
-        (
-            sm_.axisOfWedge()*cos(beta) +
-            sm_.axisOfWedgeNormal()*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                sm_.axisOfWedge()*cos(beta)
+              + sm_.axisOfWedgeNormal()*sin(beta)
+            );
 
     }
     else
     {
-        normal = alpha*
-        (
-            injectors_[n].properties()->tan1(hole)*cos(beta) +
-            injectors_[n].properties()->tan2(hole)*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                injectors_[n].properties()->tan1(hole)*cos(beta)
+              + injectors_[n].properties()->tan2(hole)*sin(beta)
+            );
     }
 
     // set the direction of injection by adding the normal vector
-    vector dir = dcorr*injectors_[n].properties()->direction(hole, time) + normal;
+    vector dir =
+        dcorr*injectors_[n].properties()->direction(hole, time) + normal;
     dir /= mag(dir);
 
     return dir;
-
 }
 
-scalar ChomiakInjector::velocity
+
+Foam::scalar Foam::ChomiakInjector::velocity
 (
     const label i,
     const scalar time
@@ -176,16 +185,13 @@ scalar ChomiakInjector::velocity
     }
 }
 
-scalar ChomiakInjector::averageVelocity
-(
-    const label i
-) const
+
+Foam::scalar Foam::ChomiakInjector::averageVelocity(const label i) const
 {
     const injectorType& it = sm_.injectors()[i].properties();
     scalar dt = it.teoi() - it.tsoi();
     return it.integrateTable(it.velocityProfile())/dt;
 }
 
-} // End namespace Foam
 
 // ************************************************************************* //

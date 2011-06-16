@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,7 @@ SourceFiles
 
 #include "symmTransform.H"
 #include "symmTensorField.H"
+#include "sphericalTensor.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,7 +59,11 @@ template<class Type>
 tmp<Field<Type> > transform(const tmp<symmTensorField>&, const Field<Type>&);
 
 template<class Type>
-tmp<Field<Type> > transform(const tmp<symmTensorField>&, const tmp<Field<Type> >&);
+tmp<Field<Type> > transform
+(
+    const tmp<symmTensorField>&,
+    const tmp<Field<Type> >&
+);
 
 
 template<class Type>

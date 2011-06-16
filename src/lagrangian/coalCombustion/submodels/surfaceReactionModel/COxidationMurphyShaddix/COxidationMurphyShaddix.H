@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,11 @@ Class
 
 Description
     Limited to C(s) + O2 -> CO2
+
+    Loosely based on the reference:
+        Murphy, J. J., Shaddix, C. R., Combustion kinetics of coal chars
+        in oxygen-enriched environments, Combustion and Flame 144,
+        pp710-729, 2006
 
 \*---------------------------------------------------------------------------*/
 
@@ -110,6 +115,9 @@ class COxidationMurphyShaddix
             //- Molecular weight of O2 [kg/kmol]
             scalar WO2_;
 
+            //- Formation enthalpy for CO2 [J/kg]
+            scalar HcCO2_;
+
 
 public:
 
@@ -126,15 +134,27 @@ public:
             CloudType& owner
         );
 
+        //- Construct copy
+        COxidationMurphyShaddix
+        (
+            const COxidationMurphyShaddix<CloudType>& srm
+        );
+
+        //- Construct and return a clone
+        virtual autoPtr<SurfaceReactionModel<CloudType> > clone() const
+        {
+            return autoPtr<SurfaceReactionModel<CloudType> >
+            (
+                new COxidationMurphyShaddix<CloudType>(*this)
+            );
+        }
+
 
     //- Destructor
     virtual ~COxidationMurphyShaddix();
 
 
     // Member Functions
-
-        //- Flag to indicate whether model activates surface reaction model
-        virtual bool active() const;
 
         //- Update surface reactions
         virtual scalar calculate

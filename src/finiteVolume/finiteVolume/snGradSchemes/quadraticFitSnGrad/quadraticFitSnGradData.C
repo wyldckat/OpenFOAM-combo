@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,10 +31,7 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(quadraticFitSnGradData, 0);
-}
+defineTypeNameAndDebug(Foam::quadraticFitSnGradData, 0);
 
 
 // * * * * * * * * * * * * * * * * Constructors * * * * * * * * * * * * * * //
@@ -63,7 +60,7 @@ Foam::quadraticFitSnGradData::quadraticFitSnGradData
 {
     if (debug)
     {
-        Info << "Contructing quadraticFitSnGradData" << endl;
+        Info<< "Contructing quadraticFitSnGradData" << endl;
     }
 
     // check input
@@ -107,7 +104,7 @@ Foam::quadraticFitSnGradData::quadraticFitSnGradData
 
     // find the fit coefficients for every face in the mesh
 
-    for(label faci = 0; faci < mesh.nInternalFaces(); faci++)
+    for (label faci = 0; faci < mesh.nInternalFaces(); faci++)
     {
         snGradPolySize[faci] = calcFit(stencilPoints[faci], faci);
     }
@@ -205,7 +202,7 @@ Foam::label Foam::quadraticFitSnGradData::calcFit
     // calculate the matrix of the polynomial components
     scalarRectangularMatrix B(C.size(), minSize_, scalar(0));
 
-    for(label ip = 0; ip < C.size(); ip++)
+    forAll(C, ip)
     {
         const point& p = C[ip];
 
@@ -250,10 +247,10 @@ Foam::label Foam::quadraticFitSnGradData::calcFit
     scalarList singVals(minSize_);
     label nSVDzeros = 0;
 
-    const scalar& deltaCoeff = mesh().deltaCoeffs()[faci];
+    const scalar deltaCoeff = mesh().deltaCoeffs()[faci];
 
     bool goodFit = false;
-    for(int iIt = 0; iIt < 10 && !goodFit; iIt++)
+    for (int iIt = 0; iIt < 10 && !goodFit; iIt++)
     {
         SVD svd(B, SMALL);
 
@@ -269,7 +266,7 @@ Foam::label Foam::quadraticFitSnGradData::calcFit
         {
             fit_[faci][0] = fit0;
             fit_[faci][1] = fit1;
-            for(label i = 2; i < stencilSize; i++)
+            for (label i = 2; i < stencilSize; i++)
             {
                 fit_[faci][i] = wts[0]*wts[i]*svd.VSinvUt()[1][i]/scale;
             }
@@ -281,13 +278,13 @@ Foam::label Foam::quadraticFitSnGradData::calcFit
             wts[0] *= 10;
             wts[1] *= 10;
 
-            for(label i = 0; i < B.n(); i++)
+            for (label i = 0; i < B.n(); i++)
             {
                 B[i][0] *= 10;
                 B[i][1] *= 10;
             }
 
-            for(label j = 0; j < B.m(); j++)
+            for (label j = 0; j < B.m(); j++)
             {
                 B[0][j] *= 10;
                 B[1][j] *= 10;

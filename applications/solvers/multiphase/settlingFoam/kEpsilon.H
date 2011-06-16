@@ -1,23 +1,25 @@
-if(turbulence)
+if (turbulence)
 {
     if (mesh.changing())
     {
         y.correct();
     }
 
-    dimensionedScalar k0("k0", k.dimensions(), SMALL);
-    dimensionedScalar epsilon0("epsilon0", epsilon.dimensions(), SMALL);
+    dimensionedScalar kMin("kMin", k.dimensions(), SMALL);
+    dimensionedScalar epsilonMin("epsilonMin", epsilon.dimensions(), SMALL);
 
-    volScalarField divU = fvc::div(phi/fvc::interpolate(rho));
+    volScalarField divU(fvc::div(phi/fvc::interpolate(rho)));
 
     tmp<volTensorField> tgradU = fvc::grad(U);
-    volScalarField G = 2*mut*(tgradU() && dev(symm(tgradU())));
+    volScalarField G(2*mut*(tgradU() && dev(symm(tgradU()))));
     tgradU.clear();
 
-    volScalarField Gcoef =
-        alphak*Cmu*k*(g & fvc::grad(rho))/(epsilon + epsilon0);
+    volScalarField Gcoef
+    (
+        Cmu*k/sigmak*(g & fvc::grad(rho))/(epsilon + epsilonMin)
+    );
 
-#   include "wallFunctions.H"
+    #include "wallFunctions.H"
 
     // Dissipation equation
     fvScalarMatrix epsEqn
@@ -26,7 +28,7 @@ if(turbulence)
       + fvm::div(phi, epsilon)
       - fvm::laplacian
         (
-            alphaEps*mut + mul, epsilon,
+            mut/sigmaEps + mul, epsilon,
             "laplacian(DepsilonEff,epsilon)"
         )
      ==
@@ -35,23 +37,22 @@ if(turbulence)
       - fvm::Sp(C2*rho*epsilon/k, epsilon)
     );
 
-#   include "wallDissipation.H"
+    #include "wallDissipation.H"
 
     epsEqn.relax();
     epsEqn.solve();
 
-    bound(epsilon, epsilon0);
+    bound(epsilon, epsilonMin);
 
 
     // Turbulent kinetic energy equation
-
     fvScalarMatrix kEqn
     (
         fvm::ddt(rho, k)
       + fvm::div(phi, k)
       - fvm::laplacian
         (
-            alphak*mut + mul, k,
+            mut/sigmak + mul, k,
             "laplacian(DkEff,k)"
         )
      ==
@@ -63,13 +64,13 @@ if(turbulence)
     kEqn.relax();
     kEqn.solve();
 
-    bound(k, k0);
+    bound(k, kMin);
 
 
     //- Re-calculate viscosity
-    mut = rho*Cmu*sqr(k)/epsilon;
+    mut = rho*Cmu*sqr(k)/(epsilon + epsilonMin);
 
-#   include "wallViscosity.H"
+    #include "wallViscosity.H"
 }
 
 mu = mut + mul;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,9 +54,9 @@ namespace Foam
     class ifEqEqOp
     {
         public:
-        void operator()(label& x, const label& y) const
+        void operator()(label& x, const label y) const
         {
-            x = (x==y) ? x : value;
+            x = (x == y) ? x : value;
         }
     };
 }
@@ -412,8 +412,7 @@ Foam::scalar Foam::hexRef8::getLevel0EdgeLength() const
             mesh_,
             edgeLevel,
             ifEqEqOp<labelMax>(),
-            labelMin,
-            false               // no separation
+            labelMin
         );
 
         // Now use the edgeLevel with a valid value to determine the
@@ -1126,7 +1125,7 @@ Foam::label Foam::hexRef8::storeMidPointInfo
         {
             own = anchorCell1;
             nei = anchorCell0;
-            newFace = newFace.reverseFace();
+            newFace.flip();
 
             ownPt = mesh_.points()[anchors.otherVertex(anchorPointI)];
             neiPt = mesh_.points()[anchorPointI];
@@ -1583,11 +1582,11 @@ Foam::label Foam::hexRef8::faceConsistentRefinement
         {
             if (maxSet)
             {
-                refineCell.set(nei, 1);
+                refineCell.set(nei);
             }
             else
             {
-                refineCell.set(own, 0);
+                refineCell.unset(own);
             }
             nChanged++;
         }
@@ -1595,11 +1594,11 @@ Foam::label Foam::hexRef8::faceConsistentRefinement
         {
             if (maxSet)
             {
-                refineCell.set(own, 1);
+                refineCell.set(own);
             }
             else
             {
-                refineCell.set(nei, 0);
+                refineCell.unset(nei);
             }
             nChanged++;
         }
@@ -1618,7 +1617,7 @@ Foam::label Foam::hexRef8::faceConsistentRefinement
     }
 
     // Swap to neighbour
-    syncTools::swapBoundaryFaceList(mesh_, neiLevel, false);
+    syncTools::swapBoundaryFaceList(mesh_, neiLevel);
 
     // Now we have neighbour value see which cells need refinement
     forAll(neiLevel, i)
@@ -1630,7 +1629,7 @@ Foam::label Foam::hexRef8::faceConsistentRefinement
         {
             if (!maxSet)
             {
-                refineCell.set(own, 0);
+                refineCell.unset(own);
                 nChanged++;
             }
         }
@@ -1638,7 +1637,7 @@ Foam::label Foam::hexRef8::faceConsistentRefinement
         {
             if (maxSet)
             {
-                refineCell.set(own, 1);
+                refineCell.set(own);
                 nChanged++;
             }
         }
@@ -1657,7 +1656,7 @@ void Foam::hexRef8::checkWantedRefinementLevels
     PackedBoolList refineCell(mesh_.nCells());
     forAll(cellsToRefine, i)
     {
-        refineCell.set(cellsToRefine[i], 1);
+        refineCell.set(cellsToRefine[i]);
     }
 
     for (label faceI = 0; faceI < mesh_.nInternalFaces(); faceI++)
@@ -1700,7 +1699,7 @@ void Foam::hexRef8::checkWantedRefinementLevels
     }
 
     // Swap to neighbour
-    syncTools::swapBoundaryFaceList(mesh_, neiLevel, false);
+    syncTools::swapBoundaryFaceList(mesh_, neiLevel);
 
     // Now we have neighbour value see which cells need refinement
     forAll(neiLevel, i)
@@ -2042,7 +2041,7 @@ Foam::labelList Foam::hexRef8::consistentRefinement
     PackedBoolList refineCell(mesh_.nCells());
     forAll(cellsToRefine, i)
     {
-        refineCell.set(cellsToRefine[i], 1);
+        refineCell.set(cellsToRefine[i]);
     }
 
     while (true)
@@ -2070,7 +2069,7 @@ Foam::labelList Foam::hexRef8::consistentRefinement
 
     forAll(refineCell, cellI)
     {
-        if (refineCell.get(cellI) == 1)
+        if (refineCell.get(cellI))
         {
             nRefined++;
         }
@@ -2081,7 +2080,7 @@ Foam::labelList Foam::hexRef8::consistentRefinement
 
     forAll(refineCell, cellI)
     {
-        if (refineCell.get(cellI) == 1)
+        if (refineCell.get(cellI))
         {
             newCellsToRefine[nRefined++] = cellI;
         }
@@ -2166,6 +2165,9 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
     // refinementLevel data on seed faces
     DynamicList<refinementData> seedFacesInfo(mesh_.nFaces()/100);
 
+    // Dummy additional info for FaceCellWave
+    int dummyTrackData = 0;
+
 
     // Additional buffer layer thickness by changing initial count. Usually
     // this happens on boundary faces. Bit tricky. Use allFaceInfo to mark
@@ -2174,7 +2176,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
     {
         label faceI = facesToCheck[i];
 
-        if (allFaceInfo[faceI].valid())
+        if (allFaceInfo[faceI].valid(dummyTrackData))
         {
             // Can only occur if face has already gone through loop below.
             FatalErrorIn
@@ -2221,7 +2223,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                     faceCount
                 )
             );
-            allFaceInfo[faceI] = seedFacesInfo[seedFacesInfo.size()-1];
+            allFaceInfo[faceI] = seedFacesInfo.last();
         }
         else
         {
@@ -2237,7 +2239,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                     faceCount
                 )
             );
-            allFaceInfo[faceI] = seedFacesInfo[seedFacesInfo.size()-1];
+            allFaceInfo[faceI] = seedFacesInfo.last();
         }
     }
 
@@ -2248,7 +2250,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
     forAll(faceNeighbour, faceI)
     {
         // Check if face already handled in loop above
-        if (!allFaceInfo[faceI].valid())
+        if (!allFaceInfo[faceI].valid(dummyTrackData))
         {
             label own = faceOwner[faceI];
             label nei = faceNeighbour[faceI];
@@ -2263,7 +2265,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                     faceI,
                     own,
                     allCellInfo[own],
-                    FaceCellWave<refinementData>::propagationTol()
+                    FaceCellWave<refinementData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 seedFaces.append(faceI);
                 seedFacesInfo.append(allFaceInfo[faceI]);
@@ -2276,7 +2279,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                     faceI,
                     nei,
                     allCellInfo[nei],
-                    FaceCellWave<refinementData>::propagationTol()
+                    FaceCellWave<refinementData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 seedFaces.append(faceI);
                 seedFacesInfo.append(allFaceInfo[faceI]);
@@ -2290,7 +2294,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
     for (label faceI = mesh_.nInternalFaces(); faceI < mesh_.nFaces(); faceI++)
     {
         // Check if face already handled in loop above
-        if (!allFaceInfo[faceI].valid())
+        if (!allFaceInfo[faceI].valid(dummyTrackData))
         {
             label own = faceOwner[faceI];
 
@@ -2302,7 +2306,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                 faceI,
                 own,
                 allCellInfo[own],
-                FaceCellWave<refinementData>::propagationTol()
+                FaceCellWave<refinementData, int>::propagationTol(),
+                dummyTrackData
             );
             seedFaces.append(faceI);
             seedFacesInfo.append(faceData);
@@ -2311,14 +2316,15 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
 
 
     // face-cell-face transport engine
-    FaceCellWave<refinementData> levelCalc
+    FaceCellWave<refinementData, int> levelCalc
     (
         mesh_,
         allFaceInfo,
-        allCellInfo
+        allCellInfo,
+        dummyTrackData
     );
 
-    while(true)
+    while (true)
     {
         if (debug)
         {
@@ -2333,7 +2339,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
         seedFacesInfo.clear();
 
         // Iterate until no change. Now 2:1 face difference should be satisfied
-        levelCalc.iterate(mesh_.globalData().nTotalFaces());
+        levelCalc.iterate(mesh_.globalData().nTotalFaces()+1);
 
 
         // Now check point-connected cells (face-connected cells already ok):
@@ -2369,8 +2375,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
             mesh_,
             maxPointCount,
             maxEqOp<label>(),
-            labelMin,           // null value
-            false               // no separation
+            labelMin            // null value
         );
 
         // Update allFaceInfo from maxPointCount for all points to check
@@ -2420,7 +2425,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
                             faceI,
                             cellI,
                             cellInfo,
-                            FaceCellWave<refinementData>::propagationTol()
+                            FaceCellWave<refinementData, int>::propagationTol(),
+                            dummyTrackData
                         );
 
                         if (faceData.count() > allFaceInfo[faceI].count())
@@ -2509,9 +2515,9 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement
         }
 
         // Swap to neighbour
-        syncTools::swapBoundaryFaceList(mesh_, neiLevel, false);
-        syncTools::swapBoundaryFaceList(mesh_, neiCount, false);
-        syncTools::swapBoundaryFaceList(mesh_, neiRefCount, false);
+        syncTools::swapBoundaryFaceList(mesh_, neiLevel);
+        syncTools::swapBoundaryFaceList(mesh_, neiCount);
+        syncTools::swapBoundaryFaceList(mesh_, neiRefCount);
 
         // Now we have neighbour value see which cells need refinement
         forAll(neiLevel, i)
@@ -2629,6 +2635,9 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
     // Initial information about (distance to) cellLevel on all faces
     List<refinementDistanceData> allFaceInfo(mesh_.nFaces());
 
+    // Dummy additional info for FaceCellWave
+    int dummyTrackData = 0;
+
 
     // Mark cells with wanted refinement level
     forAll(cellsToRefine, i)
@@ -2645,7 +2654,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
     // Mark all others with existing refinement level
     forAll(allCellInfo, cellI)
     {
-        if (!allCellInfo[cellI].valid())
+        if (!allCellInfo[cellI].valid(dummyTrackData))
         {
             allCellInfo[cellI] = refinementDistanceData
             (
@@ -2662,14 +2671,13 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
     // refinementLevel data on seed faces
     DynamicList<refinementDistanceData> seedFacesInfo(mesh_.nFaces()/100);
 
-
     const pointField& cc = mesh_.cellCentres();
 
     forAll(facesToCheck, i)
     {
         label faceI = facesToCheck[i];
 
-        if (allFaceInfo[faceI].valid())
+        if (allFaceInfo[faceI].valid(dummyTrackData))
         {
             // Can only occur if face has already gone through loop below.
             FatalErrorIn
@@ -2687,7 +2695,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
         label ownLevel =
         (
-            allCellInfo[own].valid()
+            allCellInfo[own].valid(dummyTrackData)
           ? allCellInfo[own].originLevel()
           : cellLevel_[own]
         );
@@ -2711,7 +2719,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                 faceI,
                 own,        // not used (should be nei)
                 neiData,
-                FaceCellWave<refinementDistanceData>::propagationTol()
+                FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                dummyTrackData
             );
         }
         else
@@ -2720,7 +2729,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
             label neiLevel =
             (
-                allCellInfo[nei].valid()
+                allCellInfo[nei].valid(dummyTrackData)
               ? allCellInfo[nei].originLevel()
               : cellLevel_[nei]
             );
@@ -2734,7 +2743,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     nei,
                     refinementDistanceData(level0Size, cc[nei], neiLevel+1),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 allFaceInfo[faceI].updateFace
                 (
@@ -2742,7 +2752,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     own,
                     refinementDistanceData(level0Size, cc[own], ownLevel+1),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
             }
             else
@@ -2754,7 +2765,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     nei,
                     refinementDistanceData(level0Size, cc[nei], neiLevel),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 allFaceInfo[faceI].updateFace
                 (
@@ -2762,7 +2774,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     own,
                     refinementDistanceData(level0Size, cc[own], ownLevel),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
             }
         }
@@ -2777,13 +2790,13 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
     forAll(faceNeighbour, faceI)
     {
         // Check if face already handled in loop above
-        if (!allFaceInfo[faceI].valid())
+        if (!allFaceInfo[faceI].valid(dummyTrackData))
         {
             label own = faceOwner[faceI];
 
             label ownLevel =
             (
-                allCellInfo[own].valid()
+                allCellInfo[own].valid(dummyTrackData)
               ? allCellInfo[own].originLevel()
               : cellLevel_[own]
             );
@@ -2792,7 +2805,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
             label neiLevel =
             (
-                allCellInfo[nei].valid()
+                allCellInfo[nei].valid(dummyTrackData)
               ? allCellInfo[nei].originLevel()
               : cellLevel_[nei]
             );
@@ -2807,7 +2820,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     own,
                     refinementDistanceData(level0Size, cc[own], ownLevel),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 seedFacesInfo.append(allFaceInfo[faceI]);
             }
@@ -2820,7 +2834,8 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
                     faceI,
                     nei,
                     refinementDistanceData(level0Size, cc[nei], neiLevel),
-                    FaceCellWave<refinementDistanceData>::propagationTol()
+                    FaceCellWave<refinementDistanceData, int>::propagationTol(),
+                    dummyTrackData
                 );
                 seedFacesInfo.append(allFaceInfo[faceI]);
             }
@@ -2831,14 +2846,15 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
     seedFacesInfo.shrink();
 
     // face-cell-face transport engine
-    FaceCellWave<refinementDistanceData> levelCalc
+    FaceCellWave<refinementDistanceData, int> levelCalc
     (
         mesh_,
         seedFaces,
         seedFacesInfo,
         allFaceInfo,
         allCellInfo,
-        mesh_.globalData().nTotalCells()
+        mesh_.globalData().nTotalCells()+1,
+        dummyTrackData
     );
 
 
@@ -2894,7 +2910,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
         if (wanted > cellLevel_[cellI]+1)
         {
-            refineCell.set(cellI, 1);
+            refineCell.set(cellI);
         }
     }
     faceConsistentRefinement(true, refineCell);
@@ -2923,7 +2939,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
     forAll(refineCell, cellI)
     {
-        if (refineCell.get(cellI) == 1)
+        if (refineCell.get(cellI))
         {
             nRefined++;
         }
@@ -2934,7 +2950,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
 
     forAll(refineCell, cellI)
     {
-        if (refineCell.get(cellI) == 1)
+        if (refineCell.get(cellI))
         {
             newCellsToRefine[nRefined++] = cellI;
         }
@@ -2967,7 +2983,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
         PackedBoolList refineCell(mesh_.nCells());
         forAll(newCellsToRefine, i)
         {
-            refineCell.set(newCellsToRefine[i], 1);
+            refineCell.set(newCellsToRefine[i]);
         }
         const PackedBoolList savedRefineCell(refineCell);
 
@@ -2980,7 +2996,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
             );
             forAll(refineCell, cellI)
             {
-                if (refineCell.get(cellI) == 1)
+                if (refineCell.get(cellI))
                 {
                     cellsOut2.insert(cellI);
                 }
@@ -2995,11 +3011,7 @@ Foam::labelList Foam::hexRef8::consistentSlowRefinement2
         {
             forAll(refineCell, cellI)
             {
-                if
-                (
-                    refineCell.get(cellI) == 1
-                 && savedRefineCell.get(cellI) == 0
-                )
+                if (refineCell.get(cellI) && !savedRefineCell.get(cellI))
                 {
                     dumpCell(cellI);
                     FatalErrorIn
@@ -3160,8 +3172,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
         mesh_,
         edgeMidPoint,
         maxEqOp<label>(),
-        labelMin,
-        false               // no separation
+        labelMin
     );
 
 
@@ -3183,13 +3194,12 @@ Foam::labelListList Foam::hexRef8::setRefinement
                 edgeMids[edgeI] = mesh_.edges()[edgeI].centre(mesh_.points());
             }
         }
-        syncTools::syncEdgeList
+        syncTools::syncEdgePositions
         (
             mesh_,
             edgeMids,
             maxEqOp<vector>(),
-            point(-GREAT, -GREAT, -GREAT),
-            true               // apply separation
+            point(-GREAT, -GREAT, -GREAT)
         );
 
 
@@ -3314,7 +3324,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
         }
 
         // Swap.
-        syncTools::swapBoundaryFaceList(mesh_, newNeiLevel, false);
+        syncTools::swapBoundaryFaceList(mesh_, newNeiLevel);
 
         // So now we have information on the neighbour.
 
@@ -3346,8 +3356,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
     (
         mesh_,
         faceMidPoint,
-        maxEqOp<label>(),
-        false
+        maxEqOp<label>()
     );
 
 
@@ -3373,12 +3382,11 @@ Foam::labelListList Foam::hexRef8::setRefinement
                 bFaceMids[i] = mesh_.faceCentres()[faceI];
             }
         }
-        syncTools::syncBoundaryFaceList
+        syncTools::syncBoundaryFacePositions
         (
             mesh_,
             bFaceMids,
-            maxEqOp<vector>(),
-            true               // apply separation
+            maxEqOp<vector>()
         );
 
         forAll(faceMidPoint, faceI)
@@ -3605,7 +3613,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
 
                 forAll(cFaces, i)
                 {
-                    affectedFace.set(cFaces[i], 1);
+                    affectedFace.set(cFaces[i]);
                 }
             }
         }
@@ -3614,7 +3622,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
         {
             if (faceMidPoint[faceI] >= 0)
             {
-                affectedFace.set(faceI, 1);
+                affectedFace.set(faceI);
             }
         }
 
@@ -3626,7 +3634,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
 
                 forAll(eFaces, i)
                 {
-                    affectedFace.set(eFaces[i], 1);
+                    affectedFace.set(eFaces[i]);
                 }
             }
         }
@@ -3643,7 +3651,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
 
     forAll(faceMidPoint, faceI)
     {
-        if (faceMidPoint[faceI] >= 0 && affectedFace.get(faceI) == 1)
+        if (faceMidPoint[faceI] >= 0 && affectedFace.get(faceI))
         {
             // Face needs to be split and hasn't yet been done in some way
             // (affectedFace - is impossible since this is first change but
@@ -3764,7 +3772,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
             }
 
             // Mark face as having been handled
-            affectedFace.set(faceI, 0);
+            affectedFace.unset(faceI);
         }
     }
 
@@ -3794,7 +3802,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
             {
                 label faceI = eFaces[i];
 
-                if (faceMidPoint[faceI] < 0 && affectedFace.get(faceI) == 1)
+                if (faceMidPoint[faceI] < 0 && affectedFace.get(faceI))
                 {
                     // Unsplit face. Add edge splits to face.
 
@@ -3875,7 +3883,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
                     modFace(meshMod, faceI, newFace, own, nei);
 
                     // Mark face as having been handled
-                    affectedFace.set(faceI, 0);
+                    affectedFace.unset(faceI);
                 }
             }
         }
@@ -3894,7 +3902,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
 
     forAll(affectedFace, faceI)
     {
-        if (affectedFace.get(faceI) == 1)
+        if (affectedFace.get(faceI))
         {
             const face& f = mesh_.faces()[faceI];
 
@@ -3917,7 +3925,7 @@ Foam::labelListList Foam::hexRef8::setRefinement
             modFace(meshMod, faceI, f, own, nei);
 
             // Mark face as having been handled
-            affectedFace.set(faceI, 0);
+            affectedFace.unset(faceI);
         }
     }
 
@@ -4386,7 +4394,7 @@ void Foam::hexRef8::distribute(const mapDistributePolyMesh& map)
 
 void Foam::hexRef8::checkMesh() const
 {
-    const scalar smallDim = 1E-6 * mesh_.globalData().bb().mag();
+    const scalar smallDim = 1E-6 * mesh_.bounds().mag();
 
     if (debug)
     {
@@ -4408,7 +4416,7 @@ void Foam::hexRef8::checkMesh() const
         }
 
         // Replace data on coupled patches with their neighbour ones.
-        syncTools::swapBoundaryFaceList(mesh_, nei, false);
+        syncTools::swapBoundaryFaceList(mesh_, nei);
 
         const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
@@ -4463,7 +4471,7 @@ void Foam::hexRef8::checkMesh() const
         }
 
         // Replace data on coupled patches with their neighbour ones.
-        syncTools::swapBoundaryFaceList(mesh_, neiFaceAreas, false);
+        syncTools::swapBoundaryFaceList(mesh_, neiFaceAreas);
 
         forAll(neiFaceAreas, i)
         {
@@ -4506,7 +4514,7 @@ void Foam::hexRef8::checkMesh() const
         }
 
         // Replace data on coupled patches with their neighbour ones.
-        syncTools::swapBoundaryFaceList(mesh_, nVerts, false);
+        syncTools::swapBoundaryFaceList(mesh_, nVerts);
 
         forAll(nVerts, i)
         {
@@ -4555,7 +4563,7 @@ void Foam::hexRef8::checkMesh() const
         // Replace data on coupled patches with their neighbour ones. Apply
         // rotation transformation (but not separation since is relative vector
         // to point on same face.
-        syncTools::swapBoundaryFaceList(mesh_, anchorPoints, false);
+        syncTools::swapBoundaryFaceList(mesh_, anchorPoints);
 
         forAll(anchorPoints, i)
         {
@@ -4660,7 +4668,7 @@ void Foam::hexRef8::checkRefinementLevels
         }
 
         // No separation
-        syncTools::swapBoundaryFaceList(mesh_, neiLevel, false);
+        syncTools::swapBoundaryFaceList(mesh_, neiLevel);
 
         forAll(neiLevel, i)
         {
@@ -4702,8 +4710,7 @@ void Foam::hexRef8::checkRefinementLevels
             mesh_,
             syncPointLevel,
             minEqOp<label>(),
-            labelMax,
-            false               // no separation
+            labelMax
         );
 
 
@@ -4750,8 +4757,7 @@ void Foam::hexRef8::checkRefinementLevels
             mesh_,
             maxPointLevel,
             maxEqOp<label>(),
-            labelMin,           // null value
-            false               // no separation
+            labelMin            // null value
         );
 
         // Check 2:1 across boundary points
@@ -5101,7 +5107,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
     {
         label pointI = pointsToUnrefine[i];
 
-        unrefinePoint.set(pointI, 1);
+        unrefinePoint.set(pointI);
     }
 
 
@@ -5114,13 +5120,13 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
 
         forAll(unrefinePoint, pointI)
         {
-            if (unrefinePoint.get(pointI) == 1)
+            if (unrefinePoint.get(pointI))
             {
                 const labelList& pCells = mesh_.pointCells(pointI);
 
                 forAll(pCells, j)
                 {
-                    unrefineCell.set(pCells[j], 1);
+                    unrefineCell.set(pCells[j]);
                 }
             }
         }
@@ -5148,17 +5154,24 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
 
                 if (maxSet)
                 {
-                    unrefineCell.set(nei, 1);
+                    unrefineCell.set(nei);
                 }
                 else
                 {
+                    // could also combine with unset:
+                    // if (!unrefineCell.unset(own))
+                    // {
+                    //     FatalErrorIn("hexRef8::consistentUnrefinement(..)")
+                    //         << "problem cell already unset"
+                    //         << abort(FatalError);
+                    // }
                     if (unrefineCell.get(own) == 0)
                     {
                         FatalErrorIn("hexRef8::consistentUnrefinement(..)")
                             << "problem" << abort(FatalError);
                     }
 
-                    unrefineCell.set(own, 0);
+                    unrefineCell.unset(own);
                 }
                 nChanged++;
             }
@@ -5166,7 +5179,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
             {
                 if (maxSet)
                 {
-                    unrefineCell.set(own, 1);
+                    unrefineCell.set(own);
                 }
                 else
                 {
@@ -5176,7 +5189,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
                             << "problem" << abort(FatalError);
                     }
 
-                    unrefineCell.set(nei, 0);
+                    unrefineCell.unset(nei);
                 }
                 nChanged++;
             }
@@ -5194,7 +5207,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
         }
 
         // Swap to neighbour
-        syncTools::swapBoundaryFaceList(mesh_, neiLevel, false);
+        syncTools::swapBoundaryFaceList(mesh_, neiLevel);
 
         forAll(neiLevel, i)
         {
@@ -5212,7 +5225,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
                             << "problem" << abort(FatalError);
                     }
 
-                    unrefineCell.set(own, 0);
+                    unrefineCell.unset(own);
                     nChanged++;
                 }
             }
@@ -5226,7 +5239,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
                             << "problem" << abort(FatalError);
                     }
 
-                    unrefineCell.set(own, 1);
+                    unrefineCell.set(own);
                     nChanged++;
                 }
             }
@@ -5254,15 +5267,15 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
         // Knock out any point whose cell neighbour cannot be unrefined.
         forAll(unrefinePoint, pointI)
         {
-            if (unrefinePoint.get(pointI) == 1)
+            if (unrefinePoint.get(pointI))
             {
                 const labelList& pCells = mesh_.pointCells(pointI);
 
                 forAll(pCells, j)
                 {
-                    if (unrefineCell.get(pCells[j]) == 0)
+                    if (!unrefineCell.get(pCells[j]))
                     {
-                        unrefinePoint.set(pointI, 0);
+                        unrefinePoint.unset(pointI);
                         break;
                     }
                 }
@@ -5276,7 +5289,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
 
     forAll(unrefinePoint, pointI)
     {
-        if (unrefinePoint.get(pointI) == 1)
+        if (unrefinePoint.get(pointI))
         {
             nSet++;
         }
@@ -5287,7 +5300,7 @@ Foam::labelList Foam::hexRef8::consistentUnrefinement
 
     forAll(unrefinePoint, pointI)
     {
-        if (unrefinePoint.get(pointI) == 1)
+        if (unrefinePoint.get(pointI))
         {
             newPointsToUnrefine[nSet++] = pointI;
         }
@@ -5325,7 +5338,11 @@ void Foam::hexRef8::setUnrefinement
             {
                 FatalErrorIn
                 (
-                    "hexRef8::setUnrefinement(const labelList&, polyTopoChange&)"
+                    "hexRef8::setUnrefinement"
+                    "("
+                        "const labelList&, "
+                        "polyTopoChange&"
+                    ")"
                 )   << "Illegal cell level " << cellLevel_[cellI]
                     << " for cell " << cellI
                     << abort(FatalError);

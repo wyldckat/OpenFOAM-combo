@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,6 +81,9 @@ class treeDataEdge
         //- Calculate edge bounding box
         treeBoundBox calcBb(const label edgeI) const;
 
+        //- Initialise all member data
+        void update();
+
 public:
 
     // Declare name of the class and its debug switch
@@ -95,13 +98,28 @@ public:
             const bool cacheBb,
             const edgeList& edges,
             const pointField& points,
-            const labelList& edgeLabels
+            const labelUList& edgeLabels
+        );
+
+        //- Construct from selected edges, transferring contents.
+        // !Holds references to edges and points
+        treeDataEdge
+        (
+            const bool cacheBb,
+            const edgeList& edges,
+            const pointField& points,
+            const Xfer<labelList>& edgeLabels
         );
 
 
     // Member Functions
 
         // Access
+
+            const labelList& edgeLabels() const
+            {
+                return edgeLabels_;
+            }
 
             label size() const
             {
@@ -110,7 +128,7 @@ public:
 
             //- Get representative point cloud for all shapes inside
             //  (one point per shape)
-            pointField points() const;
+            pointField shapePoints() const;
 
 
         // Search
@@ -134,7 +152,7 @@ public:
             //  Returns actual point and distance (squared)
             void findNearest
             (
-                const labelList& indices,
+                const labelUList& indices,
                 const point& sample,
 
                 scalar& nearestDistSqr,
@@ -146,7 +164,7 @@ public:
             //  Returns point and distance (squared)
             void findNearest
             (
-                const labelList& indices,
+                const labelUList& indices,
                 const linePointRef& ln,
 
                 treeBoundBox& tightest,

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,7 +83,7 @@ void MapInternalField<Type, MeshMapper, surfaceMesh>::operator()
     // Flip the flux
     const labelList flipFaces = mapper.surfaceMap().flipFaceFlux().toc();
 
-    forAll (flipFaces, i)
+    forAll(flipFaces, i)
     {
         if (flipFaces[i] < field.size())
         {

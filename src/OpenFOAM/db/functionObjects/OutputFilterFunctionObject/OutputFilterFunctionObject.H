@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,13 +26,13 @@ Class
 
 Description
     A functionObject wrapper around OutputFilter to allow them to be
-    created via the functions list within controlDict.
+    created via the functions entry within controlDict.
 
 Note
     Since the timeIndex is used directly from Foam::Time, it is unaffected
-    by user-time conversions. For example, Foam::engineTime might cause @a
+    by user-time conversions. For example, Foam::engineTime might cause \a
     writeInterval to be degrees crank angle, but the functionObject
-    execution @a interval would still be in timestep.
+    execution \a interval would still be in timestep.
 
 SourceFiles
     OutputFilterFunctionObject.C
@@ -92,7 +92,7 @@ class OutputFilterFunctionObject
 
         //- Read relevant dictionary entries
         void readDict();
- 
+
         //- Creates most of the data associated with this object.
         void allocateFilter();
 
@@ -183,7 +183,7 @@ public:
             virtual bool start();
 
             //- Called at each ++ or += of the time-loop
-            virtual bool execute();
+            virtual bool execute(const bool forceWrite);
 
             //- Called when Time::run() determines that the time-loop exits
             virtual bool end();

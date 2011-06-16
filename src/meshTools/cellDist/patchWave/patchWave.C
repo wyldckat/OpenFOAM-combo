@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,8 +26,8 @@ License
 #include "patchWave.H"
 #include "polyMesh.H"
 #include "wallPoint.H"
-#include "MeshWave.H"
 #include "globalMeshData.H"
+#include "SubField.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -82,7 +82,7 @@ Foam::label Foam::patchWave::getValues(const MeshWave<wallPoint>& waveInfo)
     {
         scalar dist = cellInfo[cellI].distSqr();
 
-        if (cellInfo[cellI].valid())
+        if (cellInfo[cellI].valid(waveInfo.data()))
         {
             distance_[cellI] = Foam::sqrt(dist);
         }
@@ -112,7 +112,7 @@ Foam::label Foam::patchWave::getValues(const MeshWave<wallPoint>& waveInfo)
 
             scalar dist = faceInfo[meshFaceI].distSqr();
 
-            if (faceInfo[meshFaceI].valid())
+            if (faceInfo[meshFaceI].valid(waveInfo.data()))
             {
                 // Adding SMALL to avoid problems with /0 in the turbulence
                 // models
@@ -186,7 +186,7 @@ void Foam::patchWave::correct()
         mesh(),
         changedFaces,
         faceDist,
-        mesh().globalData().nTotalCells()   // max iterations
+        mesh().globalData().nTotalCells()+1 // max iterations
     );
 
 

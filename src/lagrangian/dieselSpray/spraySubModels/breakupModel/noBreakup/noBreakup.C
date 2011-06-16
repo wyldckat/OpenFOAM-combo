@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,24 +30,23 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(noBreakup, 0);
+namespace Foam
+{
+    defineTypeNameAndDebug(noBreakup, 0);
 
-addToRunTimeSelectionTable
-(
-    breakupModel,
-    noBreakup,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        breakupModel,
+        noBreakup,
+        dictionary
+    );
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noBreakup::noBreakup
+Foam::noBreakup::noBreakup
 (
     const dictionary& dict,
     spray& sm
@@ -59,25 +58,22 @@ noBreakup::noBreakup
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noBreakup::~noBreakup()
+Foam::noBreakup::~noBreakup()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void noBreakup::breakupParcel
+void Foam::noBreakup::breakupParcel
 (
     parcel&,
     const scalar,
     const vector&,
-    const liquidMixture&
+    const liquidMixtureProperties&
 ) const
 {
     // Do nothing
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

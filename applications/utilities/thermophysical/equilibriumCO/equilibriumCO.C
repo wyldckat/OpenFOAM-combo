@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    
+
 Description
     Calculates the equilibrium level of carbon monoxide
 
@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
 {
 
 #   include "setRootCase.H"
-
 #   include "createTime.H"
 
     Info<< nl << "Reading Burcat data IOdictionary" << endl;
@@ -63,7 +62,7 @@ int main(int argc, char *argv[])
             "BurcatCpData",
             runTime.constant(),
             runTime,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -119,16 +118,10 @@ int main(int argc, char *argv[])
     );
 
 
-    for
-    (
-        SLPtrList<thermo>::iterator EQreactionsIter = EQreactions.begin();
-        EQreactionsIter != EQreactions.end();
-        ++EQreactionsIter
-    )
+    forAllConstIter(SLPtrList<thermo>, EQreactions, iter)
     {
-        Info<< "Kc(EQreactions) = " << EQreactionsIter().Kc(T) << endl;
+        Info<< "Kc(EQreactions) = " << iter().Kc(T) << endl;
     }
-
 
     Info<< nl << "end" << endl;
 

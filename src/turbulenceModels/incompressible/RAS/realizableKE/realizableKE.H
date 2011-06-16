@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     Realizable k-epsilon turbulence model for incompressible flows.
 
     Model described in the paper:
-    @verbatim
+    \verbatim
         "A New k-epsilon Eddy Viscosity Model for High Reynolds Number
         Turbulent Flows"
 
@@ -36,10 +36,10 @@ Description
         Jiang Zhu
 
         Computers and Fluids Vol. 24, No. 3, pp. 227-238, 1995
-    @endverbatim
+    \endverbatim
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         realizableKECoeffs
         {
             Cmu         0.09;
@@ -48,7 +48,7 @@ Description
             sigmak      1.0;
             sigmaEps    1.2;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     realizableKE.C
@@ -77,7 +77,10 @@ class realizableKE
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -95,7 +98,7 @@ class realizableKE
             volScalarField nut_;
 
 
-    // Private member functions
+    // Protected Member Functions
 
         tmp<volScalarField> rCmu
         (
@@ -119,7 +122,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

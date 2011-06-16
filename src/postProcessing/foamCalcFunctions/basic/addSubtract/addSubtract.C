@@ -212,8 +212,8 @@ void Foam::calcTypes::addSubtract::preCalc
     const fvMesh& mesh
 )
 {
-    baseFieldName_ = args.additionalArgs()[1];
-    word calcModeName = args.additionalArgs()[2];
+    baseFieldName_ = args[2];
+    const word calcModeName = args[3];
 
     if (calcModeName == "add")
     {
@@ -231,14 +231,12 @@ void Foam::calcTypes::addSubtract::preCalc
             << exit(FatalError);
     }
 
-    if (args.optionFound("field"))
+    if (args.optionReadIfPresent("field", addSubtractFieldName_))
     {
-        addSubtractFieldName_ = args.option("field");
         calcType_ = FIELD;
     }
-    else if (args.optionFound("value"))
+    else if (args.optionReadIfPresent("value", addSubtractValueStr_))
     {
-        addSubtractValueStr_ = args.option("value");
         calcType_ = VALUE;
     }
     else
@@ -248,10 +246,7 @@ void Foam::calcTypes::addSubtract::preCalc
             << nl << exit(FatalError);
     }
 
-    if (args.optionFound("resultName"))
-    {
-        resultName_ = args.option("resultName");
-    }
+    args.optionReadIfPresent("resultName", resultName_);
 }
 
 

@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -31,13 +31,18 @@
 #
 #------------------------------------------------------------------------------
 usage() {
-    while [ "$#" -ge 1 ]; do echo "$1" 1>&2; shift; done
-    cat <<USAGE 1>&2
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat <<USAGE
 
-usage: ${0##*/} [-case dir] [-region name]
+Usage: ${0##*/} [OPTION]
+options:
+  -case <dir>       specify alternative case directory, default is the cwd
+  -region <name>    specify alternative mesh region
+  -help             print the usage
 
-    Remove the contents of the constant/polyMesh directory
-    as per the Foam::polyMesh::removeFiles() method.
+Remove the contents of the constant/polyMesh directory as per the
+Foam::polyMesh::removeFiles() method.
 
 USAGE
    exit 1
@@ -109,6 +114,7 @@ fi
 
 #
 # remove files (mesh itself, modifiers, snappyHexMesh ones) and subdirectories
+# also remove .gz versions of the same files
 #
 echo "Clearing ${caseDir:-.}/$meshDir" 1>&2
 
@@ -129,25 +135,9 @@ for i in \
     pointLevel \
     refinementHistory \
     surfaceIndex \
-    points.gz \
-    faces.gz \
-    owner.gz \
-    neighbour.gz \
-    cells.gz \
-    boundary.gz \
-    pointZones.gz \
-    faceZones.gz \
-    cellZones.gz \
-    meshModifiers.gz \
-    parallelData.gz \
-    sets.gz \
-    cellLevel.gz \
-    pointLevel.gz \
-    refinementHistory.gz \
-    surfaceIndex.gz \
 ;
 do
-    rm -rf $meshDir/$i
+    rm -rf $meshDir/$i $meshDir/$i.gz
 done
 
 #------------------------------------------------------------------------------

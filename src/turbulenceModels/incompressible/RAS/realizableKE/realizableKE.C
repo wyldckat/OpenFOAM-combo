@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,21 +54,25 @@ tmp<volScalarField> realizableKE::rCmu
     tmp<volSymmTensorField> tS = dev(symm(gradU));
     const volSymmTensorField& S = tS();
 
-    volScalarField W =
+    tmp<volScalarField> W
+    (
         (2*sqrt(2.0))*((S&S)&&S)
        /(
             magS*S2
           + dimensionedScalar("small", dimensionSet(0, 0, -3, 0, 0), SMALL)
-        );
+        )
+    );
 
     tS.clear();
 
-    volScalarField phis =
-        (1.0/3.0)*acos(min(max(sqrt(6.0)*W, -scalar(1)), scalar(1)));
-    volScalarField As = sqrt(6.0)*cos(phis);
-    volScalarField Us = sqrt(S2/2.0 + magSqr(skew(gradU)));
+    tmp<volScalarField> phis
+    (
+        (1.0/3.0)*acos(min(max(sqrt(6.0)*W, -scalar(1)), scalar(1)))
+    );
+    tmp<volScalarField> As = sqrt(6.0)*cos(phis);
+    tmp<volScalarField> Us = sqrt(S2/2.0 + magSqr(skew(gradU)));
 
-    return 1.0/(A0_ + As*Us*k_/(epsilon_ + epsilonSmall_));
+    return 1.0/(A0_ + As*Us*k_/epsilon_);
 }
 
 
@@ -77,8 +81,8 @@ tmp<volScalarField> realizableKE::rCmu
     const volTensorField& gradU
 )
 {
-    volScalarField S2 = 2*magSqr(dev(symm(gradU)));
-    volScalarField magS = sqrt(S2);
+    const volScalarField S2(2*magSqr(dev(symm(gradU))));
+    tmp<volScalarField> magS = sqrt(S2);
     return rCmu(gradU, S2, magS);
 }
 
@@ -89,10 +93,12 @@ realizableKE::realizableKE
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -177,10 +183,10 @@ realizableKE::realizableKE
         autoCreateNut("nut", mesh_)
     )
 {
-    bound(k_, k0_);
-    bound(epsilon_, epsilon0_);
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
 
-    nut_ = rCmu(fvc::grad(U_))*sqr(k_)/(epsilon_ + epsilonSmall_);
+    nut_ = rCmu(fvc::grad(U_))*sqr(k_)/epsilon_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -235,7 +241,7 @@ tmp<fvVectorMatrix> realizableKE::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -268,16 +274,16 @@ void realizableKE::correct()
         return;
     }
 
-    volTensorField gradU = fvc::grad(U_);
-    volScalarField S2 = 2*magSqr(dev(symm(gradU)));
-    volScalarField magS = sqrt(S2);
+    const volTensorField gradU(fvc::grad(U_));
+    const volScalarField S2(2*magSqr(dev(symm(gradU))));
+    const volScalarField magS(sqrt(S2));
 
-    volScalarField eta = magS*k_/epsilon_;
-    volScalarField C1 = max(eta/(scalar(5) + eta), scalar(0.43));
+    const volScalarField eta(magS*k_/epsilon_);
+    tmp<volScalarField> C1 = max(eta/(scalar(5) + eta), scalar(0.43));
 
     volScalarField G("RASModel::G", nut_*S2);
 
-    // Update espsilon and G at the wall
+    // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
 
 
@@ -302,7 +308,7 @@ void realizableKE::correct()
     epsEqn().boundaryManipulate(epsilon_.boundaryField());
 
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -318,7 +324,7 @@ void realizableKE::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

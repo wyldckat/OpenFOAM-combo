@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,7 +69,7 @@ class calcType
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         // Calculation routines
 
@@ -131,9 +131,8 @@ public:
         static autoPtr<calcType> New(const word& calcTypeName);
 
 
-    // Destructor
-
-        virtual ~calcType();
+    //- Destructor
+    virtual ~calcType();
 
 
     // Member Functions

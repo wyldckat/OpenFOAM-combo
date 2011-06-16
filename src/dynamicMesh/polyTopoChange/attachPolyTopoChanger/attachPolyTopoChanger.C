@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -71,7 +71,7 @@ void Foam::attachPolyTopoChanger::attach(const bool removeEmptyPatches)
 
     if (debug)
     {
-        Pout << "Clearing mesh." << endl;
+        Pout<< "Clearing mesh." << endl;
     }
 
     if (removeEmptyPatches)
@@ -82,7 +82,7 @@ void Foam::attachPolyTopoChanger::attach(const bool removeEmptyPatches)
         List<polyPatch*> newPatches(oldPatches.size());
         label nNewPatches = 0;
 
-        forAll (oldPatches, patchI)
+        forAll(oldPatches, patchI)
         {
             if (oldPatches[patchI].size())
             {

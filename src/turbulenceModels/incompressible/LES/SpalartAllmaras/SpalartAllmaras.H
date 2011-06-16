@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::LESmodels::SpalartAllmaras
+    Foam::incompressible::LESModels::SpalartAllmaras
 
 Description
     SpalartAllmaras DES (SA + LES) turbulence model for incompressible flows
@@ -56,7 +56,7 @@ class SpalartAllmaras
 :
     public LESModel
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Update sub-grid scale fields
         void updateSubGridScaleFields();
@@ -94,7 +94,7 @@ protected:
             volScalarField nuSgs_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         virtual tmp<volScalarField> fv1() const;
         virtual tmp<volScalarField> fv2() const;
@@ -138,6 +138,7 @@ public:
             const volVectorField& U,
             const surfaceScalarField& phi,
             transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );
 

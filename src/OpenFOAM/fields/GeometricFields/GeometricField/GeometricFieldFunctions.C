@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -445,7 +445,7 @@ tmp
 >
 cmptAv(const tmp<GeometricField<Type, PatchField, GeoMesh> >& tgf)
 {
-    typedef typename GeometricField<Type, PatchField, GeoMesh>::cmptType 
+    typedef typename GeometricField<Type, PatchField, GeoMesh>::cmptType
         cmptType;
 
     const GeometricField<Type, PatchField, GeoMesh>& gf = tgf();

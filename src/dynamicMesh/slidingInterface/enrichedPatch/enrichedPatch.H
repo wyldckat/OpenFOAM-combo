@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,8 +60,6 @@ SourceFiles
 
 namespace Foam
 {
-
-// Forward declaration of classes
 
 /*---------------------------------------------------------------------------*\
                           Class enrichedPatch Declaration
@@ -198,15 +196,17 @@ public:
         (
             const primitiveFacePatch& masterPatch,
             const primitiveFacePatch& slavePatch,
-            const labelList& slavePointPointHits,// -1 or common point snapped to
-            const labelList& slavePointEdgeHits, // -1 or common edge snapped to
-            const List<objectHit>& slavePointFaceHits // master face snapped to
+            const labelList& slavePointPointHits,
+                                            // -1 or common point snapped to
+            const labelList& slavePointEdgeHits,
+                                            // -1 or common edge snapped to
+            const List<objectHit>& slavePointFaceHits
+                                            // master face snapped to
         );
 
 
-    // Destructor
-
-        ~enrichedPatch();
+    //- Destructor
+    ~enrichedPatch();
 
 
     // Member Functions

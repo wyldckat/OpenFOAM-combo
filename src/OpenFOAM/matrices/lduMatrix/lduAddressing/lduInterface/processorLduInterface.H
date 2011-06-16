@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,9 +76,8 @@ public:
         processorLduInterface();
 
 
-    // Destructor
-
-        virtual ~processorLduInterface();
+    //- Destructor
+    virtual ~processorLduInterface();
 
 
     // Member Functions
@@ -94,6 +93,8 @@ public:
             //- Return face transformation tensor
             virtual const tensorField& forwardT() const = 0;
 
+            //- Return message tag used for sending
+            virtual int tag() const = 0;
 
         // Transfer functions
 

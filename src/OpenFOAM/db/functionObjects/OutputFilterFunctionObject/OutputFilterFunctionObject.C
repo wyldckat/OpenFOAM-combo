@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,7 @@ void Foam::OutputFilterFunctionObject<OutputFilter>::readDict()
     dict_.readIfPresent("storeFilter", storeFilter_);
 }
 
+
 template<class OutputFilter>
 void Foam::OutputFilterFunctionObject<OutputFilter>::allocateFilter()
 {
@@ -68,11 +69,13 @@ void Foam::OutputFilterFunctionObject<OutputFilter>::allocateFilter()
     }
 }
 
+
 template<class OutputFilter>
 void Foam::OutputFilterFunctionObject<OutputFilter>::destroyFilter()
 {
     ptr_.reset();
 }
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -128,7 +131,10 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::start()
 
 
 template<class OutputFilter>
-bool Foam::OutputFilterFunctionObject<OutputFilter>::execute()
+bool Foam::OutputFilterFunctionObject<OutputFilter>::execute
+(
+    const bool forceWrite
+)
 {
     if (enabled_)
     {
@@ -139,7 +145,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::execute()
 
         ptr_->execute();
 
-        if (enabled_ && outputControl_.output())
+        if (forceWrite || outputControl_.output())
         {
             ptr_->write();
         }
@@ -166,7 +172,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::end()
 
         ptr_->end();
 
-        if (enabled_ && outputControl_.output())
+        if (outputControl_.output())
         {
             ptr_->write();
         }

@@ -27,10 +27,9 @@ License
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::potential::setSiteIdList(const IOdictionary& moleculePropertiesDict)
+void Foam::potential::setSiteIdList(const dictionary& moleculePropertiesDict)
 {
     DynamicList<word> siteIdList;
-
     DynamicList<word> pairPotentialSiteIdList;
 
     forAll(idList_, i)
@@ -39,7 +38,7 @@ void Foam::potential::setSiteIdList(const IOdictionary& moleculePropertiesDict)
 
         if (!moleculePropertiesDict.found(id))
         {
-            FatalErrorIn("potential.C") << nl
+            FatalErrorIn("potential::setSiteIdList(const dictionary&)")
                 << id << " molecule subDict not found"
                 << nl << abort(FatalError);
         }
@@ -52,7 +51,7 @@ void Foam::potential::setSiteIdList(const IOdictionary& moleculePropertiesDict)
         {
             const word& siteId = siteIdNames[sI];
 
-            if(findIndex(siteIdList, siteId) == -1)
+            if (findIndex(siteIdList, siteId) == -1)
             {
                 siteIdList.append(siteId);
             }
@@ -64,14 +63,14 @@ void Foam::potential::setSiteIdList(const IOdictionary& moleculePropertiesDict)
         {
             const word& siteId = pairPotSiteIds[sI];
 
-            if(findIndex(siteIdNames, siteId) == -1)
+            if (findIndex(siteIdNames, siteId) == -1)
             {
-                FatalErrorIn("potential.C") << nl
+                FatalErrorIn("potential::setSiteIdList(const dictionary&)")
                     << siteId << " in pairPotentialSiteIds is not in siteIds: "
                     << siteIdNames << nl << abort(FatalError);
             }
 
-            if(findIndex(pairPotentialSiteIdList, siteId) == -1)
+            if (findIndex(pairPotentialSiteIdList, siteId) == -1)
             {
                 pairPotentialSiteIdList.append(siteId);
             }
@@ -84,7 +83,7 @@ void Foam::potential::setSiteIdList(const IOdictionary& moleculePropertiesDict)
     {
         const word& siteId = siteIdList[aSIN];
 
-        if(findIndex(pairPotentialSiteIdList, siteId) == -1)
+        if (findIndex(pairPotentialSiteIdList, siteId) == -1)
         {
             pairPotentialSiteIdList.append(siteId);
         }
@@ -105,27 +104,28 @@ void Foam::potential::potential::readPotentialDict()
             "idList",
             mesh_.time().constant(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
 
     idList_ = List<word>(idListDict.lookup("idList"));
 
-    IOdictionary moleculePropertiesDict
+    setSiteIdList
     (
-        IOobject
+        IOdictionary
         (
-            "moleculeProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE,
-            false
+            IOobject
+            (
+                "moleculeProperties",
+                mesh_.time().constant(),
+                mesh_,
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
+            )
         )
     );
-
-    setSiteIdList(moleculePropertiesDict);
 
     List<word> pairPotentialSiteIdList
     (
@@ -151,7 +151,7 @@ void Foam::potential::potential::readPotentialDict()
             "potentialDict",
             mesh_.time().system(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -173,7 +173,7 @@ void Foam::potential::potential::readPotentialDict()
 
             if (removalOrder_[rO] == -1)
             {
-                FatalErrorIn("potentials.C") << nl
+                FatalErrorIn("potential::readPotentialDict()")
                     << "removalOrder entry: " << remOrd[rO]
                     << " not found in idList."
                     << nl << abort(FatalError);
@@ -186,7 +186,7 @@ void Foam::potential::potential::readPotentialDict()
 
     if (!potentialDict.found("pair"))
     {
-        FatalErrorIn("potentials.C") << nl
+        FatalErrorIn("potential::readPotentialDict()")
             << "pair potential specification subDict not found"
             << abort(FatalError);
     }
@@ -207,7 +207,7 @@ void Foam::potential::potential::readPotentialDict()
     {
         if (!potentialDict.found("tether"))
         {
-            FatalErrorIn("potential.C") << nl
+            FatalErrorIn("potential::readPotentialDict()")
                 << "tether potential specification subDict not found"
                 << abort(FatalError);
         }
@@ -229,21 +229,15 @@ void Foam::potential::potential::readPotentialDict()
 
     if (potentialDict.found("external"))
     {
-
-        Info << nl << "Reading external forces:" << endl;
+        Info<< nl << "Reading external forces:" << endl;
 
         const dictionary& externalDict = potentialDict.subDict("external");
 
-        // *********************************************************************
         // gravity
-
-        if (externalDict.found("gravity"))
-        {
-            gravity_ = externalDict.lookup("gravity");
-        }
+        externalDict.readIfPresent("gravity", gravity_);
     }
 
-    Info << nl << tab << "gravity = " << gravity_ << endl;
+    Info<< nl << tab << "gravity = " << gravity_ << endl;
 }
 
 
@@ -260,7 +254,7 @@ void Foam::potential::potential::readMdInitialiseDict
             "moleculeProperties",
             mesh_.time().constant(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -286,13 +280,17 @@ void Foam::potential::potential::readMdInitialiseDict
         {
             const word& id = latticeIds[i];
 
-            if(!moleculePropertiesDict.found(id))
+            if (!moleculePropertiesDict.found(id))
             {
-                FatalErrorIn("potential.C") << nl
-                    << "Molecule type "
-                    << id
-                    << " not found in moleculeProperties dictionary."
-                    << nl
+                FatalErrorIn
+                (
+                    "potential::readMdInitialiseDict"
+                    "("
+                        "const IOdictionary&, "
+                        "IOdictionary&"
+                    ")"
+                )   << "Molecule type " << id
+                    << " not found in moleculeProperties dictionary." << nl
                     << abort(FatalError);
             }
 
@@ -339,11 +337,15 @@ void Foam::potential::potential::readMdInitialiseDict
             }
             else
             {
-                FatalErrorIn("potential.C") << nl
-                    << "Tether id  "
-                    << tetherSiteId
-                    << " not found as a site of any molecule in zone."
-                    << nl
+                FatalErrorIn
+                (
+                    "potential::readMdInitialiseDict"
+                    "("
+                        "const IOdictionary&, "
+                        "IOdictionary&"
+                    ")"
+                )   << "Tether id  " << tetherSiteId
+                    << " not found as a site of any molecule in zone." << nl
                     << abort(FatalError);
             }
         }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,6 +63,18 @@ inline Foam::wordRe::wordRe(const word& str)
     word(str),
     re_()
 {}
+
+
+inline Foam::wordRe::wordRe(const keyType& str, const compOption opt)
+:
+    word(str, false),
+    re_()
+{
+    if (str.isPattern())
+    {
+        compile(opt);
+    }
+}
 
 
 inline Foam::wordRe::wordRe(const char* str, const compOption opt)
@@ -175,12 +187,12 @@ inline void Foam::wordRe::clear()
 }
 
 
-inline bool Foam::wordRe::match(const string& str, bool literalMatch) const
+inline bool Foam::wordRe::match(const std::string& str, bool literalMatch) const
 {
     if (literalMatch || !re_.exists())
     {
         // check as string
-        return (*this == str);
+        return (str == *this);
     }
     else
     {
@@ -232,6 +244,17 @@ inline const Foam::wordRe& Foam::wordRe::operator=(const word& str)
 {
     word::operator=(str);
     re_.clear();
+    return *this;
+}
+
+
+inline const Foam::wordRe& Foam::wordRe::operator=(const keyType& str)
+{
+    string::operator=(str);
+    if (str.isPattern())
+    {
+        compile();
+    }
     return *this;
 }
 

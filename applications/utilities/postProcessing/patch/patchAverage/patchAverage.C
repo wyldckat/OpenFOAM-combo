@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
     instantList timeDirs = timeSelector::select0(runTime, args);
 #   include "createMesh.H"
 
-    word fieldName(args.additionalArgs()[0]);
-    word patchName(args.additionalArgs()[1]);
+    const word fieldName = args[1];
+    const word patchName = args[2];
 
     forAll(timeDirs, timeI)
     {
@@ -65,8 +65,8 @@ int main(int argc, char *argv[])
         {
             mesh.readUpdate();
 
-            label patchi = mesh.boundaryMesh().findPatchID(patchName);
-            if (patchi < 0)
+            const label patchI = mesh.boundaryMesh().findPatchID(patchName);
+            if (patchI < 0)
             {
                 FatalError
                     << "Unable to find patch " << patchName << nl
@@ -78,20 +78,20 @@ int main(int argc, char *argv[])
                 Info<< "    Reading volScalarField " << fieldName << endl;
                 volScalarField field(fieldHeader, mesh);
 
-                scalar area = gSum(mesh.magSf().boundaryField()[patchi]);
+                scalar area = gSum(mesh.magSf().boundaryField()[patchI]);
                 scalar sumField = 0;
 
                 if (area > 0)
                 {
                     sumField = gSum
                     (
-                        mesh.magSf().boundaryField()[patchi]
-                      * field.boundaryField()[patchi]
+                        mesh.magSf().boundaryField()[patchI]
+                      * field.boundaryField()[patchI]
                     ) / area;
                 }
 
                 Info<< "    Average of " << fieldName << " over patch "
-                    << patchName << '[' << patchi << ']' << " = "
+                    << patchName << '[' << patchI << ']' << " = "
                     << sumField << endl;
             }
             else

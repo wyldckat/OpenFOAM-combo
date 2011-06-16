@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,8 +46,26 @@ Foam::surfacePatchIOList::surfacePatchIOList
         "(const IOobject& io)";
 
 
-    if (readOpt() == IOobject::MUST_READ)
+    if
+    (
+        readOpt() == IOobject::MUST_READ
+     || readOpt() == IOobject::MUST_READ_IF_MODIFIED
+    )
     {
+        if (readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+        {
+            WarningIn
+            (
+                "surfacePatchIOList::surfacePatchIOList\n"
+                "(\n"
+                "    const IOobject&\n"
+                ")"
+            )   << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+                << " does not support automatic rereading."
+                << endl;
+        }
+
+
         surfacePatchList& patches = *this;
 
         // read polyPatchList
@@ -65,7 +83,7 @@ Foam::surfacePatchIOList::surfacePatchIOList
             label patchSize = readLabel(dict.lookup("nFaces"));
             label startFaceI = readLabel(dict.lookup("startFace"));
 
-            patches[patchI] = 
+            patches[patchI] =
                 surfacePatch
                 (
                     word(dict.lookup("geometricType")),
@@ -100,7 +118,7 @@ Foam::surfacePatchIOList::surfacePatchIOList
 Foam::surfacePatchIOList::surfacePatchIOList
 (
     const IOobject& io,
-    const surfacePatchList& patches    
+    const surfacePatchList& patches
 )
 :
     surfacePatchList(patches),
@@ -120,7 +138,7 @@ Foam::surfacePatchIOList::~surfacePatchIOList()
 // writeData member function required by regIOobject
 bool Foam::surfacePatchIOList::writeData(Ostream& os) const
 {
-    os << *this;
+    os  << *this;
     return os.good();
 }
 

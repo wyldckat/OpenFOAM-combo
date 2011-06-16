@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,10 +27,9 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "primitiveEntry.H"
-#include "OSspecific.H"
 #include "functionEntry.H"
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 void Foam::primitiveEntry::append
 (
@@ -45,7 +44,8 @@ void Foam::primitiveEntry::append
 
         if
         (
-            w.size() == 1
+            disableFunctionEntries
+         || w.size() == 1
          || (
                 !(w[0] == '$' && expandVariable(w, dict))
              && !(w[0] == '#' && expandFunction(w, dict, is))
@@ -58,55 +58,6 @@ void Foam::primitiveEntry::append
     else
     {
         newElmt(tokenIndex()++) = currToken;
-    }
-}
-
-
-void Foam::primitiveEntry::append(const tokenList& varTokens)
-{
-    forAll(varTokens, i)
-    {
-        newElmt(tokenIndex()++) = varTokens[i];
-    }
-}
-
-
-bool Foam::primitiveEntry::expandVariable
-(
-    const word& w,
-    const dictionary& dict
-)
-{
-    word varName = w(1, w.size()-1);
-
-    // lookup the variable name in the given dictionary....
-    // Note: allow wildcards to match? For now disabled since following
-    // would expand internalField to wildcard match and not expected
-    // internalField:
-    //      internalField XXX;
-    //      boundaryField { ".*" {YYY;} movingWall {value $internalField;}
-    const entry* ePtr = dict.lookupEntryPtr(varName, true, false);
-
-    // ...if defined insert its tokens into this
-    if (ePtr != NULL)
-    {
-        append(ePtr->stream());
-        return true;
-    }
-    else
-    {
-        // if not in the dictionary see if it is an environment
-        // variable
-
-        string enVarString = getEnv(varName);
-
-        if (enVarString.size())
-        {
-            append(tokenList(IStringStream('(' + enVarString + ')')()));
-            return true;
-        }
-
-        return false;
     }
 }
 
@@ -220,6 +171,8 @@ void Foam::primitiveEntry::readEntry(const dictionary& dict, Istream& is)
 }
 
 
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
 Foam::primitiveEntry::primitiveEntry
 (
     const keyType& key,
@@ -257,21 +210,43 @@ Foam::primitiveEntry::primitiveEntry(const keyType& key, Istream& is)
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::primitiveEntry::write(Ostream& os) const
+void Foam::primitiveEntry::write(Ostream& os, const bool contentsOnly) const
 {
-    os.writeKeyword(keyword());
-
-    for (label i=0; i<size(); i++)
+    if (!contentsOnly)
     {
-        os << operator[](i);
+        os.writeKeyword(keyword());
+    }
+
+    for (label i=0; i<size(); ++i)
+    {
+        const token& t = operator[](i);
+        if (t.type() == token::VERBATIMSTRING)
+        {
+            os  << token::HASH << token::BEGIN_BLOCK;
+            os.writeQuoted(t.stringToken(), false);
+            os  << token::HASH << token::END_BLOCK;
+        }
+        else
+        {
+            os  << t;
+        }
 
         if (i < size()-1)
         {
-            os << token::SPACE;
+            os  << token::SPACE;
         }
     }
 
-    os << token::END_STATEMENT << endl;
+    if (!contentsOnly)
+    {
+        os  << token::END_STATEMENT << endl;
+    }
+}
+
+
+void Foam::primitiveEntry::write(Ostream& os) const
+{
+    this->write(os, false);
 }
 
 

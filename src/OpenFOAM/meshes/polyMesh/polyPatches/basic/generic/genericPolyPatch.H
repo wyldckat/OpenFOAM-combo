@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,8 +25,8 @@ Class
     Foam::genericPolyPatch
 
 Description
-    Determines a mapping between patch face centres and mesh cell centres and
-    processors they're on.
+    Substitute for unknown patches. Used for postprocessing when only
+    basic polyPatch info is needed.
 
 Note
     Storage is not optimal. It stores all face centres and cells on all
@@ -105,6 +105,16 @@ public:
             const label newStart
         );
 
+        //- Construct given the original patch and a map
+        genericPolyPatch
+        (
+            const genericPolyPatch& pp,
+            const polyBoundaryMesh& bm,
+            const label index,
+            const labelUList& mapAddressing,
+            const label newStart
+        );
+
         //- Construct and return a clone, resetting the boundary mesh
         virtual autoPtr<polyPatch> clone(const polyBoundaryMesh& bm) const
         {
@@ -127,10 +137,25 @@ public:
             );
         }
 
+        //- Construct and return a clone, resetting the face list
+        //  and boundary mesh
+        virtual autoPtr<polyPatch> clone
+        (
+            const polyBoundaryMesh& bm,
+            const label index,
+            const labelUList& mapAddressing,
+            const label newStart
+        ) const
+        {
+            return autoPtr<polyPatch>
+            (
+                new genericPolyPatch(*this, bm, index, mapAddressing, newStart)
+            );
+        }
 
-    // Destructor
 
-        ~genericPolyPatch();
+    //- Destructor
+    ~genericPolyPatch();
 
 
     // Member functions

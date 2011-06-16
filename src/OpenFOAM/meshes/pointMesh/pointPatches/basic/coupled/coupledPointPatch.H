@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,22 +65,22 @@ protected:
     // Protected Member Functions
 
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry() = 0;
+        virtual void initGeometry(PstreamBuffers&) = 0;
 
         //- Calculate the patch geometry
-        virtual void calcGeometry() = 0;
+        virtual void calcGeometry(PstreamBuffers&) = 0;
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&) = 0;
+        virtual void initMovePoints(PstreamBuffers&, const pointField&) = 0;
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField&) = 0;
+        virtual void movePoints(PstreamBuffers&, const pointField&) = 0;
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh() = 0;
+        virtual void initUpdateMesh(PstreamBuffers&) = 0;
 
         //- Update of the patch topology
-        virtual void updateMesh() = 0;
+        virtual void updateMesh(PstreamBuffers&) = 0;
 
 
 public:
@@ -95,9 +95,8 @@ public:
         coupledPointPatch(const pointBoundaryMesh& bm);
 
 
-    // Destructor
-
-        virtual ~coupledPointPatch();
+    //- Destructor
+    virtual ~coupledPointPatch();
 
 
     // Member Functions

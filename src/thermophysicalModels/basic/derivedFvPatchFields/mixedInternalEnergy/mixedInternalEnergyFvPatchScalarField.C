@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,14 +29,11 @@ License
 #include "volFields.H"
 #include "basicThermo.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
+Foam::mixedInternalEnergyFvPatchScalarField::
+mixedInternalEnergyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
@@ -50,7 +47,8 @@ mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
 }
 
 
-mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
+Foam::mixedInternalEnergyFvPatchScalarField::
+mixedInternalEnergyFvPatchScalarField
 (
     const mixedInternalEnergyFvPatchScalarField& ptf,
     const fvPatch& p,
@@ -62,7 +60,8 @@ mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
 {}
 
 
-mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
+Foam::mixedInternalEnergyFvPatchScalarField::
+mixedInternalEnergyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -73,7 +72,8 @@ mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
 {}
 
 
-mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
+Foam::mixedInternalEnergyFvPatchScalarField::
+mixedInternalEnergyFvPatchScalarField
 (
     const mixedInternalEnergyFvPatchScalarField& tppsf
 )
@@ -82,7 +82,8 @@ mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
 {}
 
 
-mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
+Foam::mixedInternalEnergyFvPatchScalarField::
+mixedInternalEnergyFvPatchScalarField
 (
     const mixedInternalEnergyFvPatchScalarField& tppsf,
     const DimensionedField<scalar, volMesh>& iF
@@ -94,7 +95,7 @@ mixedInternalEnergyFvPatchScalarField::mixedInternalEnergyFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void mixedInternalEnergyFvPatchScalarField::updateCoeffs()
+void Foam::mixedInternalEnergyFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -105,7 +106,7 @@ void mixedInternalEnergyFvPatchScalarField::updateCoeffs()
     (
         "thermophysicalProperties"
     );
-    
+
     const label patchi = patch().index();
 
     mixedFvPatchScalarField& Tw = refCast<mixedFvPatchScalarField>
@@ -117,7 +118,8 @@ void mixedInternalEnergyFvPatchScalarField::updateCoeffs()
 
     valueFraction() = Tw.valueFraction();
     refValue() = thermo.e(Tw.refValue(), patchi);
-    refGrad() = thermo.Cv(Tw, patchi)*Tw.refGrad()
+    refGrad() =
+        thermo.Cv(Tw, patchi)*Tw.refGrad()
       + patch().deltaCoeffs()*
         (
             thermo.e(Tw, patchi)
@@ -130,10 +132,13 @@ void mixedInternalEnergyFvPatchScalarField::updateCoeffs()
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, mixedInternalEnergyFvPatchScalarField);
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchScalarField,
+        mixedInternalEnergyFvPatchScalarField
+    );
+}
 
 // ************************************************************************* //

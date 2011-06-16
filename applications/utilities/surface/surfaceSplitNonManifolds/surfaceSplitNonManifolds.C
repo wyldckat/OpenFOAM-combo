@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,7 @@ void writeOBJ(Ostream& os, const pointField& pts)
     {
         const point& pt = pts[i];
 
-        os << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z() << endl;
+        os  << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z() << endl;
     }
 }
 
@@ -85,7 +85,7 @@ void dumpPoints(const triSurface& surf, const labelList& borderPoint)
         {
             const point& pt = surf.localPoints()[pointI];
 
-            os << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z() << endl;
+            os  << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z() << endl;
         }
     }
 }
@@ -108,7 +108,7 @@ void dumpEdges(const triSurface& surf, const boolList& borderEdge)
         {
             const edge& e = surf.edges()[edgeI];
 
-            os << "l " << e.start()+1 << ' ' << e.end()+1 << endl;
+            os  << "l " << e.start()+1 << ' ' << e.end()+1 << endl;
         }
     }
 }
@@ -126,18 +126,11 @@ void dumpFaces
 
     OFstream os(fName);
 
-    for
-    (
-        Map<label>::const_iterator iter = connectedFaces.begin();
-        iter != connectedFaces.end();
-        ++iter
-    )
+    forAllConstIter(Map<label>, connectedFaces, iter)
     {
-        const labelledTri& f = surf.localFaces()[iter.key()];
+        point ctr = surf.localFaces()[iter.key()].centre(surf.localPoints());
 
-        point ctr(f.centre(surf.localPoints()));
-
-        os << "v " << ctr.x() << ' ' << ctr.y() << ' ' << ctr.z() << endl;
+        os  << "v " << ctr.x() << ' ' << ctr.y() << ' ' << ctr.z() << endl;
     }
 }
 
@@ -458,7 +451,7 @@ label sharedFace
 
     const edge& e = surf.edges()[sharedEdgeI];
 
-    const labelledTri& f = surf.localFaces()[firstFaceI];
+    const triSurface::FaceType& f = surf.localFaces()[firstFaceI];
 
     label startIndex = findIndex(f, e.start());
 
@@ -486,8 +479,8 @@ label sharedFace
 }
 
 
-// Calculate (inward pointing) normals on edges shared by faces in faceToEdge and
-// averages them to pointNormals.
+// Calculate (inward pointing) normals on edges shared by faces in
+// faceToEdge and averages them to pointNormals.
 void calcPointVecs
 (
     const triSurface& surf,
@@ -502,14 +495,9 @@ void calcPointVecs
 
     boolList edgeDone(surf.nEdges(), false);
 
-    for
-    (
-        Map<label>::const_iterator iter = faceToEdge.begin();
-        iter != faceToEdge.end();
-        ++iter
-    )
+    forAllConstIter(Map<label>, faceToEdge, iter)
     {
-        label edgeI = iter();
+        const label edgeI = iter();
 
         if (!edgeDone[edgeI])
         {
@@ -544,9 +532,9 @@ void calcPointVecs
 
             if (face0I == -1 && face1I == -1)
             {
-                Info<< "Writing surface to errorSurf.ftr" << endl;
+                Info<< "Writing surface to errorSurf.obj" << endl;
 
-                surf.write("errorSurf.ftr");
+                surf.write("errorSurf.obj");
 
                 FatalErrorIn("calcPointVecs(..)")
                     << "Cannot find two faces using border edge " << edgeI
@@ -556,7 +544,7 @@ void calcPointVecs
                     << " face1I:" << face1I << nl
                     << "faceToEdge:" << faceToEdge << nl
                     << "faceToPoint:" << faceToPoint
-                    << "Written surface to errorSurf.ftr"
+                    << "Written surface to errorSurf.obj"
                     << abort(FatalError);
             }
 
@@ -607,19 +595,13 @@ void renumberFaces
     const triSurface& surf,
     const labelList& pointMap,
     const Map<label>& faceToEdge,
-    List<labelledTri>& newTris
+    List<triSurface::FaceType>& newTris
 )
 {
-    for
-    (
-        Map<label>::const_iterator iter = faceToEdge.begin();
-        iter != faceToEdge.end();
-        ++iter
-    )
+    forAllConstIter(Map<label>, faceToEdge, iter)
     {
-        label faceI = iter.key();
-
-        const labelledTri& f = surf.localFaces()[faceI];
+        const label faceI = iter.key();
+        const triSurface::FaceType& f = surf.localFaces()[faceI];
 
         forAll(f, fp)
         {
@@ -682,19 +664,24 @@ bool splitBorderEdges
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "split multiply connected surface edges by duplicating points"
+    );
     argList::noParallel();
-    argList::validArgs.clear();
-
-    argList::validArgs.append("surface file");
-    argList::validArgs.append("output surface file");
-    argList::validOptions.insert("debug", "");
+    argList::validArgs.append("surfaceFile");
+    argList::validArgs.append("output surfaceFile");
+    argList::addBoolOption
+    (
+        "debug",
+        "add debugging output"
+    );
 
     argList args(argc, argv);
 
-    fileName inSurfName(args.additionalArgs()[0]);
-    fileName outSurfName(args.additionalArgs()[1]);
-    bool debug = args.optionFound("debug");
-
+    const fileName inSurfName  = args[1];
+    const fileName outSurfName = args[2];
+    const bool debug = args.optionFound("debug");
 
     Info<< "Reading surface from " << inSurfName << endl;
 
@@ -707,8 +694,9 @@ int main(int argc, char *argv[])
     boolList borderEdge(surf.nEdges(), false);
     markBorderEdges(debug, surf, borderEdge);
 
-    // Points on two sides connected to borderEdges are called borderPoints and
-    // will be duplicated. borderPoint contains label of newly introduced vertex.
+    // Points on two sides connected to borderEdges are called
+    // borderPoints and will be duplicated. borderPoint contains label
+    // of newly introduced vertex.
     labelList borderPoint(surf.nPoints(), -1);
     markBorderPoints(debug, surf, borderEdge, borderPoint);
 
@@ -921,7 +909,6 @@ int main(int argc, char *argv[])
         forAll(surf, faceI)
         {
             newTris[faceI] = surf.localFaces()[faceI];
-
             newTris[faceI].region() = surf[faceI].region();
         }
 
@@ -934,7 +921,7 @@ int main(int argc, char *argv[])
         // Check if faces use unmoved points.
         forAll(newTris, faceI)
         {
-            const labelledTri& f = newTris[faceI];
+            const triSurface::FaceType& f = newTris[faceI];
 
             forAll(f, fp)
             {
@@ -972,7 +959,7 @@ int main(int argc, char *argv[])
 
     surf.write(outSurfName);
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

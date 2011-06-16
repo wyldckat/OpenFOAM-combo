@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,11 +60,11 @@ void Foam::primitiveMesh::calcPointPoints() const
         ppPtr_ = new labelListList(pe.size());
         labelListList& pp = *ppPtr_;
 
-        forAll (pe, pointI)
+        forAll(pe, pointI)
         {
             pp[pointI].setSize(pe[pointI].size());
 
-            forAll (pe[pointI], ppi)
+            forAll(pe[pointI], ppi)
             {
                 if (e[pe[pointI][ppi]].start() == pointI)
                 {

@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -26,13 +26,46 @@
 #     wmakeFilesAndOptions
 #
 # Description
-#     Script to scan the current directory for directories and source files
+#     Scan current directory for directories and source files
 #     and construct Make/files and Make/options
 #
 #     Usage : wmakeFilesAndOptions
 #
 #------------------------------------------------------------------------------
 Script=${0##*/}
+
+usage() {
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat<<USAGE
+
+usage: ${0##*/}
+
+    Scan current directory for directories and source files
+    and construct 'Make/files' and 'Make/options'
+
+USAGE
+    exit 1
+}
+
+
+# simple parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)   # provide immediate help
+        usage
+        ;;
+    -*)
+        usage "unknown option: '$*'"
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
+
+# no arguments
+[ "$#" -eq 0 ] || usage "unexpected arguments: '$*'"
 
 #
 # check environment variables
@@ -54,12 +87,12 @@ else
 fi
 
 [ -e Make/files ] || {
-    echo "$Script: Creating files"
+    echo "$Script: Creating Make/files"
     $WM_DIR/scripts/makeFiles
 }
 
 [ -e Make/options ] || {
-    echo "$Script: Creating options"
+    echo "$Script: Creating Make/options"
     $WM_DIR/scripts/makeOptions
 }
 

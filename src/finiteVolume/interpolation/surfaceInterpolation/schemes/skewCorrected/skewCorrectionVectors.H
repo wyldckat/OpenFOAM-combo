@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,7 +55,7 @@ class skewCorrectionVectors
     public MeshObject<fvMesh, skewCorrectionVectors>
 {
     // Private data
-    
+
         //- Is mesh skew
         mutable bool skew_;
 
@@ -76,9 +76,8 @@ public:
         explicit skewCorrectionVectors(const fvMesh& mesh);
 
 
-    // Destructor
-
-        virtual ~skewCorrectionVectors();
+    //- Destructor
+    virtual ~skewCorrectionVectors();
 
 
     // Member functions

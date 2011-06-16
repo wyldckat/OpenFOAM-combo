@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,22 +21,15 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "triSurface.H"
 #include "IFstream.H"
 #include "IStringStream.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool triSurface::readOBJ(const fileName& OBJfileName)
+bool Foam::triSurface::readOBJ(const fileName& OBJfileName)
 {
     IFstream OBJfile(OBJfileName);
 
@@ -106,7 +99,7 @@ bool triSurface::readOBJ(const fileName& OBJfileName)
             // Assume 'f' is followed by space.
             string::size_type endNum = 1;
 
-            while(true)
+            while (true)
             {
                 string::size_type startNum =
                     line.find_first_not_of(' ', endNum);
@@ -175,12 +168,7 @@ bool triSurface::readOBJ(const fileName& OBJfileName)
     }
     else
     {
-        for
-        (
-            HashTable<label>::const_iterator iter = groupToPatch.begin();
-            iter != groupToPatch.end();
-            ++iter
-        )
+        forAllConstIter(HashTable<label>, groupToPatch, iter)
         {
             patches[iter()] = geometricSurfacePatch
             (
@@ -201,9 +189,5 @@ bool triSurface::readOBJ(const fileName& OBJfileName)
     return true;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

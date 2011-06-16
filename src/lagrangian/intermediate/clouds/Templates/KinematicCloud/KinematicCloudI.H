@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,175 +27,198 @@ License
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class ParcelType>
-inline Foam::label Foam::KinematicCloud<ParcelType>::parcelTypeId() const
+template<class CloudType>
+inline const Foam::KinematicCloud<CloudType>&
+Foam::KinematicCloud<CloudType>::cloudCopy() const
 {
-    return parcelTypeId_;
+    return cloudCopyPtr_();
 }
 
 
-template<class ParcelType>
-inline const Foam::fvMesh& Foam::KinematicCloud<ParcelType>::mesh() const
+template<class CloudType>
+inline const Foam::fvMesh& Foam::KinematicCloud<CloudType>::mesh() const
 {
     return mesh_;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline const Foam::IOdictionary&
-Foam::KinematicCloud<ParcelType>::particleProperties() const
+Foam::KinematicCloud<CloudType>::particleProperties() const
 {
     return particleProperties_;
 }
 
 
-template<class ParcelType>
-inline const typename ParcelType::constantProperties&
-Foam::KinematicCloud<ParcelType>::constProps() const
+template<class CloudType>
+inline const Foam::cloudSolution&
+Foam::KinematicCloud<CloudType>::solution() const
+{
+    return solution_;
+}
+
+
+template<class CloudType>
+inline Foam::cloudSolution& Foam::KinematicCloud<CloudType>::solution()
+{
+    return solution_;
+}
+
+
+template<class CloudType>
+inline const typename CloudType::particleType::constantProperties&
+Foam::KinematicCloud<CloudType>::constProps() const
 {
     return constProps_;
 }
 
 
-template<class ParcelType>
-inline const Foam::Switch Foam::KinematicCloud<ParcelType>::active() const
+template<class CloudType>
+inline const Foam::dictionary&
+Foam::KinematicCloud<CloudType>::subModelProperties() const
 {
-    return active_;
+    return subModelProperties_;
 }
 
 
-template<class ParcelType>
-inline const Foam::Switch Foam::KinematicCloud<ParcelType>::coupled() const
-{
-    return coupled_;
-}
-
-
-template <class ParcelType>
-inline const Foam::Switch
-Foam::KinematicCloud<ParcelType>::cellValueSourceCorrection() const
-{
-    return cellValueSourceCorrection_;
-}
-
-
-template<class ParcelType>
-inline const Foam::volScalarField&
-Foam::KinematicCloud<ParcelType>::rho() const
+template<class CloudType>
+inline const Foam::volScalarField& Foam::KinematicCloud<CloudType>::rho() const
 {
     return rho_;
 }
 
 
-template<class ParcelType>
-inline const Foam::volVectorField& Foam::KinematicCloud<ParcelType>::U() const
+template<class CloudType>
+inline const Foam::volVectorField& Foam::KinematicCloud<CloudType>::U() const
 {
     return U_;
 }
 
 
-template<class ParcelType>
-inline const Foam::volScalarField& Foam::KinematicCloud<ParcelType>::mu() const
+template<class CloudType>
+inline const Foam::volScalarField& Foam::KinematicCloud<CloudType>::mu() const
 {
     return mu_;
 }
 
 
-template<class ParcelType>
-inline const Foam::dimensionedVector&
-Foam::KinematicCloud<ParcelType>::g() const
+template<class CloudType>
+inline const Foam::dimensionedVector& Foam::KinematicCloud<CloudType>::g() const
 {
     return g_;
 }
 
 
-template<class ParcelType>
-inline const Foam::particleForces&
-Foam::KinematicCloud<ParcelType>::forces() const
+template<class CloudType>
+inline Foam::scalar Foam::KinematicCloud<CloudType>::pAmbient() const
+{
+    return pAmbient_;
+}
+
+
+template<class CloudType>
+inline Foam::scalar& Foam::KinematicCloud<CloudType>::pAmbient()
+{
+    return pAmbient_;
+}
+
+
+template<class CloudType>
+//inline const typename CloudType::parcelType::forceType&
+inline const typename Foam::KinematicCloud<CloudType>::forceType&
+Foam::KinematicCloud<CloudType>::forces() const
 {
     return forces_;
 }
 
 
-template<class ParcelType>
-inline const Foam::dictionary&
-Foam::KinematicCloud<ParcelType>::interpolationSchemes() const
+template<class CloudType>
+inline typename Foam::KinematicCloud<CloudType>::functionType&
+Foam::KinematicCloud<CloudType>::functions()
 {
-    return interpolationSchemes_;
+    return functions_;
 }
 
 
-template<class ParcelType>
-inline const Foam::DispersionModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::dispersion() const
+template<class CloudType>
+inline const Foam::DispersionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::dispersion() const
 {
     return dispersionModel_;
 }
 
 
-template<class ParcelType>
-inline Foam::DispersionModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::dispersion()
+template<class CloudType>
+inline Foam::DispersionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::dispersion()
 {
     return dispersionModel_();
 }
 
 
-template<class ParcelType>
-inline const Foam::DragModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::drag() const
-{
-    return dragModel_;
-}
-
-
-template<class ParcelType>
-inline const Foam::InjectionModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::injection() const
+template<class CloudType>
+inline const Foam::InjectionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::injection() const
 {
     return injectionModel_;
 }
 
 
-template<class ParcelType>
-inline const Foam::PatchInteractionModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::patchInteraction() const
+template<class CloudType>
+inline const Foam::PatchInteractionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::patchInteraction() const
 {
     return patchInteractionModel_;
 }
 
 
-template<class ParcelType>
-inline Foam::InjectionModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::injection()
+template<class CloudType>
+inline Foam::PatchInteractionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::patchInteraction()
+{
+    return patchInteractionModel_();
+}
+
+
+template<class CloudType>
+inline Foam::InjectionModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::injection()
 {
     return injectionModel_();
 }
 
 
-template<class ParcelType>
-inline Foam::PostProcessingModel<Foam::KinematicCloud<ParcelType> >&
-Foam::KinematicCloud<ParcelType>::postProcessing()
+template<class CloudType>
+inline const Foam::SurfaceFilmModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::surfaceFilm() const
 {
-    return postProcessingModel_();
+    return surfaceFilmModel_();
 }
 
 
-template<class ParcelType>
+template<class CloudType>
+inline Foam::SurfaceFilmModel<Foam::KinematicCloud<CloudType> >&
+Foam::KinematicCloud<CloudType>::surfaceFilm()
+{
+    return surfaceFilmModel_();
+}
+
+
+template<class CloudType>
 inline const Foam::vectorIntegrationScheme&
-Foam::KinematicCloud<ParcelType>::UIntegrator() const
+Foam::KinematicCloud<CloudType>::UIntegrator() const
 {
     return UIntegrator_;
 }
 
 
-template<class ParcelType>
-inline Foam::scalar Foam::KinematicCloud<ParcelType>::massInSystem() const
+template<class CloudType>
+inline Foam::scalar Foam::KinematicCloud<CloudType>::massInSystem() const
 {
     scalar sysMass = 0.0;
-    forAllConstIter(typename KinematicCloud<ParcelType>, *this, iter)
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
     {
-         const ParcelType& p = iter();
+         const parcelType& p = iter();
          sysMass += p.mass()*p.nParticle();
     }
 
@@ -203,57 +226,274 @@ inline Foam::scalar Foam::KinematicCloud<ParcelType>::massInSystem() const
 }
 
 
-template<class ParcelType>
-inline Foam::Random& Foam::KinematicCloud<ParcelType>::rndGen()
+template<class CloudType>
+inline Foam::vector
+Foam::KinematicCloud<CloudType>::linearMomentumOfSystem() const
+{
+    vector linearMomentum(vector::zero);
+
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
+    {
+        const parcelType& p = iter();
+
+        linearMomentum += p.mass()*p.U();
+    }
+
+    return linearMomentum;
+}
+
+
+template<class CloudType>
+inline Foam::scalar
+Foam::KinematicCloud<CloudType>::linearKineticEnergyOfSystem() const
+{
+    scalar linearKineticEnergy = 0.0;
+
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
+    {
+        const parcelType& p = iter();
+
+        linearKineticEnergy += 0.5*p.mass()*(p.U() & p.U());
+    }
+
+    return linearKineticEnergy;
+}
+
+
+template<class CloudType>
+inline Foam::scalar
+Foam::KinematicCloud<CloudType>::rotationalKineticEnergyOfSystem() const
+{
+    scalar rotationalKineticEnergy = 0.0;
+
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
+    {
+        const parcelType& p = iter();
+
+        rotationalKineticEnergy +=
+            0.5*p.momentOfInertia()*(p.omega() & p.omega());
+    }
+
+    return rotationalKineticEnergy;
+}
+
+
+template<class CloudType>
+inline Foam::scalar Foam::KinematicCloud<CloudType>::Dij
+(
+    const label i,
+    const label j
+) const
+{
+    scalar si = 0.0;
+    scalar sj = 0.0;
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
+    {
+        const parcelType& p = iter();
+        si += p.nParticle()*pow(p.d(), i);
+        sj += p.nParticle()*pow(p.d(), j);
+    }
+
+    reduce(si, sumOp<scalar>());
+    reduce(sj, sumOp<scalar>());
+    sj = max(sj, VSMALL);
+
+    return si/sj;
+}
+
+
+template<class CloudType>
+inline Foam::scalar Foam::KinematicCloud<CloudType>::penetration
+(
+    const scalar& prc
+) const
+{
+    scalar distance = 0.0;
+    scalar mTot = 0.0;
+
+    label np = this->size();
+
+    // arrays containing the parcels mass and
+    // distance from injector in ascending order
+    scalarField mass(np);
+    scalarField dist(np);
+
+    if (np > 0)
+    {
+        label n = 0;
+
+        // first arrange the parcels in ascending order
+        // the first parcel is closest to its injection position
+        // and the last one is most far away.
+        forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
+        {
+            const parcelType& p = iter();
+            scalar mi = p.nParticle()*p.mass();
+            scalar di = mag(p.position() - p.position0());
+            mTot += mi;
+
+            // insert at the last place
+            mass[n] = mi;
+            dist[n] = di;
+
+            label i = 0;
+            bool found = false;
+
+            // insert the parcel in the correct place
+            // and move the others
+            while ((i < n) && (!found))
+            {
+                if (di < dist[i])
+                {
+                    found = true;
+                    for (label j=n; j>i; j--)
+                    {
+                        mass[j] = mass[j-1];
+                        dist[j] = dist[j-1];
+                    }
+                    mass[i] = mi;
+                    dist[i] = di;
+                }
+                i++;
+            }
+            n++;
+        }
+    }
+
+    reduce(mTot, sumOp<scalar>());
+
+    if (np > 0)
+    {
+        scalar mLimit = prc*mTot;
+        scalar mOff = (1.0 - prc)*mTot;
+
+        if (np > 1)
+        {
+            // 'prc' is large enough that the parcel most far
+            // away will be used, no need to loop...
+            if (mLimit > mTot - mass[np-1])
+            {
+                distance = dist[np-1];
+            }
+            else
+            {
+                scalar mOffSum = 0.0;
+                label i = np;
+
+                while ((mOffSum < mOff) && (i>0))
+                {
+                    i--;
+                    mOffSum += mass[i];
+                }
+                distance =
+                    dist[i+1]
+                  + (dist[i] - dist[i+1])*(mOffSum - mOff)
+                   /mass[i+1] ;
+            }
+        }
+        else
+        {
+            distance = dist[0];
+        }
+    }
+
+    reduce(distance, maxOp<scalar>());
+
+    return distance;
+}
+
+
+template<class CloudType>
+inline Foam::cachedRandom& Foam::KinematicCloud<CloudType>::rndGen()
 {
     return rndGen_;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
+inline Foam::List<Foam::DynamicList<typename CloudType::particleType*> >&
+Foam::KinematicCloud<CloudType>::cellOccupancy()
+{
+    if (cellOccupancyPtr_.empty())
+    {
+        buildCellOccupancy();
+    }
+
+    return cellOccupancyPtr_();
+}
+
+
+template<class CloudType>
 inline Foam::DimensionedField<Foam::vector, Foam::volMesh>&
-Foam::KinematicCloud<ParcelType>::UTrans()
+Foam::KinematicCloud<CloudType>::UTrans()
 {
-    return UTrans_;
+    return UTrans_();
 }
 
 
-template<class ParcelType>
-inline Foam::tmp<Foam::DimensionedField<Foam::vector, Foam::volMesh> >
-Foam::KinematicCloud<ParcelType>::SU() const
+template<class CloudType>
+inline const Foam::DimensionedField<Foam::vector, Foam::volMesh>&
+Foam::KinematicCloud<CloudType>::UTrans() const
 {
-    tmp<DimensionedField<vector, volMesh> > tSU
-    (
-        new DimensionedField<vector, volMesh>
-        (
-            IOobject
-            (
-                this->name() + "SU",
-                this->db().time().timeName(),
-                this->mesh(),
-                IOobject::NO_READ,
-                IOobject::AUTO_WRITE
-            ),
-            this->mesh(),
-            dimensionedVector
-            (
-                 "zero",
-                 dimDensity*dimVelocity/dimTime,
-                 vector::zero
-            )
-        )
-    );
-
-    vectorField& SU = tSU().field();
-    SU = UTrans_/(mesh_.V()*this->db().time().deltaT());
-
-    return tSU;
+    return UTrans_();
 }
 
 
-template<class ParcelType>
+template<class CloudType>
+inline Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
+Foam::KinematicCloud<CloudType>::UCoeff()
+{
+    return UCoeff_();
+}
+
+
+template<class CloudType>
+inline const Foam::DimensionedField<Foam::scalar, Foam::volMesh>&
+Foam::KinematicCloud<CloudType>::UCoeff() const
+{
+    return UCoeff_();
+}
+
+
+template<class CloudType>
+inline Foam::tmp<Foam::fvVectorMatrix>
+Foam::KinematicCloud<CloudType>::SU(volVectorField& U) const
+{
+    if (debug)
+    {
+        Info<< "UTrans min/max = " << min(UTrans()).value() << ", "
+            << max(UTrans()).value() << nl
+            << "UCoeff min/max = " << min(UCoeff()).value() << ", "
+            << max(UCoeff()).value() << endl;
+    }
+
+    if (solution_.coupled())
+    {
+        if (solution_.semiImplicit("U"))
+        {
+            const DimensionedField<scalar, volMesh>
+                Vdt(mesh_.V()*this->db().time().deltaT());
+
+            return UTrans()/Vdt - fvm::Sp(UCoeff()/Vdt, U) + UCoeff()/Vdt*U;
+        }
+        else
+        {
+            tmp<fvVectorMatrix> tfvm(new fvVectorMatrix(U, dimForce));
+            fvVectorMatrix& fvm = tfvm();
+
+            fvm.source() = -UTrans()/(this->db().time().deltaT());
+
+            return tfvm;
+        }
+    }
+
+    return tmp<fvVectorMatrix>(new fvVectorMatrix(U, dimForce));
+}
+
+
+template<class CloudType>
 inline const Foam::tmp<Foam::volScalarField>
-Foam::KinematicCloud<ParcelType>::theta() const
+Foam::KinematicCloud<CloudType>::theta() const
 {
     tmp<volScalarField> ttheta
     (
@@ -269,28 +509,30 @@ Foam::KinematicCloud<ParcelType>::theta() const
                 false
             ),
             mesh_,
-            dimensionedScalar("zero", dimless, 0.0)
+            dimensionedScalar("zero", dimless, 0.0),
+            zeroGradientFvPatchScalarField::typeName
         )
     );
 
-    scalarField& theta = ttheta().internalField();
-    forAllConstIter(typename KinematicCloud<ParcelType>, *this, iter)
+    volScalarField& theta = ttheta();
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
     {
-        const ParcelType& p = iter();
+        const parcelType& p = iter();
         const label cellI = p.cell();
 
         theta[cellI] += p.nParticle()*p.volume();
     }
 
-    theta /= mesh().V();
+    theta.internalField() /= mesh_.V();
+    theta.correctBoundaryConditions();
 
     return ttheta;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline const Foam::tmp<Foam::volScalarField>
-Foam::KinematicCloud<ParcelType>::alpha() const
+Foam::KinematicCloud<CloudType>::alpha() const
 {
     tmp<volScalarField> talpha
     (
@@ -311,23 +553,23 @@ Foam::KinematicCloud<ParcelType>::alpha() const
     );
 
     scalarField& alpha = talpha().internalField();
-    forAllConstIter(typename KinematicCloud<ParcelType>, *this, iter)
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
     {
-        const ParcelType& p = iter();
+        const parcelType& p = iter();
         const label cellI = p.cell();
 
         alpha[cellI] += p.nParticle()*p.mass();
     }
 
-    alpha /= (mesh().V()*rho_);
+    alpha /= (mesh_.V()*rho_);
 
     return talpha;
 }
 
 
-template<class ParcelType>
+template<class CloudType>
 inline const Foam::tmp<Foam::volScalarField>
-Foam::KinematicCloud<ParcelType>::rhoEff() const
+Foam::KinematicCloud<CloudType>::rhoEff() const
 {
     tmp<volScalarField> trhoEff
     (
@@ -348,15 +590,15 @@ Foam::KinematicCloud<ParcelType>::rhoEff() const
     );
 
     scalarField& rhoEff = trhoEff().internalField();
-    forAllConstIter(typename KinematicCloud<ParcelType>, *this, iter)
+    forAllConstIter(typename KinematicCloud<CloudType>, *this, iter)
     {
-        const ParcelType& p = iter();
+        const parcelType& p = iter();
         const label cellI = p.cell();
 
         rhoEff[cellI] += p.nParticle()*p.mass();
     }
 
-    rhoEff /= mesh().V();
+    rhoEff /= mesh_.V();
 
     return trhoEff;
 }

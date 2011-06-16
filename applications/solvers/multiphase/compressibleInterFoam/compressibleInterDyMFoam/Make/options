@@ -19,4 +19,3 @@ EXE_LIBS = \
     -ldynamicMesh \
     -lmeshTools \
     -ldynamicFvMesh
-

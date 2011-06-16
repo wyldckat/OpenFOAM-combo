@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -57,9 +55,9 @@ hexBlock::hexBlock(const label nx, const label ny, const label nz)
 
 void hexBlock::readPoints(Istream& is)
 {
-    forAll (points_, i)
+    forAll(points_, i)
     {
-        is >> points_[i].x() >> points_[i].y() >> points_[i].z();
+        is  >> points_[i].x() >> points_[i].y() >> points_[i].z();
     }
 
     // Calculate the handedness of the block
@@ -69,12 +67,12 @@ void hexBlock::readPoints(Istream& is)
 
     if (((i ^ j) & k) > 0)
     {
-        Info << "right-handed block" << endl;
+        Info<< "right-handed block" << endl;
         blockHandedness_ = right;
     }
     else
     {
-        Info << "left-handed block" << endl;
+        Info<< "left-handed block" << endl;
         blockHandedness_ = left;
     }
 }
@@ -375,9 +373,9 @@ faceList hexBlock::patchFaces(const label direc, const labelList& range) const
     else if (blockHandedness_ == left)
     {
         // turn all faces inside out
-        forAll (result, faceI)
+        forAll(result, faceI)
         {
-            result[faceI] = result[faceI].reverseFace();
+            result[faceI].flip();
         }
     }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -110,6 +110,34 @@ inline void Foam::UList<T>::checkIndex(const label i) const
             << "index " << i << " out of range 0 ... " << size_-1
             << abort(FatalError);
     }
+}
+
+
+template<class T>
+inline T& Foam::UList<T>::first()
+{
+    return this->operator[](0);
+}
+
+
+template<class T>
+inline const T& Foam::UList<T>::first() const
+{
+    return this->operator[](0);
+}
+
+
+template<class T>
+inline T& Foam::UList<T>::last()
+{
+    return this->operator[](this->size()-1);
+}
+
+
+template<class T>
+inline const T& Foam::UList<T>::last() const
+{
+    return this->operator[](this->size()-1);
 }
 
 

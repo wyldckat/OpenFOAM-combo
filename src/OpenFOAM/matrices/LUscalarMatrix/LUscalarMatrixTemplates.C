@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -91,7 +91,7 @@ void Foam::LUscalarMatrix::solve(Field<Type>& sourceSol) const
             {
                 OPstream::write
                 (
-                    Pstream::blocking,
+                    Pstream::scheduled,
                     slave,
                     reinterpret_cast<const char*>
                     (
@@ -105,7 +105,7 @@ void Foam::LUscalarMatrix::solve(Field<Type>& sourceSol) const
         {
             IPstream::read
             (
-                Pstream::blocking,
+                Pstream::scheduled,
                 Pstream::masterNo(),
                 reinterpret_cast<char*>(sourceSol.begin()),
                 sourceSol.byteSize()

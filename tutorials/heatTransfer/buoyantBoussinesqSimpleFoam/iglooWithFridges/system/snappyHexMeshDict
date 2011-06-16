@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -292,6 +292,7 @@ addLayersControls
     //- If points get not extruded do nGrow layers of connected faces that are
     //  also not grown. This helps convergence of the layer addition process
     //  close to features.
+    // Note: changed(corrected) w.r.t 17x! (didn't do anything in 17x)
     nGrow 0;
 
 
@@ -358,11 +359,14 @@ meshQualityControls
     //  Set to very negative number (e.g. -1E30) to disable.
     minVol 1e-13;
 
-    //- Minimum tet volume. Is absolute volume of the tet formed by the
-    //  face-centre decomposition triangle and the cell centre.
-    //  Set to a sensible fraction of the smallest cell volume expected.
-    //  Set to very negative number (e.g. -1E30) to disable.
-    minTetVol 1e-20;
+    //- Minimum quality of the tet formed by the face-centre
+    //  and variable base point minimum decomposition triangles and
+    //  the cell centre.  Set to very negative number (e.g. -1E30) to
+    //  disable.
+    //     <0 = inside out tet,
+    //      0 = flat tet
+    //      1 = regular tet
+    minTetQuality 1e-30;
 
     //- Minimum face area. Set to <0 to disable.
     minArea -1;
@@ -406,7 +410,7 @@ debug 0;
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.
-mergeTolerance 1E-6;
+mergeTolerance 1e-6;
 
 
 // ************************************************************************* //

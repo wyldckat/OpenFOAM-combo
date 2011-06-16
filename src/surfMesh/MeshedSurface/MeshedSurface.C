@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,7 +67,7 @@ bool Foam::MeshedSurface<Face>::canReadType
     const bool verbose
 )
 {
-    return checkSupport
+    return fileFormats::surfaceFormatsCore::checkSupport
     (
         readTypes() | FriendType::readTypes(),
         ext,
@@ -84,7 +84,7 @@ bool Foam::MeshedSurface<Face>::canWriteType
     const bool verbose
 )
 {
-    return checkSupport
+    return fileFormats::surfaceFormatsCore::checkSupport
     (
         writeTypes() | ProxyType::writeTypes(),
         ext,
@@ -170,9 +170,9 @@ Foam::MeshedSurface<Face>::MeshedSurface()
 template<class Face>
 Foam::MeshedSurface<Face>::MeshedSurface
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< surfZoneList >& zoneLst
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<surfZoneList>& zoneLst
 )
 :
     ParentType(List<Face>(), pointField()),
@@ -185,9 +185,9 @@ Foam::MeshedSurface<Face>::MeshedSurface
 template<class Face>
 Foam::MeshedSurface<Face>::MeshedSurface
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const UList<label>& zoneSizes,
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const labelUList& zoneSizes,
     const UList<word>& zoneNames
 )
 :
@@ -374,7 +374,7 @@ Foam::MeshedSurface<Face>::MeshedSurface
             "dummyName",
             t.timeName(),
             t,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         ),
@@ -396,7 +396,7 @@ Foam::MeshedSurface<Face>::MeshedSurface
 template<class Face>
 Foam::MeshedSurface<Face>::MeshedSurface
 (
-    const Xfer< UnsortedMeshedSurface<Face> >& surf
+    const Xfer<UnsortedMeshedSurface<Face> >& surf
 )
 :
     ParentType(List<Face>(), pointField())
@@ -408,7 +408,7 @@ Foam::MeshedSurface<Face>::MeshedSurface
 template<class Face>
 Foam::MeshedSurface<Face>::MeshedSurface
 (
-    const Xfer< MeshedSurface<Face> >& surf
+    const Xfer<MeshedSurface<Face> >& surf
 )
 :
     ParentType(List<Face>(), pointField())
@@ -425,15 +425,12 @@ Foam::MeshedSurface<Face>::~MeshedSurface()
 {}
 
 
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
 template<class Face>
 void Foam::MeshedSurface<Face>::remapFaces
 (
-    const UList<label>& faceMap
+    const labelUList& faceMap
 )
 {
     // recalculate the zone start/size
@@ -506,7 +503,7 @@ void Foam::MeshedSurface<Face>::movePoints(const pointField& newPoints)
 
 
 template<class Face>
-void Foam::MeshedSurface<Face>::scalePoints(const scalar& scaleFactor)
+void Foam::MeshedSurface<Face>::scalePoints(const scalar scaleFactor)
 {
     // avoid bad scaling
     if (scaleFactor > 0 && scaleFactor != 1.0)
@@ -525,9 +522,9 @@ void Foam::MeshedSurface<Face>::scalePoints(const scalar& scaleFactor)
 template<class Face>
 void Foam::MeshedSurface<Face>::reset
 (
-    const Xfer< pointField >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< surfZoneList >& zoneLst
+    const Xfer<pointField>& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<surfZoneList>& zoneLst
 )
 {
     ParentType::clearOut();
@@ -554,9 +551,9 @@ void Foam::MeshedSurface<Face>::reset
 template<class Face>
 void Foam::MeshedSurface<Face>::reset
 (
-    const Xfer< List<point> >& pointLst,
-    const Xfer< List<Face> >& faceLst,
-    const Xfer< surfZoneList >& zoneLst
+    const Xfer<List<point> >& pointLst,
+    const Xfer<List<Face> >& faceLst,
+    const Xfer<surfZoneList>& zoneLst
 )
 {
     ParentType::clearOut();
@@ -923,7 +920,7 @@ Foam::label Foam::MeshedSurface<Face>::triangulate
             {
                 newFaces[newFaceI] = Face
                 (
-                    static_cast<UList<label>&>(tmpTri[triI])
+                    static_cast<labelUList&>(tmpTri[triI])
                 );
                 faceMap[newFaceI] = faceI;
                 newFaceI++;
@@ -1037,8 +1034,7 @@ Foam::MeshedSurface<Face> Foam::MeshedSurface<Face>::subsetMesh
 
 
 template<class Face>
-Foam::MeshedSurface<Face>
-Foam::MeshedSurface<Face>::subsetMesh
+Foam::MeshedSurface<Face> Foam::MeshedSurface<Face>::subsetMesh
 (
     const labelHashSet& include
 ) const
@@ -1108,8 +1104,7 @@ void Foam::MeshedSurface<Face>::transfer
 
 
 template<class Face>
-Foam::Xfer< Foam::MeshedSurface<Face> >
-Foam::MeshedSurface<Face>::xfer()
+Foam::Xfer<Foam::MeshedSurface<Face> > Foam::MeshedSurface<Face>::xfer()
 {
     return xferMove(*this);
 }
@@ -1158,6 +1153,7 @@ void Foam::MeshedSurface<Face>::write
     MeshedSurfaceProxy<Face>(*this).write(t, surfName);
 }
 
+
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
 template<class Face>
@@ -1172,8 +1168,7 @@ void Foam::MeshedSurface<Face>::operator=(const MeshedSurface& surf)
 
 
 template<class Face>
-Foam::MeshedSurface<Face>::operator
-Foam::MeshedSurfaceProxy<Face>() const
+Foam::MeshedSurface<Face>::operator Foam::MeshedSurfaceProxy<Face>() const
 {
     return MeshedSurfaceProxy<Face>
     (
@@ -1183,9 +1178,6 @@ Foam::MeshedSurfaceProxy<Face>() const
     );
 }
 
-// * * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * //
-
-// * * * * * * * * * * * * * * * IOstream Operators  * * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -121,9 +121,6 @@ private:
 
     // Private Member Functions
 
-        //- Disallow default bitwise copy construct
-        IntegrationScheme(const IntegrationScheme&);
-
         //- Disallow default bitwise assignment
         void operator=(const IntegrationScheme&);
 
@@ -131,7 +128,7 @@ private:
 public:
 
     //- Runtime type information
-    TypeName("IntegrationScheme");
+    TypeName("integrationScheme");
 
 
     //- Declare runtime constructor selection table
@@ -154,6 +151,18 @@ public:
         //- Construct from components
         IntegrationScheme(const word& phiName, const dictionary& dict);
 
+        //- Copy constructor
+        IntegrationScheme(const IntegrationScheme& is);
+
+        //- Construct and return clone
+        virtual autoPtr<IntegrationScheme<Type> > clone() const
+        {
+            return autoPtr<IntegrationScheme<Type> >
+            (
+                new IntegrationScheme<Type>(*this)
+            );
+        }
+
 
     // Selectors
 
@@ -174,11 +183,11 @@ public:
         //- Perform the Integration
         virtual integrationResult integrate
         (
-            const Type phi,
+            const Type& phi,
             const scalar dt,
-            const Type alpha,
+            const Type& alphaBeta,
             const scalar beta
-        ) const = 0;
+        ) const;
 };
 
 
@@ -194,7 +203,7 @@ public:
                                                                               \
     defineTemplateRunTimeSelectionTable                                       \
     (                                                                         \
-        IntegrationScheme<Type>,                                               \
+        IntegrationScheme<Type>,                                              \
         dictionary                                                            \
     );
 
@@ -218,4 +227,3 @@ public:
 #endif
 
 // ************************************************************************* //
-

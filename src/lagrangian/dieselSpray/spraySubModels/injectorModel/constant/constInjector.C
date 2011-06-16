@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,27 +27,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "mathematicalConstants.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(constInjector, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(constInjector, 0);
-
-addToRunTimeSelectionTable
-(
-    injectorModel,
-    constInjector,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        injectorModel,
+        constInjector,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-constInjector::constInjector
+Foam::constInjector::constInjector
 (
     const dictionary& dict,
     spray& sm
@@ -60,17 +57,19 @@ constInjector::constInjector
 {
     if (sm.injectors().size() != dropletNozzleDiameterRatio_.size())
     {
-        FatalError << "constInjector::constInjector"
-            << "(const dictionary& dict, spray& sm)\n"
-            << "Wrong number of entries in dropletNozzleDiameterRatio"
+        FatalErrorIn
+        (
+            "constInjector::constInjector(const dictionary& dict, spray& sm)"
+        )   << "Wrong number of entries in dropletNozzleDiameterRatio" << nl
             << abort(FatalError);
     }
 
     if (sm.injectors().size() != sprayAngle_.size())
     {
-        FatalError << "constInjector::constInjector"
-            << "(const dictionary& dict, spray& sm)\n"
-            << "Wrong number of entries in sprayAngle"
+        FatalErrorIn
+        (
+            "constInjector::constInjector(const dictionary& dict, spray& sm)"
+        )   << "Wrong number of entries in sprayAngle" << nl
             << abort(FatalError);
     }
 
@@ -79,23 +78,26 @@ constInjector::constInjector
     // correct velocity and pressure profiles
     forAll(sm.injectors(), i)
     {
-        sm.injectors()[i].properties()->correctProfiles(sm.fuels(), referencePressure);
+        sm.injectors()[i].properties()->correctProfiles
+        (
+            sm.fuels(),
+            referencePressure
+        );
     }
-
 }
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-constInjector::~constInjector()
+Foam::constInjector::~constInjector()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-scalar constInjector::d0
+Foam::scalar Foam::constInjector::d0
 (
-    const label n, 
+    const label n,
     const scalar
 ) const
 {
@@ -103,7 +105,7 @@ scalar constInjector::d0
 }
 
 
-vector constInjector::direction
+Foam::vector Foam::constInjector::direction
 (
     const label n,
     const label hole,
@@ -118,48 +120,55 @@ vector constInjector::direction
         alpha = radius of the two normal vectors,
         = maximum sin(sprayAngle/2)
         beta = angle in the normal plane
-        
-                        o                    / (beta)
-                        |\                  /
-                        | \                /)
-                        |  \              o-----------> (x-axis)
-                        |   \
-                        v  (alpha)
-        */
 
-    scalar angle = rndGen_.scalar01()*sprayAngle_[n]*mathematicalConstant::pi/360.0;
+        o                  / (beta)
+        |\                /
+        | \              /)
+        |  \            o-----------> (x-axis)
+        |   \
+        v  (alpha)
+    */
+
+    scalar angle =
+        rndGen_.sample01<scalar>()*sprayAngle_[n]
+       *constant::mathematical::pi/360.0;
     scalar alpha = sin(angle);
     scalar dcorr = cos(angle);
 
-    scalar beta = 2.0*mathematicalConstant::pi*rndGen_.scalar01();
+    scalar beta = constant::mathematical::twoPi*rndGen_.sample01<scalar>();
 
     // randomly distributed vector normal to the injection vector
     vector normal = vector::zero;
-    
+
     if (sm_.twoD())
     {
         scalar reduce = 0.01;
         // correct beta if this is a 2D run
         // map it onto the 'angleOfWedge'
-        beta *= (1.0-2.0*reduce)*0.5*sm_.angleOfWedge()/mathematicalConstant::pi;
+        beta *=
+            (1.0 - 2.0*reduce)
+           *0.5*sm_.angleOfWedge()
+           /constant::mathematical::pi;
         beta += reduce*sm_.angleOfWedge();
 
-        normal = alpha*
-        (
-            sm_.axisOfWedge()*cos(beta) +
-            sm_.axisOfWedgeNormal()*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                sm_.axisOfWedge()*cos(beta)
+              + sm_.axisOfWedgeNormal()*sin(beta)
+            );
 
     }
     else
     {
-        normal = alpha*
-        (
-            injectors_[n].properties()->tan1(hole)*cos(beta) +
-            injectors_[n].properties()->tan2(hole)*sin(beta)
-        );
+        normal =
+            alpha
+           *(
+                injectors_[n].properties()->tan1(hole)*cos(beta)
+              + injectors_[n].properties()->tan2(hole)*sin(beta)
+            );
     }
-    
+
     // set the direction of injection by adding the normal vector
     vector dir = dcorr*injectors_[n].properties()->direction(n, time) + normal;
     dir /= mag(dir);
@@ -167,7 +176,8 @@ vector constInjector::direction
     return dir;
 }
 
-scalar constInjector::velocity
+
+Foam::scalar Foam::constInjector::velocity
 (
     const label i,
     const scalar time
@@ -188,17 +198,14 @@ scalar constInjector::velocity
     }
 }
 
-scalar constInjector::averageVelocity
-(
-    const label i
-) const
-{    
+
+Foam::scalar Foam::constInjector::averageVelocity(const label i) const
+{
     const injectorType& it = sm_.injectors()[i].properties();
     scalar dt = it.teoi() - it.tsoi();
 
     return it.integrateTable(it.velocityProfile())/dt;
 }
 
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,14 +29,9 @@ License
 #include "surfaceFields.H"
 #include "volFields.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-fixedPressureCompressibleDensityFvPatchScalarField::
+Foam::fixedPressureCompressibleDensityFvPatchScalarField::
 fixedPressureCompressibleDensityFvPatchScalarField
 (
     const fvPatch& p,
@@ -44,11 +39,11 @@ fixedPressureCompressibleDensityFvPatchScalarField
 )
 :
     fixedValueFvPatchField<scalar>(p, iF),
-    pName_("pNameIsUndefined")
+    pName_("p")
 {}
 
 
-fixedPressureCompressibleDensityFvPatchScalarField::
+Foam::fixedPressureCompressibleDensityFvPatchScalarField::
 fixedPressureCompressibleDensityFvPatchScalarField
 (
     const fixedPressureCompressibleDensityFvPatchScalarField& ptf,
@@ -62,7 +57,7 @@ fixedPressureCompressibleDensityFvPatchScalarField
 {}
 
 
-fixedPressureCompressibleDensityFvPatchScalarField::
+Foam::fixedPressureCompressibleDensityFvPatchScalarField::
 fixedPressureCompressibleDensityFvPatchScalarField
 (
     const fvPatch& p,
@@ -71,11 +66,11 @@ fixedPressureCompressibleDensityFvPatchScalarField
 )
 :
     fixedValueFvPatchField<scalar>(p, iF, dict),
-    pName_(dict.lookup("p"))
+    pName_(dict.lookupOrDefault<word>("p", "p"))
 {}
 
 
-fixedPressureCompressibleDensityFvPatchScalarField::
+Foam::fixedPressureCompressibleDensityFvPatchScalarField::
 fixedPressureCompressibleDensityFvPatchScalarField
 (
     const fixedPressureCompressibleDensityFvPatchScalarField& ptf
@@ -86,7 +81,7 @@ fixedPressureCompressibleDensityFvPatchScalarField
 {}
 
 
-fixedPressureCompressibleDensityFvPatchScalarField::
+Foam::fixedPressureCompressibleDensityFvPatchScalarField::
 fixedPressureCompressibleDensityFvPatchScalarField
 (
     const fixedPressureCompressibleDensityFvPatchScalarField& ptf,
@@ -100,7 +95,7 @@ fixedPressureCompressibleDensityFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void fixedPressureCompressibleDensityFvPatchScalarField::updateCoeffs()
+void Foam::fixedPressureCompressibleDensityFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -127,28 +122,26 @@ void fixedPressureCompressibleDensityFvPatchScalarField::updateCoeffs()
 }
 
 
-void fixedPressureCompressibleDensityFvPatchScalarField::write
+void Foam::fixedPressureCompressibleDensityFvPatchScalarField::write
 (
     Ostream& os
 ) const
 {
     fvPatchField<scalar>::write(os);
-    os.writeKeyword("p") << pName_ << token::END_STATEMENT << nl;
+    writeEntryIfDifferent<word>(os, "p", "p", pName_);
     writeEntry("value", os);
 }
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField
-(
-    fvPatchScalarField,
-    fixedPressureCompressibleDensityFvPatchScalarField
-);
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchScalarField,
+        fixedPressureCompressibleDensityFvPatchScalarField
+    );
+}
 
 // ************************************************************************* //

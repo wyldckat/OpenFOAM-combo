@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,11 +28,10 @@ Description
     Calculates points shared by more than two processor patches or cyclic
     patches.
 
-    Is used in globalMeshData. (this info is needed for point-edge
-    communication where you do all but these shared points with patch to
-    patch communication but need to do a reduce on these shared points)
+    Is used in globalMeshData. (this info is needed for point/edge
+    communication where processor swaps are not enough to exchange data)
 
-    Works purely topological and using local communication only. 
+    Works purely topological and using local communication only.
     Needs:
       - domain to be one single domain (i.e. all faces can be reached through
         face-cell walk).
@@ -40,17 +39,15 @@ Description
       - f[0] ordering on patch faces to be ok.
 
     Works by constructing equivalence lists for all the points on processor
-    patches. These list are procPointList and give processor and meshPoint
-    label on that processor.
+    patches. These list are in globalIndexAndTransform numbering
     E.g.
-    @verbatim
+    \verbatim
           ((7 93)(4 731)(3 114))
-    @endverbatim
+    \endverbatim
 
     means point 93 on proc7 is connected to point 731 on proc4 and 114 on proc3.
-    It then gets the lowest numbered processor (the 'master') to request a
-    sharedPoint label from processor0 and it redistributes this label back to
-    the other processors in the equivalence list.
+    It then assigns the lowest numbered processor to be the local 'master' and
+    constructs a mapDistribute to send all data to this master.
 
     Algorithm:
         - get meshPoints of all my points on processor patches and initialize
@@ -65,25 +62,13 @@ Description
      endloop until nothing changes
 
     At this point one will have complete point-point connectivity for all
-    points on processor patches. Now
+    points on processor patches. Now (optionally) remove point
+    equivalences of size 2. These are just normal points shared
+    between two neighbouring procPatches.
 
-        - remove point equivalences of size 2. These are just normal points
-          shared between two neighbouring procPatches.
-        - collect on each processor points for which it is the master
-        - request number of sharedPointLabels from the Pstream::master.
+    Note: the data held is either mesh point labels (construct from mesh only)
+    or patch point labels (construct from mesh and patch).
 
-    This information gets redistributed to all processors in a similar way
-    as that in which the equivalence lists were collected:
-
-        - initialize the indices of shared points I am the master for
-     loop
-        - send my known sharedPoints + meshPoints to all neighbours
-        - receive from all neighbour. Find which meshPoint on my processor
-          the sharedpoint is connected to
-        - mark indices for which information has changed
-     endloop until nothing changes.
-
- 
 SourceFiles
     globalPoints.C
 
@@ -93,12 +78,9 @@ SourceFiles
 #define globalPoints_H
 
 #include "DynamicList.H"
-#include "Map.H"
-#include "labelList.H"
-#include "FixedList.H"
-#include "primitivePatch.H"
-#include "className.H"
-#include "edgeList.H"
+#include "indirectPrimitivePatch.H"
+#include "globalIndex.H"
+#include "globalIndexAndTransform.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -109,6 +91,8 @@ namespace Foam
 class polyMesh;
 class polyBoundaryMesh;
 class cyclicPolyPatch;
+class polyPatch;
+class mapDistribute;
 
 /*---------------------------------------------------------------------------*\
                            Class globalPoints Declaration
@@ -116,16 +100,16 @@ class cyclicPolyPatch;
 
 class globalPoints
 {
-    // Private classes
-
-        //- Define procPointList as holding a list of meshPoint/processor labels
-        typedef FixedList<label, 2> procPoint;
-        typedef List<procPoint> procPointList;
-
     // Private data
 
         //- Mesh reference
         const polyMesh& mesh_;
+
+        //- Global numbering of untransformed points
+        globalIndex globalIndices_;
+
+        //- Global numbering of transformed points
+        const globalIndexAndTransform globalTransforms_;
 
         //- Sum of points on processor patches (unfiltered, point on 2 patches
         //  counts as 2)
@@ -133,19 +117,24 @@ class globalPoints
 
         //- All points on boundaries and their corresponding connected points
         //  on other processors.
-        DynamicList<procPointList> procPoints_;
+        DynamicList<labelPairList> procPoints_;
 
-        //- Map from mesh point to index in procPoints
+        //- Map from mesh (or patch) point to index in procPoints
         Map<label> meshToProcPoint_;
 
-        //- Shared points used by this processor (= global point number)
-        labelList sharedPointAddr_;
 
-        //- My meshpoints corresponding to the shared points
-        labelList sharedPointLabels_;
+        // Calculated mapDistribute addressing
 
-        //- Total number of shared points.
-        label nGlobalPoints_;
+            //- Non-transformed connected points per point (in mapDistribute
+            //  indices)
+            labelListList pointPoints_;
+
+            //- Transformed points per point (in mapDistribute indices)
+            labelListList transformedPointPoints_;
+
+            //- Corresponding map
+            autoPtr<mapDistribute> map_;
+
 
 
     // Private Member Functions
@@ -154,55 +143,118 @@ class globalPoints
         //  information is collected.
         static label countPatchPoints(const polyBoundaryMesh&);
 
+        //- Find index of same processor+index
+        label findSamePoint
+        (
+            const labelPairList& allInfo,
+            const labelPair& info
+        ) const;
+
+        labelPairList addSendTransform
+        (
+            const label patchI,
+            const labelPairList& info
+        ) const;
+
         //- Add information about patchPointI in relative indices to send
         //  buffers (patchFaces, indexInFace etc.)
-        static void addToSend
+        void addToSend
         (
-            const primitivePatch&,
+            const polyPatch&,
             const label patchPointI,
-            const procPointList&,
+            const labelPairList&,
             DynamicList<label>& patchFaces,
             DynamicList<label>& indexInFace,
-            DynamicList<procPointList>& allInfo
-        );
+            DynamicList<labelPairList>& allInfo
+        ) const;
 
         //- Merge info from neighbour into my data
-        static bool mergeInfo
+        bool mergeInfo
         (
-            const procPointList& nbrInfo,
-            procPointList& myInfo
+            const labelPairList& nbrInfo,
+            const label localPointI,
+            labelPairList& myInfo
+        ) const;
+
+        //- From mesh point to 'local point'. Is the mesh point itself
+        //  if meshToPatchPoint is empty.
+        static label meshToLocalPoint
+        (
+            const Map<label>& meshToPatchPoint,
+            const label meshPointI
+        );
+
+        //- Opposite of meshToLocalPoint.
+        static label localToMeshPoint
+        (
+            const labelList& patchToMeshPoint,
+            const label localPointI
         );
 
         //- Store (and merge) info for meshPointI
-        bool storeInfo(const procPointList& nbrInfo, const label meshPointI);
+        bool storeInitialInfo
+        (
+            const labelPairList& nbrInfo,
+            const label localPointI
+        );
+
+        //- Store (and merge) info for meshPointI
+        bool mergeInfo
+        (
+            const labelPairList& nbrInfo,
+            const label localPointI
+        );
+
+        //- Debug printing
+        void printProcPoints
+        (
+            const labelList& patchToMeshPoint,
+            const labelPairList& pointInfo
+        ) const;
 
         //- Initialize procPoints_ to my patch points. allPoints = true:
         //  seed with all patch points, = false: only boundaryPoints().
-        void initOwnPoints(const bool allPoints, labelHashSet& changedPoints);
+        void initOwnPoints
+        (
+            const Map<label>& meshToPatchPoint,
+            const bool allPoints,
+            labelHashSet& changedPoints
+        );
 
         //- Send subset of procPoints to neighbours
-        void sendPatchPoints(const labelHashSet& changedPoints) const;
+        void sendPatchPoints
+        (
+            const bool mergeSeparated,
+            const Map<label>&,
+            PstreamBuffers&,
+            const labelHashSet&
+        ) const;
 
         //- Receive neighbour points and merge into my procPoints.
-        void receivePatchPoints(labelHashSet& changedPoints);
+        void receivePatchPoints
+        (
+            const bool mergeSeparated,
+            const Map<label>&,
+            const labelList&,
+            PstreamBuffers&,
+            labelHashSet&
+        );
 
         //- Remove entries of size 2 where meshPoint is in provided Map.
         //  Used to remove normal face-face connected points.
-        void remove(const Map<label>&);
+        void remove(const labelList& patchToMeshPoint, const Map<label>&);
 
-        //- Get indices of point for which I am master (lowest numbered proc)
-        labelList getMasterPoints() const;
+        //- Return mesh points of other side in same order as my meshPoints.
+        static labelList reverseMeshPoints(const cyclicPolyPatch&);
 
-        //- Send subset of shared points to neighbours
-        void sendSharedPoints(const labelList& changedIndices) const;
-
-        //- Receive shared points and update subset.
-        void receiveSharedPoints(labelList& changedIndices);
-
-
-        //- Should move into cyclicPolyPatch but some ordering problem
-        //  keeps on giving problems.
-        static edgeList coupledPoints(const cyclicPolyPatch&);
+        //- Do all calculations.
+        void calculateSharedPoints
+        (
+            const Map<label>&,
+            const labelList&,
+            const bool keepAllPoints,
+            const bool mergeSeparated
+        );
 
         //- Disallow default bitwise copy construct
         globalPoints(const globalPoints&);
@@ -219,41 +271,97 @@ public:
 
     // Constructors
 
-        //- Construct from mesh
-        globalPoints(const polyMesh& mesh);
+        //- Construct from mesh.
+        //  keepAllPoints = false : filter out points that are on two
+        //  neighbouring coupled patches only (so can be swapped)
+        //  mergeSeparated:
+        //      true  : merge coupled points across separated patches.
+        //      false : do not merge across coupled separated patches.
+        globalPoints
+        (
+            const polyMesh& mesh,
+            const bool keepAllPoints,
+            const bool mergeSeparated
+        );
+
+        //- Construct from mesh and patch of coupled faces. Difference with
+        //  construct from mesh only is that this stores the meshToProcPoint,
+        //  procPoints as patch local point labels instead of mesh point labels.
+        globalPoints
+        (
+            const polyMesh& mesh,
+            const indirectPrimitivePatch& coupledPatch,
+            const bool keepAllPoints,
+            const bool mergeSeparated
+        );
 
 
     // Member Functions
 
         // Access
 
-            label nPatchPoints() const
+            //- Global numbering of untransformed (mesh or patch) points
+            const globalIndex& globalIndices() const
             {
-                return nPatchPoints_;
+                return globalIndices_;
             }
 
+            //- Global numbering of transformed (mesh or patch) points
+            const globalIndexAndTransform& globalTransforms() const
+            {
+                return globalTransforms_;
+            }
+
+            //- Non-transformed connected points per point (in mapDistribute
+            //  indices)
+            const labelListList& pointPoints() const
+            {
+                return pointPoints_;
+            }
+
+            //- Non-transformed connected points per point (in mapDistribute
+            //  indices)
+            labelListList& pointPoints()
+            {
+                return pointPoints_;
+            }
+
+            //- Transformed points per point (in mapDistribute indices)
+            const labelListList& transformedPointPoints() const
+            {
+                return transformedPointPoints_;
+            }
+
+            //- Transformed points per point (in mapDistribute indices)
+            labelListList& transformedPointPoints()
+            {
+                return transformedPointPoints_;
+            }
+
+            //- Corresponding map
+            const mapDistribute& map() const
+            {
+                return map_();
+            }
+
+            //- Corresponding map
+            mapDistribute& map()
+            {
+                return map_();
+            }
+
+            //- From (mesh or patch) point to index in procPoints
             const Map<label>& meshToProcPoint() const
             {
                 return meshToProcPoint_;
             }
 
-            //- shared points used by this processor (= global point number)
-            const labelList& sharedPointAddr() const
+            //- procPoints is per point the connected points (in
+            //  globalTransformAndIndex point numbers)
+            const DynamicList<labelPairList>& procPoints() const
             {
-                return sharedPointAddr_;
+                return procPoints_;
             }
-
-            //- my meshpoints corresponding to the shared points
-            const labelList& sharedPointLabels() const
-            {
-                return sharedPointLabels_;
-            }
-
-            label nGlobalPoints() const
-            {
-                return nGlobalPoints_;
-            }
-
 };
 
 

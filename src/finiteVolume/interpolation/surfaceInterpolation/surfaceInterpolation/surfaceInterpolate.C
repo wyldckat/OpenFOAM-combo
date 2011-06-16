@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -105,7 +105,7 @@ tmp<surfaceInterpolationScheme<Type> > scheme
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -128,7 +128,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -151,7 +151,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const tmp<GeometricField<Type, fvPatchField, volMesh> >& tvf,
@@ -169,7 +169,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -187,7 +187,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const tmp<GeometricField<Type, fvPatchField, volMesh> >& tvf,
@@ -207,7 +207,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -228,7 +228,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -250,7 +250,7 @@ interpolate
 
 // Interpolate field onto faces using scheme given by name in dictionary
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const tmp<GeometricField<Type, fvPatchField, volMesh> >& tvf,
@@ -268,7 +268,7 @@ interpolate
 
 // Interpolate field onto faces using central differencing
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -289,7 +289,7 @@ interpolate
 
 // Interpolate field onto faces using central differencing
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > 
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
 interpolate
 (
     const tmp<GeometricField<Type, fvPatchField, volMesh> >& tvf

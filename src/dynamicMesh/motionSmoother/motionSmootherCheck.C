@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,6 +68,10 @@ bool Foam::motionSmoother::checkMesh
     (
         readScalar(dict.lookup("minVol", true))
     );
+    const scalar minTetQuality
+    (
+        readScalar(dict.lookup("minTetQuality", true))
+    );
     const scalar maxConcave
     (
         readScalar(dict.lookup("maxConcave", true))
@@ -104,7 +108,6 @@ bool Foam::motionSmoother::checkMesh
     (
         readScalar(dict.lookup("minDeterminant", true))
     );
-
     label nWrongFaces = 0;
 
     Info<< "Checking faces in error :" << endl;
@@ -152,6 +155,30 @@ bool Foam::motionSmoother::checkMesh
 
         Info<< "    faces with face pyramid volume < "
             << setw(5) << minVol << "                 : "
+            << nNewWrongFaces-nWrongFaces << endl;
+
+        nWrongFaces = nNewWrongFaces;
+    }
+
+    if (minTetQuality > -GREAT)
+    {
+        polyMeshGeometry::checkFaceTets
+        (
+            report,
+            minTetQuality,
+            mesh,
+            mesh.cellCentres(),
+            mesh.faceCentres(),
+            mesh.points(),
+            checkFaces,
+            baffles,
+            &wrongFaces
+        );
+
+        label nNewWrongFaces = returnReduce(wrongFaces.size(), sumOp<label>());
+
+        Info<< "    faces with face-decomposition tet quality < "
+            << setw(5) << minTetQuality << "      : "
             << nNewWrongFaces-nWrongFaces << endl;
 
         nWrongFaces = nNewWrongFaces;
@@ -416,6 +443,10 @@ bool Foam::motionSmoother::checkMesh
     (
         readScalar(dict.lookup("minVol", true))
     );
+    const scalar minTetQuality
+    (
+        readScalar(dict.lookup("minTetQuality", true))
+    );
     const scalar maxConcave
     (
         readScalar(dict.lookup("maxConcave", true))
@@ -495,6 +526,27 @@ bool Foam::motionSmoother::checkMesh
 
         Info<< "    faces with face pyramid volume < "
             << setw(5) << minVol << "                 : "
+            << nNewWrongFaces-nWrongFaces << endl;
+
+        nWrongFaces = nNewWrongFaces;
+    }
+
+    if (minTetQuality > -GREAT)
+    {
+        meshGeom.checkFaceTets
+        (
+            report,
+            minTetQuality,
+            meshGeom.mesh().points(),
+            checkFaces,
+            baffles,
+            &wrongFaces
+        );
+
+        label nNewWrongFaces = returnReduce(wrongFaces.size(), sumOp<label>());
+
+        Info<< "    faces with face-decomposition tet quality < "
+            << setw(5) << minTetQuality << "                : "
             << nNewWrongFaces-nWrongFaces << endl;
 
         nWrongFaces = nNewWrongFaces;

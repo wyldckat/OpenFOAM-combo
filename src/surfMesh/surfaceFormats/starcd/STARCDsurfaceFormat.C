@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,6 +83,18 @@ bool Foam::fileFormats::STARCDsurfaceFormat<Face>::read
     this->clear();
 
     fileName baseName = filename.lessExt();
+
+    // read cellTable names (if possible)
+    Map<word> cellTableLookup;
+
+    {
+        IFstream is(baseName + ".inp");
+        if (is.good())
+        {
+            cellTableLookup = readInpCellTable(is);
+        }
+    }
+
 
     // STAR-CD index of points
     List<label> pointId;
@@ -170,7 +182,22 @@ bool Foam::fileFormats::STARCDsurfaceFormat<Face>::read
             {
                 zoneI = dynSizes.size();
                 lookup.insert(cellTableId, zoneI);
-                dynNames.append(word("cellTable_") + ::Foam::name(zoneI));
+
+                Map<word>::const_iterator tableNameIter =
+                    cellTableLookup.find(cellTableId);
+
+                if (tableNameIter == cellTableLookup.end())
+                {
+                    dynNames.append
+                    (
+                        word("cellTable_") + ::Foam::name(cellTableId)
+                    );
+                }
+                else
+                {
+                    dynNames.append(tableNameIter());
+                }
+
                 dynSizes.append(0);
             }
 
@@ -190,7 +217,7 @@ bool Foam::fileFormats::STARCDsurfaceFormat<Face>::read
                     (
                         triFace
                         (
-                            static_cast<UList<label>&>(triFaces[faceI])
+                            static_cast<labelUList&>(triFaces[faceI])
                         )
                     );
                     dynZones.append(zoneI);
@@ -207,7 +234,7 @@ bool Foam::fileFormats::STARCDsurfaceFormat<Face>::read
     }
     mapPointId.clear();
 
-    sortFacesAndStore(dynFaces.xfer(), dynZones.xfer(), sorted);
+    this->sortFacesAndStore(dynFaces.xfer(), dynZones.xfer(), sorted);
 
     // add zones, culling empty ones
     this->addZones(dynSizes, dynNames, true);
@@ -228,9 +255,9 @@ void Foam::fileFormats::STARCDsurfaceFormat<Face>::write
 
     const List<surfZone>& zones =
     (
-        surf.surfZones().size() > 1
-      ? surf.surfZones()
-      : oneZone(faceLst)
+        surf.surfZones().empty()
+      ? surfaceFormatsCore::oneZone(faceLst)
+      : surf.surfZones()
     );
 
     const bool useFaceMap = (surf.useFaceMap() && zones.size() > 1);

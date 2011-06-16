@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,6 +44,7 @@ SourceFiles
 #define DynamicList_H
 
 #include "List.H"
+#include "StaticAssert.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -78,12 +79,14 @@ class DynamicList
 :
     public List<T>
 {
+    //- Avoid invalid sizing parameters
+    StaticAssert((SizeInc || SizeMult) && SizeDiv);
+
     // Private data
 
         //- The capacity (allocated size) of the underlying list.
         label capacity_;
 
-    // Private Member Functions
 
 public:
 
@@ -91,6 +94,7 @@ public:
 
         //- Declare friendship with the List class
         friend class List<T>;
+
 
     // Constructors
 
@@ -101,10 +105,7 @@ public:
         explicit inline DynamicList(const label);
 
         //- Construct copy.
-        explicit inline DynamicList
-        (
-            const DynamicList<T, SizeInc, SizeMult, SizeDiv>&
-        );
+        inline DynamicList(const DynamicList<T, SizeInc, SizeMult, SizeDiv>&);
 
         //- Construct from UList. Size set to UList size.
         //  Also constructs from DynamicList with different sizing parameters.
@@ -114,9 +115,9 @@ public:
         explicit inline DynamicList(const UIndirectList<T>&);
 
         //- Construct by transferring the parameter contents
-        explicit inline DynamicList(const Xfer< List<T> >&);
+        explicit inline DynamicList(const Xfer<List<T> >&);
 
-        //- Construct from Istream. Size set to size of read list.
+        //- Construct from Istream. Size set to size of list read.
         explicit DynamicList(Istream&);
 
 
@@ -124,103 +125,121 @@ public:
 
         // Access
 
-        //- Size of the underlying storage.
-        inline label capacity() const;
+            //- Size of the underlying storage.
+            inline label capacity() const;
 
         // Edit
 
-        //- Alter the size of the underlying storage.
-        //  The addressed size will be truncated if needed to fit, but will
-        //  remain otherwise untouched.
-        //  Use this or reserve() in combination with append().
-        inline void setCapacity(const label);
+            //- Alter the size of the underlying storage.
+            //  The addressed size will be truncated if needed to fit, but will
+            //  remain otherwise untouched.
+            //  Use this or reserve() in combination with append().
+            inline void setCapacity(const label);
 
-        //- Alter the addressed list size.
-        //  New space will be allocated if required.
-        //  Use this to resize the list prior to using the operator[] for
-        //  setting values (as per List usage).
-        inline void setSize(const label);
+            //- Alter the addressed list size.
+            //  New space will be allocated if required.
+            //  Use this to resize the list prior to using the operator[] for
+            //  setting values (as per List usage).
+            inline void setSize(const label);
 
-        //- Alter the addressed list size and fill new space with a constant.
-        inline void setSize(const label, const T&);
+            //- Alter the addressed list size and fill new space with a
+            //  constant.
+            inline void setSize(const label, const T&);
 
-        //- Alter the addressed list size.
-        //  New space will be allocated if required.
-        //  Use this to resize the list prior to using the operator[] for
-        //  setting values (as per List usage).
-        inline void resize(const label);
+            //- Alter the addressed list size.
+            //  New space will be allocated if required.
+            //  Use this to resize the list prior to using the operator[] for
+            //  setting values (as per List usage).
+            inline void resize(const label);
 
-        //- Alter the addressed list size and fill new space with a constant.
-        inline void resize(const label, const T&);
+            //- Alter the addressed list size and fill new space with a
+            //  constant.
+            inline void resize(const label, const T&);
 
-        //- Reserve allocation space for at least this size.
-        //  Never shrinks the allocated size, use setCapacity() for that.
-        inline void reserve(const label);
+            //- Reserve allocation space for at least this size.
+            //  Never shrinks the allocated size, use setCapacity() for that.
+            inline void reserve(const label);
 
-        //- Clear the addressed list, i.e. set the size to zero.
-        //  Allocated size does not change
-        inline void clear();
+            //- Clear the addressed list, i.e. set the size to zero.
+            //  Allocated size does not change
+            inline void clear();
 
-        //- Clear the list and delete storage.
-        inline void clearStorage();
+            //- Clear the list and delete storage.
+            inline void clearStorage();
 
-        //- Shrink the allocated space to the number of elements used.
-        //  Returns a reference to the DynamicList.
-        inline DynamicList<T, SizeInc, SizeMult, SizeDiv>& shrink();
+            //- Shrink the allocated space to the number of elements used.
+            //  Returns a reference to the DynamicList.
+            inline DynamicList<T, SizeInc, SizeMult, SizeDiv>& shrink();
 
-        //- Transfer contents of the argument List into this DynamicList
-        inline void transfer(List<T>&);
+            //- Transfer contents of the argument List into this.
+            inline void transfer(List<T>&);
 
-        //- Transfer contents of the argument DynamicList into this DynamicList
-        inline void transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>&);
+            //- Transfer contents of the argument DynamicList into this.
+            inline void transfer(DynamicList<T, SizeInc, SizeMult, SizeDiv>&);
 
-        //- Transfer contents to the Xfer container as a plain List
-        inline Xfer< List<T> > xfer();
+            //- Transfer contents to the Xfer container as a plain List
+            inline Xfer<List<T> > xfer();
 
-    // Member Operators
 
-        //- Append an element at the end of the list
-        inline void append(const T&);
+        // Member Operators
 
-        //- Append a List at the end of this list
-        inline void append(const UList<T>&);
+            //- Append an element at the end of the list
+            inline DynamicList<T, SizeInc, SizeMult, SizeDiv>& append
+            (
+                const T&
+            );
 
-        //- Append a UIndirectList at the end of this list
-        inline void append(const UIndirectList<T>&);
+            //- Append a List at the end of this list
+            inline DynamicList<T, SizeInc, SizeMult, SizeDiv>& append
+            (
+                const UList<T>&
+            );
 
-        //- Remove and return the top element
-        inline T remove();
+            //- Append a UIndirectList at the end of this list
+            inline DynamicList<T, SizeInc, SizeMult, SizeDiv>& append
+            (
+                const UIndirectList<T>&
+            );
 
-        //- Return non-const access to an element, resizing list if necessary
-        inline T& operator()(const label);
+            //- Remove and return the top element
+            inline T remove();
 
-        //- Assignment of all addressed entries to the given value
-        inline void operator=(const T&);
+            //- Return non-const access to an element, resizing list if
+            //  necessary
+            inline T& operator()(const label);
 
-        //- Assignment from DynamicList
-        inline void operator=
-        (
-            const DynamicList<T, SizeInc, SizeMult, SizeDiv>&
-        );
+            //- Assignment of all addressed entries to the given value
+            inline void operator=(const T&);
 
-        //- Assignment from UList
-        inline void operator=(const UList<T>&);
+            //- Assignment from DynamicList
+            inline void operator=
+            (
+                const DynamicList<T, SizeInc, SizeMult, SizeDiv>&
+            );
 
-    // IOstream operators
+            //- Assignment from UList
+            inline void operator=(const UList<T>&);
 
-        // Write DynamicList to Ostream.
-        friend Ostream& operator<< <T, SizeInc, SizeMult, SizeDiv>
-        (
-            Ostream&,
-            const DynamicList<T, SizeInc, SizeMult, SizeDiv>&
-        );
+            //- Assignment from UIndirectList
+            inline void operator=(const UIndirectList<T>&);
 
-        //- Read from Istream, discarding contents of existing DynamicList.
-        friend Istream& operator>> <T, SizeInc, SizeMult, SizeDiv>
-        (
-            Istream&,
-            DynamicList<T, SizeInc, SizeMult, SizeDiv>&
-        );
+
+
+        // IOstream operators
+
+            // Write DynamicList to Ostream.
+            friend Ostream& operator<< <T, SizeInc, SizeMult, SizeDiv>
+            (
+                Ostream&,
+                const DynamicList<T, SizeInc, SizeMult, SizeDiv>&
+            );
+
+            //- Read from Istream, discarding contents of existing DynamicList.
+            friend Istream& operator>> <T, SizeInc, SizeMult, SizeDiv>
+            (
+                Istream&,
+                DynamicList<T, SizeInc, SizeMult, SizeDiv>&
+            );
 };
 
 

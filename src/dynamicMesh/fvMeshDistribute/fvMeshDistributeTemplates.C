@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,132 +24,8 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "mapPolyMesh.H"
-#include "PstreamCombineReduceOps.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-//- combineReduce operator for lists. Used for counting.
-class listEq
-{
-
-public:
-
-    template<class T>
-    void operator()(T& x, const T& y) const
-    {
-        forAll(y, i)
-        {
-            if (y[i].size())
-            {
-                x[i] = y[i];
-            }
-        }
-    }
-};
-
-
-template <class Container, class T>
-void Foam::fvMeshDistribute::exchange
-(
-    const List<Container >& sendBufs,
-    List<Container >& recvBufs,
-    labelListList& sizes
-)
-{
-    if (Pstream::parRun())
-    {
-        if (!contiguous<T>())
-        {
-            FatalErrorIn
-            (
-                "Pstream::exchange(..)"
-            )   << "Continuous data only." << Foam::abort(FatalError);
-        }
-
-        if (sendBufs.size() != Pstream::nProcs())
-        {
-            FatalErrorIn
-            (
-                "Pstream::exchange(..)"
-            )   << "Size of list:" << sendBufs.size()
-                << " does not equal the number of processors:"
-                << Pstream::nProcs()
-                << Foam::abort(FatalError);
-        }
-
-        sizes.setSize(Pstream::nProcs());
-        labelList& nsTransPs = sizes[Pstream::myProcNo()];
-        nsTransPs.setSize(Pstream::nProcs());
-
-        forAll(sendBufs, procI)
-        {
-            nsTransPs[procI] = sendBufs[procI].size();
-        }
-
-        Foam::combineReduce(sizes, listEq());
-
-
-        // Set up receives
-        // ~~~~~~~~~~~~~~~
-
-        recvBufs.setSize(sendBufs.size());
-        forAll(sizes, procI)
-        {
-            label nRecv = sizes[procI][Pstream::myProcNo()];
-
-            if (procI != Pstream::myProcNo() && nRecv > 0)
-            {
-                recvBufs[procI].setSize(nRecv);
-                IPstream::read
-                (
-                    Pstream::nonBlocking,
-                    procI,
-                    reinterpret_cast<char*>(recvBufs[procI].begin()),
-                    nRecv*sizeof(T)
-                );
-            }
-        }
-
-
-        // Set up sends
-        // ~~~~~~~~~~~~
-
-        forAll(sendBufs, procI)
-        {
-            if (procI != Pstream::myProcNo() && sendBufs[procI].size() > 0)
-            {
-                if
-                (
-                   !OPstream::write
-                    (
-                        Pstream::nonBlocking,
-                        procI,
-                        reinterpret_cast<const char*>(sendBufs[procI].begin()),
-                        sendBufs[procI].size()*sizeof(T)
-                    )
-                )
-                {
-                    FatalErrorIn("Pstream::exchange(..)")
-                        << "Cannot send outgoing message. "
-                        << "to:" << procI << " nBytes:"
-                        << label(sendBufs[procI].size()*sizeof(T))
-                        << Foam::abort(FatalError);
-                }
-            }
-        }
-
-
-        // Wait for all to finish
-        // ~~~~~~~~~~~~~~~~~~~~~~
-
-        IPstream::waitRequests();
-        OPstream::waitRequests();
-    }
-
-    // Do myself
-    recvBufs[Pstream::myProcNo()] = sendBufs[Pstream::myProcNo()];
-}
-
 
 template<class GeoField>
 void Foam::fvMeshDistribute::printFieldInfo(const fvMesh& mesh)
@@ -159,12 +35,7 @@ void Foam::fvMeshDistribute::printFieldInfo(const fvMesh& mesh)
         mesh.objectRegistry::lookupClass<GeoField>()
     );
 
-    for
-    (
-        typename HashTable<const GeoField*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
     {
         const GeoField& fld = *iter();
 
@@ -192,12 +63,7 @@ void Foam::fvMeshDistribute::addPatchFields(const word& patchFieldType)
         mesh_.objectRegistry::lookupClass<GeoField>()
     );
 
-    for
-    (
-        typename HashTable<const GeoField*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
     {
         const GeoField& fld = *iter();
 
@@ -232,12 +98,7 @@ void Foam::fvMeshDistribute::deleteTrailingPatchFields()
         mesh_.objectRegistry::lookupClass<GeoField>()
     );
 
-    for
-    (
-        typename HashTable<const GeoField*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
     {
         const GeoField& fld = *iter();
 
@@ -271,12 +132,7 @@ void Foam::fvMeshDistribute::saveBoundaryFields
 
     label i = 0;
 
-    for
-    (
-        typename HashTable<const fldType*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const fldType*>, flds, iter)
     {
         const fldType& fld = *iter();
 
@@ -313,12 +169,7 @@ void Foam::fvMeshDistribute::mapBoundaryFields
 
     label fieldI = 0;
 
-    for
-    (
-        typename HashTable<const fldType*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const fldType*>, flds, iter)
     {
         const fldType& fld = *iter();
         typename fldType::GeometricBoundaryField& bfld =
@@ -335,7 +186,7 @@ void Foam::fvMeshDistribute::mapBoundaryFields
         forAll(bfld, patchI)
         {
             fvsPatchField<T>& patchFld = bfld[patchI];
-            label faceI = patchFld.patch().patch().start();
+            label faceI = patchFld.patch().start();
 
             forAll(patchFld, i)
             {
@@ -369,12 +220,7 @@ void Foam::fvMeshDistribute::initPatchFields
         mesh_.objectRegistry::lookupClass<GeoField>()
     );
 
-    for
-    (
-        typename HashTable<const GeoField*>::const_iterator iter = flds.begin();
-        iter != flds.end();
-        ++iter
-    )
+    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
     {
         const GeoField& fld = *iter();
 
@@ -412,14 +258,14 @@ void Foam::fvMeshDistribute::initPatchFields
 //  }
 
 // volVectorField {U {internalField ..; boundaryField ..;}}
-// 
+//
 template<class GeoField>
 void Foam::fvMeshDistribute::sendFields
 (
     const label domain,
     const wordList& fieldNames,
     const fvMeshSubset& subsetter,
-    OSstream& toNbr
+    UOPstream& toNbr
 )
 {
     toNbr << GeoField::typeName << token::NL << token::BEGIN_BLOCK << token::NL;

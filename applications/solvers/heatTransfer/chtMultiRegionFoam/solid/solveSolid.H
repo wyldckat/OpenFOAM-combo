@@ -1,3 +1,8 @@
+if (finalIter)
+{
+    mesh.data::add("finalIteration", true);
+}
+
 {
     for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
     {
@@ -7,8 +12,15 @@
           - fvm::laplacian(K, T)
         );
         TEqn().relax();
-        TEqn().solve();
+        TEqn().solve(mesh.solver(T.select(finalIter)));
     }
 
     Info<< "Min/max T:" << min(T) << ' ' << max(T) << endl;
+}
+
+thermo.correct();
+
+if (finalIter)
+{
+    mesh.data::remove("finalIteration");
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -263,6 +263,10 @@ public:
                     "    const face& f,\n"
                     "    const label owner,"
                     "    const label neighbour,\n"
+                    "    const label masterPointID,\n"
+                    "    const label masterEdgeID,\n"
+                    "    const label masterFaceID,\n"
+                    "    const bool flipFaceFlux,\n"
                     "    const label patchID,\n"
                     "    const label zoneID"
                     ")"
@@ -291,6 +295,7 @@ public:
                     "    const label masterPointID,\n"
                     "    const label masterEdgeID,\n"
                     "    const label masterFaceID,\n"
+                    "    const bool flipFaceFlux,\n"
                     "    const label patchID,\n"
                     "    const label zoneID,\n"
                     "    const bool zoneFlip\n"

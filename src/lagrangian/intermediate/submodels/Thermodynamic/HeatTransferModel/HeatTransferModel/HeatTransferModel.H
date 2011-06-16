@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     HeatTransferModel.C
-    NewHeatTransferModel.C
+    HeatTransferModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -39,6 +39,7 @@ SourceFiles
 #include "IOdictionary.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
+#include "SubModelBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,17 +52,10 @@ namespace Foam
 
 template<class CloudType>
 class HeatTransferModel
+:
+    public SubModelBase<CloudType>
 {
     // Private data
-
-        //- The cloud dictionary
-        const dictionary& dict_;
-
-        //- Reference to the owner cloud class
-        CloudType& owner_;
-
-        //- The coefficients dictionary
-        const dictionary coeffDict_;
 
         //- Apply Bird's correction to the htc
         const Switch BirdCorrection_;
@@ -70,7 +64,7 @@ class HeatTransferModel
 public:
 
     //- Runtime type information
-    TypeName("HeatTransferModel");
+    TypeName("heatTransferModel");
 
     //- Declare runtime constructor selection table
     declareRunTimeSelectionTable
@@ -99,6 +93,18 @@ public:
             const word& type
         );
 
+        //- Construct copy
+        HeatTransferModel(const HeatTransferModel<CloudType>& htm);
+
+        //- Construct and return a clone
+        virtual autoPtr<HeatTransferModel<CloudType> > clone() const
+        {
+            return autoPtr<HeatTransferModel<CloudType> >
+            (
+                new HeatTransferModel<CloudType>(*this)
+            );
+        }
+
 
     //- Destructor
     virtual ~HeatTransferModel();
@@ -116,20 +122,8 @@ public:
 
         // Access
 
-            //- Return the cloud dictionary
-            const dictionary& dict() const;
-
-            //- Return the coefficients dictionary
-            const dictionary& coeffDict() const;
-
-            //- Return the owner cloud object
-            const CloudType& owner() const;
-
             //- Return the Bird htc correction flag
             const Switch& BirdCorrection() const;
-
-            //- Flag to indicate whether model activates heat transfer model
-            virtual bool active() const = 0;
 
 
         // Evaluation
@@ -139,7 +133,7 @@ public:
             (
                 const scalar Re,
                 const scalar Pr
-            ) const = 0;
+            ) const;
 
             //- Return heat transfer coefficient
             virtual scalar htc
@@ -161,36 +155,27 @@ public:
 
 #define makeHeatTransferModel(CloudType)                                      \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(HeatTransferModel<CloudType>, 0);     \
-                                                                              \
+    typedef CloudType::thermoCloudType thermoCloudType;                       \
+    defineNamedTemplateTypeNameAndDebug                                       \
+    (                                                                         \
+        HeatTransferModel<thermoCloudType>,                                   \
+        0                                                                     \
+    );                                                                        \
     defineTemplateRunTimeSelectionTable                                       \
     (                                                                         \
-        HeatTransferModel<CloudType>,                                         \
+        HeatTransferModel<thermoCloudType>,                                   \
         dictionary                                                            \
     );
 
 
-#define makeHeatTransferModelType(SS, CloudType, ParcelType)                  \
+#define makeHeatTransferModelType(SS, CloudType)                              \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(SS<CloudType<ParcelType> >, 0);       \
+    typedef CloudType::thermoCloudType thermoCloudType;                       \
+    defineNamedTemplateTypeNameAndDebug(SS<thermoCloudType>, 0);              \
                                                                               \
-    HeatTransferModel<CloudType<ParcelType> >::                               \
-        adddictionaryConstructorToTable<SS<CloudType<ParcelType> > >          \
-            add##SS##CloudType##ParcelType##ConstructorToTable_;
-
-
-#define makeHeatTransferModelThermoType(SS, CloudType, ParcelType, ThermoType)\
-                                                                              \
-    defineNamedTemplateTypeNameAndDebug                                       \
-    (                                                                         \
-        SS<CloudType<ParcelType<ThermoType> > >,                              \
-        0                                                                     \
-    );                                                                        \
-                                                                              \
-    HeatTransferModel<CloudType<ParcelType<ThermoType> > >::                  \
-        adddictionaryConstructorToTable                                       \
-            <SS<CloudType<ParcelType<ThermoType> > > >                        \
-            add##SS##CloudType##ParcelType##ThermoType##ConstructorToTable_;
+    HeatTransferModel<thermoCloudType>::                                      \
+        adddictionaryConstructorToTable<SS<thermoCloudType> >                 \
+            add##SS##CloudType##thermoCloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

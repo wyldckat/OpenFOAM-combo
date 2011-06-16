@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -64,10 +64,12 @@ LaunderSharmaKE::LaunderSharmaKE
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -145,7 +147,10 @@ LaunderSharmaKE::LaunderSharmaKE
         autoCreateLowReNut("nut", mesh_)
     )
 {
-    nut_ = Cmu_*fMu()*sqr(k_)/(epsilonTilda_ + epsilonSmall_);
+    bound(k_, kMin_);
+    bound(epsilonTilda_, epsilonMin_);
+
+    nut_ = Cmu_*fMu()*sqr(k_)/epsilonTilda_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -200,7 +205,7 @@ tmp<fvVectorMatrix> LaunderSharmaKE::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -232,12 +237,12 @@ void LaunderSharmaKE::correct()
         return;
     }
 
-    volScalarField S2 = 2*magSqr(symm(fvc::grad(U_)));
+    tmp<volScalarField> S2 = 2*magSqr(symm(fvc::grad(U_)));
 
     volScalarField G("RASModel::G", nut_*S2);
 
-    volScalarField E = 2.0*nu()*nut_*fvc::magSqrGradGrad(U_);
-    volScalarField D = 2.0*nu()*magSqr(fvc::grad(sqrt(k_)));
+    const volScalarField E(2.0*nu()*nut_*fvc::magSqrGradGrad(U_));
+    const volScalarField D(2.0*nu()*magSqr(fvc::grad(sqrt(k_))));
 
 
     // Dissipation rate equation
@@ -255,7 +260,7 @@ void LaunderSharmaKE::correct()
 
     epsEqn().relax();
     solve(epsEqn);
-    bound(epsilonTilda_, epsilon0_);
+    bound(epsilonTilda_, epsilonMin_);
 
 
     // Turbulent kinetic energy equation
@@ -271,7 +276,7 @@ void LaunderSharmaKE::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity

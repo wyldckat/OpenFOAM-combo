@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,6 +34,11 @@ namespace compressible
 namespace LESModels
 {
 
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+defineTypeNameWithName(GenEddyVisc, "GenEddyVisc");
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 GenEddyVisc::GenEddyVisc
@@ -41,13 +46,12 @@ GenEddyVisc::GenEddyVisc
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel
+    const basicThermo& thermoPhysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel
-    (
-        word("GenEddyVisc"), rho, U, phi, thermoPhysicalModel
-    ),
+    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
 
     ce_
     (
@@ -67,19 +71,6 @@ GenEddyVisc::GenEddyVisc
             coeffDict_,
             1.0
         )
-    ),
-
-    k_
-    (
-        IOobject
-        (
-            "k",
-            runTime_.timeName(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_
     ),
 
     muSgs_
@@ -107,14 +98,16 @@ GenEddyVisc::GenEddyVisc
         ),
         mesh_
     )
-{}
+{
+//    printCoeffs();
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 tmp<volSymmTensorField> GenEddyVisc::B() const
 {
-    return ((2.0/3.0)*I)*k_ - (muSgs_/rho())*dev(twoSymm(fvc::grad(U())));
+    return ((2.0/3.0)*I)*k() - (muSgs_/rho())*dev(twoSymm(fvc::grad(U())));
 }
 
 
@@ -128,7 +121,7 @@ tmp<fvVectorMatrix> GenEddyVisc::divDevRhoBeff(volVectorField& U) const
 {
     return
     (
-      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(fvc::grad(U)().T()))
+      - fvm::laplacian(muEff(), U) - fvc::div(muEff()*dev2(T(fvc::grad(U))))
     );
 }
 

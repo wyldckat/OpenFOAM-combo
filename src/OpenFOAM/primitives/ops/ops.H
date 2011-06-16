@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,10 +76,14 @@ EqOp(eqMag, x = mag(y))
 EqOp(plusEqMagSqr, x += magSqr(y))
 EqOp(maxEq, x = max(x, y))
 EqOp(minEq, x = min(x, y))
+EqOp(minMagSqrEq, x = (magSqr(x)<=magSqr(y) ? x : y))
+EqOp(maxMagSqrEq, x = (magSqr(x)>=magSqr(y) ? x : y))
 EqOp(andEq, x = (x && y))
 EqOp(orEq, x  = (x || y))
 
 EqOp(eqMinus, x = -y)
+
+EqOp(nopEq, (void)x)
 
 #undef EqOp
 

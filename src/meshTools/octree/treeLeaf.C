@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "treeLeaf.H"
@@ -38,7 +36,7 @@ void Foam::treeLeaf<Type>::space(Ostream& os, const label n)
 {
     for (label i=0; i<n; i++)
     {
-        os<< ' ';
+        os  << ' ';
     }
 }
 
@@ -455,7 +453,7 @@ Foam::Ostream& Foam::operator<< (Ostream& os, const treeLeaf<Type>& leaf)
     {
         // Storage not trimmed
         os << token::SPACE << leaf.size() << token::SPACE << token::BEGIN_LIST;
-        for (label i = 0; i < leaf.size(); i++)
+        forAll(leaf, i)
         {
             os << token::SPACE << leaf.indices()[i];
         }

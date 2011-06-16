@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,17 +26,14 @@ License
 #include "fvFieldDecomposer.H"
 #include "processorFvPatchField.H"
 #include "processorFvsPatchField.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
+#include "processorCyclicFvPatchField.H"
+#include "processorCyclicFvsPatchField.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-tmp<GeometricField<Type, fvPatchField, volMesh> >
-fvFieldDecomposer::decomposeField
+Foam::tmp<Foam::GeometricField<Type, Foam::fvPatchField, Foam::volMesh> >
+Foam::fvFieldDecomposer::decomposeField
 (
     const GeometricField<Type, fvPatchField, volMesh>& field
 ) const
@@ -47,9 +44,9 @@ fvFieldDecomposer::decomposeField
     // Create and map the patch field values
     PtrList<fvPatchField<Type> > patchFields(boundaryAddressing_.size());
 
-    forAll (boundaryAddressing_, patchi)
+    forAll(boundaryAddressing_, patchi)
     {
-        if (boundaryAddressing_[patchi] >= 0)
+        if (patchFieldDecomposerPtrs_[patchi])
         {
             patchFields.set
             (
@@ -63,7 +60,24 @@ fvFieldDecomposer::decomposeField
                 )
             );
         }
-        else
+        else if (isA<processorCyclicFvPatch>(procMesh_.boundary()[patchi]))
+        {
+            patchFields.set
+            (
+                patchi,
+                new processorCyclicFvPatchField<Type>
+                (
+                    procMesh_.boundary()[patchi],
+                    DimensionedField<Type, volMesh>::null(),
+                    Field<Type>
+                    (
+                        field.internalField(),
+                        *processorVolPatchFieldDecomposerPtrs_[patchi]
+                    )
+                )
+            );
+        }
+        else if (isA<processorFvPatch>(procMesh_.boundary()[patchi]))
         {
             patchFields.set
             (
@@ -79,6 +93,11 @@ fvFieldDecomposer::decomposeField
                     )
                 )
             );
+        }
+        else
+        {
+            FatalErrorIn("fvFieldDecomposer::decomposeField()")
+                << "Unknown type." << abort(FatalError);
         }
     }
 
@@ -105,8 +124,8 @@ fvFieldDecomposer::decomposeField
 
 
 template<class Type>
-tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >
-fvFieldDecomposer::decomposeField
+Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
+Foam::fvFieldDecomposer::decomposeField
 (
     const GeometricField<Type, fvsPatchField, surfaceMesh>& field
 ) const
@@ -119,7 +138,7 @@ fvFieldDecomposer::decomposeField
             procMesh_.nInternalFaces()
         )
     );
-    forAll (mapAddr, i)
+    forAll(mapAddr, i)
     {
         mapAddr[i] -= 1;
     }
@@ -138,18 +157,18 @@ fvFieldDecomposer::decomposeField
     // (i.e. using slices)
     Field<Type> allFaceField(field.mesh().nFaces());
 
-    forAll (field.internalField(), i)
+    forAll(field.internalField(), i)
     {
         allFaceField[i] = field.internalField()[i];
     }
 
-    forAll (field.boundaryField(), patchi)
+    forAll(field.boundaryField(), patchi)
     {
         const Field<Type> & p = field.boundaryField()[patchi];
 
         const label patchStart = field.mesh().boundaryMesh()[patchi].start();
 
-        forAll (p, i)
+        forAll(p, i)
         {
             allFaceField[patchStart + i] = p[i];
         }
@@ -158,9 +177,9 @@ fvFieldDecomposer::decomposeField
     // Create and map the patch field values
     PtrList<fvsPatchField<Type> > patchFields(boundaryAddressing_.size());
 
-    forAll (boundaryAddressing_, patchi)
+    forAll(boundaryAddressing_, patchi)
     {
-        if (boundaryAddressing_[patchi] >= 0)
+        if (patchFieldDecomposerPtrs_[patchi])
         {
             patchFields.set
             (
@@ -174,7 +193,24 @@ fvFieldDecomposer::decomposeField
                 )
             );
         }
-        else
+        else if (isA<processorCyclicFvPatch>(procMesh_.boundary()[patchi]))
+        {
+            patchFields.set
+            (
+                patchi,
+                new processorCyclicFvsPatchField<Type>
+                (
+                    procMesh_.boundary()[patchi],
+                    DimensionedField<Type, surfaceMesh>::null(),
+                    Field<Type>
+                    (
+                        allFaceField,
+                        *processorSurfacePatchFieldDecomposerPtrs_[patchi]
+                    )
+                )
+            );
+        }
+        else if (isA<processorFvPatch>(procMesh_.boundary()[patchi]))
         {
             patchFields.set
             (
@@ -190,6 +226,11 @@ fvFieldDecomposer::decomposeField
                     )
                 )
             );
+        }
+        else
+        {
+            FatalErrorIn("fvFieldDecomposer::decomposeField()")
+                << "Unknown type." << abort(FatalError);
         }
     }
 
@@ -216,20 +257,16 @@ fvFieldDecomposer::decomposeField
 
 
 template<class GeoField>
-void fvFieldDecomposer::decomposeFields
+void Foam::fvFieldDecomposer::decomposeFields
 (
     const PtrList<GeoField>& fields
 ) const
 {
-    forAll (fields, fieldI)
+    forAll(fields, fieldI)
     {
         decomposeField(fields[fieldI])().write();
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

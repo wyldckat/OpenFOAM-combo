@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,6 +83,10 @@ class isoSurfaceCell
 
         //- Reference to mesh
         const polyMesh& mesh_;
+
+        const scalarField& cVals_;
+
+        const scalarField& pVals_;
 
         //- isoSurfaceCell value
         const scalar iso_;
@@ -348,6 +352,14 @@ public:
         (
             const scalarField& cVals,
             const scalarField& pVals,
+            const Field<Type>& cCoords,
+            const Field<Type>& pCoords
+        ) const;
+
+        //- Interpolates cCoords,pCoords.
+        template <class Type>
+        tmp<Field<Type> > interpolate
+        (
             const Field<Type>& cCoords,
             const Field<Type>& pCoords
         ) const;

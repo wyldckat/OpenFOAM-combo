@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,7 +37,6 @@ SourceFiles
     speciesTransportI.H
     speciesTransport.C
 
-
 \*---------------------------------------------------------------------------*/
 
 #ifndef speciesTransport_H
@@ -65,13 +64,13 @@ public:
     // Constructors
 
         //- Construct from speciesThermo
-        inline speciesTransport
-        (
-            const janafThermo& sThermo
-        );
+        inline speciesTransport(const janafThermo& sThermo);
 
         //- Construct from Istream
         speciesTransport(Istream&);
+
+        //- Construct from dictionary
+        speciesTransport(const dictionary& dict);
 
 
     // Member Functions
@@ -87,6 +86,9 @@ public:
 
         // Species diffusivity
         //inline scalar D(const scalar T) const;
+
+        //- Write to Ostream
+        void write(Ostream& os) const;
 
 
     // Ostream Operator

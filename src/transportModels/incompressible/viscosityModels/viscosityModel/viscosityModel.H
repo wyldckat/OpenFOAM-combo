@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,11 +31,16 @@ Class
     Foam::viscosityModel
 
 Description
-    An abstract base class for incompressible viscosityModels
+    An abstract base class for incompressible viscosityModels.
+
+    The strain rate is defined by:
+
+        mag(symm(grad(U)))
+
 
 SourceFiles
     viscosityModel.C
-    newViscosityModel.C
+    viscosityModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -130,10 +135,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~viscosityModel()
-        {}
+    //- Destructor
+    virtual ~viscosityModel()
+    {}
 
 
     // Member Functions
@@ -144,7 +148,7 @@ public:
             return viscosityProperties_;
         }
 
-        //- Return the strain rate mag(grad(U))
+        //- Return the strain rate
         tmp<volScalarField> strainRate() const;
 
         //- Return the laminar viscosity

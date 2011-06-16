@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,7 +35,7 @@ Description
 
 SourceFiles
     pointPatchField.C
-    newpointPatchField.C
+    newPointPatchField.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -199,6 +199,18 @@ public:
             const DimensionedField<Type, pointMesh>&
         );
 
+        //- Return a pointer to a new patchField created on freestore given
+        //  patch and internal field
+        //  (does not set the patch field values).
+        //  Allows override of constraint type
+        static autoPtr<pointPatchField<Type> > New
+        (
+            const word&,
+            const word& actualPatchType,
+            const pointPatch&,
+            const DimensionedField<Type, pointMesh>&
+        );
+
         //- Return a pointer to a new patchField created on freestore from
         //  a given pointPatchField mapped onto a new patch
         static autoPtr<pointPatchField<Type> > New
@@ -229,10 +241,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~pointPatchField<Type>()
-        {}
+    //- Destructor
+    virtual ~pointPatchField<Type>()
+    {}
 
 
     // Member functions
@@ -290,6 +301,15 @@ public:
                 const Field<Type1>& iF
             ) const;
 
+            //- Return field created from selected internal field values
+            //  given internal field reference
+            template<class Type1>
+            tmp<Field<Type1> > patchInternalField
+            (
+                const Field<Type1>& iF,
+                const labelList& meshPoints
+            ) const;
+
             //- Given the internal field and a patch field,
             //  add the patch field to the internal field
             template<class Type1>
@@ -297,6 +317,16 @@ public:
             (
                 Field<Type1>& iF,
                 const Field<Type1>& pF
+            ) const;
+
+            //- Given the internal field and a patch field,
+            //  add selected elements of the patch field to the internal field
+            template<class Type1>
+            void addToInternalField
+            (
+                Field<Type1>& iF,
+                const Field<Type1>& pF,
+                const labelList& points
             ) const;
 
             //- Given the internal field and a patch field,
@@ -318,8 +348,14 @@ public:
                 const Field<Type1>& pF
             ) const;
 
-            //- Return the type of the calculated for of pointPatchField
+            //- Return the type of the calculated form of pointPatchField
             static const word& calculatedType();
+
+            //- Return the constraint type this pointPatchField implements.
+            virtual const word& constraintType() const
+            {
+                return word::null;
+            }
 
 
         // Mapping functions
@@ -464,81 +500,85 @@ const pointPatchField<Type>& operator+
 #endif
 
 
-#define makePointPatchTypeFieldTypeName(type)                                 \
-                                                                              \
-defineNamedTemplateTypeNameAndDebug(type, 0);
+#define addToPointPatchFieldRunTimeSelection(PatchTypeField, typePatchTypeField)      \
+    addToRunTimeSelectionTable                                                \
+    (                                                                         \
+        PatchTypeField,                                                       \
+        typePatchTypeField,                                                   \
+        pointPatch                                                            \
+    );                                                                        \
+    addToRunTimeSelectionTable                                                \
+    (                                                                         \
+        PatchTypeField,                                                       \
+        typePatchTypeField,                                                   \
+        patchMapper                                                           \
+    );                                                                        \
+    addToRunTimeSelectionTable                                                \
+    (                                                                         \
+        PatchTypeField,                                                       \
+        typePatchTypeField,                                                   \
+        dictionary                                                            \
+    );
 
-#define makePointPatchFieldsTypeName(type)                                    \
-                                                                              \
-makePointPatchTypeFieldTypeName(type##PointPatchScalarField);                 \
-makePointPatchTypeFieldTypeName(type##PointPatchVectorField);                 \
-makePointPatchTypeFieldTypeName(type##PointPatchSphericalTensorField);        \
-makePointPatchTypeFieldTypeName(type##PointPatchSymmTensorField);             \
-makePointPatchTypeFieldTypeName(type##PointPatchTensorField);
 
-#define makePointPatchTypeField(PatchTypeField, typePatchTypeField)           \
-                                                                              \
-defineNamedTemplateTypeNameAndDebug(typePatchTypeField, 0);                   \
-                                                                              \
-addToRunTimeSelectionTable                                                    \
-(                                                                             \
-    PatchTypeField, typePatchTypeField, pointPatch                            \
-);                                                                            \
-                                                                              \
-addToRunTimeSelectionTable                                                    \
-(                                                                             \
-    PatchTypeField,                                                           \
-    typePatchTypeField,                                                       \
-    patchMapper                                                               \
-);                                                                            \
-                                                                              \
-addToRunTimeSelectionTable                                                    \
-(                                                                             \
-    PatchTypeField, typePatchTypeField, dictionary                            \
-);
+// for non-templated patch fields
+#define makePointPatchTypeField(PatchTypeField,typePatchTypeField)            \
+    defineTypeNameAndDebug(typePatchTypeField, 0);                            \
+    addToPointPatchFieldRunTimeSelection(PatchTypeField, typePatchTypeField)
+
+
+// for templated patch fields
+#define makeTemplatePointPatchTypeField(PatchTypeField, typePatchTypeField)   \
+    defineNamedTemplateTypeNameAndDebug(typePatchTypeField, 0);               \
+    addToPointPatchFieldRunTimeSelection(PatchTypeField, typePatchTypeField)
 
 
 #define makePointPatchFields(type)                                            \
-                                                                              \
-makePointPatchTypeField                                                       \
-(                                                                             \
-    pointPatchScalarField,                                                    \
-    type##PointPatchScalarField                                               \
-);                                                                            \
-                                                                              \
-makePointPatchTypeField                                                       \
-(                                                                             \
-    pointPatchVectorField,                                                    \
-    type##PointPatchVectorField                                               \
-);                                                                            \
-                                                                              \
-makePointPatchTypeField                                                       \
-(                                                                             \
-    pointPatchSphericalTensorField,                                           \
-    type##PointPatchSphericalTensorField                                      \
-);                                                                            \
-                                                                              \
-makePointPatchTypeField                                                       \
-(                                                                             \
-    pointPatchSymmTensorField,                                                \
-    type##PointPatchSymmTensorField                                           \
-);                                                                            \
-                                                                              \
-makePointPatchTypeField                                                       \
-(                                                                             \
-    pointPatchTensorField,                                                    \
-    type##PointPatchTensorField                                               \
+    makeTemplatePointPatchTypeField                                           \
+    (                                                                         \
+        pointPatchScalarField,                                                \
+        type##PointPatchScalarField                                           \
+    );                                                                        \
+    makeTemplatePointPatchTypeField                                           \
+    (                                                                         \
+        pointPatchVectorField,                                                \
+        type##PointPatchVectorField                                           \
+    );                                                                        \
+    makeTemplatePointPatchTypeField                                           \
+    (                                                                         \
+        pointPatchSphericalTensorField,                                       \
+        type##PointPatchSphericalTensorField                                  \
+    );                                                                        \
+    makeTemplatePointPatchTypeField                                           \
+    (                                                                         \
+        pointPatchSymmTensorField,                                            \
+        type##PointPatchSymmTensorField                                       \
+    );                                                                        \
+    makeTemplatePointPatchTypeField                                           \
+    (                                                                         \
+        pointPatchTensorField,                                                \
+        type##PointPatchTensorField                                           \
 );
 
 
+#define makePointPatchFieldsTypeName(type)                                    \
+    defineNamedTemplateTypeNameAndDebug(type##PointPatchScalarField, 0);      \
+    defineNamedTemplateTypeNameAndDebug(type##PointPatchVectorField, 0);      \
+    defineNamedTemplateTypeNameAndDebug                                       \
+    (                                                                         \
+        type##PointPatchSphericalTensorField, 0                               \
+    );                                                                        \
+    defineNamedTemplateTypeNameAndDebug(type##PointPatchSymmTensorField, 0);  \
+    defineNamedTemplateTypeNameAndDebug(type##PointPatchTensorField, 0)
+
+
 #define makePointPatchFieldTypedefs(type)                                     \
-                                                                              \
-typedef type##PointPatchField<scalar> type##PointPatchScalarField;            \
-typedef type##PointPatchField<vector> type##PointPatchVectorField;            \
-typedef type##PointPatchField<sphericalTensor>                                \
-    type##PointPatchSphericalTensorField;                                     \
-typedef type##PointPatchField<symmTensor> type##PointPatchSymmTensorField;    \
-typedef type##PointPatchField<tensor> type##PointPatchTensorField;
+    typedef type##PointPatchField<scalar> type##PointPatchScalarField;        \
+    typedef type##PointPatchField<vector> type##PointPatchVectorField;        \
+    typedef type##PointPatchField<sphericalTensor>                            \
+        type##PointPatchSphericalTensorField;                                 \
+    typedef type##PointPatchField<symmTensor> type##PointPatchSymmTensorField;\
+    typedef type##PointPatchField<tensor> type##PointPatchTensorField;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

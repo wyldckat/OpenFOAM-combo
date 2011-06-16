@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ Description
 #define LocalInteraction_H
 
 #include "PatchInteractionModel.H"
-#include "patchInteractionData.H"
+#include "patchInteractionDataList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,29 +51,76 @@ class LocalInteraction
     // Private data
 
         //- List of participating patches
-        const List<patchInteractionData> patchData_;
-
-        //- List of participating patch ids
-        List<label> patchIds_;
+        const patchInteractionDataList patchData_;
 
 
-    // Private member functions
+        // Counters for initial particle fates
 
-        //- Returns local patchI if patch is in patchIds_ list
-        label applyToPatch(const label globalPatchI) const;
+            //- Number of parcels escaped
+            List<label> nEscape0_;
 
+            //- Mass of parcels escaped
+            List<scalar> massEscape0_;
+
+            //- Number of parcels stuck to patches
+            List<label> nStick0_;
+
+            //- Mass of parcels stuck to patches
+            List<scalar> massStick0_;
+
+
+        // Counters for particle fates
+
+            //- Number of parcels escaped
+            List<label> nEscape_;
+
+            //- Mass of parcels escaped
+            List<scalar> massEscape_;
+
+            //- Number of parcels stuck to patches
+            List<label> nStick_;
+
+            //- Mass of parcels stuck to patches
+            List<scalar> massStick_;
+
+
+    // Private Member Functions
+
+        //- Read interaction properties from file
+        void readProps();
+
+        //- Write interaction properties to file
+        void writeProps
+        (
+            const labelList& nEscape,
+            const scalarList& massEscape,
+            const labelList& nStick,
+            const scalarList& massStick
+        ) const;
 
 
 public:
 
     //- Runtime type information
-    TypeName("LocalInteraction");
+    TypeName("localInteraction");
 
 
     // Constructors
 
         //- Construct from dictionary
-        LocalInteraction(const dictionary& dict, CloudType& cloud);
+        LocalInteraction(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy from owner cloud and patch interaction model
+        LocalInteraction(const LocalInteraction<CloudType>& pim);
+
+        //- Construct and return a clone using supplied owner cloud
+        virtual autoPtr<PatchInteractionModel<CloudType> > clone() const
+        {
+            return autoPtr<PatchInteractionModel<CloudType> >
+            (
+                new LocalInteraction<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -82,19 +129,22 @@ public:
 
     // Member Functions
 
-        //- Flag to indicate whether model activates patch interaction model
-        virtual bool active() const;
-
         //- Apply velocity correction
         //  Returns true if particle remains in same cell
         virtual bool correct
         (
+            typename CloudType::parcelType& p,
             const polyPatch& pp,
-            const label faceId,
             bool& keepParticle,
-            bool& active,
-            vector& U
-        ) const;
+            const scalar trackFraction,
+            const tetIndices& tetIs
+        );
+
+
+        // I-O
+
+            //- Write patch interaction info to stream
+            virtual void info(Ostream& os) const;
 };
 
 

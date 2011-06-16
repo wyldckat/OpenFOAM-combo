@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,15 +27,10 @@ License
 #include "viscosityModel.H"
 #include "volFields.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-singlePhaseTransportModel::singlePhaseTransportModel
+Foam::singlePhaseTransportModel::singlePhaseTransportModel
 (
     const volVectorField& U,
     const surfaceScalarField& phi
@@ -48,25 +43,25 @@ singlePhaseTransportModel::singlePhaseTransportModel
 
 // * * * * * * * * * * * * * * * * Destructors * * * * * * * * * * * * * * * //
 
-singlePhaseTransportModel::~singlePhaseTransportModel()
+Foam::singlePhaseTransportModel::~singlePhaseTransportModel()
 {}
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-tmp<volScalarField> singlePhaseTransportModel::nu() const
+Foam::tmp<Foam::volScalarField> Foam::singlePhaseTransportModel::nu() const
 {
     return viscosityModelPtr_->nu();
 }
 
 
-void singlePhaseTransportModel::correct()
+void Foam::singlePhaseTransportModel::correct()
 {
     viscosityModelPtr_->correct();
 }
 
 
-bool singlePhaseTransportModel::read()
+bool Foam::singlePhaseTransportModel::read()
 {
     if (regIOobject::read())
     {
@@ -78,9 +73,5 @@ bool singlePhaseTransportModel::read()
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

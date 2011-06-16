@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,12 +36,12 @@ Description
         omega_log = omega in logarithmic region
 
     Model described by Eq.(15) of:
-    @verbatim
+    \verbatim
         Menter, F., Esch, T.
         "Elements of Industrial Heat Transfer Prediction"
         16th Brazilian Congress of Mechanical Engineering (COBEM),
         Nov. 2001
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     omegaWallFunctionFvPatchScalarField.C
@@ -70,22 +70,12 @@ class omegaWallFunctionFvPatchScalarField
 :
     public fixedInternalValueFvPatchField<scalar>
 {
-    // Private data
+protected:
 
-        //- Name of velocity field
-        word UName_;
-
-        //- Name of turbulence kinetic energy field
-        word kName_;
+    // Protected data
 
         //- Name of turbulence generation field
         word GName_;
-
-        //- Name of laminar viscosity field
-        word nuName_;
-
-        //- Name of turbulent viscosity field
-        word nutName_;
 
         //- Cmu coefficient
         scalar Cmu_;
@@ -99,11 +89,20 @@ class omegaWallFunctionFvPatchScalarField
         //- beta1 coefficient
         scalar beta1_;
 
+        //- Y+ at the edge of the laminar sublayer
+        scalar yPlusLam_;
 
-    // Private member functions
+
+    // Protected Member Functions
 
         //- Check the type of the patch
-        void checkType();
+        virtual void checkType();
+
+        //- Calculate the Y+ at the edge of the laminar sublayer
+        virtual scalar calcYPlusLam(const scalar kappa, const scalar E) const;
+
+        //- Write local wall function variables
+        virtual void writeLocalEntries(Ostream&) const;
 
 
 public:
@@ -186,7 +185,7 @@ public:
         // I-O
 
             //- Write
-            void write(Ostream&) const;
+            virtual void write(Ostream&) const;
 };
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,14 +44,18 @@ Foam::word Foam::Time::findInstance
 {
     // Note: if name is empty, just check the directory itself
 
+
+    const fileName tPath(path());
+    const fileName dirPath(tPath/timeName()/dir);
+
     // check the current time directory
     if
     (
         name.empty()
-      ? isDir(path()/timeName()/dir)
+      ? isDir(dirPath)
       :
         (
-            isFile(path()/timeName()/dir/name)
+            isFile(dirPath/name)
          && IOobject(name, timeName(), dir, *this).headerOk()
         )
     )
@@ -59,7 +63,8 @@ Foam::word Foam::Time::findInstance
         if (debug)
         {
             Info<< "Time::findInstance"
-                "(const fileName&, const word&, const IOobject::readOption)"
+                "(const fileName&, const word&"
+                ", const IOobject::readOption, const word&)"
                 << " : found \"" << name
                 << "\" in " << timeName()/dir
                 << endl;
@@ -88,10 +93,10 @@ Foam::word Foam::Time::findInstance
         if
         (
             name.empty()
-          ? isDir(path()/ts[instanceI].name()/dir)
+          ? isDir(tPath/ts[instanceI].name()/dir)
           :
             (
-                isFile(path()/ts[instanceI].name()/dir/name)
+                isFile(tPath/ts[instanceI].name()/dir/name)
              && IOobject(name, ts[instanceI].name(), dir, *this).headerOk()
             )
         )
@@ -99,7 +104,8 @@ Foam::word Foam::Time::findInstance
             if (debug)
             {
                 Info<< "Time::findInstance"
-                    "(const fileName&, const word&, const IOobject::readOption)"
+                    "(const fileName&, const word&"
+                    ", const IOobject::readOption, const word&)"
                     << " : found \"" << name
                     << "\" in " << ts[instanceI].name()/dir
                     << endl;
@@ -120,7 +126,11 @@ Foam::word Foam::Time::findInstance
                     << endl;
             }
 
-            if (rOpt == IOobject::MUST_READ)
+            if
+            (
+                rOpt == IOobject::MUST_READ
+             || rOpt == IOobject::MUST_READ_IF_MODIFIED
+            )
             {
                 FatalErrorIn
                 (
@@ -137,6 +147,7 @@ Foam::word Foam::Time::findInstance
         }
     }
 
+
     // not in any of the time directories, try constant
 
     // Note. This needs to be a hard-coded constant, rather than the
@@ -146,10 +157,10 @@ Foam::word Foam::Time::findInstance
     if
     (
         name.empty()
-      ? isDir(path()/constant()/dir)
+      ? isDir(tPath/constant()/dir)
       :
         (
-            isFile(path()/constant()/dir/name)
+            isFile(tPath/constant()/dir/name)
          && IOobject(name, constant(), dir, *this).headerOk()
         )
     )
@@ -157,7 +168,8 @@ Foam::word Foam::Time::findInstance
         if (debug)
         {
             Info<< "Time::findInstance"
-                "(const fileName&, const word&, const IOobject::readOption)"
+                "(const fileName&, const word&"
+                ", const IOobject::readOption, const word&)"
                 << " : found \"" << name
                 << "\" in " << constant()/dir
                 << endl;
@@ -166,12 +178,13 @@ Foam::word Foam::Time::findInstance
         return constant();
     }
 
-    if (rOpt == IOobject::MUST_READ)
+    if (rOpt == IOobject::MUST_READ || rOpt == IOobject::MUST_READ_IF_MODIFIED)
     {
         FatalErrorIn
         (
             "Time::findInstance"
-            "(const fileName&, const word&, const IOobject::readOption)"
+            "(const fileName&, const word&"
+            ", const IOobject::readOption, const word&)"
         )   << "Cannot find file \"" << name << "\" in directory "
             << dir << " in times " << timeName()
             << " down to " << constant()

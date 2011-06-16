@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -93,10 +93,9 @@ public:
                 directAddressing_(directAddressing)
             {}
 
-        // Destructor
-
-            virtual ~patchFieldSubset()
-            {}
+        //- Destructor
+        virtual ~patchFieldSubset()
+        {}
 
 
         // Member Functions
@@ -111,7 +110,7 @@ public:
                 return true;
             }
 
-            const unallocLabelList& directAddressing() const
+            const labelUList& directAddressing() const
             {
                 return directAddressing_;
             }
@@ -135,10 +134,9 @@ public:
                 directAddressing_(directAddressing)
             {}
 
-        // Destructor
-
-            virtual ~pointPatchFieldSubset()
-            {}
+        //- Destructor
+        virtual ~pointPatchFieldSubset()
+        {}
 
 
         // Member Functions
@@ -153,7 +151,7 @@ public:
                 return true;
             }
 
-            const unallocLabelList& directAddressing() const
+            const labelUList& directAddressing() const
             {
                 return directAddressing_;
             }
@@ -189,10 +187,10 @@ private:
         bool checkCellSubset() const;
 
         //- Mark points in Map
-        static void markPoints(const labelList&, Map<label>&); 
+        static void markPoints(const labelList&, Map<label>&);
 
         //- Mark points (with 0) in labelList
-        static void markPoints(const labelList&, labelList&); 
+        static void markPoints(const labelList&, labelList&);
 
         //- Adapt nCellsUsingFace for coupled faces becoming 'uncoupled'.
         void doCoupledPatches

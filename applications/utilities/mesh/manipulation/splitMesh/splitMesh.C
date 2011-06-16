@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -85,12 +85,12 @@ label findEdge(const primitiveMesh& mesh, const label v0, const label v1)
 // Checks whether patch present
 void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 {
-    label patchI = bMesh.findPatchID(name);
+    const label patchI = bMesh.findPatchID(name);
 
     if (patchI == -1)
     {
         FatalErrorIn("checkPatch(const polyBoundaryMesh&, const word&)")
-            << "Cannot find patch " << name << endl
+            << "Cannot find patch " << name << nl
             << "It should be present but of zero size" << endl
             << "Valid patches are " << bMesh.names()
             << exit(FatalError);
@@ -109,12 +109,12 @@ void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 
 int main(int argc, char *argv[])
 {
-    Foam::argList::noParallel();
+    argList::noParallel();
+#   include "addOverwriteOption.H"
 
-    Foam::argList::validArgs.append("faceSet");
-    Foam::argList::validArgs.append("masterPatch");
-    Foam::argList::validArgs.append("slavePatch");
-    Foam::argList::validOptions.insert("overwrite", "");
+    argList::validArgs.append("faceSet");
+    argList::validArgs.append("masterPatch");
+    argList::validArgs.append("slavePatch");
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -122,10 +122,10 @@ int main(int argc, char *argv[])
 #   include "createPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
-    word setName(args.additionalArgs()[0]);
-    word masterPatch(args.additionalArgs()[1]);
-    word slavePatch(args.additionalArgs()[2]);
-    bool overwrite = args.optionFound("overwrite");
+    const word setName = args[1];
+    const word masterPatch = args[2];
+    const word slavePatch = args[3];
+    const bool overwrite = args.optionFound("overwrite");
 
     // List of faces to split
     faceSet facesSet(mesh, setName);
@@ -162,10 +162,13 @@ int main(int argc, char *argv[])
     // Addressing on faces only in mesh vertices.
     primitiveFacePatch fPatch
     (
-        UIndirectList<face>
+        faceList
         (
-            mesh.faces(),
-            faces
+            UIndirectList<face>
+            (
+                mesh.faces(),
+                faces
+            )
         ),
         mesh.points()
     );
@@ -232,7 +235,7 @@ int main(int argc, char *argv[])
             mesh.faceZones()
         );
 
-    Info << "Adding point and face zones" << endl;
+    Info<< "Adding point and face zones" << endl;
     mesh.addZones(pz, fz, cz);
 
     attachPolyTopoChanger splitter(mesh);
@@ -268,6 +271,10 @@ int main(int argc, char *argv[])
     if (overwrite)
     {
         mesh.setInstance(oldInstance);
+    }
+    else
+    {
+        mesh.setInstance(runTime.timeName());
     }
 
     Info<< "Writing mesh to " << runTime.timeName() << endl;

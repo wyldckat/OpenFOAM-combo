@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     flows.
 
     References:
-    @verbatim
+    \verbatim
         "A One-Equation Turbulence Model for Aerodynamic Flows"
         P.R. Spalart,
         S.R. Allmaras,
@@ -41,10 +41,10 @@ Description
         for High Reynolds Number Compressible Flows"
         G.A. Ashford,
         Ph.D. thesis, University of Michigan, 1996.
-    @endverbatim
+    \endverbatim
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         SpalartAllmarasCoeffs
         {
             Cb1         0.1355;
@@ -56,7 +56,7 @@ Description
             sigmaNut    0.66666;
             kappa       0.41;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     SpalartAllmaras.C
@@ -86,7 +86,10 @@ class SpalartAllmaras
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -110,7 +113,7 @@ class SpalartAllmaras
             wallDist d_;
 
 
-    // Private member functions
+    // Protected Member Functions
 
         tmp<volScalarField> chi() const;
 
@@ -144,7 +147,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

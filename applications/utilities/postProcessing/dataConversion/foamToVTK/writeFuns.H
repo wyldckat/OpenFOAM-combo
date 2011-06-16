@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,7 @@ namespace Foam
 
 class writeFuns
 {
-    // Private member functions
+    // Private Member Functions
 
         // Swap halves of word.
 
@@ -73,19 +73,29 @@ public:
 
     // Write header
 
-        static void writeHeader(std::ostream&, const bool, const string&);
-        static void writeCellDataHeader(std::ostream&, const label, const label);
+        static void writeHeader
+        (
+            std::ostream&,
+            const bool isBinary,
+            const std::string& title
+        );
+        static void writeCellDataHeader
+        (
+            std::ostream&,
+            const label nCells,
+            const label nFields
+        );
         static void writePointDataHeader
         (
             std::ostream&,
-            const label,
-            const label
+            const label nPoints,
+            const label nFields
         );
 
 
     // Convert to VTK and store
 
-        static void insert(const scalar&, DynamicList<floatScalar>&);
+        static void insert(const scalar, DynamicList<floatScalar>&);
         static void insert(const point&, DynamicList<floatScalar>&);
         static void insert(const sphericalTensor&, DynamicList<floatScalar>&);
         static void insert(const symmTensor&, DynamicList<floatScalar>&);

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,47 +80,34 @@ public:
         //  local and neighbour restrict addressing
         processorGAMGInterface
         (
+            const label index,
+            const lduInterfacePtrsList& coarseInterfaces,
             const lduInterface& fineInterface,
             const labelField& restrictAddressing,
             const labelField& neighbourRestrictAddressing
         );
 
 
-    // Destructor
-
-        virtual ~processorGAMGInterface();
+    //- Destructor
+    virtual ~processorGAMGInterface();
 
 
     // Member Functions
 
         // Interface transfer functions
 
-            //- Initialise interface data transfer
-            virtual void initTransfer
-            (
-                const Pstream::commsTypes commsType,
-                const unallocLabelList& interfaceData
-            ) const;
-
-            //- Transfer and return neighbour field
-            virtual tmp<labelField> transfer
-            (
-                const Pstream::commsTypes commsType,
-                const unallocLabelList& interfaceData
-            ) const;
-
             //- Initialise neighbour field transfer
             virtual void initInternalFieldTransfer
             (
                 const Pstream::commsTypes commsType,
-                const unallocLabelList& iF
+                const labelUList& iF
             ) const;
 
             //- Transfer and return internal field adjacent to the interface
             virtual tmp<labelField> internalFieldTransfer
             (
                 const Pstream::commsTypes commsType,
-                const unallocLabelList& iF
+                const labelUList& iF
             ) const;
 
 
@@ -143,6 +130,12 @@ public:
             {
                 return fineProcInterface_.forwardT();
             }
+
+            //- Return message tag used for sending
+            virtual int tag() const
+            {
+                return fineProcInterface_.tag();
+            }   
 };
 
 

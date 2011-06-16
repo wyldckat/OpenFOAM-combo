@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -204,7 +204,6 @@ void Foam::intersectedSurface::printVisit
 }
 
 
-
 // Check if the two vertices that f0 and f1 share are in the same order on
 // both faces.
 bool Foam::intersectedSurface::sameEdgeOrder
@@ -220,12 +219,12 @@ bool Foam::intersectedSurface::sameEdgeOrder
         if (fpB != -1)
         {
             // Get prev/next vertex on fA
-            label vA1 = fA[(fpA + 1) % 3];
-            label vAMin1 = fA[fpA ? fpA-1 : 2];
+            label vA1 = fA[fA.fcIndex(fpA)];
+            label vAMin1 = fA[fA.rcIndex(fpA)];
 
             // Get prev/next vertex on fB
-            label vB1 = fB[(fpB + 1) % 3];
-            label vBMin1 = fB[fpB ? fpB-1 : 2];
+            label vB1 = fB[fB.fcIndex(fpB)];
+            label vBMin1 = fB[fB.rcIndex(fpB)];
 
             if (vA1 == vB1 || vAMin1 == vBMin1)
             {
@@ -330,12 +329,7 @@ Foam::intersectedSurface::calcPointEdgeAddressing
     }
 
     // Shrink it
-    for
-    (
-        Map<DynamicList<label> >::iterator iter = facePointEdges.begin();
-        iter != facePointEdges.end();
-        ++iter
-    )
+    forAllIter(Map< DynamicList<label> >, facePointEdges, iter)
     {
         iter().shrink();
 
@@ -359,17 +353,13 @@ Foam::intersectedSurface::calcPointEdgeAddressing
         {
             label edgeI = fEdges[i];
             const edge& e = edges[edgeI];
-            Pout<< "    " << edgeI << ' ' << e << points[e.start()]
+            Pout<< "    " << edgeI << ' ' << e
+                << points[e.start()]
                 << points[e.end()] << endl;
         }
 
         Pout<< "    Constructed point-edge adressing:" << endl;
-        for
-        (
-            Map<DynamicList<label> >::iterator iter = facePointEdges.begin();
-            iter != facePointEdges.end();
-            ++iter
-        )
+        forAllConstIter(Map< DynamicList<label> >, facePointEdges, iter)
         {
             Pout<< "    vertex " << iter.key() << " is connected to edges "
                 << iter() << endl;
@@ -597,7 +587,7 @@ Foam::face Foam::intersectedSurface::walkFace
     label vertI = startVertI;
     label edgeI = startEdgeI;
 
-    while(true)
+    while (true)
     {
         const edge& e = edges[edgeI];
 

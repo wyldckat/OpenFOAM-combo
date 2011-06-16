@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,7 @@ SourceFiles
 
 #include "KinematicCloud.H"
 #include "thermoCloud.H"
-#include "basicThermo.H"
+#include "SLGThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,13 +57,35 @@ class HeatTransferModel;
                         Class ThermoCloud Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class ParcelType>
+template<class CloudType>
 class ThermoCloud
 :
-    public KinematicCloud<ParcelType>,
+    public CloudType,
     public thermoCloud
 {
-    // Private Member Functions
+public:
+
+    // Public typedefs
+
+        //- Type of cloud this cloud was instantiated for
+        typedef CloudType cloudType;
+
+        //- Type of parcel the cloud was instantiated for
+        typedef typename CloudType::particleType parcelType;
+
+        //- Convenience typedef for this cloud type
+        typedef ThermoCloud<CloudType> thermoCloudType;
+
+
+private:
+
+    // Private data
+
+        //- Cloud copy pointer
+        autoPtr<ThermoCloud<CloudType> > cloudCopyPtr_;
+
+
+    // Private member functions
 
         //- Disallow default bitwise copy construct
         ThermoCloud(const ThermoCloud&);
@@ -77,19 +99,25 @@ protected:
     // Protected data
 
         //- Thermo parcel constant properties
-        typename ParcelType::constantProperties constProps_;
+        typename parcelType::constantProperties constProps_;
 
 
         // References to the carrier gas fields
 
-            //- Thermodynamics package (basic)
-            basicThermo& carrierThermo_;
+            //- SLG thermodynamics package
+            const SLGThermo& thermo_;
+
+            //- Temperature [K]
+            const volScalarField& T_;
+
+            //- Pressure [Pa]
+            const volScalarField& p_;
 
 
         // References to the cloud sub-models
 
             //- Heat transfer model
-            autoPtr<HeatTransferModel<ThermoCloud<ParcelType> > >
+            autoPtr<HeatTransferModel<ThermoCloud<CloudType> > >
                 heatTransferModel_;
 
 
@@ -108,21 +136,24 @@ protected:
         // Sources
 
             //- Sensible enthalpy transfer [J/kg]
-            DimensionedField<scalar, volMesh> hsTrans_;
+            autoPtr<DimensionedField<scalar, volMesh> > hsTrans_;
+
+            //- Coefficient for carrier phase hs equation [W/K]
+            autoPtr<DimensionedField<scalar, volMesh> > hsCoeff_;
 
 
-    // Protected member functions
+    // Protected Member Functions
+
+         // Initialisation
+
+            //- Set cloud sub-models
+            void setModels();
+
 
         // Cloud evolution functions
 
-            //- Pre-evolve
-            void preEvolve();
-
-            //- Evolve the cloud
-            void evolveCloud();
-
-            //- Post-evolve
-            void postEvolve();
+            //- Reset state of cloud
+            void cloudReset(ThermoCloud<CloudType>& c);
 
 
 public:
@@ -136,38 +167,69 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const dimensionedVector& g,
-            basicThermo& thermo,
+            const SLGThermo& thermo,
             bool readFields = true
         );
+
+        //- Copy constructor with new name
+        ThermoCloud(ThermoCloud<CloudType>& c, const word& name);
+
+        //- Copy constructor with new name - creates bare cloud
+        ThermoCloud
+        (
+            const fvMesh& mesh,
+            const word& name,
+            const ThermoCloud<CloudType>& c
+        );
+
+        //- Construct and return clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > clone(const word& name)
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ThermoCloud(*this, name)
+            );
+        }
+
+        //- Construct and return bare clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > cloneBare(const word& name) const
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ThermoCloud(this->mesh(), name, *this)
+            );
+        }
 
 
     //- Destructor
     virtual ~ThermoCloud();
 
 
-    //- Type of parcel the cloud was instantiated for
-    typedef ParcelType parcelType;
-
-
     // Member Functions
 
         // Access
 
+            //- Return a reference to the cloud copy
+            inline const ThermoCloud& cloudCopy() const;
+
             //- Return the constant properties
-            inline const typename ParcelType::constantProperties&
+            inline const typename parcelType::constantProperties&
                 constProps() const;
 
             //- Return const access to thermo package
-            inline const basicThermo& carrierThermo() const;
+            inline const SLGThermo& thermo() const;
 
-            //- Return access to thermo package
-            inline basicThermo& carrierThermo();
+            //- Return const access to the carrier temperature field
+            inline const volScalarField& T() const;
+
+            //- Return const access to the carrier prressure field
+            inline const volScalarField& p() const;
 
 
             // Sub-models
 
                 //- Return reference to heat transfer model
-                inline const HeatTransferModel<ThermoCloud<ParcelType> >&
+                inline const HeatTransferModel<ThermoCloud<CloudType> >&
                     heatTransfer() const;
 
 
@@ -190,8 +252,19 @@ public:
                     //- Sensible enthalpy transfer [J/kg]
                     inline DimensionedField<scalar, volMesh>& hsTrans();
 
-                    //- Return enthalpy source [J/kg/m3/s]
-                    inline tmp<DimensionedField<scalar, volMesh> > Sh() const;
+                    //- Sensible enthalpy transfer [J/kg]
+                    inline const DimensionedField<scalar, volMesh>&
+                        hsTrans() const;
+
+                    //- Return coefficient for carrier phase hs equation
+                    inline DimensionedField<scalar, volMesh>& hsCoeff();
+
+                    //- Return const coefficient for carrier phase hs equation
+                    inline const DimensionedField<scalar, volMesh>&
+                        hsCoeff() const;
+
+                    //- Return sensible enthalpy source term [J/kg/m3/s]
+                    inline tmp<fvScalarMatrix> Sh(volScalarField& hs) const;
 
 
                 // Radiation - overrides thermoCloud virtual abstract members
@@ -206,27 +279,49 @@ public:
                     inline tmp<volScalarField> sigmap() const;
 
 
-        // Check
-
-            //- Print cloud information
-            void info() const;
-
-
         // Cloud evolution functions
+
+            //- Set parcel thermo properties
+            void setParcelThermoProperties
+            (
+                parcelType& parcel,
+                const scalar lagrangianDt
+            );
 
             //- Check parcel properties
             void checkParcelProperties
             (
-                ParcelType& parcel,
+                parcelType& parcel,
                 const scalar lagrangianDt,
                 const bool fullyDescribed
             );
 
-            //- Reset the spray source terms
+            //- Store the current cloud state
+            void storeState();
+
+            //- Reset the current cloud to the previously stored state
+            void restoreState();
+
+            //- Reset the cloud source terms
             void resetSourceTerms();
 
-            //- Evolve the spray (inject, move)
+            //- Apply relaxation to (steady state) cloud sources
+            void relaxSources(const ThermoCloud<CloudType>& cloudOldTime);
+
+            //- Apply scaling to (transient) cloud sources
+            void scaleSources();
+
+            //- Pre-evolve
+            void preEvolve();
+
+            //- Evolve the cloud
             void evolve();
+
+
+        // Check
+
+            //- Print cloud information
+            void info() const;
 };
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     external flows.
 
     Reference:
-    @verbatim
+    \verbatim
         "A One-Equation Turbulence Model for Aerodynamic Flows"
         P.R. Spalart,
         S.R. Allmaras,
@@ -41,10 +41,10 @@ Description
         for High Reynolds Number Compressible Flows"
         G.A. Ashford,
         Ph.D. thesis, University of Michigan, 1996.
-    @endverbatim
+    \endverbatim
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         SpalartAllmarasCoeffs
         {
             Cb1         0.1355;
@@ -57,11 +57,10 @@ Description
             Prt         1.0;    // only for compressible
             kappa       0.41;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     SpalartAllmaras.C
-    SpalartAllmarasCorrect.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -88,7 +87,10 @@ class SpalartAllmaras
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -116,7 +118,7 @@ class SpalartAllmaras
         wallDist d_;
 
 
-    // Private member functions
+    // Protected Member Functions
 
         tmp<volScalarField> chi() const;
         tmp<volScalarField> fv1(const volScalarField& chi) const;
@@ -147,7 +149,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -177,52 +181,17 @@ public:
             return mut_;
         }
 
-        //- Return the effective turbulent thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat_ + alpha())
-            );
+            return alphat_;
         }
 
         //- Return the turbulence kinetic energy
-        virtual tmp<volScalarField> k() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField
-                (
-                    IOobject
-                    (
-                        "k",
-                        runTime_.timeName(),
-                        mesh_
-                    ),
-                    mesh_,
-                    dimensionedScalar("0", dimensionSet(0, 2, -2, 0, 0), 0)
-                )
-            );
-        }
+        virtual tmp<volScalarField> k() const;
 
         //- Return the turbulence kinetic energy dissipation rate
-        virtual tmp<volScalarField> epsilon() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField
-                (
-                    IOobject
-                    (
-                        "epslion",
-                        runTime_.timeName(),
-                        mesh_
-                    ),
-                    mesh_,
-                    dimensionedScalar("0", dimensionSet(0, 2, -3, 0, 0), 0)
-                )
-            );
-        }
+        virtual tmp<volScalarField> epsilon() const;
 
         //- Return the Reynolds stress tensor
         virtual tmp<volSymmTensorField> R() const;

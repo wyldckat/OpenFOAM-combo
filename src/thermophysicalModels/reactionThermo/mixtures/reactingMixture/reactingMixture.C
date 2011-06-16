@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,8 +48,7 @@ Foam::reactingMixture<ThermoType>::reactingMixture
     ),
     PtrList<Reaction<ThermoType> >
     (
-        autoPtr<chemistryReader<ThermoType> >::operator()().reactions(),
-        this->species_
+        autoPtr<chemistryReader<ThermoType> >::operator()().reactions()
     )
 {
     autoPtr<chemistryReader<ThermoType> >::clear();

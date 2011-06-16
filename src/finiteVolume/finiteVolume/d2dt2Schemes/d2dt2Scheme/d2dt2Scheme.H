@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -126,9 +126,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~d2dt2Scheme();
+    //- Destructor
+    virtual ~d2dt2Scheme();
 
 
     // Member Functions
@@ -152,19 +151,19 @@ public:
 
         virtual tmp<fvMatrix<Type> > fvmD2dt2
         (
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         ) = 0;
 
         virtual tmp<fvMatrix<Type> > fvmD2dt2
         (
             const dimensionedScalar&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         ) = 0;
 
         virtual tmp<fvMatrix<Type> > fvmD2dt2
         (
             const volScalarField&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         ) = 0;
 };
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,7 @@ grad
     const GeometricField<Type, fvsPatchField, surfaceMesh>& ssf
 )
 {
-    return fv::gaussGrad<Type>::grad(ssf);
+    return fv::gaussGrad<Type>::gradf(ssf, "grad(" + ssf.name() + ')');
 }
 
 
@@ -98,7 +98,7 @@ grad
     (
         vf.mesh(),
         vf.mesh().gradScheme(name)
-    )().grad(vf);
+    )().grad(vf, name);
 }
 
 

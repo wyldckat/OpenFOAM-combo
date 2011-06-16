@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ License
 #include "sphericalCS.H"
 
 #include "one.H"
-#include "Switch.H"
 #include "mathematicalConstants.H"
 #include "addToRunTimeSelectionTable.H"
 
@@ -106,7 +105,7 @@ Foam::sphericalCS::sphericalCS
 )
 :
     coordinateSystem(name, dict),
-    inDegrees_(dict.lookupOrDefault<Switch>("degrees", true))
+    inDegrees_(dict.lookupOrDefault("degrees", true))
 {}
 
 
@@ -134,12 +133,12 @@ Foam::vector Foam::sphericalCS::localToGlobal
     const scalar theta
     (
         local.y()
-      * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )
+       *(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
     const scalar phi
     (
         local.z()
-      * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )
+       *(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
 
     return coordinateSystem::localToGlobal
@@ -156,16 +155,16 @@ Foam::tmp<Foam::vectorField> Foam::sphericalCS::localToGlobal
     bool translate
 ) const
 {
-    const scalarField r = local.component(vector::X);
+    const scalarField r(local.component(vector::X));
     const scalarField theta
     (
         local.component(vector::Y)
-      * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )
+       *(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
     const scalarField phi
     (
         local.component(vector::Z)
-      * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )
+       *(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
 
     vectorField lc(local.size());
@@ -192,11 +191,11 @@ Foam::vector Foam::sphericalCS::globalToLocal
         atan2
         (
             lc.y(), lc.x()
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 ),
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0),
         acos
         (
             lc.z()/(r + SMALL)
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 )
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0)
     );
 }
 
@@ -207,8 +206,8 @@ Foam::tmp<Foam::vectorField> Foam::sphericalCS::globalToLocal
     bool translate
 ) const
 {
-    const vectorField lc = coordinateSystem::globalToLocal(global, translate);
-    const scalarField r = mag(lc);
+    const vectorField lc(coordinateSystem::globalToLocal(global, translate));
+    const scalarField r(mag(lc));
 
     tmp<vectorField> tresult(new vectorField(lc.size()));
     vectorField& result = tresult();
@@ -226,7 +225,7 @@ Foam::tmp<Foam::vectorField> Foam::sphericalCS::globalToLocal
         (
             lc.component(vector::Y),
             lc.component(vector::X)
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 )
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0)
     );
 
     result.replace
@@ -235,7 +234,7 @@ Foam::tmp<Foam::vectorField> Foam::sphericalCS::globalToLocal
         acos
         (
             lc.component(vector::Z)/(r + SMALL)
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 )
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0)
     );
 
     return tresult;

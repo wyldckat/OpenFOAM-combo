@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,11 +44,12 @@ Description
 #include "cellZoneSet.H"
 #include "faceZoneSet.H"
 #include "pointZoneSet.H"
+#include "timeSelector.H"
 
 #include <stdio.h>
 
 
-#if READLINE != 0
+#ifdef HAS_READLINE
 # include <readline/readline.h>
 # include <readline/history.h>
 #endif
@@ -58,67 +59,9 @@ using namespace Foam;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-#if READLINE != 0
+#ifdef HAS_READLINE
 static const char* historyFile = ".setSet";
 #endif
-
-Istream& selectStream(Istream* is0Ptr, Istream* is1Ptr)
-{
-    if (is0Ptr)
-    {
-        return *is0Ptr;
-    }
-    else if (is1Ptr)
-    {
-        return *is1Ptr;
-    }
-    else
-    {
-        FatalErrorIn("selectStream(Istream*, Istream*)")
-            << "No valid stream opened" << abort(FatalError);
-
-        return *is0Ptr;
-    }
-}
-
-// Copy set
-void backup
-(
-    const word& setType,
-    const polyMesh& mesh,
-    const word& fromName,
-    const topoSet& fromSet,
-    const word& toName
-)
-{
-    if (fromSet.size())
-    {
-        Info<< "    Backing up " << fromName << " into " << toName << endl;
-
-        topoSet::New(setType, mesh, toName, fromSet)().write();
-    }
-}
-
-
-// Read and copy set
-void backup
-(
-    const word& setType,
-    const polyMesh& mesh,
-    const word& fromName,
-    const word& toName
-)
-{
-    autoPtr<topoSet> fromSet = topoSet::New
-    (
-        setType,
-        mesh,
-        fromName,
-        IOobject::READ_IF_PRESENT
-    );
-
-    backup(setType, mesh, fromName, fromSet(), toName);
-}
 
 
 // Write set to VTK readable files
@@ -303,7 +246,13 @@ void printAllSets(const polyMesh& mesh, Ostream& os)
     IOobjectList objects
     (
         mesh,
-        mesh.pointsInstance(),
+        mesh.time().findInstance
+        (
+            polyMesh::meshSubDir/"sets",
+            word::null,
+            IOobject::READ_IF_PRESENT,
+            mesh.facesInstance()
+        ),
         polyMesh::meshSubDir/"sets"
     );
     IOobjectList cellSets(objects.lookupClass(cellSet::typeName));
@@ -416,7 +365,13 @@ void removeSet
     IOobjectList objects
     (
         mesh,
-        mesh.pointsInstance(),
+        mesh.time().findInstance
+        (
+            polyMesh::meshSubDir/"sets",
+            word::null,
+            IOobject::READ_IF_PRESENT,
+            mesh.facesInstance()
+        ),
         polyMesh::meshSubDir/"sets"
     );
 
@@ -464,6 +419,8 @@ bool doCommand
     const word& setName,
     const word& actionName,
     const bool writeVTKFile,
+    const bool writeCurrentTime,
+    const bool noSync,
     Istream& is
 )
 {
@@ -525,7 +482,7 @@ bool doCommand
             topoSet& currentSet = currentSetPtr();
 
             Info<< "    Set:" << currentSet.name()
-                << "  Size:" << currentSet.size()
+                << "  Size:" << returnReduce(currentSet.size(), sumOp<label>())
                 << "  Action:" << actionName
                 << endl;
 
@@ -606,7 +563,7 @@ bool doCommand
                 // Set will have been modified.
 
                 // Synchronize for coupled patches.
-                currentSet.sync(mesh);
+                if (!noSync) currentSet.sync(mesh);
 
                 // Write
                 if (writeVTKFile)
@@ -622,24 +579,30 @@ bool doCommand
                     );
 
                     Info<< "    Writing " << currentSet.name()
-                        << " (size " << currentSet.size() << ") to "
+                        << " (size "
+                        << returnReduce(currentSet.size(), sumOp<label>())
+                        << ") to "
                         << currentSet.instance()/currentSet.local()
                            /currentSet.name()
                         << " and to vtk file " << vtkName << endl << endl;
-
-                    currentSet.write();
 
                     writeVTK(mesh, currentSet, vtkName);
                 }
                 else
                 {
                     Info<< "    Writing " << currentSet.name()
-                        << " (size " << currentSet.size() << ") to "
+                        << " (size "
+                        << returnReduce(currentSet.size(), sumOp<label>())
+                        << ") to "
                         << currentSet.instance()/currentSet.local()
                            /currentSet.name() << endl << endl;
-
-                    currentSet.write();
                 }
+
+                if (writeCurrentTime)
+                {
+                    currentSet.instance() = mesh.time().timeName();
+                }
+                currentSet.write();
             }
         }
     }
@@ -683,13 +646,55 @@ enum commandStatus
 void printMesh(const Time& runTime, const polyMesh& mesh)
 {
     Info<< "Time:" << runTime.timeName()
-        << "  cells:" << mesh.nCells()
-        << "  faces:" << mesh.nFaces()
-        << "  points:" << mesh.nPoints()
+        << "  cells:" << mesh.globalData().nTotalCells()
+        << "  faces:" << mesh.globalData().nTotalFaces()
+        << "  points:" << mesh.globalData().nTotalPoints()
         << "  patches:" << mesh.boundaryMesh().size()
         << "  bb:" << mesh.bounds() << nl;
 }
 
+
+polyMesh::readUpdateState meshReadUpdate(polyMesh& mesh)
+{
+    polyMesh::readUpdateState stat = mesh.readUpdate();
+
+    switch(stat)
+    {
+        case polyMesh::UNCHANGED:
+        {
+            Info<< "    mesh not changed." << endl;
+            break;
+        }
+        case polyMesh::POINTS_MOVED:
+        {
+            Info<< "    points moved; topology unchanged." << endl;
+            break;
+        }
+        case polyMesh::TOPO_CHANGE:
+        {
+            Info<< "    topology changed; patches unchanged." << nl
+                << "    ";
+            printMesh(mesh.time(), mesh);
+            break;
+        }
+        case polyMesh::TOPO_PATCH_CHANGE:
+        {
+            Info<< "    topology changed and patches changed." << nl
+                << "    ";
+            printMesh(mesh.time(), mesh);
+
+            break;
+        }
+        default:
+        {
+            FatalErrorIn("meshReadUpdate(polyMesh&)")
+                << "Illegal mesh update state "
+                << stat  << abort(FatalError);
+            break;
+        }
+    }
+    return stat;
+}
 
 
 commandStatus parseType
@@ -729,44 +734,10 @@ commandStatus parseType
             << " to " << Times[nearestIndex].name()
             << endl;
 
+        // Set time
         runTime.setTime(Times[nearestIndex], nearestIndex);
-        polyMesh::readUpdateState stat = mesh.readUpdate();
-
-        switch(stat)
-        {
-            case polyMesh::UNCHANGED:
-            {
-                Info<< "    mesh not changed." << endl;
-                break;
-            }
-            case polyMesh::POINTS_MOVED:
-            {
-                Info<< "    points moved; topology unchanged." << endl;
-                break;
-            }
-            case polyMesh::TOPO_CHANGE:
-            {
-                Info<< "    topology changed; patches unchanged." << nl
-                    << "    ";
-                printMesh(runTime, mesh);
-                break;
-            }
-            case polyMesh::TOPO_PATCH_CHANGE:
-            {
-                Info<< "    topology changed and patches changed." << nl
-                    << "    ";
-                printMesh(runTime, mesh);
-
-                break;
-            }
-            default:
-            {
-                FatalErrorIn("parseType")
-                    << "Illegal mesh update state "
-                    << stat  << abort(FatalError);
-                break;
-            }
-        }
+        // Optionally re-read mesh
+        meshReadUpdate(mesh);
 
         return INVALID;
     }
@@ -839,23 +810,38 @@ commandStatus parseAction(const word& actionName)
 
 int main(int argc, char *argv[])
 {
+    timeSelector::addOptions(true, false);
 #   include "addRegionOption.H"
-#   include "addTimeOptions.H"
-
-    argList::validOptions.insert("noVTK", "");
-    argList::validOptions.insert("batch", "file");
+    argList::addBoolOption("noVTK", "do not write VTK files");
+    argList::addBoolOption("loop", "execute batch commands for all timesteps");
+    argList::addOption
+    (
+        "batch",
+        "file",
+        "process in batch mode, using input from specified file"
+    );
+    argList::addBoolOption
+    (
+        "noSync",
+        "do not synchronise selection across coupled patches"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
+    instantList timeDirs = timeSelector::select0(runTime, args);
 
-    bool writeVTK = !args.optionFound("noVTK");
+    const bool writeVTK = !args.optionFound("noVTK");
+    const bool loop = args.optionFound("loop");
+    const bool batch = args.optionFound("batch");
+    const bool noSync = args.optionFound("noSync");
 
-    // Get times list
-    instantList Times = runTime.times();
+    if (loop && !batch)
+    {
+        FatalErrorIn(args.executable())
+            << "Can only loop in batch mode."
+            << exit(FatalError);
+    }
 
-#   include "checkTimeOptions.H"
-
-    runTime.setTime(Times[startTime], startTime);
 
 #   include "createNamedPolyMesh.H"
 
@@ -865,135 +851,192 @@ int main(int argc, char *argv[])
     // Print current sets
     printAllSets(mesh, Info);
 
-
-
-    std::ifstream* fileStreamPtr(NULL);
-
-    if (args.optionFound("batch"))
-    {
-        fileName batchFile(args.option("batch"));
-
-        Info<< "Reading commands from file " << batchFile << endl;
-
-        // we cannot handle .gz files
-        if (!isFile(batchFile, false))
-        {
-            FatalErrorIn(args.executable())
-                << "Cannot open file " << batchFile << exit(FatalError);
-        }
-
-        fileStreamPtr = new std::ifstream(batchFile.c_str());
-    }
-#if READLINE != 0
-    else if (!read_history(historyFile))
+    // Read history if interactive
+#   ifdef HAS_READLINE
+    if (!batch && !read_history(historyFile))
     {
         Info<< "Successfully read history from " << historyFile << endl;
     }
-#endif
+#   endif
 
-    Info<< "Please type 'help', 'quit' or a set command after prompt." << endl;
 
-    bool ok = true;
+    // Exit status
+    int status = 0;
 
-    FatalError.throwExceptions();
-    FatalIOError.throwExceptions();
 
-    do
+    forAll(timeDirs, timeI)
     {
-        string rawLine;
+        runTime.setTime(timeDirs[timeI], timeI);
+        Info<< "Time = " << runTime.timeName() << endl;
 
-        // Type: cellSet, faceSet, pointSet
-        word setType;
-        // Name of destination set.
-        word setName;
-        // Action (new, invert etc.)
-        word actionName;
+        // Handle geometry/topology changes
+        meshReadUpdate(mesh);
 
-        commandStatus stat = INVALID;
 
-        if (fileStreamPtr)
+        // Main command read & execute loop
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        autoPtr<IFstream> fileStreamPtr(NULL);
+
+        if (batch)
         {
-            if (!fileStreamPtr->good())
+            const fileName batchFile = args["batch"];
+
+            Info<< "Reading commands from file " << batchFile << endl;
+
+            // we cannot handle .gz files
+            if (!isFile(batchFile, false))
             {
-                Info<< "End of batch file" << endl;
-                break;
+                FatalErrorIn(args.executable())
+                    << "Cannot open file " << batchFile << exit(FatalError);
             }
 
-            std::getline(*fileStreamPtr, rawLine);
-
-            if (rawLine.size())
-            {
-                Info<< "Doing:" << rawLine << endl;
-            }
+            fileStreamPtr.reset(new IFstream(batchFile));
         }
-        else
+
+        Info<< "Please type 'help', 'quit' or a set command after prompt."
+            << endl;
+
+        // Whether to quit
+        bool quit = false;
+
+        FatalError.throwExceptions();
+        FatalIOError.throwExceptions();
+
+        do
         {
-#           if READLINE != 0
+            string rawLine;
+
+            // Type: cellSet, faceSet, pointSet
+            word setType;
+            // Name of destination set.
+            word setName;
+            // Action (new, invert etc.)
+            word actionName;
+
+            commandStatus stat = INVALID;
+
+            if (fileStreamPtr.valid())
             {
-                char* linePtr = readline("readline>");
-
-                rawLine = string(linePtr);
-
-                if (*linePtr)
+                if (!fileStreamPtr().good())
                 {
-                    add_history(linePtr);
-                    write_history(historyFile);
+                    Info<< "End of batch file" << endl;
+                    // No error.
+                    break;
                 }
 
-                free(linePtr);   // readline uses malloc, not new.
-            }
-#           else
-            {
-                Info<< "Command>" << flush;
-                std::getline(std::cin, rawLine);
-            }
-#           endif
-        }
+                fileStreamPtr().getLine(rawLine);
 
-        if (rawLine.empty() || rawLine[0] == '#')
-        {
-            continue;
-        }
-
-        IStringStream is(rawLine + ' ');
-
-        // Type: cellSet, faceSet, pointSet, faceZoneSet
-        is >> setType;
-
-        stat = parseType(runTime, mesh, setType, is);
-
-        if (stat == VALIDSETCMD || stat == VALIDZONECMD)
-        {
-            if (is >> setName)
-            {
-                if (is >> actionName)
+                if (rawLine.size())
                 {
-                    stat = parseAction(actionName);
+                    Info<< "Doing:" << rawLine << endl;
                 }
             }
-        }
-        ok = true;
+            else
+            {
+#               ifdef HAS_READLINE
+                {
+                    char* linePtr = readline("readline>");
 
-        if (stat == QUIT)
+                    if (linePtr)
+                    {
+                        rawLine = string(linePtr);
+
+                        if (*linePtr)
+                        {
+                            add_history(linePtr);
+                            write_history(historyFile);
+                        }
+
+                        free(linePtr);   // readline uses malloc, not new.
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+#               else
+                {
+                    if (!std::cin.good())
+                    {
+                        Info<< "End of cin" << endl;
+                        // No error.
+                        break;
+                    }
+                    Info<< "Command>" << flush;
+                    std::getline(std::cin, rawLine);
+                }
+#               endif
+            }
+
+            // Strip off anything after #
+            string::size_type i = rawLine.find_first_of("#");
+            if (i != string::npos)
+            {
+                rawLine = rawLine(0, i);
+            }
+
+            if (rawLine.empty())
+            {
+                continue;
+            }
+
+            IStringStream is(rawLine + ' ');
+
+            // Type: cellSet, faceSet, pointSet, faceZoneSet
+            is  >> setType;
+
+            stat = parseType(runTime, mesh, setType, is);
+
+            if (stat == VALIDSETCMD || stat == VALIDZONECMD)
+            {
+                if (is >> setName)
+                {
+                    if (is >> actionName)
+                    {
+                        stat = parseAction(actionName);
+                    }
+                }
+            }
+
+            if (stat == QUIT)
+            {
+                // Make sure to quit
+                quit = true;
+            }
+            else if (stat == VALIDSETCMD || stat == VALIDZONECMD)
+            {
+                bool ok = doCommand
+                (
+                    mesh,
+                    setType,
+                    setName,
+                    actionName,
+                    writeVTK,
+                    loop,   // if in looping mode dump sets to time directory
+                    noSync,
+                    is
+                );
+
+                if (!ok)
+                {
+                    // Exit with error.
+                    quit = true;
+                    status = 1;
+                }
+            }
+
+        } while (!quit);
+
+        if (quit)
         {
             break;
         }
-        else if (stat == VALIDSETCMD || stat == VALIDZONECMD)
-        {
-            ok = doCommand(mesh, setType, setName, actionName, writeVTK, is);
-        }
-
-    } while (ok);
-
-
-    if (fileStreamPtr)
-    {
-        delete fileStreamPtr;
     }
 
     Info<< "\nEnd\n" << endl;
 
-    return 0;
+    return status;
 }
 
 

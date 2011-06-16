@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -96,7 +96,7 @@ Foam::Map<Foam::word> Foam::boundaryRegion::names() const
 
 Foam::Map<Foam::word> Foam::boundaryRegion::names
 (
-    const List<wordRe>& patterns
+    const UList<wordRe>& patterns
 ) const
 {
     Map<word> lookup;

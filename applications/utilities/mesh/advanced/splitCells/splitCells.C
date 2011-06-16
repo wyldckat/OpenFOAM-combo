@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,7 +48,7 @@ Description
 #include "cellSet.H"
 #include "cellModeller.H"
 #include "meshCutter.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "geomCellLooper.H"
 #include "plane.H"
 #include "edgeVertex.H"
@@ -392,15 +392,9 @@ void collectCuts
     boolList edgeIsCut(mesh.nEdges(), false);
     scalarField edgeWeight(mesh.nEdges(), -GREAT);
 
-    for
-    (
-        cellSet::const_iterator iter = cellsToCut.begin();
-        iter != cellsToCut.end();
-        ++iter
-    )
+    forAllConstIter(cellSet, cellsToCut, iter)
     {
-        label cellI = iter.key();
-
+        const label cellI = iter.key();
         const labelList& cEdges = cellEdges[cellI];
 
         forAll(cEdges, i)
@@ -523,38 +517,53 @@ void collectCuts
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "split cells with flat faces"
+    );
+    #include "addOverwriteOption.H"
     argList::noParallel();
-    argList::validOptions.insert("set", "cellSet name");
-    argList::validOptions.insert("geometry", "");
-    argList::validOptions.insert("tol", "edge snap tolerance");
-    argList::validOptions.insert("overwrite", "");
-    argList::validArgs.append("edge angle [0..360]");
+    argList::validArgs.append("edgeAngle [0..360]");
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    argList::addOption
+    (
+        "set",
+        "name",
+        "split cells from specified cellSet only"
+    );
+    argList::addBoolOption
+    (
+        "geometry",
+        "use geometric cut for hexes as well"
+    );
+    argList::addOption
+    (
+        "tol",
+        "scalar", "edge snap tolerance (default 0.2)"
+    );
+
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
-#   include "createPolyMesh.H"
+    #include "createPolyMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
-    scalar featureAngle(readScalar(IStringStream(args.additionalArgs()[0])()));
+    const scalar featureAngle = args.argRead<scalar>(1);
+    const scalar minCos = Foam::cos(degToRad(featureAngle));
+    const scalar minSin = Foam::sin(degToRad(featureAngle));
 
-    scalar radAngle = featureAngle * mathematicalConstant::pi/180.0;
-    scalar minCos = Foam::cos(radAngle);
-    scalar minSin = Foam::sin(radAngle);
+    const bool readSet   = args.optionFound("set");
+    const bool geometry  = args.optionFound("geometry");
+    const bool overwrite = args.optionFound("overwrite");
 
-    bool readSet   = args.optionFound("set");
-    bool geometry  = args.optionFound("geometry");
-    bool overwrite = args.optionFound("overwrite");
-
-    scalar edgeTol = 0.2;
-    args.optionReadIfPresent("tol", edgeTol);
+    const scalar edgeTol = args.optionLookupOrDefault("tol", 0.2);
 
     Info<< "Trying to split cells with internal angles > feature angle\n" << nl
         << "featureAngle      : " << featureAngle << nl
         << "edge snapping tol : " << edgeTol << nl;
     if (readSet)
     {
-        Info<< "candidate cells   : cellSet " << args.option("set") << nl;
+        Info<< "candidate cells   : cellSet " << args["set"] << nl;
     }
     else
     {
@@ -582,7 +591,7 @@ int main(int argc, char *argv[])
     if (readSet)
     {
         // Read cells to cut from cellSet
-        cellSet cells(mesh, args.option("set"));
+        cellSet cells(mesh, args["set"]);
 
         cellsToCut = cells;
     }
@@ -701,7 +710,7 @@ int main(int argc, char *argv[])
         mesh.write();
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -211,7 +211,7 @@ tmp<FieldField<Field, Type> > FieldField<Field, Type>::NewCalculatedType
     );
 
     forAll(*nffPtr, i)
-    { 
+    {
         nffPtr->set(i, Field<Type>::NewCalculatedType(ff[i]).ptr());
     }
 

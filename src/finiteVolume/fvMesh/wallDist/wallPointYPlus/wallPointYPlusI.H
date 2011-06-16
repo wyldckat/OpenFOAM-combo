@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -32,13 +30,14 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-
 // Update this with w2 if w2 nearer to pt.
+template<class TrackingData>
 inline bool wallPointYPlus::update
 (
     const point& pt,
     const wallPointYPlus& w2,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     scalar dist2 = magSqr(pt - w2.origin());
@@ -77,7 +76,7 @@ inline bool wallPointYPlus::update
         }
     }
 }
-    
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -106,13 +105,15 @@ inline wallPointYPlus::wallPointYPlus
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 // Update this with w2 if w2 nearer to pt.
+template<class TrackingData>
 inline bool wallPointYPlus::updateCell
 (
     const polyMesh& mesh,
     const label thisCellI,
     const label neighbourFaceI,
     const wallPointYPlus& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& cellCentres = mesh.primitiveMesh::cellCentres();
@@ -121,19 +122,22 @@ inline bool wallPointYPlus::updateCell
     (
         cellCentres[thisCellI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // Update this with w2 if w2 nearer to pt.
+template<class TrackingData>
 inline bool wallPointYPlus::updateFace
 (
     const polyMesh& mesh,
     const label thisFaceI,
     const label neighbourCellI,
     const wallPointYPlus& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& faceCentres = mesh.faceCentres();
@@ -142,18 +146,21 @@ inline bool wallPointYPlus::updateFace
     (
         faceCentres[thisFaceI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // Update this with w2 if w2 nearer to pt.
+template<class TrackingData>
 inline bool wallPointYPlus::updateFace
 (
     const polyMesh& mesh,
     const label thisFaceI,
     const wallPointYPlus& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     const vectorField& faceCentres = mesh.faceCentres();
@@ -162,9 +169,10 @@ inline bool wallPointYPlus::updateFace
     (
         faceCentres[thisFaceI],
         neighbourWallInfo,
-        tol
+        tol,
+        td
     );
-}    
+}
 
 
 // ************************************************************************* //

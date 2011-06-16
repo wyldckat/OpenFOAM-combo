@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,8 +25,8 @@ Class
     Foam::UPtrList
 
 Description
-    A 1D array of pointers to objects of type \<T\>, where the size of the
-    array is known and used for subscript bounds checking, etc.
+    A templated 1D list of pointers to objects of type \<T\>, where the
+    size of the array is known and used for subscript bounds checking, etc.
 
     The element operator [] returns a reference to the object rather than a
     pointer.  Storage is not allocated during construction or use but is
@@ -106,7 +106,7 @@ public:
         //- Null Constructor.
         UPtrList();
 
-        //- Construct with length specified.
+        //- Construct with size specified.
         explicit UPtrList(const label);
 
         //- Construct by transferring the parameter contents
@@ -126,6 +126,18 @@ public:
             //- Return true if the UPtrList is empty (ie, size() is zero).
             inline bool empty() const;
 
+            //- Return reference to the first element of the list.
+            inline T& first();
+
+            //- Return reference to first element of the list.
+            inline const T& first() const;
+
+            //- Return reference to the last element of the list.
+            inline T& last();
+
+            //- Return reference to the last element of the list.
+            inline const T& last() const;
+
 
         // Edit
 
@@ -143,7 +155,7 @@ public:
             void clear();
 
             //- Transfer the contents of the argument UPtrList into this
-            //  UPtrList and annull the argument list.
+            //  UPtrList and annul the argument list.
             void transfer(UPtrList<T>&);
 
             //- Transfer contents to the Xfer container
@@ -159,7 +171,7 @@ public:
             //- Reorders elements. Ordering does not have to be done in
             //  ascending or descending order. Reordering has to be unique.
             //  (is shuffle)
-            void reorder(const UList<label>&);
+            void reorder(const labelUList&);
 
 
     // Member operators

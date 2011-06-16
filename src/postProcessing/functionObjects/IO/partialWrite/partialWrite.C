@@ -27,8 +27,6 @@ License
 #include "dictionary.H"
 #include "Time.H"
 #include "IOobjectList.H"
-#include "polyMesh.H"
-#include "cloud.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -125,73 +123,15 @@ void Foam::partialWrite::write()
         else
         {
             // Delete all but marked objects
-            fileName dbDir;
-            if (isA<polyMesh>(obr_))
-            {
-                dbDir = dynamic_cast<const polyMesh&>(obr_).dbDir();
-            }
-
             IOobjectList objects(obr_, obr_.time().timeName());
 
-            if (debug)
-            {
-                Pout<< "For region:" << obr_.name() << endl;
-            }
-
-            forAllConstIter(IOobjectList, objects, iter)
+            forAllConstIter(HashPtrTable<IOobject>, objects, iter)
             {
                 if (!objectNames_.found(iter()->name()))
                 {
-                    const fileName f =
-                        obr_.time().timePath()
-                       /dbDir
-                       /iter()->name();
-                    if (debug)
-                    {
-                        Pout<< "   rm " << f << endl;
-                    }
+                    const fileName f = obr_.time().timePath()/iter()->name();
+                    //Pout<< "   rm " << f << endl;
                     rm(f);
-                }
-            }
-
-            // Do the lagrangian files as well.
-            fileNameList cloudDirs
-            (
-                readDir
-                (
-                    obr_.time().timePath()/dbDir/cloud::prefix,
-                    fileName::DIRECTORY
-                )
-            );
-            forAll(cloudDirs, i)
-            {
-                if (debug)
-                {
-                    Pout<< "For cloud:" << cloudDirs[i] << endl;
-                }
-
-                IOobjectList sprayObjs
-                (
-                    obr_,
-                    obr_.time().timeName(),
-                    cloud::prefix/cloudDirs[i]
-                );
-                forAllConstIter(IOobjectList, sprayObjs, iter)
-                {
-                    if (!objectNames_.found(iter()->name()))
-                    {
-                        const fileName f =
-                            obr_.time().timePath()
-                           /dbDir
-                           /cloud::prefix
-                           /cloudDirs[i]
-                           /iter()->name();
-                        if (debug)
-                        {
-                            Pout<< "   rm " << f << endl;
-                        }
-                        rm(f);
-                    }
                 }
             }
         }

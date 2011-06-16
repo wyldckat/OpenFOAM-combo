@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,10 +34,8 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(isoSurfaceCell, 0);
-}
+defineTypeNameAndDebug(Foam::isoSurfaceCell, 0);
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -629,8 +627,7 @@ void Foam::isoSurfaceCell::calcSnappedPoint
     labelList& snappedPoint
 ) const
 {
-    const point greatPoint(VGREAT, VGREAT, VGREAT);
-    pointField collapsedPoint(mesh_.nPoints(), greatPoint);
+    pointField collapsedPoint(mesh_.nPoints(), point::max);
 
 
     // Work arrays
@@ -758,13 +755,12 @@ void Foam::isoSurfaceCell::calcSnappedPoint
         }
     }
 
-    syncTools::syncPointList
+    syncTools::syncPointPositions
     (
         mesh_,
         collapsedPoint,
         minEqOp<point>(),
-        greatPoint,
-        true                // are coordinates so separate
+        point::max
     );
 
     snappedPoint.setSize(mesh_.nPoints());
@@ -772,7 +768,7 @@ void Foam::isoSurfaceCell::calcSnappedPoint
 
     forAll(collapsedPoint, pointI)
     {
-        if (collapsedPoint[pointI] != greatPoint)
+        if (collapsedPoint[pointI] != point::max)
         {
             snappedPoint[pointI] = snappedPoints.size();
             snappedPoints.append(collapsedPoint[pointI]);
@@ -935,19 +931,17 @@ bool Foam::isoSurfaceCell::validTri(const triSurface& surf, const label faceI)
 
     const labelledTri& f = surf[faceI];
 
-    if
-    (
-        (f[0] < 0) || (f[0] >= surf.points().size())
-     || (f[1] < 0) || (f[1] >= surf.points().size())
-     || (f[2] < 0) || (f[2] >= surf.points().size())
-    )
+    forAll(f, fp)
     {
-        WarningIn("validTri(const triSurface&, const label)")
-            << "triangle " << faceI << " vertices " << f
-            << " uses point indices outside point range 0.."
-            << surf.points().size()-1 << endl;
+        if (f[fp] < 0 || f[fp] >= surf.points().size())
+        {
+            WarningIn("validTri(const triSurface&, const label)")
+                << "triangle " << faceI << " vertices " << f
+                << " uses point indices outside point range 0.."
+                << surf.points().size()-1 << endl;
 
-        return false;
+            return false;
+        }
     }
 
     if ((f[0] == f[1]) || (f[0] == f[2]) || (f[1] == f[2]))
@@ -1038,18 +1032,6 @@ void Foam::isoSurfaceCell::calcAddressing
 
     if (!hasMerged)
     {
-        if (surf.size() == 1)
-        {
-            faceEdges.setSize(1);
-            faceEdges[0][0] = 0;
-            faceEdges[0][1] = 1;
-            faceEdges[0][2] = 2;
-            edgeFace0.setSize(1);
-            edgeFace0[0] = 0;
-            edgeFace1.setSize(1);
-            edgeFace1[0] = -1;
-            edgeFacesRest.clear();
-        }
         return;
     }
 
@@ -1353,12 +1335,12 @@ Foam::triSurface Foam::isoSurfaceCell::subsetMesh
         {
             if (include[oldFacei])
             {
-                // Renumber labels for triangle
-                const labelledTri& tri = s[oldFacei];
+                // Renumber labels for face
+                const triSurface::FaceType& f = s[oldFacei];
 
-                forAll(tri, fp)
+                forAll(f, fp)
                 {
-                    label oldPointI = tri[fp];
+                    label oldPointI = f[fp];
 
                     if (oldToNewPoints[oldPointI] == -1)
                     {
@@ -1409,6 +1391,8 @@ Foam::isoSurfaceCell::isoSurfaceCell
 )
 :
     mesh_(mesh),
+    cVals_(cVals),
+    pVals_(pVals),
     iso_(iso),
     mergeDistance_(mergeTol*mesh.bounds().mag())
 {
@@ -1574,62 +1558,68 @@ Foam::isoSurfaceCell::isoSurfaceCell
     }
 
 
-//if (false)
-{
-    List<FixedList<label, 3> > faceEdges;
-    labelList edgeFace0, edgeFace1;
-    Map<labelList> edgeFacesRest;
-
-
-    while (true)
+    if (false)
     {
-        // Calculate addressing
-        calcAddressing(*this, faceEdges, edgeFace0, edgeFace1, edgeFacesRest);
+        List<FixedList<label, 3> > faceEdges;
+        labelList edgeFace0, edgeFace1;
+        Map<labelList> edgeFacesRest;
 
-        // See if any dangling triangles
-        boolList keepTriangles;
-        label nDangling = markDanglingTriangles
-        (
-            faceEdges,
-            edgeFace0,
-            edgeFace1,
-            edgeFacesRest,
-            keepTriangles
-        );
 
-        if (debug)
+        while (true)
         {
-            Pout<< "isoSurfaceCell : detected " << nDangling
-                << " dangling triangles." << endl;
-        }
-
-        if (nDangling == 0)
-        {
-            break;
-        }
-
-        // Create face map (new to old)
-        labelList subsetTriMap(findIndices(keepTriangles, true));
-
-        labelList subsetPointMap;
-        labelList reversePointMap;
-        triSurface::operator=
-        (
-            subsetMesh
+            // Calculate addressing
+            calcAddressing
             (
                 *this,
-                subsetTriMap,
-                reversePointMap,
-                subsetPointMap
-            )
-        );
-        meshCells_ = labelField(meshCells_, subsetTriMap);
-        inplaceRenumber(reversePointMap, triPointMergeMap_);
+                faceEdges,
+                edgeFace0,
+                edgeFace1,
+                edgeFacesRest
+            );
+
+            // See if any dangling triangles
+            boolList keepTriangles;
+            label nDangling = markDanglingTriangles
+            (
+                faceEdges,
+                edgeFace0,
+                edgeFace1,
+                edgeFacesRest,
+                keepTriangles
+            );
+
+            if (debug)
+            {
+                Pout<< "isoSurfaceCell : detected " << nDangling
+                    << " dangling triangles." << endl;
+            }
+
+            if (nDangling == 0)
+            {
+                break;
+            }
+
+            // Create face map (new to old)
+            labelList subsetTriMap(findIndices(keepTriangles, true));
+
+            labelList subsetPointMap;
+            labelList reversePointMap;
+            triSurface::operator=
+            (
+                subsetMesh
+                (
+                    *this,
+                    subsetTriMap,
+                    reversePointMap,
+                    subsetPointMap
+                )
+            );
+            meshCells_ = labelField(meshCells_, subsetTriMap);
+            inplaceRenumber(reversePointMap, triPointMergeMap_);
+        }
+
+        orientSurface(*this, faceEdges, edgeFace0, edgeFace1, edgeFacesRest);
     }
-
-    orientSurface(*this, faceEdges, edgeFace0, edgeFace1, edgeFacesRest);
-}
-
     //combineCellTriangles();
 }
 

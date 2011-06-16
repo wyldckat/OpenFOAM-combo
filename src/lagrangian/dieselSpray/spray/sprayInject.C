@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,15 +31,12 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-void spray::inject()
+void Foam::spray::inject()
 {
     scalar time = runTime_.value();
     scalar time0 = time0_;
+
+    parcel::trackingData td(*this);
 
     // Inject the parcels for each injector sequentially
     forAll(injectors_, i)
@@ -70,7 +67,7 @@ void spray::inject()
             // deltaT is the duration of injection during this timestep
             scalar deltaT = min
             (
-                runTime_.deltaT().value(),
+                runTime_.deltaTValue(),
                 min
                 (
                     time - it->tsoi(),
@@ -78,12 +75,12 @@ void spray::inject()
                 )
             );
 
-            for(label j=0; j<Np; j++)
+            for (label j=0; j<Np; j++)
             {
                 // calculate the time of injection for parcel 'j'
                 scalar toi = time0 + constT + deltaT*j/scalar(Np);
 
-                for(label n=0; n<nHoles; n++)
+                for (label n=0; n<nHoles; n++)
                 {
 
                     // calculate the velocity of the injected parcel
@@ -112,9 +109,19 @@ void spray::inject()
                     scalar deviation = breakup().y0();
                     scalar ddev = breakup().yDot0();
 
-                    label injectorCell = mesh_.findCell(injectionPosition);
+                    label injectorCell = -1;
+                    label injectorTetFaceI = -1;
+                    label injectorTetPtI = -1;
 
-#                   include "findInjectorCell.H"
+                    mesh_.findCellFacePt
+                    (
+                        injectionPosition,
+                        injectorCell,
+                        injectorTetFaceI,
+                        injectorTetPtI
+                    );
+
+                    #include "findInjectorCell.H"
 
                     if (injectorCell >= 0)
                     {
@@ -124,9 +131,11 @@ void spray::inject()
 
                         parcel* pPtr = new parcel
                         (
-                            *this,
+                            mesh_,
                             injectionPosition,
                             injectorCell,
+                            injectorTetFaceI,
+                            injectorTetPtI,
                             normal,
                             diameter,
                             it->T(toi),
@@ -149,10 +158,11 @@ void spray::inject()
                         scalar dt = time - toi;
 
                         pPtr->stepFraction() =
-                            (runTime_.deltaT().value() - dt)
-                           /runTime_.deltaT().value();
+                            (runTime_.deltaTValue() - dt)
+                           /runTime_.deltaTValue();
 
-                        bool keepParcel = pPtr->move(*this);
+                        bool keepParcel =
+                            pPtr->move(td, runTime_.deltaTValue());
 
                         if (keepParcel)
                         {
@@ -163,17 +173,13 @@ void spray::inject()
                             delete pPtr;
                         }
                     } // if (injectorCell....
-                } // for(label n=0...
-            } // for(label j=0....
+                } // for (label n=0...
+            } // for (label j=0....
         } // if (mass>0)...
     } // forAll(injectors)...
 
     time0_ = time;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

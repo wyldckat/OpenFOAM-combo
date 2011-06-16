@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,7 +72,7 @@ class cyclicGAMGInterfaceField
 
         //- Disallow default bitwise assignment
         void operator=(const cyclicGAMGInterfaceField&);
-    
+
 
 public:
 
@@ -90,9 +90,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~cyclicGAMGInterfaceField();
+    //- Destructor
+    virtual ~cyclicGAMGInterfaceField();
 
 
     // Member Functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,6 +31,18 @@ License
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class Key, class Hash>
+Foam::HashSet<Key, Hash>::HashSet(const UList<Key>& lst)
+:
+    HashTable<nil, Key, Hash>(2*lst.size())
+{
+    forAll(lst, elemI)
+    {
+        this->insert(lst[elemI]);
+    }
+}
+
+
+template<class Key, class Hash>
 template<class AnyType, class AnyHash>
 Foam::HashSet<Key, Hash>::HashSet
 (
@@ -47,8 +59,26 @@ Foam::HashSet<Key, Hash>::HashSet
         ++cit
     )
     {
-        insert(cit.key());
+        this->insert(cit.key());
     }
+}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class Key, class Hash>
+Foam::label Foam::HashSet<Key, Hash>::insert(const UList<Key>& lst)
+{
+    label count = 0;
+    forAll(lst, elemI)
+    {
+        if (this->insert(lst[elemI]))
+        {
+            ++count;
+        }
+    }
+
+    return count;
 }
 
 
@@ -57,7 +87,7 @@ Foam::HashSet<Key, Hash>::HashSet
 template<class Key, class Hash>
 inline bool Foam::HashSet<Key, Hash>::operator[](const Key& key) const
 {
-    return found(key);
+    return this->found(key);
 }
 
 
@@ -76,7 +106,7 @@ bool Foam::HashSet<Key, Hash>::operator==(const HashSet<Key, Hash>& rhs) const
     // Are all rhs elements in lhs?
     for (const_iterator iter = rhs.cbegin(); iter != rhs.cend(); ++iter)
     {
-        if (!found(iter.key()))
+        if (!this->found(iter.key()))
         {
             return false;
         }
@@ -99,7 +129,7 @@ void Foam::HashSet<Key, Hash>::operator|=(const HashSet<Key, Hash>& rhs)
     // Add rhs elements into lhs
     for (const_iterator iter = rhs.cbegin(); iter != rhs.cend(); ++iter)
     {
-        insert(iter.key());
+        this->insert(iter.key());
     }
 }
 
@@ -112,7 +142,7 @@ void Foam::HashSet<Key, Hash>::operator&=(const HashSet<Key, Hash>& rhs)
     {
         if (!rhs.found(iter.key()))
         {
-            erase(iter);
+            this->erase(iter);
         }
     }
 }
@@ -124,13 +154,13 @@ void Foam::HashSet<Key, Hash>::operator^=(const HashSet<Key, Hash>& rhs)
     // Add missed rhs elements, remove duplicate elements
     for (const_iterator iter = rhs.cbegin(); iter != rhs.cend(); ++iter)
     {
-        if (found(iter.key()))
+        if (this->found(iter.key()))
         {
-            erase(iter.key());
+            this->erase(iter.key());
         }
         else
         {
-            insert(iter.key());
+            this->insert(iter.key());
         }
     }
 }
@@ -143,7 +173,7 @@ void Foam::HashSet<Key, Hash>::operator-=(const HashSet<Key, Hash>& rhs)
     // Remove rhs elements from lhs
     for (const_iterator iter = rhs.cbegin(); iter != rhs.cend(); ++iter)
     {
-        erase(iter.key());
+        this->erase(iter.key());
     }
 }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,8 +27,6 @@ License
 #include "MeshedSurfaceProxy.H"
 
 #include "Time.H"
-#include "cellIOList.H"
-#include "SubList.H"
 #include "OSspecific.H"
 #include "MeshedSurface.H"
 #include "demandDrivenData.H"
@@ -109,8 +107,8 @@ Foam::surfMesh::surfMesh(const IOobject& io, const word& surfName)
 Foam::surfMesh::surfMesh
 (
     const IOobject& io,
-    const Xfer< pointField >& pointLst,
-    const Xfer< faceList >& faceLst,
+    const Xfer<pointField>& pointLst,
+    const Xfer<faceList>& faceLst,
     const word& surfName
 )
 :
@@ -155,7 +153,7 @@ Foam::surfMesh::surfMesh
 Foam::surfMesh::surfMesh
 (
     const IOobject& io,
-    const Xfer< MeshedSurface<face> >& surf,
+    const Xfer<MeshedSurface<face> >& surf,
     const word& surfName
 )
 :
@@ -251,9 +249,9 @@ void Foam::surfMesh::updateRefs()
 
 void Foam::surfMesh::resetPrimitives
 (
-    const Xfer< pointField >& points,
-    const Xfer< faceList >& faces,
-    const Xfer< surfZoneList >& zones,
+    const Xfer<pointField>& points,
+    const Xfer<faceList>& faces,
+    const Xfer<surfZoneList>& zones,
     const bool validate
 )
 {
@@ -286,10 +284,9 @@ void Foam::surfMesh::transfer
 }
 
 
-Foam::Xfer< Foam::MeshedSurface<Foam::face> >
-Foam::surfMesh::xfer()
+Foam::Xfer<Foam::MeshedSurface<Foam::face> > Foam::surfMesh::xfer()
 {
-    Xfer< MeshedSurface<face> > xf;
+    Xfer<MeshedSurface<face> > xf;
 
     xf().storedPoints().transfer(this->storedPoints());
     xf().storedFaces().transfer(this->storedFaces());
@@ -376,7 +373,7 @@ void Foam::surfMesh::checkZones()
                 << " ... extending final zone"
                 << endl;
 
-            zones[zones.size()-1].size() += count - nFaces();
+            zones.last().size() += count - nFaces();
         }
         else if (count > size())
         {

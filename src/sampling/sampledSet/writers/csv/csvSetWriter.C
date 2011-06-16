@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2011-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,7 +76,7 @@ void Foam::csvSetWriter<Type>::write
         columns[i] = valueSets[i];
     }
 
-    writeTable(points, columns, os);
+    this->writeTable(points, columns, os);
 }
 
 
@@ -110,7 +110,7 @@ void Foam::csvSetWriter<Type>::write
             columns[i] = &valueSets[i][trackI];
         }
 
-        writeTable(points[trackI], columns, os);
+        this->writeTable(points[trackI], columns, os);
         os  << nl << nl;
     }
 }

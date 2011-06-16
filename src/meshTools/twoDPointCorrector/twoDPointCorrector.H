@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Class
 
 Description
     Class applies a two-dimensional correction to mesh motion point field.
- 
+
     The correction guarantees that the mesh does not get twisted during motion
     and thus introduce a third dimension into a 2-D problem.
 
@@ -105,9 +105,8 @@ public:
         twoDPointCorrector(const polyMesh& mesh);
 
 
-    // Destructor
-
-        ~twoDPointCorrector();
+    //- Destructor
+    ~twoDPointCorrector();
 
 
     // Member Functions

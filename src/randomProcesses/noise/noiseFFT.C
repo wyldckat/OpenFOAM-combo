@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,6 +33,7 @@ License
 // * * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * * //
 
 Foam::scalar Foam::noiseFFT::p0 = 2e-5;
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -111,7 +112,7 @@ Foam::noiseFFT::noiseFFT(const fileName& pFileName, const label skip)
 Foam::graph Foam::noiseFFT::pt() const
 {
     scalarField t(size());
-    forAll (t, i)
+    forAll(t, i)
     {
         t[i] = i*deltat_;
     }
@@ -150,7 +151,7 @@ Foam::tmp<Foam::scalarField> Foam::noiseFFT::window
 
     label offset = ni*windowOffset;
 
-    forAll (pw, i)
+    forAll(pw, i)
     {
         pw[i] = operator[](i + offset);
     }
@@ -162,14 +163,14 @@ Foam::tmp<Foam::scalarField> Foam::noiseFFT::window
 Foam::tmp<Foam::scalarField> Foam::noiseFFT::Hanning(const label N) const
 {
     scalarField t(N);
-    forAll (t, i)
+    forAll(t, i)
     {
         t[i] = i*deltat_;
     }
 
     scalar T = N*deltat_;
 
-    return 2*(0.5 - 0.5*cos(2*mathematicalConstant::pi*t/T));
+    return 2*(0.5 - 0.5*cos(constant::mathematical::twoPi*t/T));
 }
 
 
@@ -226,9 +227,9 @@ Foam::graph Foam::noiseFFT::meanPf
 
     scalarField MeanPf(N/2, 0.0);
 
-    scalarField Hwf = Hanning(N);
+    scalarField Hwf(Hanning(N));
 
-    for (label wi=0; wi<nw; wi++)
+    for (label wi=0; wi<nw; ++wi)
     {
         MeanPf += Pf(Hwf*window(N, wi));
     }
@@ -238,7 +239,7 @@ Foam::graph Foam::noiseFFT::meanPf
     scalarField f(MeanPf.size());
     scalar deltaf = 1.0/(N*deltat_);
 
-    forAll (f, i)
+    forAll(f, i)
     {
         f[i] = i*deltaf;
     }
@@ -272,9 +273,9 @@ Foam::graph Foam::noiseFFT::RMSmeanPf
 
     scalarField RMSMeanPf(N/2, 0.0);
 
-    scalarField Hwf = Hanning(N);
+    scalarField Hwf(Hanning(N));
 
-    for (label wi=0; wi<nw; wi++)
+    for (label wi=0; wi<nw; ++wi)
     {
         RMSMeanPf += sqr(Pf(Hwf*window(N, wi)));
     }
@@ -284,7 +285,7 @@ Foam::graph Foam::noiseFFT::RMSmeanPf
     scalarField f(RMSMeanPf.size());
     scalar deltaf = 1.0/(N*deltat_);
 
-    forAll (f, i)
+    forAll(f, i)
     {
         f[i] = i*deltaf;
     }

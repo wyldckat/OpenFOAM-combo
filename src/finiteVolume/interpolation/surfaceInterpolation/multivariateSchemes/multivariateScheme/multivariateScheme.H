@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -104,7 +104,7 @@ public:
         public:
 
             // Constructors
-            
+
                 fieldScheme
                 (
                     const GeometricField<Type, fvPatchField, volMesh>& field,
@@ -150,23 +150,55 @@ public:
 
 // Add the patch constructor functions to the hash tables
 
-#define makeLimitedMultivariateSurfaceInterpolationScheme(SS, LIMITER)               \
-typedef multivariateScheme<scalar, LimitedScheme<scalar, LIMITER<NVDTVD>, limitFuncs::magSqr> > \
+#define makeLimitedMultivariateSurfaceInterpolationScheme(SS, LIMITER)         \
+typedef multivariateScheme                                                     \
+<                                                                              \
+    scalar,                                                                    \
+    LimitedScheme<scalar, LIMITER<NVDTVD>, limitFuncs::magSqr>                 \
+>                                                                              \
     multivariateScheme##LIMITER_;                                              \
 defineTemplateTypeNameAndDebugWithName(multivariateScheme##LIMITER_, #SS, 0);  \
                                                                                \
 multivariateSurfaceInterpolationScheme<scalar>::addIstreamConstructorToTable   \
-<multivariateScheme<scalar, LimitedScheme<scalar, LIMITER<NVDTVD>, limitFuncs::magSqr> > > \
+<                                                                              \
+    multivariateScheme                                                         \
+    <                                                                          \
+        scalar,                                                                \
+        LimitedScheme<scalar, LIMITER<NVDTVD>, limitFuncs::magSqr>             \
+    >                                                                          \
+>                                                                              \
     addMultivariate##SS##ConstructorToTable_;
 
 
-#define makeLLimitedMultivariateSurfaceInterpolationScheme(SS, LLIMITER, LIMITER, NVDTVD, LIMFUNC) \
-typedef multivariateScheme<scalar, LimitedScheme<scalar, LLIMITER<LIMITER<NVDTVD> >, limitFuncs::LIMFUNC> > \
+#define makeLLimitedMultivariateSurfaceInterpolationScheme\
+(                                                                              \
+    SS,                                                                        \
+    LLIMITER,                                                                  \
+    LIMITER,                                                                   \
+    NVDTVD,                                                                    \
+    LIMFUNC                                                                    \
+)                                                                              \
+typedef multivariateScheme                                                     \
+<                                                                              \
+    scalar,                                                                    \
+    LimitedScheme<scalar, LLIMITER<LIMITER<NVDTVD> >, limitFuncs::LIMFUNC>     \
+>                                                                              \
     multivariateScheme##LLIMITER##LIMITER##NVDTVD##LIMFUNC##_;                 \
-defineTemplateTypeNameAndDebugWithName(multivariateScheme##LLIMITER##LIMITER##NVDTVD##LIMFUNC##_, #SS, 0);  \
+defineTemplateTypeNameAndDebugWithName                                         \
+(                                                                              \
+    multivariateScheme##LLIMITER##LIMITER##NVDTVD##LIMFUNC##_,                 \
+    #SS,                                                                       \
+    0                                                                          \
+);                                                                             \
                                                                                \
 multivariateSurfaceInterpolationScheme<scalar>::addIstreamConstructorToTable   \
-<multivariateScheme<scalar, LimitedScheme<scalar, LLIMITER<LIMITER<NVDTVD> >, limitFuncs::LIMFUNC> > > \
+<                                                                              \
+    multivariateScheme                                                         \
+    <                                                                          \
+        scalar,                                                                \
+        LimitedScheme<scalar, LLIMITER<LIMITER<NVDTVD> >, limitFuncs::LIMFUNC> \
+    >                                                                          \
+>                                                                              \
     addMultivariate##SS##ConstructorToTable_;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

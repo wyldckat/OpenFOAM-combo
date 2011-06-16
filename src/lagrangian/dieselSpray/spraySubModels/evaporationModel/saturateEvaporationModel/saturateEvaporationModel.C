@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,27 +28,24 @@ License
 #include "saturateEvaporationModel.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(saturateEvaporationModel, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(saturateEvaporationModel, 0);
-
-addToRunTimeSelectionTable
-(
-    evaporationModel,
-    saturateEvaporationModel,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        evaporationModel,
+        saturateEvaporationModel,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
-saturateEvaporationModel::saturateEvaporationModel
+Foam::saturateEvaporationModel::saturateEvaporationModel
 (
     const dictionary& dict
 )
@@ -59,19 +56,20 @@ saturateEvaporationModel::saturateEvaporationModel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-saturateEvaporationModel::~saturateEvaporationModel()
+Foam::saturateEvaporationModel::~saturateEvaporationModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool saturateEvaporationModel::evaporation() const
+bool Foam::saturateEvaporationModel::evaporation() const
 {
     return true;
 }
 
+
 // Correlation for the Sherwood Number
-scalar saturateEvaporationModel::Sh
+Foam::scalar Foam::saturateEvaporationModel::Sh
 (
     const scalar ReynoldsNumber,
     const scalar SchmidtNumber
@@ -80,7 +78,8 @@ scalar saturateEvaporationModel::Sh
     return 0.0;
 }
 
-scalar saturateEvaporationModel::relaxationTime
+
+Foam::scalar Foam::saturateEvaporationModel::relaxationTime
 (
     const scalar diameter,
     const scalar liquidDensity,
@@ -95,11 +94,11 @@ scalar saturateEvaporationModel::relaxationTime
     const scalar dt
 ) const
 {
-    return max(SMALL,dt*(m0/dm - 1.0));
+    return max(SMALL, dt*(m0/dm - 1.0));
 }
 
 
-scalar saturateEvaporationModel::boilingTime
+Foam::scalar Foam::saturateEvaporationModel::boilingTime
 (
     const scalar liquidDensity,
     const scalar cpFuel,
@@ -108,15 +107,15 @@ scalar saturateEvaporationModel::boilingTime
     const scalar Nusselt,
     const scalar deltaTemp,
     const scalar diameter,
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar 
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar
 ) const
 {
     scalar time = GREAT;
@@ -127,22 +126,16 @@ scalar saturateEvaporationModel::boilingTime
     // limit for the boiling time... which we have anyway.
     scalar deltaT = max(0.5, deltaTemp);
 
-    time = liquidDensity*cpFuel*sqr(diameter)/
-    (
-        6.0 * kappa * Nusselt * log(1.0 + cpFuel * deltaT/max(SMALL, heatOfVapour))
-    );
+    time =
+        liquidDensity*cpFuel*sqr(diameter)
+       /(
+            6.0*kappa*Nusselt*log(1.0 + cpFuel*deltaT/max(SMALL, heatOfVapour))
+        );
 
     time = max(VSMALL, time);
 
     return time;
 }
 
-inline label saturateEvaporationModel::nEvapIter() const
-{
-    return 1;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

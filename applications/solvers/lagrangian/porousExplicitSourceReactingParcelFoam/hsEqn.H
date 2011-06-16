@@ -16,17 +16,16 @@
         )
     );
 
-    if (dpdt)
+    if (pressureWork)
     {
-        pWork() += fvc::ddt(p);
-    }
-    if (eWork)
-    {
-        pWork() = -p*fvc::div(phi/fvc::interpolate(rho));
-    }
-    if (hWork)
-    {
-        pWork() += fvc::div(phi/fvc::interpolate(rho)*fvc::interpolate(p));
+        surfaceScalarField phiU("phiU", phi/fvc::interpolate(rho));
+
+        pWork() += fvc::div(phiU*fvc::interpolate(p)) - p*fvc::div(phiU);
+
+        if (pressureWorkTimeDerivative)
+        {
+            pWork() += fvc::ddt(p);
+        }
     }
 
     {
@@ -37,7 +36,7 @@
           - fvm::laplacian(turbulence->alphaEff(), hs)
          ==
             pWork()
-          + parcels.Sh()
+          + parcels.Sh(hs)
           + radiation->Shs(thermo)
           + energySource.Su()
           + chemistrySh

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,6 +75,7 @@ class cloudSet
         //- Uses calcSamples to obtain samples. Copies them into *this.
         void genSamples();
 
+
 public:
 
     //- Runtime type information
@@ -103,15 +104,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~cloudSet();
-
-
-    // Member Functions
-
-        //- Get reference point
-        virtual point getRefPoint(const List<point>&) const;
+    //- Destructor
+    virtual ~cloudSet();
 };
 
 

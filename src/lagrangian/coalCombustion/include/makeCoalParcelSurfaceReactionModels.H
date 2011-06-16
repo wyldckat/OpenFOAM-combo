@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,9 +28,6 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "thermoPhysicsTypes.H"
-#include "ReactingMultiphaseCloud.H"
-
 #include "NoSurfaceReaction.H"
 #include "COxidationDiffusionLimitedRate.H"
 #include "COxidationKineticDiffusionLimitedRate.H"
@@ -38,60 +35,15 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeCoalSurfaceReactionModels(ParcelType)                             \
+#define makeCoalParcelSurfaceReactionModels(CloudType)                        \
                                                                               \
-    makeCoalSurfaceReactionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        constGasThermoPhysics                                                 \
-    );                                                                        \
-    makeCoalSurfaceReactionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        gasThermoPhysics                                                      \
-    );                                                                        \
-    makeCoalSurfaceReactionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        icoPoly8ThermoPhysics                                                 \
-    );
-
-
-#define makeCoalSurfaceReactionModelThermoType(ParcelType, ThermoType)        \
-                                                                              \
-    makeSurfaceReactionModel                                                  \
-    (                                                                         \
-        ReactingMultiphaseCloud<ParcelType<ThermoType> >                      \
-    );                                                                        \
-                                                                              \
-    makeSurfaceReactionModelThermoType                                        \
-    (                                                                         \
-        NoSurfaceReaction,                                                    \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );                                                                        \
-    makeSurfaceReactionModelThermoType                                        \
-    (                                                                         \
-        COxidationDiffusionLimitedRate,                                       \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );                                                                        \
-    makeSurfaceReactionModelThermoType                                        \
+    makeSurfaceReactionModelType(COxidationDiffusionLimitedRate, CloudType);  \
+    makeSurfaceReactionModelType                                              \
     (                                                                         \
         COxidationKineticDiffusionLimitedRate,                                \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
+        CloudType                                                             \
     );                                                                        \
-    makeSurfaceReactionModelThermoType                                        \
-    (                                                                         \
-        COxidationMurphyShaddix,                                              \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );
+    makeSurfaceReactionModelType(COxidationMurphyShaddix, CloudType);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

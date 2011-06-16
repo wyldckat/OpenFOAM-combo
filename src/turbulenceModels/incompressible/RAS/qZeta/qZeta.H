@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,7 +55,10 @@ class qZeta
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -65,6 +68,11 @@ class qZeta
             dimensionedScalar sigmaZeta_;
             Switch anisotropic_;
 
+        //- Lower limit of q
+        dimensionedScalar qMin_;
+
+        //- Lower limit of zeta
+        dimensionedScalar zetaMin_;
 
         // Fields
 
@@ -77,7 +85,7 @@ class qZeta
             volScalarField nut_;
 
 
-    // Private member functions
+    // Protected Member Functions
 
         tmp<volScalarField> fMu() const;
         tmp<volScalarField> f2() const;
@@ -95,7 +103,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -105,6 +115,33 @@ public:
 
 
     // Member Functions
+
+       // Access
+
+            //- Return the lower allowable limit for q (default: SMALL)
+            const dimensionedScalar& qMin() const
+            {
+                return qMin_;
+            }
+
+            //- Return the lower allowable limit for zeta (default: SMALL)
+            const dimensionedScalar& zetaMin() const
+            {
+                return zetaMin_;
+            }
+
+            //- Allow qMin to be changed
+            dimensionedScalar& qMin()
+            {
+                return qMin_;
+            }
+
+            //- Allow zetaMin to be changed
+            dimensionedScalar& zetaMin()
+            {
+                return zetaMin_;
+            }
+
 
         //- Return the turbulence viscosity
         virtual tmp<volScalarField> nut() const

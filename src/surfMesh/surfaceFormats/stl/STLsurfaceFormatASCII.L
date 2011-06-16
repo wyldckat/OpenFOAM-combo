@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,7 @@ License
 using namespace Foam;
 
 // Dummy yyFlexLexer::yylex() to keep the linker happy. It is not called
-//! @cond dummy
+//! \cond dummy
 int yyFlexLexer::yylex()
 {
     FatalErrorIn("yyFlexLexer::yylex()")
@@ -44,12 +44,12 @@ int yyFlexLexer::yylex()
         << abort(FatalError);
     return 0;
 }
-//! @endcond dummy
+//! \endcond
 
 // Dummy yywrap to keep yylex happy at compile time.
 // It is called by yylex but is not used as the mechanism to change file.
 // See <<EOF>>
-//! @cond dummy
+//! \cond dummy
 #if YY_FLEX_SUBMINOR_VERSION < 34
 extern "C" int yywrap()
 #else
@@ -58,7 +58,7 @@ int yyFlexLexer::yywrap()
 {
     return 1;
 }
-//! @endcond dummy
+//! \endcond
 
 
 //- A lexer for parsing STL ASCII files.
@@ -151,18 +151,11 @@ STLASCIILexer::STLASCIILexer(istream* is, const label approxNpoints)
 one_space             [ \t\f\r]
 space                 {one_space}*
 some_space            {one_space}+
-cspace                ","{space}
 
 alpha                 [_A-Za-z]
 digit                 [0-9]
-dec_digit             [0-9]
-octal_digit           [0-7]
-hex_digit             [0-9a-fA-F]
 
-identifier            {alpha}({alpha}|{digit})*
-integer               {dec_digit}+
-label                 [1-9]{dec_digit}*
-zeroLabel             {digit}*
+integer               {digit}+
 signedInteger         [-+]?{integer}
 
 word                  ([[:alnum:]]|[[:punct:]])*
@@ -171,15 +164,14 @@ string                {word}({some_space}{word})*
 exponent_part         [eE][-+]?{digit}+
 fractional_constant   [-+]?(({digit}*"."{digit}+)|({digit}+"."?))
 
-double                (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
-float                 {double}
+floatNum              (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
 
-x                     {float}
-y                     {float}
-z                     {float}
+x                     {floatNum}
+y                     {floatNum}
+z                     {floatNum}
 
 solid                 {space}("solid"|"SOLID"){space}
-color                 {space}("color"|"COLOR"){some_space}{float}{some_space}{float}{some_space}{float}{space}
+color                 {space}("color"|"COLOR"){some_space}{floatNum}{some_space}{floatNum}{some_space}{floatNum}{space}
 facet                 {space}("facet"|"FACET"){space}
 normal                {space}("normal"|"NORMAL"){space}
 point                 {space}{x}{some_space}{y}{some_space}{z}{space}
@@ -336,7 +328,7 @@ endsolid              {space}("endsolid"|"ENDSOLID")({some_space}{word})*
         }
     }
 
-<readVertex>{space}{float}{space} {
+<readVertex>{space}{floatNum}{space} {
         vertex[cmpt++] = atof(YYText());
 
         if (cmpt == 3)

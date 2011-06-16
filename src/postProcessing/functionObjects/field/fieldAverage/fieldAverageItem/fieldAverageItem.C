@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,12 +27,20 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-template<>
-const char* Foam::NamedEnum<Foam::fieldAverageItem::baseType, 2>::names[] =
+namespace Foam
 {
-    "iteration",
-    "time"
-};
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldAverageItem::baseType,
+        2
+    >::names[] =
+    {
+        "iteration",
+        "time"
+    };
+}
+
 
 const Foam::NamedEnum<Foam::fieldAverageItem::baseType, 2>
     Foam::fieldAverageItem::baseTypeNames_;

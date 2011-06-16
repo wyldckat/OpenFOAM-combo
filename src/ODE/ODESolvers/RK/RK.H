@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Class
     Foam::RK
 
 Description
-    Foam::RK
+    Runge-Kutta ODE solver
 
 SourceFiles
     RKCK.C
@@ -52,6 +52,15 @@ class RK
     public ODESolver
 {
     // Private data
+        static const scalar safety, pGrow, pShrink, errCon;
+
+        static const scalar
+            a2, a3, a4, a5, a6,
+            b21, b31, b32, b41, b42, b43,
+            b51, b52, b53, b54, b61, b62, b63, b64, b65,
+            c1, c3, c4, c6,
+            dc1, dc3, dc4, dc5, dc6;
+
 
         mutable scalarField yTemp_;
         mutable scalarField ak2_;
@@ -62,16 +71,6 @@ class RK
 
         mutable scalarField yErr_;
         mutable scalarField yTemp2_;
-
-        static const scalar safety, pGrow, pShrink, errCon;
-
-        static const scalar
-            a2, a3, a4, a5, a6,
-            b21, b31, b32, b41, b42, b43,
-            b51, b52, b53, b54, b61, b62, b63, b64, b65,
-            c1, c3, c4, c6,
-            dc1, dc3, dc4, dc5, dc6;
-
 
 public:
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,7 +82,7 @@ tmp<convectionScheme<Type> > convectionScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     typename IstreamConstructorTable::iterator cstrIter =
         IstreamConstructorTablePtr_->find(schemeName);
@@ -94,7 +94,7 @@ tmp<convectionScheme<Type> > convectionScheme<Type>::New
             "convectionScheme<Type>::New"
             "(const fvMesh&, const surfaceScalarField&, Istream&)",
             schemeData
-        )   << "unknown convection scheme " << schemeName << endl << endl
+        )   << "Unknown convection scheme " << schemeName << nl << nl
             << "Valid convection schemes are :" << endl
             << IstreamConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
@@ -139,7 +139,7 @@ tmp<convectionScheme<Type> > convectionScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     typename MultivariateConstructorTable::iterator cstrIter =
         MultivariateConstructorTablePtr_->find(schemeName);
@@ -153,7 +153,7 @@ tmp<convectionScheme<Type> > convectionScheme<Type>::New
             "const typename multivariateSurfaceInterpolationScheme<Type>"
             "::fieldTable&, const surfaceScalarField&, Istream&)",
             schemeData
-        )   << "unknown convection scheme " << schemeName << endl << endl
+        )   << "Unknown convection scheme " << schemeName << nl << nl
             << "Valid convection schemes are :" << endl
             << MultivariateConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);

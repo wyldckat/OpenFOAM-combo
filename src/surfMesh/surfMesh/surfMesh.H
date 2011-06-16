@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -95,7 +95,7 @@ private:
         MeshReference;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow construct as copy
         surfMesh(const surfMesh&);
@@ -171,14 +171,13 @@ public:
         surfMesh
         (
             const IOobject&,
-            const Xfer< MeshedSurface<face> >& surf,
+            const Xfer<MeshedSurface<face> >& surf,
             const word& surfName=""
         );
 
 
-    // Destructor
-
-        virtual ~surfMesh();
+    //- Destructor
+    virtual ~surfMesh();
 
 
     // Member Functions
@@ -249,14 +248,14 @@ public:
             //- Reset mesh primitive data.
             void resetPrimitives
             (
-                const Xfer< pointField >& points,
-                const Xfer< faceList >& faces,
-                const Xfer< surfZoneList >& zones,
+                const Xfer<pointField>& points,
+                const Xfer<faceList>& faces,
+                const Xfer<surfZoneList>& zones,
                 const bool validate = true
             );
 
 
-            //- Transfer the contents of the argument and annull the argument
+            //- Transfer the contents of the argument and annul the argument
             void transfer(MeshedSurface<face>&);
 
 
@@ -272,7 +271,7 @@ public:
         //  Storage management
 
             //- Transfer contents to the Xfer container as a MeshedSurface
-            Xfer< MeshedSurface<face> > xfer();
+            Xfer<MeshedSurface<face> > xfer();
 
             //- Clear geometry
             void clearGeom();

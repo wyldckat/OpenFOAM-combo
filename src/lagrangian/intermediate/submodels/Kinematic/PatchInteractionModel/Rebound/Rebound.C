@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,14 @@ Foam::Rebound<CloudType>::Rebound
 {}
 
 
+template<class CloudType>
+Foam::Rebound<CloudType>::Rebound(const Rebound<CloudType>& pim)
+:
+    PatchInteractionModel<CloudType>(pim),
+    UFactor_(pim.UFactor_)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 template<class CloudType>
@@ -49,27 +57,27 @@ Foam::Rebound<CloudType>::~Rebound()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class CloudType>
-bool Foam::Rebound<CloudType>::active() const
-{
-    return true;
-}
-
-
-template<class CloudType>
 bool Foam::Rebound<CloudType>::correct
 (
+    typename CloudType::parcelType& p,
     const polyPatch& pp,
-    const label faceId,
     bool& keepParticle,
-    bool& active,
-    vector& U
-) const
+    const scalar trackFraction,
+    const tetIndices& tetIs
+)
 {
-    keepParticle = true;
-    active = true;
+    vector& U = p.U();
 
-    vector nw = pp.faceAreas()[pp.whichFace(faceId)];
-    nw /= mag(nw);
+    keepParticle = true;
+    p.active() = true;
+
+    vector nw;
+    vector Up;
+
+    this->patchData(p, pp, trackFraction, tetIs, nw, Up);
+
+    // Calculate motion relative to patch velocity
+    U -= Up;
 
     scalar Un = U & nw;
 
@@ -77,6 +85,9 @@ bool Foam::Rebound<CloudType>::correct
     {
         U -= UFactor_*2.0*Un*nw;
     }
+
+    // Return velocity to global space
+    U += Up;
 
     return true;
 }

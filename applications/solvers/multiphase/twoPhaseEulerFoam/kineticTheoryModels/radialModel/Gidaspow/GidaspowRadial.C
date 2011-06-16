@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -73,7 +73,7 @@ Foam::tmp<Foam::volScalarField> Foam::GidaspowRadial::g0prime
     const dimensionedScalar& alphaMax
 ) const
 {
-    return 
+    return
         (-1.0/5.0)*pow(alpha/alphaMax, -2.0/3.0)
        /(alphaMax*sqr(1.0 - pow(alpha/alphaMax, 1.0/3.0)));
 }

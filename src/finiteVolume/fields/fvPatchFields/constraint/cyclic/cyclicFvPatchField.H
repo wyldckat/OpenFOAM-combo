@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,7 +60,7 @@ class cyclicFvPatchField
         const cyclicFvPatch& cyclicPatch_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Return neighbour side field given internal fields
         template<class Type2>
@@ -141,7 +141,7 @@ public:
 
         // Access
 
-            //- Retirn local reference cast into the cyclic patch
+            //- Return local reference cast into the cyclic patch
             const cyclicFvPatch& cyclicPatch() const
             {
                 return cyclicPatch_;
@@ -150,8 +150,11 @@ public:
 
         // Evaluation functions
 
-            //- Return neighbour coupled given internal cell data
+            //- Return neighbour coupled internal cell data
             tmp<Field<Type> > patchNeighbourField() const;
+
+            //- Return reference to neighbour patchField
+            const cyclicFvPatchField<Type>& neighbourPatchField() const;
 
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
@@ -165,7 +168,7 @@ public:
             ) const;
 
 
-        //- Cyclic coupled interface functions
+        // Cyclic coupled interface functions
 
             //- Does the patch field perform the transfromation
             virtual bool doTransform() const
@@ -190,6 +193,12 @@ public:
             {
                 return pTraits<Type>::rank;
             }
+
+
+        // I-O
+
+            //- Write
+            virtual void write(Ostream& os) const;
 };
 
 

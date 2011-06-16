@@ -28,7 +28,7 @@ Description
 
 SourceFiles
     tetherPotential.C
-    newTetherPotential.C
+    tetherPotentialNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -111,10 +111,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~tetherPotential()
-        {}
+    //- Destructor
+    virtual ~tetherPotential()
+    {}
 
 
     // Member Functions

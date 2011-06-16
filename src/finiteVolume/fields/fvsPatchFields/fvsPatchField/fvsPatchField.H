@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,7 +37,7 @@ Description
 
 SourceFiles
     fvsPatchField.C
-    newFvsPatchField.C
+    fvsPatchFieldNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -95,8 +95,8 @@ public:
     //- Runtime type information
     TypeName("fvsPatchField");
 
-    //- Debug switch to disallow the use of
-    static int disallowDefaultFvsPatchField;
+    //- Debug switch to disallow the use of genericFvsPatchField
+    static int disallowGenericFvsPatchField;
 
 
     // Declare run-time constructor selection tables
@@ -216,6 +216,18 @@ public:
             const DimensionedField<Type, surfaceMesh>&
         );
 
+        //- Return a pointer to a new patchField created on freestore given
+        //  patch and internal field
+        //  (does not set the patch field values)
+        //  Allows override of constraint type
+        static tmp<fvsPatchField<Type> > New
+        (
+            const word&,
+            const word& actualPatchType, 
+            const fvPatch&,
+            const DimensionedField<Type, surfaceMesh>&
+        );
+
         //- Return a pointer to a new patchField created on freestore from
         //  a given fvsPatchField mapped onto a new patch
         static tmp<fvsPatchField<Type> > New
@@ -244,10 +256,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~fvsPatchField<Type>()
-        {}
+    //- Destructor
+    virtual ~fvsPatchField<Type>()
+    {}
 
 
     // Member functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,7 +80,7 @@ Foam::Keyed<T>::createList(const List<T>& lst, const label key)
 {
     List<Keyed<T> > newList(lst.size());
 
-    forAll (lst, elemI)
+    forAll(lst, elemI)
     {
         newList[elemI] = Keyed(lst[elemI], key);
     }
@@ -90,13 +90,13 @@ Foam::Keyed<T>::createList(const List<T>& lst, const label key)
 
 template<class T>
 inline Foam::List<Foam::Keyed<T> >
-Foam::Keyed<T>::createList(const List<T>& lst, const List<label>& keys)
+Foam::Keyed<T>::createList(const List<T>& lst, const labelUList& keys)
 {
     if (lst.size() != keys.size())
     {
         FatalErrorIn
         (
-            "Foam::Keyed<T>::createList(const List<T>&, const List<label>&)"
+            "Foam::Keyed<T>::createList(const List<T>&, const labelUList&)"
         )
             << "size mismatch adding keys to a list:" << nl
             << "List has size " << lst.size()
@@ -106,7 +106,7 @@ Foam::Keyed<T>::createList(const List<T>& lst, const List<label>& keys)
 
     List<Keyed<T> > newList(lst.size());
 
-    forAll (lst, elemI)
+    forAll(lst, elemI)
     {
         newList[elemI] = Keyed(lst[elemI], keys[elemI]);
     }

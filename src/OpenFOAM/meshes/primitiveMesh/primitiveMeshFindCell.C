@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,43 +25,40 @@ License
 
 #include "primitiveMesh.H"
 #include "cell.H"
-
+#include "boundBox.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// Is the point in the cell bounding box
-bool Foam::primitiveMesh::pointInCellBB(const point& p, label celli) const
+bool Foam::primitiveMesh::pointInCellBB
+(
+    const point& p,
+    label celli,
+    scalar tol
+) const
 {
-    const pointField& points = this->points();
-    const faceList& f = faces();
-    const vectorField& centres = cellCentres();
-    const cellList& cf = cells();
+    boundBox bb
+    (
+        cells()[celli].points
+        (
+            faces(),
+            points()
+        ),
+        false
+    );
 
-    labelList cellVertices = cf[celli].labels(f);
-
-    vector bbmax = -GREAT*vector::one;
-    vector bbmin = GREAT*vector::one;
-
-    forAll (cellVertices, vertexI)
+    if (tol > SMALL)
     {
-        bbmax = max(bbmax, points[cellVertices[vertexI]]);
-        bbmin = min(bbmin, points[cellVertices[vertexI]]);
+        bb = boundBox
+        (
+            bb.min() - tol*bb.span(),
+            bb.max() + tol*bb.span()
+        );
     }
 
-    scalar distance = mag(centres[celli] - p);
-
-    if ((distance - mag(bbmax - bbmin)) < SMALL)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return bb.contains(p);
 }
 
 
-// Is the point in the cell
 bool Foam::primitiveMesh::pointInCell(const point& p, label celli) const
 {
     const labelList& f = cells()[celli];
@@ -87,7 +84,6 @@ bool Foam::primitiveMesh::pointInCell(const point& p, label celli) const
 }
 
 
-// Find the cell with the nearest cell centre
 Foam::label Foam::primitiveMesh::findNearestCell(const point& location) const
 {
     const vectorField& centres = cellCentres();
@@ -110,7 +106,6 @@ Foam::label Foam::primitiveMesh::findNearestCell(const point& location) const
 }
 
 
-// Find cell enclosing this location
 Foam::label Foam::primitiveMesh::findCell(const point& location) const
 {
     if (nCells() == 0)

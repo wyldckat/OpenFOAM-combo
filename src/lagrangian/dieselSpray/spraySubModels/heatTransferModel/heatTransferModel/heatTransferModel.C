@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,37 +23,26 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
-
 #include "heatTransferModel.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(heatTransferModel, 0);
-
-defineRunTimeSelectionTable(heatTransferModel, dictionary);
+namespace Foam
+{
+    defineTypeNameAndDebug(heatTransferModel, 0);
+    defineRunTimeSelectionTable(heatTransferModel, dictionary);
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
-heatTransferModel::heatTransferModel
-(
-    const dictionary& dict
-)
+Foam::heatTransferModel::heatTransferModel(const dictionary& dict)
 :
     dict_(dict)
 {}
 
-heatTransferModel::~heatTransferModel()
+
+Foam::heatTransferModel::~heatTransferModel()
 {}
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

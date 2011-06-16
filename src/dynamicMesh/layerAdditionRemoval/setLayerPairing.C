@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,7 @@ bool Foam::layerAdditionRemoval::setLayerPairing() const
     // This is also the most complex part of the topological change.
     // Therefore it will be calculated here and stored as temporary
     // data until the actual topological change, after which it will
-    // be cleared.  
+    // be cleared.
 
     // Algorithm for point collapse
     // 1)  Go through the master cell layer and for every face of
@@ -88,14 +88,16 @@ bool Foam::layerAdditionRemoval::setLayerPairing() const
 
     facesPairingPtr_ = new labelList(mf.size(), -1);
     labelList& ftc = *facesPairingPtr_;
-//     Pout << "meshPoints: " << meshPoints << nl
-//          << "localPoints: " << mesh.faceZones()[faceZoneID_.index()]().localPoints() << endl;
+    // Pout<< "meshPoints: " << meshPoints << nl
+    //      << "localPoints: "
+    //     << mesh.faceZones()[faceZoneID_.index()]().localPoints()
+    //     << endl;
 
     // For all faces, create the mapping
     label nPointErrors = 0;
     label nFaceErrors = 0;
 
-    forAll (mf, faceI)
+    forAll(mf, faceI)
     {
         // Get the local master face
         face curLocalFace = mlf[faceI];
@@ -103,7 +105,7 @@ bool Foam::layerAdditionRemoval::setLayerPairing() const
         // Flip face based on flip index to recover original orientation
         if (mfFlip[faceI])
         {
-            curLocalFace = curLocalFace.reverseFace();
+            curLocalFace.flip();
         }
 
         // Get the opposing face from the master cell
@@ -128,7 +130,7 @@ bool Foam::layerAdditionRemoval::setLayerPairing() const
         ftc[faceI] = lidFace.oppositeIndex();
 
         // Using the local face insert the points into the lid list
-        forAll (curLocalFace, pointI)
+        forAll(curLocalFace, pointI)
         {
             const label clp = curLocalFace[pointI];
 
@@ -153,7 +155,7 @@ bool Foam::layerAdditionRemoval::setLayerPairing() const
                 }
             }
         }
-//         Pout << "ptc: " << ptc << endl;
+//         Pout<< "ptc: " << ptc << endl;
     }
 
     reduce(nPointErrors, sumOp<label>());
@@ -211,14 +213,14 @@ void Foam::layerAdditionRemoval::modifyMotionPoints
 {
     if (debug)
     {
-        Pout<< "void layerAdditionRemoval::modifyMotionPoints(" 
+        Pout<< "void layerAdditionRemoval::modifyMotionPoints("
             << "pointField& motionPoints) const for object "
             << name() << " : ";
     }
 
     if (debug)
     {
-        Pout << "No motion point adjustment" << endl;
+        Pout<< "No motion point adjustment" << endl;
     }
 }
 

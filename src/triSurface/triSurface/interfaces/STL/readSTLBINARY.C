@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "triSurface.H"
@@ -31,14 +29,10 @@ Description
 #include "OSspecific.H"
 #include "gzstream.h"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool triSurface::readSTLBINARY(const fileName& STLfileName)
+bool Foam::triSurface::readSTLBINARY(const fileName& STLfileName)
 {
     bool compressed = false;
 
@@ -129,14 +123,14 @@ bool triSurface::readSTLBINARY(const fileName& STLfileName)
 
     //STLfile.close();
 
-    stitchTriangles(rawPoints);
+    // Assign coordinates
+    storedPoints().transfer(rawPoints);
+
+    // Stitch all points within SMALL meters.
+    stitchTriangles();
 
     return true;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

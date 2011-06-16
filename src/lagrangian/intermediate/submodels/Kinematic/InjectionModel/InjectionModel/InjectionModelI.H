@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,33 +25,7 @@ License
 
 #include "InjectionModel.H"
 
-template<class CloudType>
-const Foam::dictionary& Foam::InjectionModel<CloudType>::dict() const
-{
-    return dict_;
-}
-
-
-template<class CloudType>
-const CloudType& Foam::InjectionModel<CloudType>::owner() const
-{
-    return owner_;
-}
-
-
-template<class CloudType>
-CloudType& Foam::InjectionModel<CloudType>::owner()
-{
-    return owner_;
-}
-
-
-template<class CloudType>
-const Foam::dictionary& Foam::InjectionModel<CloudType>::coeffDict() const
-{
-    return coeffDict_;
-}
-
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class CloudType>
 Foam::scalar Foam::InjectionModel<CloudType>::timeStart() const

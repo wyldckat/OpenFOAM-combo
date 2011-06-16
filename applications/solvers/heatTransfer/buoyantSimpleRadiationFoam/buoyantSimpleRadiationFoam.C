@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,7 @@ Description
 #include "RASModel.H"
 #include "fixedGradientFvPatchFields.H"
 #include "radiationModel.H"
+#include "simpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -48,16 +49,15 @@ int main(int argc, char *argv[])
     #include "createRadiationModel.H"
     #include "initContinuityErrs.H"
 
+    simpleControl simple(mesh);
+
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
 
-    while (runTime.loop())
+    while (simple.loop())
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
-
-        #include "readSIMPLEControls.H"
-        #include "initConvergenceCheck.H"
 
         p_rgh.storePrevIter();
         rho.storePrevIter();
@@ -76,8 +76,6 @@ int main(int argc, char *argv[])
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"
             << nl << endl;
-
-        #include "convergenceCheck.H"
     }
 
     Info<< "End\n" << endl;

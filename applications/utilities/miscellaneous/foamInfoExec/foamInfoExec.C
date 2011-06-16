@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Interrogates a case and prints information to screen
+    Interrogates a case and prints information to stdout
 
 \*---------------------------------------------------------------------------*/
 
@@ -38,15 +38,33 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "interrogates a case and prints information to stdout"
+    );
+
+    argList::noBanner();
     argList::noParallel();
-    argList::validOptions.insert("times", "");
-    argList::validOptions.insert("dictionary", "dictionary name");
-    argList::validOptions.insert("keywords", "");
-    argList::validOptions.insert("entry", "entry name");
+    argList::addBoolOption("times", "list available times");
+    argList::addBoolOption
+    (
+        "keywords",
+        "report keywords for the specified dictionary"
+    );
+    argList::addOption
+    (
+        "dict",
+        "file",
+        "specify a dictionary to interrogate"
+    );
+    argList::addOption
+    (
+        "entry",
+        "name",
+        "report the named entry for the specified dictionary"
+    );
 
-#   include "setRootCase.H"
-
-    Info<< endl;
+    #include "setRootCase.H"
 
     if (args.optionFound("times"))
     {
@@ -55,17 +73,17 @@ int main(int argc, char *argv[])
             Foam::Time::findTimes(args.rootPath()/args.caseName())
         );
 
-        forAll (times, i)
+        forAll(times, i)
         {
             Info<< times[i].name() << endl;
         }
     }
 
-    if (args.optionFound("dictionary"))
+    if (args.optionFound("dict"))
     {
-        fileName dictFileName
+        const fileName dictFileName
         (
-            args.rootPath()/args.caseName()/args.option("dictionary")
+            args.rootPath()/args.caseName()/args["dict"]
         );
 
         IFstream dictFile(dictFileName);
@@ -74,19 +92,7 @@ int main(int argc, char *argv[])
         {
             dictionary dict(dictFile);
 
-            if (args.optionFound("keywords") && !args.optionFound("entry"))
-            {
-                for
-                (
-                    IDLList<entry>::iterator iter = dict.begin();
-                    iter != dict.end();
-                    ++iter
-                )
-                {
-                    Info<< iter().keyword() << endl;
-                }
-            }
-            else if (args.optionFound("entry"))
+            if (args.optionFound("entry"))
             {
                 wordList entryNames
                 (
@@ -102,7 +108,7 @@ int main(int argc, char *argv[])
                         true            // wildcards
                     );
 
-                    for (int i=1; i<entryNames.size(); i++)
+                    for (int i=1; i<entryNames.size(); ++i)
                     {
                         if (entPtr->dict().found(entryNames[i]))
                         {
@@ -117,7 +123,7 @@ int main(int argc, char *argv[])
                         {
                             FatalErrorIn(args.executable())
                                 << "Cannot find sub-entry " << entryNames[i]
-                                << " in entry " << args.option("entry")
+                                << " in entry " << args["entry"]
                                 << " in dictionary " << dictFileName;
                             FatalError.exit(3);
                         }
@@ -130,20 +136,15 @@ int main(int argc, char *argv[])
                         {
                             FatalErrorIn(args.executable())
                                 << "Cannot find entry "
-                                << args.option("entry")
+                                << args["entry"]
                                 << " in dictionary " << dictFileName
                                 << " is not a sub-dictionary";
                             FatalError.exit(4);
                         }
                         */
 
-                        const dictionary& dict(entPtr->dict());
-                        for
-                        (
-                            IDLList<entry>::const_iterator iter = dict.begin();
-                            iter != dict.end();
-                            ++iter
-                        )
+                        const dictionary& dict = entPtr->dict();
+                        forAllConstIter(dictionary, dict, iter)
                         {
                             Info<< iter().keyword() << endl;
                         }
@@ -160,6 +161,13 @@ int main(int argc, char *argv[])
                         << entryNames[0]
                         << " in dictionary " << dictFileName;
                     FatalError.exit(2);
+                }
+            }
+            else if (args.optionFound("keywords"))
+            {
+                forAllConstIter(dictionary, dict, iter)
+                {
+                    Info<< iter().keyword() << endl;
                 }
             }
             else

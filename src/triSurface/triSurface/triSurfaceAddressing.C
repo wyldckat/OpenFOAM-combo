@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,14 +32,10 @@ Description
 #include "SortableList.H"
 #include "transform.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void triSurface::calcSortedEdgeFaces() const
+void Foam::triSurface::calcSortedEdgeFaces() const
 {
     if (sortedEdgeFacesPtr_)
     {
@@ -90,7 +86,7 @@ void triSurface::calcSortedEdgeFaces() const
             // e0 is reference so angle is 0
             faceAngles[0] = 0;
 
-            for(label nbI = 1; nbI < myFaceNbs.size(); nbI++)
+            for (label nbI = 1; nbI < myFaceNbs.size(); nbI++)
             {
                 // Get opposite vertex
                 const labelledTri& f = localFaces()[myFaceNbs[nbI]];
@@ -126,7 +122,7 @@ void triSurface::calcSortedEdgeFaces() const
 }
 
 
-void triSurface::calcEdgeOwner() const
+void Foam::triSurface::calcEdgeOwner() const
 {
     if (edgeOwnerPtr_)
     {
@@ -186,9 +182,5 @@ void triSurface::calcEdgeOwner() const
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

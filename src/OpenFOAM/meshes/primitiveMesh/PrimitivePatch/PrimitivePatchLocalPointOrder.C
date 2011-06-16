@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,7 +80,7 @@ calcLocalPointOrder() const
 
     label nPoints = 0;
 
-    forAll (lf, faceI)
+    forAll(lf, faceI)
     {
         if (!visitedFace[faceI])
         {
@@ -99,7 +99,7 @@ calcLocalPointOrder() const
                     const labelList& curPoints = lf[curFace];
 
                     // mark points
-                    forAll (curPoints, pointI)
+                    forAll(curPoints, pointI)
                     {
                         if (!visitedPoint[curPoints[pointI]])
                         {
@@ -114,7 +114,7 @@ calcLocalPointOrder() const
                     // add face neighbours to the list
                     const labelList& nbrs = ff[curFace];
 
-                    forAll (nbrs, nbrI)
+                    forAll(nbrs, nbrI)
                     {
                         if (!visitedFace[nbrs[nbrI]])
                         {

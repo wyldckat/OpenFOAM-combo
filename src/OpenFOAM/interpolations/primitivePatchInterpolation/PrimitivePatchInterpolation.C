@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -79,7 +79,7 @@ void PrimitivePatchInterpolation<Patch>::makeFaceToPointWeights() const
 
         forAll(curFaces, facei)
         {
-            pw[facei] = 
+            pw[facei] =
                 1.0/mag(faces[curFaces[facei]].centre(points) - points[pointi]);
             sumw += pw[facei];
         }
@@ -125,14 +125,14 @@ void PrimitivePatchInterpolation<Patch>::makeFaceToEdgeWeights() const
     faceToEdgeWeightsPtr_ = new scalarList(patch_.nInternalEdges());
     scalarList& weights = *faceToEdgeWeightsPtr_;
 
-    for (label edgei = 0; edgei < weights.size(); edgei++)
+    forAll(weights, edgei)
     {
         vector P = faces[edgeFaces[edgei][0]].centre(points);
         vector N = faces[edgeFaces[edgei][1]].centre(points);
         vector S = points[edges[edgei].start()];
         vector e = edges[edgei].vec(points);
 
-        scalar alpha = 
+        scalar alpha =
             -(((N - P)^(S - P))&((N - P)^e))/(((N - P)^e )&((N - P)^e));
 
         vector E = S + alpha*e;
@@ -317,9 +317,7 @@ tmp<Field<Type> > PrimitivePatchInterpolation<Patch>::faceToEdgeInterpolate
     );
 
     Field<Type>& result = tresult();
-	
-    const pointField& points = patch_.localPoints();
-    const faceList& faces = patch_.localFaces();
+
     const edgeList& edges = patch_.edges();
     const labelListList& edgeFaces = patch_.edgeFaces();
 
@@ -327,7 +325,7 @@ tmp<Field<Type> > PrimitivePatchInterpolation<Patch>::faceToEdgeInterpolate
 
     for (label edgei = 0; edgei < patch_.nInternalEdges(); edgei++)
     {
-        result[edgei] = 
+        result[edgei] =
             weights[edgei]*pf[edgeFaces[edgei][0]]
           + (1.0 - weights[edgei])*pf[edgeFaces[edgei][1]];
     }

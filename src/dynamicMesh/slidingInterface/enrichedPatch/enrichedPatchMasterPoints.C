@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -58,11 +56,11 @@ void Foam::enrichedPatch::calcMasterPointFaces() const
     const faceList& ef = enrichedFaces();
 
     // Add the original face points
-    forAll (masterPatch_, faceI)
+    forAll(masterPatch_, faceI)
     {
         const face& curFace = ef[faceI + slavePatch_.size()];
-//         Pout << "Cur face in pfAddr: " << curFace << endl;
-        forAll (curFace, pointI)
+//         Pout<< "Cur face in pfAddr: " << curFace << endl;
+        forAll(curFace, pointI)
         {
             Map<DynamicList<label> >::iterator mpfIter =
                 mpf.find(curFace[pointI]);
@@ -89,7 +87,7 @@ void Foam::enrichedPatch::calcMasterPointFaces() const
     // Add the projected points which hit the face
     const labelList& slaveMeshPoints = slavePatch_.meshPoints();
 
-    forAll (slavePointFaceHits_, pointI)
+    forAll(slavePointFaceHits_, pointI)
     {
         if
         (
@@ -134,7 +132,7 @@ void Foam::enrichedPatch::calcMasterPointFaces() const
     masterPointFacesPtr_ = new Map<labelList>(2*mpfToc.size());
     Map<labelList>& masterPointFaceAddr = *masterPointFacesPtr_;
 
-    forAll (mpfToc, mpfTocI)
+    forAll(mpfToc, mpfTocI)
     {
         labelList l;
         l.transfer(mpf.find(mpfToc[mpfTocI])());

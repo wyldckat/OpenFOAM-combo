@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,7 @@ SourceFiles
 #include "polyMeshModifier.H"
 #include "polyPatchID.H"
 #include "ZoneIDs.H"
+#include "indirectPrimitivePatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -74,7 +75,7 @@ class perfectInterface
     // Private Member Functions
 
         //- Calculate face centres on patch
-        static pointField calcFaceCentres(const primitivePatch&);
+        static pointField calcFaceCentres(const indirectPrimitivePatch&);
 
 
         //- Disallow default bitwise copy construct
@@ -113,9 +114,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~perfectInterface();
+    //- Destructor
+    virtual ~perfectInterface();
 
 
     // Member Functions
@@ -126,6 +126,17 @@ public:
         //- Insert the layer addition/removal instructions
         //  into the topological change
         virtual void setRefinement(polyTopoChange&) const;
+
+        //- Insert the layer addition/removal instructions
+        //  into the topological change. Uses only mesh, not any of the
+        //  patch and zone indices. Bit of a workaround - used in extruding
+        //  a mesh.
+        virtual void setRefinement
+        (
+            const indirectPrimitivePatch& pp0,
+            const indirectPrimitivePatch& pp1,
+            polyTopoChange&
+        ) const;
 
         //- Modify motion points to comply with the topological change
         virtual void modifyMotionPoints(pointField& motionPoints) const;

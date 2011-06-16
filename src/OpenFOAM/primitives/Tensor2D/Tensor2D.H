@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -125,10 +125,9 @@ public:
             inline Cmpt& yy();
 
             // Access vector components.
-            // Note: returning const only to find out lhs usage                                                                                                                                      
- 
-            inline const Vector2D<Cmpt> x() const;
-            inline const Vector2D<Cmpt> y() const;
+
+            inline Vector2D<Cmpt> x() const;
+            inline Vector2D<Cmpt> y() const;
 
         //- Transpose
         inline Tensor2D<Cmpt> T() const;

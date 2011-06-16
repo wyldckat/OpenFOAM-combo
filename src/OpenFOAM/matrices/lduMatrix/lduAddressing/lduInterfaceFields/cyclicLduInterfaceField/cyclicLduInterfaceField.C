@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,10 +28,7 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(cyclicLduInterfaceField, 0);
-}
+defineTypeNameAndDebug(Foam::cyclicLduInterfaceField, 0);
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -44,24 +41,19 @@ Foam::cyclicLduInterfaceField::~cyclicLduInterfaceField()
 
 void Foam::cyclicLduInterfaceField::transformCoupleField
 (
-    scalarField& pnf,
+    scalarField& f,
     const direction cmpt
 ) const
 {
     if (doTransform())
     {
-        label sizeby2 = pnf.size()/2;
-
-        scalar forwardScale = 
-            pow(diag(forwardT()[0]).component(cmpt), rank());
-
-        scalar reverseScale =
-            pow(diag(reverseT()[0]).component(cmpt), rank());
-
-        for (label facei=0; facei<sizeby2; facei++)
+        if (forwardT().size() == 1)
         {
-            pnf[facei] *= forwardScale;
-            pnf[facei + sizeby2] *= reverseScale;
+            f *= pow(diag(forwardT()[0]).component(cmpt), rank());
+        }
+        else
+        {
+            f *= pow(diag(forwardT())().component(cmpt), rank());
         }
     }
 }

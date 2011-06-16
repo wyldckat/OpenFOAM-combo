@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,17 +27,14 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(processorLduInterface, 0);
-}
+defineTypeNameAndDebug(Foam::processorLduInterface, 0);
 
 
 // * * * * * * * * * * * * * Private Member Functions *  * * * * * * * * * * //
 
 void Foam::processorLduInterface::resizeBuf
 (
-    List<char>& buf, 
+    List<char>& buf,
     const label size
 ) const
 {

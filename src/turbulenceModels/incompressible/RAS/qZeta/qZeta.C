@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,7 +46,7 @@ addToRunTimeSelectionTable(RASModel, qZeta, dictionary);
 
 tmp<volScalarField> qZeta::fMu() const
 {
-    volScalarField Rt = q_*k_/(2.0*nu()*zeta_);
+    const volScalarField Rt(q_*k_/(2.0*nu()*zeta_));
 
     if (anisotropic_)
     {
@@ -63,7 +63,7 @@ tmp<volScalarField> qZeta::fMu() const
 
 tmp<volScalarField> qZeta::f2() const
 {
-    volScalarField Rt = q_*k_/(2.0*nu()*zeta_);
+    tmp<volScalarField> Rt = q_*k_/(2.0*nu()*zeta_);
     return scalar(1) - 0.3*exp(-sqr(Rt));
 }
 
@@ -74,10 +74,12 @@ qZeta::qZeta
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -124,6 +126,9 @@ qZeta::qZeta
             false
         )
     ),
+
+    qMin_("qMin", dimVelocity, SMALL),
+    zetaMin_("zetaMin", dimVelocity/dimTime, SMALL),
 
     k_
     (
@@ -175,7 +180,7 @@ qZeta::qZeta
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        epsilon_/(2.0*q_),
+        epsilon_/(2.0*bound(q_, qMin_)),
         epsilon_.boundaryField().types()
     ),
 
@@ -192,7 +197,12 @@ qZeta::qZeta
         autoCreateNut("nut", mesh_)
     )
 {
-    nut_ = Cmu_*fMu()*sqr(k_)/(epsilon_ + epsilonSmall_);
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
+    // already bounded: bound(q_, qMin_);
+    bound(zeta_, zetaMin_);
+
+    nut_ = Cmu_*fMu()*sqr(k_)/epsilon_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -247,7 +257,7 @@ tmp<fvVectorMatrix> qZeta::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -261,6 +271,9 @@ bool qZeta::read()
         C2_.readIfPresent(coeffDict());
         sigmaZeta_.readIfPresent(coeffDict());
         anisotropic_.readIfPresent("anisotropic", coeffDict());
+
+        qMin_.readIfPresent(*this);
+        zetaMin_.readIfPresent(*this);
 
         return true;
     }
@@ -280,10 +293,10 @@ void qZeta::correct()
         return;
     }
 
-    volScalarField S2 = 2*magSqr(symm(fvc::grad(U_)));
+    tmp<volScalarField> S2 = 2*magSqr(symm(fvc::grad(U_)));
 
     volScalarField G("RASModel::G", nut_/(2.0*q_)*S2);
-    volScalarField E = nu()*nut_/q_*fvc::magSqrGradGrad(U_);
+    const volScalarField E(nu()*nut_/q_*fvc::magSqrGradGrad(U_));
 
 
     // Zeta equation
@@ -301,7 +314,7 @@ void qZeta::correct()
 
     zetaEqn().relax();
     solve(zetaEqn);
-    bound(zeta_, epsilon0_/(2*sqrt(k0_)));
+    bound(zeta_, zetaMin_);
 
 
     // q equation
@@ -317,7 +330,7 @@ void qZeta::correct()
 
     qEqn().relax();
     solve(qEqn);
-    bound(q_, sqrt(k0_));
+    bound(q_, qMin_);
 
 
     // Re-calculate k and epsilon

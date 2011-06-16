@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,6 +29,12 @@ Description
 #include "lduMatrix.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+Foam::lduMatrix::solverPerformance::solverPerformance(Istream& is)
+{
+    is  >> *this;
+}
+
 
 bool Foam::lduMatrix::solverPerformance::checkConvergence
 (
@@ -101,6 +107,83 @@ void Foam::lduMatrix::solverPerformance::print() const
                 << endl;
         }
     }
+}
+
+
+bool Foam::lduMatrix::solverPerformance::operator!=
+(
+    const lduMatrix::solverPerformance& sp
+) const
+{
+    return
+    (
+        solverName()      != sp.solverName()
+     || fieldName()       != sp.fieldName()
+     || initialResidual() != sp.initialResidual()
+     || finalResidual()   != sp.finalResidual()
+     || nIterations()     != sp.nIterations()
+     || converged()       != sp.converged()
+     || singular()        != sp.singular()
+    );
+}
+
+
+Foam::lduMatrix::solverPerformance Foam::max
+(
+    const lduMatrix::solverPerformance& sp1,
+    const lduMatrix::solverPerformance& sp2
+)
+{
+    return lduMatrix::solverPerformance
+    (
+        sp1.solverName(),
+        sp1.fieldName_,
+        max(sp1.initialResidual(), sp2.initialResidual()),
+        max(sp1.finalResidual(), sp2.finalResidual()),
+        max(sp1.nIterations(), sp2.nIterations()),
+        sp1.converged() && sp2.converged(),
+        sp1.singular() || sp2.singular()
+    );
+}
+
+
+Foam::Istream& Foam::operator>>
+(
+    Istream& is,
+    Foam::lduMatrix::solverPerformance& sp
+)
+{
+    is.readBeginList("lduMatrix::solverPerformance");
+    is  >> sp.solverName_
+        >> sp.fieldName_
+        >> sp.initialResidual_
+        >> sp.finalResidual_
+        >> sp.noIterations_
+        >> sp.converged_
+        >> sp.singular_;
+    is.readEndList("lduMatrix::solverPerformance");
+
+    return is;
+}
+
+
+Foam::Ostream& Foam::operator<<
+(
+    Ostream& os,
+    const Foam::lduMatrix::solverPerformance& sp
+)
+{
+    os  << token::BEGIN_LIST
+        << sp.solverName_ << token::SPACE
+        << sp.fieldName_ << token::SPACE
+        << sp.initialResidual_ << token::SPACE
+        << sp.finalResidual_ << token::SPACE
+        << sp.noIterations_ << token::SPACE
+        << sp.converged_ << token::SPACE
+        << sp.singular_ << token::SPACE
+        << token::END_LIST;
+
+    return os;
 }
 
 

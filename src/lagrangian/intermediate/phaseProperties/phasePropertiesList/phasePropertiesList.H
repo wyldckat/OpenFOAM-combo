@@ -65,20 +65,26 @@ class phasePropertiesList
 
 public:
 
-    //- Constructor
-    phasePropertiesList
-    (
-        Istream& is,
-        const wordList& gasNames,
-        const wordList& liquidNames,
-        const wordList& solidNames
-    );
+     // Constructors
+
+        //- Construct null
+        phasePropertiesList();
+
+        //- Construct from components
+        phasePropertiesList
+        (
+            Istream& is,
+            const wordList& gasNames,
+            const wordList& liquidNames,
+            const wordList& solidNames
+        );
+
 
     //- Destructor
     ~phasePropertiesList();
 
 
-    // Public member functions
+    // Public Member Functions
 
         //- Return the list of phase properties
         const List<phaseProperties>& props() const;

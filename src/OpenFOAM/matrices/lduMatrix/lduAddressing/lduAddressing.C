@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,9 +42,9 @@ void Foam::lduAddressing::calcLosort() const
     // and resizing list
     labelList nNbrOfFace(size(), 0);
 
-    const unallocLabelList& nbr = upperAddr();
+    const labelUList& nbr = upperAddr();
 
-    forAll (nbr, nbrI)
+    forAll(nbr, nbrI)
     {
         nNbrOfFace[nbr[nbrI]]++;
     }
@@ -52,7 +52,7 @@ void Foam::lduAddressing::calcLosort() const
     // Create temporary neighbour addressing
     labelListList cellNbrFaces(size());
 
-    forAll (cellNbrFaces, cellI)
+    forAll(cellNbrFaces, cellI)
     {
         cellNbrFaces[cellI].setSize(nNbrOfFace[cellI]);
     }
@@ -61,7 +61,7 @@ void Foam::lduAddressing::calcLosort() const
     nNbrOfFace = 0;
 
     // Scatter the neighbour faces
-    forAll (nbr, nbrI)
+    forAll(nbr, nbrI)
     {
         cellNbrFaces[nbr[nbrI]][nNbrOfFace[nbr[nbrI]]] = nbrI;
 
@@ -76,11 +76,11 @@ void Foam::lduAddressing::calcLosort() const
     // Set counter for losort
     label lstI = 0;
 
-    forAll (cellNbrFaces, cellI)
+    forAll(cellNbrFaces, cellI)
     {
         const labelList& curNbr = cellNbrFaces[cellI];
 
-        forAll (curNbr, curNbrI)
+        forAll(curNbr, curNbrI)
         {
             lst[lstI] = curNbr[curNbrI];
             lstI++;
@@ -109,7 +109,7 @@ void Foam::lduAddressing::calcOwnerStart() const
     label nOwnStart = 0;
     label i = 1;
 
-    forAll (own, faceI)
+    forAll(own, faceI)
     {
         label curOwn = own[faceI];
 
@@ -148,7 +148,7 @@ void Foam::lduAddressing::calcLosortStart() const
     label nLsrtStart = 0;
     label i = 0;
 
-    forAll (lsrt, faceI)
+    forAll(lsrt, faceI)
     {
         // Get neighbour
         const label curNbr = nbr[lsrt[faceI]];
@@ -181,7 +181,7 @@ Foam::lduAddressing::~lduAddressing()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::unallocLabelList& Foam::lduAddressing::losortAddr() const
+const Foam::labelUList& Foam::lduAddressing::losortAddr() const
 {
     if (!losortPtr_)
     {
@@ -192,7 +192,7 @@ const Foam::unallocLabelList& Foam::lduAddressing::losortAddr() const
 }
 
 
-const Foam::unallocLabelList& Foam::lduAddressing::ownerStartAddr() const
+const Foam::labelUList& Foam::lduAddressing::ownerStartAddr() const
 {
     if (!ownerStartPtr_)
     {
@@ -203,7 +203,7 @@ const Foam::unallocLabelList& Foam::lduAddressing::ownerStartAddr() const
 }
 
 
-const Foam::unallocLabelList& Foam::lduAddressing::losortStartAddr() const
+const Foam::labelUList& Foam::lduAddressing::losortStartAddr() const
 {
     if (!losortStartPtr_)
     {
@@ -225,7 +225,7 @@ Foam::label Foam::lduAddressing::triIndex(const label a, const label b) const
 
     label endLabel = ownerStartAddr()[own + 1];
 
-    const unallocLabelList& neighbour = upperAddr();
+    const labelUList& neighbour = upperAddr();
 
     for (label i = startLabel; i < endLabel; i++)
     {

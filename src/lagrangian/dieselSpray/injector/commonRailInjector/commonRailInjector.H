@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,7 +46,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class commonRailInjector Declaration
+                     Class commonRailInjector Declaration
 \*---------------------------------------------------------------------------*/
 
 class commonRailInjector
@@ -109,16 +109,11 @@ public:
     // Constructors
 
         //- Construct from components
-        commonRailInjector
-        (
-            const Time& t,
-            const dictionary& dict
-        );
+        commonRailInjector(const Time& t, const dictionary& dict);
 
 
-    // Destructor
-
-        ~commonRailInjector();
+    //- Destructor
+    virtual ~commonRailInjector();
 
 
     // Member Functions
@@ -143,9 +138,9 @@ public:
             const vector& axisOfSymmetry,
             const vector& axisOfWedge,
             const vector& axisOfWedgeNormal,
-            Random& rndGen
+            cachedRandom& rndGen
         ) const;
-    
+
         //- Return the number of holes
         label nHoles() const;
 
@@ -200,14 +195,14 @@ public:
         {
             return injectionPressureProfile_;
         }
-    
+
         scalar injectionPressure(const scalar time) const;
 
         List<pair> velocityProfile() const
         {
             return velocityProfile_;
         }
-        
+
         scalar velocity(const scalar time) const;
 
         List<pair> CdProfile() const;
@@ -218,7 +213,7 @@ public:
 
         void correctProfiles
         (
-            const liquidMixture& fuel,
+            const liquidMixtureProperties& fuel,
             const scalar referencePressure
         );
 
@@ -226,7 +221,6 @@ public:
         {
             return pressureIndependentVelocity_;
         }
-
 };
 
 

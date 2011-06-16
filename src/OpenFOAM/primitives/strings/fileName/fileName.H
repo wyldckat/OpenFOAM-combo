@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ Class
 Description
     A class for handling file names.
 
+    A fileName is a string of characters without whitespace or quotes.
     A fileName can be
       - constructed from a char*, a string or a word
       - concatenated by adding a '/' separator
@@ -70,7 +71,7 @@ class fileName
 :
     public string
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Strip invalid characters
         inline void stripInvalid();
@@ -92,6 +93,8 @@ public:
 
         static const char* const typeName;
         static int debug;
+
+        //- An empty fileName
         static const fileName null;
 
 
@@ -135,15 +138,23 @@ public:
         //  eg, remove repeated slashes, etc.
         fileName clean() const;
 
-        // Interogation
 
-            //- Return the file type: FILE, DIRECTORY or UNDEFINED
-            Type type() const;
+        // Interrogation
+
+             //- Return the file type: FILE, DIRECTORY or UNDEFINED
+             Type type() const;
+
+             //- Return true if file name is absolute
+             bool isAbsolute() const;
+
 
         // Decomposition
 
             //- Return file name (part beyond last /)
             word name() const;
+
+            //- Return file name, optionally without extension
+            word name(const bool noExt) const;
 
             //- Return directory path name (part before last /)
             fileName path() const;
@@ -159,6 +170,7 @@ public:
 
             //- Return a single component of the path
             word component(const size_type, const char delimiter='/') const;
+
 
     // Member operators
 

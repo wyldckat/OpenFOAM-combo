@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,10 +50,12 @@ LRR::LRR
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel
+    const basicThermo& thermophysicalModel,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, rho, U, phi, thermophysicalModel),
+    RASModel(modelName, rho, U, phi, thermophysicalModel, turbulenceModelName),
 
     Cmu_
     (
@@ -228,7 +230,10 @@ LRR::LRR
             << exit(FatalError);
     }
 
-    mut_ = Cmu_*rho_*sqr(k_)/(epsilon_ + epsilonSmall_);
+    bound(k_, kMin_);
+    bound(epsilon_, epsilonMin_);
+
+    mut_ = Cmu_*rho_*sqr(k_)/epsilon_;
     mut_.correctBoundaryConditions();
 
     alphat_ = mut_/Prt_;
@@ -269,7 +274,7 @@ tmp<fvVectorMatrix> LRR::divDevRhoReff(volVectorField& U) const
             fvc::div(rho_*R_ + couplingFactor_*mut_*fvc::grad(U))
           + fvc::laplacian((1.0 - couplingFactor_)*mut_, U)
           - fvm::laplacian(muEff(), U)
-          - fvc::div(mu()*dev2(fvc::grad(U)().T()))
+          - fvc::div(mu()*dev2(T(fvc::grad(U))))
         );
     }
     else
@@ -279,7 +284,7 @@ tmp<fvVectorMatrix> LRR::divDevRhoReff(volVectorField& U) const
             fvc::div(rho_*R_)
           + fvc::laplacian(mut_, U)
           - fvm::laplacian(muEff(), U)
-          - fvc::div(mu()*dev2(fvc::grad(U)().T()))
+          - fvc::div(mu()*dev2(T(fvc::grad(U))))
         );
     }
 }
@@ -323,7 +328,7 @@ void LRR::correct()
     if (!turbulence_)
     {
         // Re-calculate viscosity
-        mut_ = rho_*Cmu_*sqr(k_)/(epsilon_ + epsilonSmall_);
+        mut_ = rho_*Cmu_*sqr(k_)/epsilon_;
         mut_.correctBoundaryConditions();
 
         // Re-calculate thermal diffusivity
@@ -335,10 +340,10 @@ void LRR::correct()
 
     RASModel::correct();
 
-    volSymmTensorField P = -twoSymm(R_ & fvc::grad(U_));
+    volSymmTensorField P(-twoSymm(R_ & fvc::grad(U_)));
     volScalarField G("RASModel::G", 0.5*mag(tr(P)));
 
-    // Update espsilon and G at the wall
+    // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
 
     // Dissipation equation
@@ -358,7 +363,7 @@ void LRR::correct()
     epsEqn().boundaryManipulate(epsilon_.boundaryField());
 
     solve(epsEqn);
-    bound(epsilon_, epsilon0_);
+    bound(epsilon_, epsilonMin_);
 
 
     // Reynolds stress equation
@@ -374,8 +379,11 @@ void LRR::correct()
             forAll(curPatch, facei)
             {
                 label faceCelli = curPatch.faceCells()[facei];
-                P[faceCelli]
-                    *= min(G[faceCelli]/(0.5*mag(tr(P[faceCelli])) + SMALL), 100.0);
+                P[faceCelli] *= min
+                (
+                    G[faceCelli]/(0.5*mag(tr(P[faceCelli])) + SMALL),
+                    100.0
+                );
             }
         }
     }
@@ -405,15 +413,15 @@ void LRR::correct()
             R_.dimensions(),
             symmTensor
             (
-                k0_.value(), -GREAT, -GREAT,
-                k0_.value(), -GREAT,
-                k0_.value()
+                kMin_.value(), -GREAT, -GREAT,
+                kMin_.value(), -GREAT,
+                kMin_.value()
             )
         )
     );
 
     k_ = 0.5*tr(R_);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity
@@ -438,7 +446,7 @@ void LRR::correct()
             const scalarField& rhow = rho_.boundaryField()[patchi];
             const scalarField& mutw = mut_.boundaryField()[patchi];
 
-            vectorField snGradU = U_.boundaryField()[patchi].snGrad();
+            const vectorField snGradU(U_.boundaryField()[patchi].snGrad());
 
             const vectorField& faceAreas
                 = mesh_.Sf().boundaryField()[patchi];

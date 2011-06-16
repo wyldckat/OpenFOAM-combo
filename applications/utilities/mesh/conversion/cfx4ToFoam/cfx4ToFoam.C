@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     cfx4ToFoam
 
 Description
-    Converts a CFX 4 mesh to FOAM format
+    Converts a CFX 4 mesh to OpenFOAM format
 
 \*---------------------------------------------------------------------------*/
 
@@ -49,7 +49,12 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append("CFX geom file");
-    argList::validOptions.insert("scale", "scale factor");
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
 
     argList args(argc, argv);
 
@@ -58,12 +63,11 @@ int main(int argc, char *argv[])
          FatalError.exit();
     }
 
-    scalar scaleFactor = 1.0;
-    args.optionReadIfPresent("scale", scaleFactor);
+    const scalar scaleFactor = args.optionLookupOrDefault("scale", 1.0);
 
 #   include "createTime.H"
 
-    IFstream cfxFile(args.additionalArgs()[0]);
+    IFstream cfxFile(args[1]);
 
     // Read the cfx information using a fixed format reader.
     // Comments in the file are in C++ style, so the stream parser will remove
@@ -72,7 +76,7 @@ int main(int argc, char *argv[])
 
     cfxFile >> nblock >> npatch >> nglue >> nelem >> npoint;
 
-    Info << "Reading blocks" << endl;
+    Info<< "Reading blocks" << endl;
 
     PtrList<hexBlock> blocks(nblock);
 
@@ -80,7 +84,7 @@ int main(int argc, char *argv[])
         word blockName;
         label nx, ny, nz;
 
-        forAll (blocks, blockI)
+        forAll(blocks, blockI)
         {
             cfxFile >> blockName;
             cfxFile >> nx >> ny >> nz;
@@ -89,7 +93,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Reading patch definitions" << endl;
+    Info<< "Reading patch definitions" << endl;
 
     wordList cfxPatchTypes(npatch);
     wordList cfxPatchNames(npatch);
@@ -100,7 +104,7 @@ int main(int argc, char *argv[])
     {
         label no, blkNo, patchLabel;
 
-        forAll (cfxPatchTypes, patchI)
+        forAll(cfxPatchTypes, patchI)
         {
             // Grab patch type and name
             cfxFile >> cfxPatchTypes[patchI] >> cfxPatchNames[patchI] >> no;
@@ -109,7 +113,7 @@ int main(int argc, char *argv[])
             patchRanges[patchI].setSize(6);
             labelList& curRange = patchRanges[patchI];
 
-            forAll (curRange, rI)
+            forAll(curRange, rI)
             {
                 cfxFile >> curRange[rI];
             }
@@ -125,7 +129,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Reading block glueing information" << endl;
+    Info<< "Reading block glueing information" << endl;
 
     labelList glueMasterPatches(nglue, -1);
     labelList glueSlavePatches(nglue, -1);
@@ -144,15 +148,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Reading block points" << endl;
+    Info<< "Reading block points" << endl;
 
-    forAll (blocks, blockI)
+    forAll(blocks, blockI)
     {
-        Info << "block " << blockI << " is a ";
+        Info<< "block " << blockI << " is a ";
         blocks[blockI].readPoints(cfxFile);
     }
 
-    Info << "Calculating block offsets" << endl;
+    Info<< "Calculating block offsets" << endl;
 
     labelList blockOffsets(nblock, -1);
 
@@ -171,11 +175,11 @@ int main(int argc, char *argv[])
           + blocks[blockI - 1].nBlockPoints();
     }
 
-    Info << "Assembling patches" << endl;
+    Info<< "Assembling patches" << endl;
 
     faceListList rawPatches(npatch);
 
-    forAll (rawPatches, patchI)
+    forAll(rawPatches, patchI)
     {
         const word& patchType = cfxPatchTypes[patchI];
 
@@ -202,18 +206,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Merging points ";
+    Info<< "Merging points ";
 
     labelList pointMergeList(nMeshPoints, -1);
 
     // In order to ensure robust merging, it is necessary to traverse
     // the patch glueing list until the pointMergeList stops changing.
-    // 
+    //
 
     // For efficiency, create merge pairs in the first pass
     labelListListList glueMergePairs(glueMasterPatches.size());
 
-    forAll (glueMasterPatches, glueI)
+    forAll(glueMasterPatches, glueI)
     {
         const label masterPatch = glueMasterPatches[glueI];
         const label slavePatch = glueSlavePatches[glueI];
@@ -246,14 +250,14 @@ int main(int argc, char *argv[])
 
         scalar sqrMergeTol = GREAT;
 
-        forAll (blockPFaces, blockPFaceLabel)
+        forAll(blockPFaces, blockPFaceLabel)
         {
             const labelList& blockPFacePoints =
                 blockPFaces[blockPFaceLabel];
 
-            forAll (blockPFacePoints, blockPFacePointI)
+            forAll(blockPFacePoints, blockPFacePointI)
             {
-                forAll (blockPFacePoints, blockPFacePointI2)
+                forAll(blockPFacePoints, blockPFacePointI2)
                 {
                     if (blockPFacePointI != blockPFacePointI2)
                     {
@@ -280,7 +284,7 @@ int main(int argc, char *argv[])
 
         // N-squared point search over all points of all faces of
         // master block over all point of all faces of slave block
-        forAll (blockPFaces, blockPFaceLabel)
+        forAll(blockPFaces, blockPFaceLabel)
         {
             const labelList& blockPFacePoints =
                 blockPFaces[blockPFaceLabel];
@@ -288,16 +292,16 @@ int main(int argc, char *argv[])
             labelList& cp = curPairs[blockPFaceLabel];
             cp.setSize(blockPFacePoints.size());
 
-        forAll (blockPFacePoints, blockPFacePointI)
+        forAll(blockPFacePoints, blockPFacePointI)
         {
             found = false;
 
-            forAll (blockNFaces, blockNFaceLabel)
+            forAll(blockNFaces, blockNFaceLabel)
             {
                 const labelList& blockNFacePoints =
                     blockNFaces[blockNFaceLabel];
 
-            forAll (blockNFacePoints, blockNFacePointI)
+            forAll(blockNFacePoints, blockNFacePointI)
             {
                 if
                 (
@@ -359,7 +363,7 @@ int main(int argc, char *argv[])
         changedPointMerge = false;
         nPasses++;
 
-        forAll (glueMasterPatches, glueI)
+        forAll(glueMasterPatches, glueI)
         {
             const label masterPatch = glueMasterPatches[glueI];
             const label slavePatch = glueSlavePatches[glueI];
@@ -371,14 +375,14 @@ int main(int argc, char *argv[])
 
             const labelListList& curPairs = glueMergePairs[glueI];
 
-            forAll (blockPFaces, blockPFaceLabel)
+            forAll(blockPFaces, blockPFaceLabel)
             {
                 const labelList& blockPFacePoints =
                     blockPFaces[blockPFaceLabel];
 
                 const labelList& cp = curPairs[blockPFaceLabel];
 
-                forAll (cp, blockPFacePointI)
+                forAll(cp, blockPFacePointI)
                 {
                     label PpointLabel =
                         blockPFacePoints[blockPFacePointI]
@@ -395,7 +399,7 @@ int main(int argc, char *argv[])
                     )
                     {
                         changedPointMerge = true;
-                            
+
                         pointMergeList[PpointLabel]
                       = pointMergeList[NpointLabel]
                       = min
@@ -407,10 +411,10 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        Info << "." << flush;
+        Info<< "." << flush;
     }
     while (changedPointMerge && nPasses < 8);
-    Info << endl;
+    Info<< endl;
 
     if (changedPointMerge == true)
     {
@@ -420,7 +424,7 @@ int main(int argc, char *argv[])
     }
 
 
-    forAll (glueMasterPatches, glueI)
+    forAll(glueMasterPatches, glueI)
     {
         const label masterPatch = glueMasterPatches[glueI];
         const label slavePatch = glueSlavePatches[glueI];
@@ -432,12 +436,12 @@ int main(int argc, char *argv[])
         const faceList& blockNFaces = rawPatches[slavePatch];
 
 
-        forAll (blockPFaces, blockPFaceLabel)
+        forAll(blockPFaces, blockPFaceLabel)
         {
             const labelList& blockPFacePoints
                 = blockPFaces[blockPFaceLabel];
 
-            forAll (blockPFacePoints, blockPFacePointI)
+            forAll(blockPFacePoints, blockPFacePointI)
             {
                 label PpointLabel =
                     blockPFacePoints[blockPFacePointI]
@@ -454,12 +458,12 @@ int main(int argc, char *argv[])
             }
         }
 
-        forAll (blockNFaces, blockNFaceLabel)
+        forAll(blockNFaces, blockNFaceLabel)
         {
             const labelList& blockNFacePoints
                 = blockNFaces[blockNFaceLabel];
 
-            forAll (blockNFacePoints, blockNFacePointI)
+            forAll(blockNFacePoints, blockNFacePointI)
             {
                 label NpointLabel =
                     blockNFacePoints[blockNFacePointI]
@@ -482,7 +486,7 @@ int main(int argc, char *argv[])
     // given old point label
     label nNewPoints = 0;
 
-    forAll (pointMergeList, pointLabel)
+    forAll(pointMergeList, pointLabel)
     {
         if (pointMergeList[pointLabel] > pointLabel)
         {
@@ -508,15 +512,15 @@ int main(int argc, char *argv[])
 
     nMeshPoints = nNewPoints;
 
-    Info << "Creating points" << endl;
+    Info<< "Creating points" << endl;
 
     pointField points(nMeshPoints);
 
-    forAll (blocks, blockI)
+    forAll(blocks, blockI)
     {
         const pointField& blockPoints = blocks[blockI].points();
 
-        forAll (blockPoints, blockPointLabel)
+        forAll(blockPoints, blockPointLabel)
         {
             points
             [
@@ -535,7 +539,7 @@ int main(int argc, char *argv[])
         points *= scaleFactor;
     }
 
-    Info << "Creating cells" << endl;
+    Info<< "Creating cells" << endl;
 
     cellShapeList cellShapes(nMeshCells);
 
@@ -543,15 +547,15 @@ int main(int argc, char *argv[])
 
     label nCreatedCells = 0;
 
-    forAll (blocks, blockI)
+    forAll(blocks, blockI)
     {
         labelListList curBlockCells = blocks[blockI].blockCells();
 
-        forAll (curBlockCells, blockCellI)
+        forAll(curBlockCells, blockCellI)
         {
             labelList cellPoints(curBlockCells[blockCellI].size());
 
-            forAll (cellPoints, pointI)
+            forAll(cellPoints, pointI)
             {
                 cellPoints[pointI] =
                     pointMergeList
@@ -567,18 +571,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "Creating boundary patches" << endl;
+    Info<< "Creating boundary patches" << endl;
 
     faceListList boundary(npatch);
     wordList patchNames(npatch);
     wordList patchTypes(npatch);
     word defaultFacesName = "defaultFaces";
     word defaultFacesType = wallPolyPatch::typeName;
-    wordList patchPhysicalTypes(npatch);
 
     label nCreatedPatches = 0;
 
-    forAll (rawPatches, patchI)
+    forAll(rawPatches, patchI)
     {
         if (rawPatches[patchI].size() && cfxPatchTypes[patchI] != "BLKBDY")
         {
@@ -599,24 +602,24 @@ int main(int argc, char *argv[])
 
             if (existingPatch >= 0)
             {
-                Info << "CFX patch " << patchI
+                Info<< "CFX patch " << patchI
                     << ", of type " << cfxPatchTypes[patchI]
                     << ", name " << cfxPatchNames[patchI]
-                    << " already exists as FOAM patch " << existingPatch
+                    << " already exists as OpenFOAM patch " << existingPatch
                     << ".  Adding faces." << endl;
 
                 faceList& renumberedPatch = boundary[existingPatch];
                 label oldSize = renumberedPatch.size();
                 renumberedPatch.setSize(oldSize + curRawPatch.size());
 
-                forAll (curRawPatch, faceI)
+                forAll(curRawPatch, faceI)
                 {
                     const face& oldFace = curRawPatch[faceI];
 
                     face& newFace = renumberedPatch[oldSize + faceI];
                     newFace.setSize(oldFace.size());
 
-                    forAll (oldFace, pointI)
+                    forAll(oldFace, pointI)
                     {
                         newFace[pointI] =
                             pointMergeList
@@ -633,14 +636,14 @@ int main(int argc, char *argv[])
                 faceList& renumberedPatch = boundary[nCreatedPatches];
                 renumberedPatch.setSize(curRawPatch.size());
 
-                forAll (curRawPatch, faceI)
+                forAll(curRawPatch, faceI)
                 {
                     const face& oldFace = curRawPatch[faceI];
 
                     face& newFace = renumberedPatch[faceI];
                     newFace.setSize(oldFace.size());
 
-                    forAll (oldFace, pointI)
+                    forAll(oldFace, pointI)
                     {
                         newFace[pointI] =
                             pointMergeList
@@ -651,15 +654,15 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                Info << "CFX patch " << patchI
+                Info<< "CFX patch " << patchI
                     << ", of type " << cfxPatchTypes[patchI]
                     << ", name " << cfxPatchNames[patchI]
-                    << " converted into FOAM patch " << nCreatedPatches
+                    << " converted into OpenFOAM patch " << nCreatedPatches
                     << " type ";
 
                 if (cfxPatchTypes[patchI] == "WALL")
                 {
-                    Info << "wall." << endl;
+                    Info<< "wall." << endl;
 
                     patchTypes[nCreatedPatches] = wallPolyPatch::typeName;
                     patchNames[nCreatedPatches] = cfxPatchNames[patchI];
@@ -667,7 +670,7 @@ int main(int argc, char *argv[])
                 }
                 else if (cfxPatchTypes[patchI] == "SYMMET")
                 {
-                    Info << "symmetryPlane." << endl;
+                    Info<< "symmetryPlane." << endl;
 
                     patchTypes[nCreatedPatches] = symmetryPolyPatch::typeName;
                     patchNames[nCreatedPatches] = cfxPatchNames[patchI];
@@ -682,7 +685,7 @@ int main(int argc, char *argv[])
                  || cfxPatchTypes[patchI] == "USER2D"
                 )
                 {
-                    Info << "generic." << endl;
+                    Info<< "generic." << endl;
 
                     patchTypes[nCreatedPatches] = polyPatch::typeName;
                     patchNames[nCreatedPatches] = cfxPatchNames[patchI];
@@ -703,17 +706,29 @@ int main(int argc, char *argv[])
     patchTypes.setSize(nCreatedPatches);
     patchNames.setSize(nCreatedPatches);
 
+    PtrList<dictionary> patchDicts;
+
     preservePatchTypes
     (
         runTime,
         runTime.constant(),
-        polyMesh::defaultRegion,
+        polyMesh::meshSubDir,
         patchNames,
-        patchTypes,
+        patchDicts,
         defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
+        defaultFacesType
     );
+
+    // Add information to dictionary
+    forAll(patchNames, patchI)
+    {
+        if (!patchDicts.set(patchI))
+        {
+            patchDicts.set(patchI, new dictionary());
+        }
+        // Add but not overwrite
+        patchDicts[patchI].add("type", patchTypes[patchI], false);
+    }
 
     polyMesh pShapeMesh
     (
@@ -727,19 +742,18 @@ int main(int argc, char *argv[])
         cellShapes,
         boundary,
         patchNames,
-        patchTypes,
+        patchDicts,
         defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
+        defaultFacesType
     );
 
     // Set the precision of the points data to 10
     IOstream::defaultPrecision(10);
 
-    Info << "Writing polyMesh" << endl;
+    Info<< "Writing polyMesh" << endl;
     pShapeMesh.write();
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

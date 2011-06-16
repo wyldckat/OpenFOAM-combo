@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,16 +34,19 @@ Foam::extendedCentredCellToFaceStencil::extendedCentredCellToFaceStencil
     const cellToFaceStencil& stencil
 )
 :
-    extendedCellToFaceStencil(stencil.mesh())
+    extendedCellToFaceStencil(stencil.mesh()),
+    stencil_(stencil)
 {
-    stencil_ = stencil;
-
     // Calculate distribute map (also renumbers elements in stencil)
-    mapPtr_ = calcDistributeMap
+    List<Map<label> > compactMap(Pstream::nProcs());
+    mapPtr_.reset
     (
-        stencil.mesh(),
-        stencil.globalNumbering(),
-        stencil_
+        new mapDistribute
+        (
+            stencil.globalNumbering(),
+            stencil_,
+            compactMap
+        )
     );
 }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,7 +94,7 @@ class COxidationKineticDiffusionLimitedRate
             //- Molecular weight of O2 [kg/kmol]
             scalar WO2_;
 
-            //- Chemical enthalpy of CO2 [J/kg]
+            //- Formation enthalpy for CO2 [J/kg]
             scalar HcCO2_;
 
 
@@ -113,15 +113,27 @@ public:
             CloudType& owner
         );
 
+        //- Construct copy
+        COxidationKineticDiffusionLimitedRate
+        (
+            const COxidationKineticDiffusionLimitedRate<CloudType>& srm
+        );
+
+        //- Construct and return a clone
+        virtual autoPtr<SurfaceReactionModel<CloudType> > clone() const
+        {
+            return autoPtr<SurfaceReactionModel<CloudType> >
+            (
+                new COxidationKineticDiffusionLimitedRate<CloudType>(*this)
+            );
+        }
+
 
     //- Destructor
     virtual ~COxidationKineticDiffusionLimitedRate();
 
 
     // Member Functions
-
-        //- Flag to indicate whether model activates surface reaction model
-        virtual bool active() const;
 
         //- Update surface reactions
         virtual scalar calculate

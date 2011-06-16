@@ -27,37 +27,52 @@ License
 #include "fvMesh.H"
 #include "cyclicPolyPatch.H"
 #include "emptyPolyPatch.H"
-#include "processorPolyPatch.H"
+#include "coupledPolyPatch.H"
 #include "sampledSurface.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
+defineTypeNameAndDebug(Foam::fieldValues::faceSource, 0);
+
 namespace Foam
 {
-    namespace fieldValues
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldValues::faceSource::sourceType,
+        3
+    >::names[] =
     {
-        defineTypeNameAndDebug(faceSource, 0);
-    }
+        "faceZone",
+        "patch",
+        "sampledSurface"
+    };
+
 
     template<>
-    const char* NamedEnum<fieldValues::faceSource::sourceType, 3>::
-        names[] = {"faceZone", "patch", "sampledSurface"};
-
-    const NamedEnum<fieldValues::faceSource::sourceType, 3>
-        fieldValues::faceSource::sourceTypeNames_;
-
-    template<>
-    const char* NamedEnum<fieldValues::faceSource::operationType, 7>::
-        names[] =
-        {
-            "none", "sum", "areaAverage",
-            "areaIntegrate", "weightedAverage", "min", "max"
-        };
-
-    const NamedEnum<fieldValues::faceSource::operationType, 7>
-        fieldValues::faceSource::operationTypeNames_;
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldValues::faceSource::operationType,
+        7
+    >::names[] =
+    {
+        "none",
+        "sum",
+        "areaAverage",
+        "areaIntegrate",
+        "weightedAverage",
+        "min",
+        "max"
+    };
 
 }
+
+
+const Foam::NamedEnum<Foam::fieldValues::faceSource::sourceType, 3>
+    Foam::fieldValues::faceSource::sourceTypeNames_;
+
+const Foam::NamedEnum<Foam::fieldValues::faceSource::operationType, 7>
+    Foam::fieldValues::faceSource::operationTypeNames_;
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -98,23 +113,11 @@ void Foam::fieldValues::faceSource::setFaceZoneFaces()
         {
             facePatchId = mesh().boundaryMesh().whichPatch(faceI);
             const polyPatch& pp = mesh().boundaryMesh()[facePatchId];
-            if (isA<processorPolyPatch>(pp))
+            if (isA<coupledPolyPatch>(pp))
             {
-                if (refCast<const processorPolyPatch>(pp).owner())
+                if (refCast<const coupledPolyPatch>(pp).owner())
                 {
                     faceId = pp.whichFace(faceI);
-                }
-                else
-                {
-                    faceId = -1;
-                }
-            }
-            else if (isA<cyclicPolyPatch>(pp))
-            {
-                label patchFaceI = faceI - pp.start();
-                if (patchFaceI < pp.size()/2)
-                {
-                    faceId = patchFaceI;
                 }
                 else
                 {
@@ -163,7 +166,7 @@ void Foam::fieldValues::faceSource::setFaceZoneFaces()
 
 void Foam::fieldValues::faceSource::setPatchFaces()
 {
-    label patchId = mesh().boundaryMesh().findPatchID(sourceName_);
+    const label patchId = mesh().boundaryMesh().findPatchID(sourceName_);
 
     if (patchId < 0)
     {
@@ -242,8 +245,22 @@ void Foam::fieldValues::faceSource::initialise(const dictionary& dict)
                 << type() << " " << name_ << ": "
                 << sourceTypeNames_[source_] << "(" << sourceName_ << "):"
                 << nl << "    Unknown source type. Valid source types are:"
-                << sourceTypeNames_ << nl << exit(FatalError);
+                << sourceTypeNames_.sortedToc() << nl << exit(FatalError);
         }
+    }
+
+    if (nFaces_ == 0)
+    {
+        WarningIn
+        (
+            "Foam::fieldValues::faceSource::initialise(const dictionary&)"
+        )
+            << type() << " " << name_ << ": "
+            << sourceTypeNames_[source_] << "(" << sourceName_ << "):" << nl
+            << "    Source has no faces - deactivating" << endl;
+
+        active_ = false;
+        return;
     }
 
     scalar totalArea;
@@ -370,6 +387,7 @@ void Foam::fieldValues::faceSource::write()
         {
             totalArea = gSum(filterField(mesh().magSf(), false));
         }
+
 
         if (Pstream::master())
         {

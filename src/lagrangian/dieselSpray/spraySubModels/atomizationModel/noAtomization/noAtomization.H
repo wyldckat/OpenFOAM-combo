@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class noAtomization Declaration
+                        Class noAtomization Declaration
 \*---------------------------------------------------------------------------*/
 
 class noAtomization
@@ -57,16 +57,11 @@ public:
     // Constructors
 
         //- Construct from components
-        noAtomization
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        noAtomization(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~noAtomization();
+    //- Destructor
+    virtual ~noAtomization();
 
 
     // Member Operators
@@ -76,10 +71,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
-
 };
 
 

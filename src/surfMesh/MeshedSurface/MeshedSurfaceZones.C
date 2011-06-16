@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -52,7 +52,7 @@ void Foam::MeshedSurface<Face>::checkZones()
                 << " ... extending final zone"
                 << endl;
 
-            zones[zones.size()-1].size() += count - this->size();
+            zones.last().size() += count - this->size();
         }
         else if (count > this->size())
         {
@@ -70,8 +70,8 @@ void Foam::MeshedSurface<Face>::checkZones()
 template<class Face>
 void Foam::MeshedSurface<Face>::sortFacesAndStore
 (
-    const Xfer< List<Face> >& unsortedFaces,
-    const Xfer< List<label> >& zoneIds,
+    const Xfer<List<Face> >& unsortedFaces,
+    const Xfer<List<label> >& zoneIds,
     const bool sorted
 )
 {
@@ -132,7 +132,7 @@ void Foam::MeshedSurface<Face>::addZones
 template<class Face>
 void Foam::MeshedSurface<Face>::addZones
 (
-    const UList<label>& sizes,
+    const labelUList& sizes,
     const UList<word>& names,
     const bool cullEmpty
 )
@@ -164,7 +164,7 @@ void Foam::MeshedSurface<Face>::addZones
 template<class Face>
 void Foam::MeshedSurface<Face>::addZones
 (
-    const UList<label>& sizes,
+    const labelUList& sizes,
     const bool cullEmpty
 )
 {

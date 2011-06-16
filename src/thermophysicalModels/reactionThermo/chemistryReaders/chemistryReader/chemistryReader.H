@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,6 +38,7 @@ SourceFiles
 #include "typeInfo.H"
 #include "runTimeSelectionTables.H"
 #include "Reaction.H"
+#include "ReactionList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -103,11 +104,14 @@ public:
 
     // Member Functions
 
+        //- Return access to the list of species
         virtual const speciesTable& species() const = 0;
 
+        //- Return access to the thermo packages
         virtual const HashPtrTable<ThermoType>& speciesThermo() const = 0;
 
-        virtual const SLPtrList<Reaction<ThermoType> >& reactions() const = 0;
+        //- Return access to the list of reactions
+        virtual const ReactionList<ThermoType>& reactions() const = 0;
 };
 
 
@@ -117,38 +121,38 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeChemistryReader(Thermo)                                           \
-                                                                              \
-defineTemplateTypeNameAndDebug                                                \
-(                                                                             \
-    chemistryReader<Thermo>,                                                  \
-    0                                                                         \
-);                                                                            \
-                                                                              \
-defineTemplateRunTimeSelectionTable(chemistryReader<Thermo>, dictionary);
-
-
-#define makeChemistryReaderType(SS, Thermo)                                   \
-                                                                              \
-    defineNamedTemplateTypeNameAndDebug(SS<Thermo>, 0);                       \
-                                                                              \
-    chemistryReader<Thermo>::adddictionaryConstructorToTable<SS<Thermo> >     \
-        add##SS##Thermo##ConstructorToTable_;
-
-
-#define addChemistryReaderType(SS, Thermo)                                    \
-                                                                              \
-    defineNamedTemplateTypeNameAndDebug(SS, 0);                               \
-                                                                              \
-    chemistryReader<Thermo>::adddictionaryConstructorToTable<SS>              \
-        add##SS##Thermo##ConstructorToTable_;
+#ifdef NoRepository
+#   include "chemistryReader.C"
+#endif
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#ifdef NoRepository
-#   include "chemistryReader.C"
-#endif
+
+#define makeChemistryReader(Thermo)                                           \
+    defineTemplateTypeNameAndDebug(chemistryReader<Thermo>, 0);               \
+    defineTemplateRunTimeSelectionTable(chemistryReader<Thermo>, dictionary)
+
+
+#define makeChemistryReaderType(Reader, Thermo)                               \
+    defineNamedTemplateTypeNameAndDebug(Reader<Thermo>, 0);                   \
+    chemistryReader<Thermo>::adddictionaryConstructorToTable<Reader<Thermo> > \
+        add##Reader##Thermo##ConstructorToTable_
+
+
+// for non-templated chemistry readers
+#define addChemistryReaderType(Reader, Thermo)                                \
+    defineTypeNameAndDebug(Reader, 0);                                        \
+    chemistryReader<Thermo>::adddictionaryConstructorToTable<Reader>          \
+        add##Reader##Thermo##ConstructorToTable_
+
+
+// for templated chemistry readers
+#define addTemplateChemistryReaderType(Reader, Thermo)                        \
+    defineNamedTemplateTypeNameAndDebug(Reader, 0);                           \
+    chemistryReader<Thermo>::adddictionaryConstructorToTable<Reader>          \
+        add##Reader##Thermo##ConstructorToTable_
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

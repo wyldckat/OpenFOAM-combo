@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -118,9 +118,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~pointPatchMapper();
+    //- Destructor
+    virtual ~pointPatchMapper();
 
 
     // Member Functions
@@ -144,7 +143,7 @@ public:
         }
 
         //- Return direct addressing
-        virtual const unallocLabelList& directAddressing() const;
+        virtual const labelUList& directAddressing() const;
 
         //- Return interpolated addressing
         virtual const labelListList& addressing() const;

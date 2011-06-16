@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,7 @@ void SpalartAllmaras::updateSubGridScaleFields()
 
 tmp<volScalarField> SpalartAllmaras::fv1() const
 {
-    volScalarField chi3 = pow3(nuTilda_/nu());
+    const volScalarField chi3(pow3(nuTilda_/nu()));
     return chi3/(chi3 + pow3(Cv1_));
 }
 
@@ -66,8 +66,8 @@ tmp<volScalarField> SpalartAllmaras::fv2() const
 
 tmp<volScalarField> SpalartAllmaras::fv3() const
 {
-    volScalarField chi = nuTilda_/nu();
-    volScalarField chiByCv2 = (1/Cv2_)*chi;
+    const volScalarField chi(nuTilda_/nu());
+    const volScalarField chiByCv2((1/Cv2_)*chi);
 
     return
         (scalar(1) + chi*fv1())
@@ -128,9 +128,8 @@ tmp<volScalarField> SpalartAllmaras::fw
     const volScalarField& dTilda
 ) const
 {
-    volScalarField r = this->r(nuTilda_, S, dTilda);
-
-    volScalarField g = r + Cw2_*(pow6(r) - r);
+    const volScalarField r(this->r(nuTilda_, S, dTilda));
+    const volScalarField g(r + Cw2_*(pow6(r) - r));
 
     return g*pow((1 + pow6(Cw3_))/(pow6(g) + pow6(Cw3_)), 1.0/6.0);
 }
@@ -149,10 +148,11 @@ SpalartAllmaras::SpalartAllmaras
     const volVectorField& U,
     const surfaceScalarField& phi,
     transportModel& transport,
+    const word& turbulenceModelName,
     const word& modelName
 )
 :
-    LESModel(modelName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
 
     sigmaNut_
     (
@@ -290,11 +290,11 @@ void SpalartAllmaras::correct(const tmp<volTensorField>& gradU)
         y_.boundaryField() = max(y_.boundaryField(), VSMALL);
     }
 
-    const volScalarField S = this->S(gradU);
-    const volScalarField dTilda = this->dTilda(S);
-    const volScalarField STilda = this->STilda(S, dTilda);
+    const volScalarField S(this->S(gradU));
+    const volScalarField dTilda(this->dTilda(S));
+    const volScalarField STilda(this->STilda(S, dTilda));
 
-    fvScalarMatrix nuTildaEqn
+    tmp<fvScalarMatrix> nuTildaEqn
     (
         fvm::ddt(nuTilda_)
       + fvm::div(phi(), nuTilda_)
@@ -310,8 +310,8 @@ void SpalartAllmaras::correct(const tmp<volTensorField>& gradU)
       - fvm::Sp(Cw1_*fw(STilda, dTilda)*nuTilda_/sqr(dTilda), nuTilda_)
     );
 
-    nuTildaEqn.relax();
-    nuTildaEqn.solve();
+    nuTildaEqn().relax();
+    nuTildaEqn().solve();
 
     bound(nuTilda_, dimensionedScalar("zero", nuTilda_.dimensions(), 0.0));
     nuTilda_.correctBoundaryConditions();
@@ -348,7 +348,7 @@ tmp<fvVectorMatrix> SpalartAllmaras::divDevBeff(volVectorField& U) const
 {
     return
     (
-      - fvm::laplacian(nuEff(), U) - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvm::laplacian(nuEff(), U) - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 

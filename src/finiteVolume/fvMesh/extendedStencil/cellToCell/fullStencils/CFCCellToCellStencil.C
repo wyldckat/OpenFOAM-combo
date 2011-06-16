@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -52,7 +52,7 @@ void Foam::CFCCellToCellStencil::calcFaceBoundaryData
             // For coupled faces get the cell on the other side
             forAll(pp, i)
             {
-                label bFaceI = faceI-mesh().nInternalFaces(); 
+                label bFaceI = faceI-mesh().nInternalFaces();
                 neiGlobal[bFaceI] = globalNumbering().toGlobal(own[faceI]);
                 faceI++;
             }
@@ -61,7 +61,7 @@ void Foam::CFCCellToCellStencil::calcFaceBoundaryData
         {
             forAll(pp, i)
             {
-                label bFaceI = faceI-mesh().nInternalFaces(); 
+                label bFaceI = faceI-mesh().nInternalFaces();
                 neiGlobal[bFaceI] = -1;
                 faceI++;
             }
@@ -71,14 +71,14 @@ void Foam::CFCCellToCellStencil::calcFaceBoundaryData
             // For noncoupled faces get the boundary face.
             forAll(pp, i)
             {
-                label bFaceI = faceI-mesh().nInternalFaces(); 
+                label bFaceI = faceI-mesh().nInternalFaces();
                 neiGlobal[bFaceI] =
                     globalNumbering().toGlobal(mesh().nCells()+bFaceI);
                 faceI++;
             }
         }
     }
-    syncTools::swapBoundaryFaceList(mesh(), neiGlobal, false);
+    syncTools::swapBoundaryFaceList(mesh(), neiGlobal);
 }
 
 

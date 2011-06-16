@@ -80,7 +80,7 @@ protected:
         scalarField deltaTChem_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Return non-const access to the latest estimation of integration
         //  step, e.g. for multi-chemistry model
@@ -119,11 +119,14 @@ public:
 
             // Fields
 
-                //- Return const access to chemical source terms
+                //- Return const access to chemical source terms [kg/m3/s]
                 virtual tmp<volScalarField> RR(const label i) const = 0;
 
 
             // Chemistry solution
+
+                //- Calculates the reaction rates
+                virtual void calculate() = 0;
 
                 //- Solve the reaction system for the given start time and
                 //  timestep and return the characteristic time

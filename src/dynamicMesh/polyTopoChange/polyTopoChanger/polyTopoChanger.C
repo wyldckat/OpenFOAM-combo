@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,9 +43,19 @@ void Foam::polyTopoChanger::readModifiers()
     if
     (
         readOpt() == IOobject::MUST_READ
+     || readOpt() == IOobject::MUST_READ_IF_MODIFIED
      || (readOpt() == IOobject::READ_IF_PRESENT && headerOk())
     )
     {
+        if (readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+        {
+            WarningIn("polyTopoChanger::readModifiers()")
+                << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+                << " does not support automatic rereading."
+                << endl;
+        }
+
+
         PtrList<polyMeshModifier>& modifiers = *this;
 
         // Read modifiers
@@ -130,7 +140,7 @@ Foam::wordList Foam::polyTopoChanger::types() const
 
     wordList t(modifiers.size());
 
-    forAll (modifiers, modifierI)
+    forAll(modifiers, modifierI)
     {
         t[modifierI] = modifiers[modifierI].type();
     }
@@ -146,7 +156,7 @@ Foam::wordList Foam::polyTopoChanger::names() const
 
     wordList t(modifiers.size());
 
-    forAll (modifiers, modifierI)
+    forAll(modifiers, modifierI)
     {
         t[modifierI] = modifiers[modifierI].name();
     }
@@ -163,7 +173,7 @@ bool Foam::polyTopoChanger::changeTopology() const
 
     bool triggerChange = false;
 
-    forAll (topoChanges, morphI)
+    forAll(topoChanges, morphI)
     {
         if (topoChanges[morphI].active())
         {
@@ -173,14 +183,14 @@ bool Foam::polyTopoChanger::changeTopology() const
             {
                 Info<< "Modifier " << morphI << " named "
                     << topoChanges[morphI].name();
-                
+
                 if (curTriggerChange)
                 {
-                    Info << " morphing" << endl;
+                    Info<< " morphing" << endl;
                 }
                 else
                 {
-                    Info << " unchanged" << endl;
+                    Info<< " unchanged" << endl;
                 }
             }
 
@@ -194,7 +204,7 @@ bool Foam::polyTopoChanger::changeTopology() const
                     << topoChanges[morphI].name() << " inactive" << endl;
             }
         }
-            
+
     }
 
     return triggerChange;
@@ -211,7 +221,7 @@ Foam::polyTopoChanger::topoChangeRequest() const
     polyTopoChange* refPtr(new polyTopoChange(mesh()));
     polyTopoChange& ref = *refPtr;
 
-    forAll (topoChanges, morphI)
+    forAll(topoChanges, morphI)
     {
         if (topoChanges[morphI].active())
         {
@@ -228,7 +238,7 @@ void Foam::polyTopoChanger::modifyMotionPoints(pointField& p) const
 {
     const PtrList<polyMeshModifier>& topoChanges = *this;
 
-    forAll (topoChanges, morphI)
+    forAll(topoChanges, morphI)
     {
         if (topoChanges[morphI].active())
         {
@@ -244,14 +254,14 @@ void Foam::polyTopoChanger::update(const mapPolyMesh& m)
     // Go through all mesh modifiers and accumulate the morphing information
     PtrList<polyMeshModifier>& topoChanges = *this;
 
-    forAll (topoChanges, morphI)
+    forAll(topoChanges, morphI)
     {
         topoChanges[morphI].updateMesh(m);
     }
 
     // Force the mesh modifiers to auto-write.  This allows us to
     // preserve the current state of modifiers corresponding with
-    // the mesh.  
+    // the mesh.
     writeOpt() = IOobject::AUTO_WRITE;
     instance() = mesh_.time().timeName();
 }
@@ -298,7 +308,7 @@ void Foam::polyTopoChanger::addTopologyModifiers
     setSize(tm.size());
 
     // Copy the patch pointers
-    forAll (tm, tmI)
+    forAll(tm, tmI)
     {
         if (tm[tmI]->topoChanger() != *this)
         {
@@ -323,7 +333,7 @@ Foam::label Foam::polyTopoChanger::findModifierID
 {
     const PtrList<polyMeshModifier>& topoChanges = *this;
 
-    forAll (topoChanges, morphI)
+    forAll(topoChanges, morphI)
     {
         if (topoChanges[morphI].name() == modName)
         {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "Cloud.H"
-#include "Particle.H"
 #include "Time.H"
 #include "IOPosition.H"
 
@@ -39,31 +38,31 @@ Foam::word Foam::Cloud<ParticleType>::cloudPropertiesName("cloudProperties");
 template<class ParticleType>
 void Foam::Cloud<ParticleType>::readCloudUniformProperties()
 {
-    IOobject uniformPropsDictHeader
+    IOobject dictObj
     (
         cloudPropertiesName,
         time().timeName(),
         "uniform"/cloud::prefix/name(),
         db(),
-        IOobject::MUST_READ,
+        IOobject::MUST_READ_IF_MODIFIED,
         IOobject::NO_WRITE,
         false
     );
 
-    if (uniformPropsDictHeader.headerOk())
+    if (dictObj.headerOk())
     {
-        const IOdictionary uniformPropsDict(uniformPropsDictHeader);
+        const IOdictionary uniformPropsDict(dictObj);
 
-        word procName("processor" + Foam::name(Pstream::myProcNo()));
+        const word procName("processor" + Foam::name(Pstream::myProcNo()));
         if (uniformPropsDict.found(procName))
         {
             uniformPropsDict.subDict(procName).lookup("particleCount")
-                >> particleCount_;
+                >> ParticleType::particleCount_;
         }
     }
     else
     {
-        particleCount_ = 0;
+        ParticleType::particleCount_ = 0;
     }
 }
 
@@ -86,7 +85,7 @@ void Foam::Cloud<ParticleType>::writeCloudUniformProperties() const
     );
 
     labelList np(Pstream::nProcs(), 0);
-    np[Pstream::myProcNo()] = particleCount_;
+    np[Pstream::myProcNo()] = ParticleType::particleCount_;
 
     Pstream::listCombineGather(np, maxEqOp<label>());
     Pstream::listCombineScatter(np);
@@ -98,7 +97,12 @@ void Foam::Cloud<ParticleType>::writeCloudUniformProperties() const
         uniformPropsDict.subDict(procName).add("particleCount", np[i]);
     }
 
-    uniformPropsDict.regIOobject::write();
+    uniformPropsDict.writeObject
+    (
+        IOstream::ASCII,
+        IOstream::currentVersion,
+        time().writeCompression()
+    );
 }
 
 
@@ -107,7 +111,7 @@ void Foam::Cloud<ParticleType>::initCloud(const bool checkClass)
 {
     readCloudUniformProperties();
 
-    IOPosition<ParticleType> ioP(*this);
+    IOPosition<Cloud<ParticleType> > ioP(*this);
 
     if (ioP.headerOk())
     {
@@ -123,12 +127,22 @@ void Foam::Cloud<ParticleType>::initCloud(const bool checkClass)
     {
         if (debug)
         {
-            WarningIn("Cloud<ParticleType>::initCloud(const bool checkClass)")
-                << "Cannot read particle positions file " << nl
+            Pout<< "Cannot read particle positions file:" << nl
                 << "    " << ioP.objectPath() << nl
-                << "    assuming the initial cloud contains 0 particles."
-                << endl;
+                << "Assuming the initial cloud contains 0 particles." << endl;
         }
+    }
+
+    // Ask for the tetBasePtIs to trigger all processors to build
+    // them, otherwise, if some processors have no particles then
+    // there is a comms mismatch.
+    polyMesh_.tetBasePtIs();
+
+    forAllIter(typename Cloud<ParticleType>, *this, pIter)
+    {
+        ParticleType& p = pIter();
+
+        p.initCellFacePt();
     }
 }
 
@@ -144,7 +158,9 @@ Foam::Cloud<ParticleType>::Cloud
 :
     cloud(pMesh),
     polyMesh_(pMesh),
-    particleCount_(0)
+    labels_(),
+    nTrackingRescues_(),
+    cellWallFacesPtr_()
 {
     initCloud(checkClass);
 }
@@ -160,7 +176,9 @@ Foam::Cloud<ParticleType>::Cloud
 :
     cloud(pMesh, cloudName),
     polyMesh_(pMesh),
-    particleCount_(0)
+    labels_(),
+    nTrackingRescues_(),
+    cellWallFacesPtr_()
 {
     initCloud(checkClass);
 }
@@ -210,6 +228,31 @@ void Foam::Cloud<ParticleType>::checkFieldIOobject
 
 
 template<class ParticleType>
+template<class DataType>
+void Foam::Cloud<ParticleType>::checkFieldFieldIOobject
+(
+    const Cloud<ParticleType>& c,
+    const CompactIOField<Field<DataType>, DataType>& data
+) const
+{
+    if (data.size() != c.size())
+    {
+        FatalErrorIn
+        (
+            "void Cloud<ParticleType>::checkFieldFieldIOobject"
+            "("
+                "const Cloud<ParticleType>&, "
+                "const CompactIOField<Field<DataType>, DataType>&"
+            ") const"
+        )   << "Size of " << data.name()
+            << " field " << data.size()
+            << " does not match the number of particles " << c.size()
+            << abort(FatalError);
+    }
+}
+
+
+template<class ParticleType>
 void Foam::Cloud<ParticleType>::readFields()
 {}
 
@@ -219,8 +262,7 @@ void Foam::Cloud<ParticleType>::writeFields() const
 {
     if (this->size())
     {
-        const ParticleType& p = *this->first();
-        ParticleType::writeFields(p.cloud());
+        ParticleType::writeFields(*this);
     }
 }
 

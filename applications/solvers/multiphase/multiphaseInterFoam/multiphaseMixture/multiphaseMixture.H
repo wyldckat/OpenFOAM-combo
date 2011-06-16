@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -209,10 +209,9 @@ public:
         );
 
 
-    // Destructor
-
-        ~multiphaseMixture()
-        {}
+    //- Destructor
+    virtual ~multiphaseMixture()
+    {}
 
 
     // Member Functions
@@ -259,7 +258,7 @@ public:
 
         //- Indicator of the proximity of the interface
         //  Field values are 1 near and 0 away for the interface.
-        tmp<surfaceScalarField> nearInterface() const;
+        tmp<volScalarField> nearInterface() const;
 
         //- Solve for the mixture phase-fractions
         void solve();

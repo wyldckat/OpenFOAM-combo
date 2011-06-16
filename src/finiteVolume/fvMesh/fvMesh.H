@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -52,6 +52,9 @@ SourceFiles
 #include "primitiveMesh.H"
 #include "fvBoundaryMesh.H"
 #include "surfaceInterpolation.H"
+#include "fvSchemes.H"
+#include "fvSolution.H"
+#include "data.H"
 #include "DimensionedField.H"
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
@@ -77,7 +80,10 @@ class fvMesh
 :
     public polyMesh,
     public lduMesh,
-    public surfaceInterpolation
+    public surfaceInterpolation,
+    public fvSchemes,
+    public fvSolution,
+    public data
 {
     // Private data
 
@@ -191,9 +197,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~fvMesh();
+    //- Destructor
+    virtual ~fvMesh();
 
 
     // Member Functions
@@ -248,13 +253,13 @@ public:
             }
 
             //- Internal face owner
-            const unallocLabelList& owner() const
+            const labelUList& owner() const
             {
                 return lduAddr().lowerAddr();
             }
 
             //- Internal face neighbour
-            const unallocLabelList& neighbour() const
+            const labelUList& neighbour() const
             {
                 return lduAddr().upperAddr();
             }

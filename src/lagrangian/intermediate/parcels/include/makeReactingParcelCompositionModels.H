@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,43 +28,16 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "thermoPhysicsTypes.H"
-#include "ReactingCloud.H"
-
+#include "NoComposition.H"
 #include "SinglePhaseMixture.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeReactingCompositionModels(ParcelType)                             \
+#define makeReactingParcelCompositionModels(CloudType)                        \
                                                                               \
-    makeReactingCompositionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        constGasThermoPhysics                                                 \
-    );                                                                        \
-    makeReactingCompositionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        gasThermoPhysics                                                      \
-    );                                                                        \
-    makeReactingCompositionModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        icoPoly8ThermoPhysics                                                 \
-    );
-
-
-#define makeReactingCompositionModelThermoType(ParcelType, ThermoType)        \
-                                                                              \
-    makeCompositionModel(ReactingCloud<ParcelType<ThermoType> >);             \
-                                                                              \
-    makeCompositionModelThermoType                                            \
-    (                                                                         \
-        SinglePhaseMixture,                                                   \
-        ReactingCloud,                                                        \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );
+    makeCompositionModel(CloudType);                                          \
+    makeCompositionModelType(NoComposition, CloudType);                       \
+    makeCompositionModelType(SinglePhaseMixture, CloudType);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

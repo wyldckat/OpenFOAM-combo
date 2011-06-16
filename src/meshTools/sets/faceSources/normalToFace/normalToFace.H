@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -92,12 +92,16 @@ public:
         normalToFace(const polyMesh& mesh, Istream&);
 
 
-    // Destructor
-
-        virtual ~normalToFace();
+    //- Destructor
+    virtual ~normalToFace();
 
 
     // Member Functions
+
+        virtual sourceType setType() const
+        {
+            return FACESETSOURCE;
+        }
 
         virtual void applyToSet
         (

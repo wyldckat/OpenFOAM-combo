@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,15 +26,10 @@ License
 #include "fanFvPatchField.H"
 #include "IOmanip.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class Type>
-fanFvPatchField<Type>::fanFvPatchField
+Foam::fanFvPatchField<Type>::fanFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF
@@ -42,12 +37,12 @@ fanFvPatchField<Type>::fanFvPatchField
 :
     jumpCyclicFvPatchField<Type>(p, iF),
     f_(0),
-    jump_(this->size()/2, 0.0)
+    jump_(this->size(), 0.0)
 {}
 
 
 template<class Type>
-fanFvPatchField<Type>::fanFvPatchField
+Foam::fanFvPatchField<Type>::fanFvPatchField
 (
     const fanFvPatchField<Type>& ptf,
     const fvPatch& p,
@@ -62,7 +57,7 @@ fanFvPatchField<Type>::fanFvPatchField
 
 
 template<class Type>
-fanFvPatchField<Type>::fanFvPatchField
+Foam::fanFvPatchField<Type>::fanFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF,
@@ -71,12 +66,14 @@ fanFvPatchField<Type>::fanFvPatchField
 :
     jumpCyclicFvPatchField<Type>(p, iF),
     f_(),
-    jump_(this->size()/2, 0.0)
+    jump_(this->size(), 0.0)
 {
     {
         Istream& is = dict.lookup("f");
         is.format(IOstream::ASCII);
         is >> f_;
+
+        // Check that f_ table is same on both sides.?
     }
 
     if (dict.found("value"))
@@ -94,7 +91,7 @@ fanFvPatchField<Type>::fanFvPatchField
 
 
 template<class Type>
-fanFvPatchField<Type>::fanFvPatchField
+Foam::fanFvPatchField<Type>::fanFvPatchField
 (
     const fanFvPatchField<Type>& ptf
 )
@@ -107,7 +104,7 @@ fanFvPatchField<Type>::fanFvPatchField
 
 
 template<class Type>
-fanFvPatchField<Type>::fanFvPatchField
+Foam::fanFvPatchField<Type>::fanFvPatchField
 (
     const fanFvPatchField<Type>& ptf,
     const DimensionedField<Type, volMesh>& iF
@@ -122,32 +119,18 @@ fanFvPatchField<Type>::fanFvPatchField
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-void fanFvPatchField<Type>::autoMap
+void Foam::fanFvPatchField<Type>::autoMap
 (
     const fvPatchFieldMapper& m
 )
 {
     jumpCyclicFvPatchField<Type>::autoMap(m);
-
-    // Jump is half size. Expand to full size, map and truncate.
-    if (jump_.size() && jump_.size() == this->size()/2)
-    {
-        label oldSize = jump_.size();
-        jump_.setSize(this->size());
-
-        for (label i = oldSize; i < jump_.size(); i++)
-        {
-            jump_[i] = jump_[i-oldSize];
-        }
-
-        jump_.autoMap(m);
-        jump_.setSize(oldSize);
-    }
+    jump_.autoMap(m);
 }
 
 
 template<class Type>
-void fanFvPatchField<Type>::rmap
+void Foam::fanFvPatchField<Type>::rmap
 (
     const fvPatchField<Type>& ptf,
     const labelList& addr
@@ -155,29 +138,14 @@ void fanFvPatchField<Type>::rmap
 {
     jumpCyclicFvPatchField<Type>::rmap(ptf, addr);
 
-    // Jump is half size. Expand to full size, map and truncate.
-    if (jump_.size() && jump_.size() == this->size()/2)
-    {
-        label oldSize = jump_.size();
-        jump_.setSize(this->size());
-
-        for (label i = oldSize; i < jump_.size(); i++)
-        {
-            jump_[i] = jump_[i-oldSize];
-        }
-
-        const fanFvPatchField<Type>& tiptf =
-            refCast<const fanFvPatchField<Type> >(ptf);
-
-        jump_.rmap(tiptf.jump_, addr);
-
-        jump_.setSize(oldSize);
-    }
+    const fanFvPatchField<Type>& tiptf =
+        refCast<const fanFvPatchField<Type> >(ptf);
+    jump_.rmap(tiptf.jump_, addr);
 }
 
 
 template<class Type>
-void fanFvPatchField<Type>::write(Ostream& os) const
+void Foam::fanFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
     os.writeKeyword("patchType") << "cyclic" << token::END_STATEMENT << nl;
@@ -189,9 +157,5 @@ void fanFvPatchField<Type>::write(Ostream& os) const
     this->writeEntry("value", os);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

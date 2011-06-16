@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,10 +27,12 @@ License
 #include "triFace.H"
 #include "triPointRef.H"
 #include "mathematicalConstants.H"
+#include "Swap.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 const char* const Foam::face::typeName = "face";
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -98,13 +100,13 @@ Foam::label Foam::face::mostConcaveAngle
         if ((edgeNormal & n) > 0)
         {
             // Concave angle.
-            angle = mathematicalConstant::pi + edgeAngle;
+            angle = constant::mathematical::pi + edgeAngle;
         }
         else
         {
             // Convex angle. Note '-' to take into account that rightEdge
             // and leftEdge are head-to-tail connected.
-            angle = mathematicalConstant::pi - edgeAngle;
+            angle = constant::mathematical::pi - edgeAngle;
         }
 
         if (angle > maxAngle)
@@ -213,9 +215,9 @@ Foam::label Foam::face::split
         label index = fcIndex(fcIndex(startIndex));
 
         label minIndex = index;
-        scalar minDiff = Foam::mathematicalConstant::pi;
+        scalar minDiff = constant::mathematical::pi;
 
-        for(label i = 0; i < size() - 3; i++)
+        for (label i = 0; i < size() - 3; i++)
         {
             vector splitEdge
             (
@@ -322,7 +324,7 @@ int Foam::face::compare(const face& a, const face& b)
     const label firstA = a[0];
     label Bptr = -1;
 
-    forAll (b, i)
+    forAll(b, i)
     {
         if (b[i] == firstA)
         {
@@ -475,51 +477,66 @@ Foam::label Foam::face::collapse()
 }
 
 
-Foam::point Foam::face::centre(const pointField& meshPoints) const
+void Foam::face::flip()
+{
+    const label n = size();
+
+    if (n > 2)
+    {
+        for (label i=1; i < (n+1)/2; ++i)
+        {
+            Swap(operator[](i), operator[](n-i));
+        }
+    }
+}
+
+
+Foam::point Foam::face::centre(const pointField& points) const
 {
     // Calculate the centre by breaking the face into triangles and
     // area-weighted averaging their centres
 
+    const label nPoints = size();
+
     // If the face is a triangle, do a direct calculation
-    if (size() == 3)
+    if (nPoints == 3)
     {
         return
             (1.0/3.0)
            *(
-               meshPoints[operator[](0)]
-             + meshPoints[operator[](1)]
-             + meshPoints[operator[](2)]
+               points[operator[](0)]
+             + points[operator[](1)]
+             + points[operator[](2)]
             );
     }
 
-    label nPoints = size();
 
     point centrePoint = point::zero;
-    for (register label pI=0; pI<nPoints; pI++)
+    for (register label pI=0; pI<nPoints; ++pI)
     {
-        centrePoint += meshPoints[operator[](pI)];
+        centrePoint += points[operator[](pI)];
     }
     centrePoint /= nPoints;
 
     scalar sumA = 0;
     vector sumAc = vector::zero;
 
-    for (register label pI=0; pI<nPoints; pI++)
+    for (register label pI=0; pI<nPoints; ++pI)
     {
-        const point& nextPoint = meshPoints[operator[]((pI + 1) % nPoints)];
+        const point& nextPoint = points[operator[]((pI + 1) % nPoints)];
 
         // Calculate 3*triangle centre
-        vector ttc
+        const vector ttc
         (
-            meshPoints[operator[](pI)]
+            points[operator[](pI)]
           + nextPoint
           + centrePoint
         );
 
         // Calculate 2*triangle area
-        scalar ta = Foam::mag
+        const scalar ta = Foam::mag
         (
-            (meshPoints[operator[](pI)] - centrePoint)
+            (points[operator[](pI)] - centrePoint)
           ^ (nextPoint - centrePoint)
         );
 
@@ -529,7 +546,7 @@ Foam::point Foam::face::centre(const pointField& meshPoints) const
 
     if (sumA > VSMALL)
     {
-        return sumAc/(3*sumA);
+        return sumAc/(3.0*sumA);
     }
     else
     {
@@ -540,6 +557,8 @@ Foam::point Foam::face::centre(const pointField& meshPoints) const
 
 Foam::vector Foam::face::normal(const pointField& p) const
 {
+    const label nPoints = size();
+
     // Calculate the normal by summing the face triangle normals.
     // Changed to deal with small concavity by using a central decomposition
     //
@@ -547,7 +566,7 @@ Foam::vector Foam::face::normal(const pointField& p) const
     // If the face is a triangle, do a direct calculation to avoid round-off
     // error-related problems
     //
-    if (size() == 3)
+    if (nPoints == 3)
     {
         return triPointRef
         (
@@ -557,12 +576,10 @@ Foam::vector Foam::face::normal(const pointField& p) const
         ).normal();
     }
 
-    label nPoints = size();
-
     register label pI;
 
     point centrePoint = vector::zero;
-    for (pI = 0; pI < nPoints; pI++)
+    for (pI = 0; pI < nPoints; ++pI)
     {
         centrePoint += p[operator[](pI)];
     }
@@ -572,7 +589,7 @@ Foam::vector Foam::face::normal(const pointField& p) const
 
     point nextPoint = centrePoint;
 
-    for (pI = 0; pI < nPoints; pI++)
+    for (pI = 0; pI < nPoints; ++pI)
     {
         if (pI < nPoints - 1)
         {
@@ -618,19 +635,17 @@ Foam::face Foam::face::reverseFace() const
 
 Foam::label Foam::face::which(const label globalIndex) const
 {
-    label pointInFace = -1;
     const labelList& f = *this;
 
-    forAll (f, i)
+    forAll(f, localIdx)
     {
-        if (f[i] == globalIndex)
+        if (f[localIdx] == globalIndex)
         {
-            pointInFace = i;
-            break;
+            return localIdx;
         }
     }
 
-    return pointInFace;
+    return -1;
 }
 
 
@@ -654,9 +669,7 @@ Foam::scalar Foam::face::sweptVol
     point nextOldPoint = centreOldPoint;
     point nextNewPoint = centreNewPoint;
 
-    register label pI;
-
-    for (pI = 0; pI < nPoints; pI++)
+    for (register label pI = 0; pI < nPoints; ++pI)
     {
         if (pI < nPoints - 1)
         {
@@ -690,21 +703,55 @@ Foam::scalar Foam::face::sweptVol
 }
 
 
+Foam::tensor Foam::face::inertia
+(
+    const pointField& p,
+    const point& refPt,
+    scalar density
+) const
+{
+    // If the face is a triangle, do a direct calculation
+    if (size() == 3)
+    {
+        return triPointRef
+        (
+            p[operator[](0)],
+            p[operator[](1)],
+            p[operator[](2)]
+        ).inertia(refPt, density);
+    }
+
+    const point ctr = centre(p);
+
+    tensor J = tensor::zero;
+
+    forAll(*this, i)
+    {
+        J += triPointRef
+        (
+            p[operator[](i)],
+            p[operator[](fcIndex(i))],
+            ctr
+        ).inertia(refPt, density);
+    }
+
+    return J;
+}
+
+
 Foam::edgeList Foam::face::edges() const
 {
     const labelList& points = *this;
 
     edgeList e(points.size());
 
-    label pointI;
-
-    for (pointI = 0; pointI < points.size() - 1; pointI++)
+    for (label pointI = 0; pointI < points.size() - 1; ++pointI)
     {
         e[pointI] = edge(points[pointI], points[pointI + 1]);
     }
 
     // add last edge
-    e[points.size() - 1] = edge(points[points.size() - 1], points[0]);
+    e.last() = edge(points.last(), points[0]);
 
     return e;
 }
@@ -712,7 +759,7 @@ Foam::edgeList Foam::face::edges() const
 
 int Foam::face::edgeDirection(const edge& e) const
 {
-    forAll (*this, i)
+    forAll(*this, i)
     {
         if (operator[](i) == e.start())
         {
@@ -801,10 +848,4 @@ Foam::label Foam::face::trianglesQuads
 }
 
 
-// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 // ************************************************************************* //
-

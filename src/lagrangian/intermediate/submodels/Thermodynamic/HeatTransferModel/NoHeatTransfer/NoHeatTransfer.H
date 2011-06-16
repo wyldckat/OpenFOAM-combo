@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,6 +59,18 @@ public:
         //- Construct from dictionary
         NoHeatTransfer(const dictionary&, CloudType& owner);
 
+        //- Construct copy
+        NoHeatTransfer(const NoHeatTransfer<CloudType>& im);
+
+        //- Construct and return a clone
+        virtual autoPtr<HeatTransferModel<CloudType> > clone() const
+        {
+            return autoPtr<HeatTransferModel<CloudType> >
+            (
+                new NoHeatTransfer<CloudType>(*this)
+            );
+        }
+
 
     //- Destructor
     virtual ~NoHeatTransfer();
@@ -70,11 +82,7 @@ public:
         virtual bool active() const;
 
         //- Nusselt number
-        virtual scalar Nu
-        (
-            const scalar,
-            const scalar
-        ) const;
+        virtual scalar Nu(const scalar, const scalar) const;
 
         //- Prandtl number
         virtual scalar Pr() const;

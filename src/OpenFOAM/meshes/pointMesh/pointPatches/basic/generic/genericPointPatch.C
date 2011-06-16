@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,26 +26,20 @@ License
 #include "genericPointPatch.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(genericPointPatch, 0);
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    // Add the patch constructor functions to the hash tables
+    addToRunTimeSelectionTable
+    (
+        facePointPatch,
+        genericPointPatch,
+        polyPatch
+    );
+}
 
-defineTypeNameAndDebug(genericPointPatch, 0);
-
-// Add the patch constructor functions to the hash tables
-addToRunTimeSelectionTable
-(
-    facePointPatch,
-    genericPointPatch,
-    polyPatch
-);
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

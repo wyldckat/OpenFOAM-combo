@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -74,17 +74,25 @@ protected:
 public:
 
     //- Runtime type information
-    TypeName("DispersionRASModel");
+    TypeName("dispersionRASModel");
 
 
     // Constructors
 
         //- Construct from components
-        DispersionRASModel
-        (
-            const dictionary& dict,
-            CloudType& owner
-        );
+        DispersionRASModel(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
+        DispersionRASModel(DispersionRASModel<CloudType>& dm);
+
+        //- Construct and return a clone
+        virtual autoPtr<DispersionModel<CloudType> > clone()
+        {
+            return autoPtr<DispersionModel<CloudType> >
+            (
+                new DispersionRASModel<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -101,6 +109,12 @@ public:
         {
             return turbulence_;
         }
+
+
+        // I-O
+
+            //- Write
+            virtual void write(Ostream& os) const;
 };
 
 

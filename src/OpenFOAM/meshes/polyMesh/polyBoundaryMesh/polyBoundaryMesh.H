@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,18 +38,18 @@ SourceFiles
 #include "polyPatchList.H"
 #include "regIOobject.H"
 #include "labelPair.H"
+#include "HashSet.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-typedef List<labelPair> labelPairList;
+// Forward declaration of classes
 class polyMesh;
+class wordRe;
 
 // Forward declaration of friend functions and operators
-
-class polyBoundaryMesh;
 
 Ostream& operator<<(Ostream&, const polyBoundaryMesh&);
 
@@ -68,8 +68,10 @@ class polyBoundaryMesh
         //- Reference to mesh
         const polyMesh& mesh_;
 
+        mutable autoPtr<labelList> patchIDPtr_;
+
         //- Edges of neighbouring patches
-        mutable List<labelPairList>* neighbourEdgesPtr_;
+        mutable autoPtr<List<labelPairList> > neighbourEdgesPtr_;
 
 
     // Private Member Functions
@@ -116,9 +118,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~polyBoundaryMesh();
+    //- Destructor
+    ~polyBoundaryMesh();
 
         //- Clear geometry at this level and at patches
         void clearGeom();
@@ -127,7 +128,7 @@ public:
         void clearAddressing();
 
 
-    // Member functions
+    // Member Functions
 
         //- Return the mesh reference
         const polyMesh& mesh() const
@@ -152,15 +153,28 @@ public:
         //- Return a list of physical types
         wordList physicalTypes() const;
 
+        //- Return patch indices for all matches
+        labelList findIndices(const keyType&) const;
+
+        //- Return patch index for the first match, return -1 if not found
+        label findIndex(const keyType&) const;
+
         //- Find patch index given a name
         label findPatchID(const word& patchName) const;
 
         //- Return patch index for a given face label
         label whichPatch(const label faceIndex) const;
 
-        //- Return the set of patch IDs corresponding to the given list of names
-        //  Wild cards are expanded.
-        labelHashSet patchSet(const wordList&) const;
+        //- Per boundary face label the patch index
+        const labelList& patchID() const;
+
+        //- Return the set of patch IDs corresponding to the given names
+        //  By default warns if given names are not found.
+        labelHashSet patchSet
+        (
+            const UList<wordRe>& patchNames,
+            const bool warnNotFound = true
+        ) const;
 
         //- Check whether all procs have all patches and in same order. Return
         //  true if in error.
@@ -179,7 +193,7 @@ public:
         //  ascending or descending order. Reordering has to be unique.
         //  (is shuffle) Calls updateMesh() after reordering to recalculate
         //  data.
-        void reorder(const UList<label>&);
+        void reorder(const labelUList&);
 
         //- writeData member function required by regIOobject
         bool writeData(Ostream&) const;
@@ -191,6 +205,17 @@ public:
             IOstream::versionNumber ver,
             IOstream::compressionType cmp
         ) const;
+
+    // Member Operators
+
+        //- Return const and non-const reference to polyPatch by index.
+        using polyPatchList::operator[];
+
+        //- Return const reference to polyPatch by name.
+        const polyPatch& operator[](const word&) const;
+
+        //- Return reference to polyPatch by name.
+        polyPatch& operator[](const word&);
 
 
     // Ostream operator

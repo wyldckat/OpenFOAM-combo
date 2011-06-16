@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,10 +28,10 @@ Description
     API function for vapour mass diffusivity
 
     Source:
-    @verbatim
+    \verbatim
             API (American Petroleum Institute)
                     Technical Data Book
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -71,26 +71,19 @@ public:
     // Constructors
 
         //- Construct from components
-        APIdiffCoefFunc(scalar a, scalar b, scalar wf, scalar wa)
-        :
-            a_(a),
-            b_(b),
-            wf_(wf),
-            wa_(wa),
-            alpha_(sqrt(1/wf_ + 1/wa_)),
-            beta_(sqr(cbrt(a_) + cbrt(b_)))
-        {}
+        APIdiffCoefFunc
+        (
+            const scalar a,
+            const scalar b,
+            const scalar wf,
+            const scalar wa
+        );
 
         //- Construct from Istream
-        APIdiffCoefFunc(Istream& is)
-        :
-            a_(readScalar(is)),
-            b_(readScalar(is)),
-            wf_(readScalar(is)),
-            wa_(readScalar(is)),
-            alpha_(sqrt(1/wf_ + 1/wa_)),
-            beta_(sqr((cbrt(a_) + cbrt(b_))))
-        {}
+        APIdiffCoefFunc(Istream& is);
+
+        //- Construct from dictionary
+        APIdiffCoefFunc(const dictionary& dict);
 
 
     // Member Functions

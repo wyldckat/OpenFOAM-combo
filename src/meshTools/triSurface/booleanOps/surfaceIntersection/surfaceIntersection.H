@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,7 +75,7 @@ class triSurface;
 class edgeIntersections;
 
 /*---------------------------------------------------------------------------*\
-                           Class surfaceIntersection Declaration
+                    Class surfaceIntersection Declaration
 \*---------------------------------------------------------------------------*/
 
 class surfaceIntersection
@@ -170,7 +170,7 @@ class surfaceIntersection
         //    const point& eStart,
         //    const point& eEnd
         //);
-    
+
 
         //- Debugging: Dump intersected edges to stream
         void writeIntersectedEdges
@@ -232,6 +232,7 @@ class surfaceIntersection
             List<DynamicList<label> >& surfEdgeCuts
         );
 
+
 public:
 
     ClassName("surfaceIntersection");
@@ -283,7 +284,6 @@ public:
         const labelListList& surf1EdgeCuts() const;
 
         const labelListList& surf2EdgeCuts() const;
-
 };
 
 

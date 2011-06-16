@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -99,9 +99,8 @@ public:
         static autoPtr<CompoundToken> New(const word& type, Istream& is);
 
 
-    // Destructor
-
-        virtual ~CompoundToken();
+    //- Destructor
+    virtual ~CompoundToken();
 
 
     // Member Functions

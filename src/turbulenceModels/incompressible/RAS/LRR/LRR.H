@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     incompressible flows.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         LRRCoeffs
         {
             Cmu         0.09;
@@ -42,7 +42,7 @@ Description
             sigmaEps    1.3;
             couplingFactor  0.0;    // only for incompressible
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     LRR.C
@@ -71,7 +71,10 @@ class LRR
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -109,7 +112,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

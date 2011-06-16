@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,26 +29,23 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "basicMultiComponentMixture.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(reitzDiwakar, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(reitzDiwakar, 0);
-
-addToRunTimeSelectionTable
-(
-    breakupModel,
-    reitzDiwakar,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        breakupModel,
+        reitzDiwakar,
+        dictionary
+    );
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-reitzDiwakar::reitzDiwakar
+Foam::reitzDiwakar::reitzDiwakar
 (
     const dictionary& dict,
     spray& sm
@@ -65,31 +62,22 @@ reitzDiwakar::reitzDiwakar
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-reitzDiwakar::~reitzDiwakar()
+Foam::reitzDiwakar::~reitzDiwakar()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void reitzDiwakar::breakupParcel
+void Foam::reitzDiwakar::breakupParcel
 (
     parcel& p,
     const scalar deltaT,
     const vector& vel,
-    const liquidMixture& fuels
+    const liquidMixtureProperties& fuels
 ) const
 {
-    /*
-        These are the default values for this model...
-        static const scalar Cbag   = 6.0;
-        static const scalar Cb     = 0.785;
-        static const scalar Cstrip = 0.5;
-        static const scalar Cs     = 10.0;
-    */
-
     const PtrList<volScalarField>& Y = spray_.composition().Y();
 
-    label Ns = Y.size();
     label cellI = p.cell();
     scalar pressure = spray_.p()[cellI];
     scalar temperature = spray_.T()[cellI];
@@ -97,7 +85,7 @@ void reitzDiwakar::breakupParcel
 
     scalar muAverage = 0.0;
     scalar Winv = 0.0;
-    for(label i=0; i<Ns; i++)
+    forAll(Y, i)
     {
         Winv += Y[i][cellI]/spray_.gasProperties()[i].W();
         muAverage += Y[i][cellI]*spray_.gasProperties()[i].mu(Taverage);
@@ -109,9 +97,8 @@ void reitzDiwakar::breakupParcel
     scalar nuAverage = muAverage/rhoAverage;
     scalar sigma = fuels.sigma(pressure, p.T(), p.X());
 
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-    //     The We and Re numbers are to be evaluated using the 1/3 rule.
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    // The We and Re numbers are to be evaluated using the 1/3 rule.
 
     scalar WeberNumber = p.We(vel, rhoAverage, sigma);
     scalar ReynoldsNumber = p.Re(vel, nuAverage);
@@ -123,21 +110,17 @@ void reitzDiwakar::breakupParcel
         if (WeberNumber > Cstrip_*sqRey)
         {
             scalar dStrip =
-                pow(2.0*Cstrip_*sigma, 2.0)/
-                (
+                sqr(2.0*Cstrip_*sigma)
+               /(
                     rhoAverage
-                  * pow(mag(p.Urel(vel)), 3.0)
-                  * muAverage
+                   *pow3(mag(p.Urel(vel)))
+                   *muAverage
                 );
 
             scalar tauStrip =
-                Cs_ * p.d()
-              * sqrt
-                (
-                    fuels.rho(pressure, p.T(), p.X())
-                    / rhoAverage
-                )
-              / mag(p.Urel(vel));
+                Cs_*p.d()
+               *sqrt(fuels.rho(pressure, p.T(), p.X())/rhoAverage)
+               /mag(p.Urel(vel));
 
             scalar fraction = deltaT/tauStrip;
 
@@ -146,35 +129,18 @@ void reitzDiwakar::breakupParcel
         }
         else
         {
-            scalar dBag =
-                2.0 * Cbag_ * sigma
-              / (
-                  rhoAverage
-                * pow(mag(p.Urel(vel)), 2.0)
-                );
+            scalar dBag = 2.0*Cbag_*sigma/(rhoAverage*sqr(mag(p.Urel(vel))));
 
             scalar tauBag =
-                Cb_ * p.d()
-                * sqrt
-                  (
-                      fuels.rho(pressure, p.T(), p.X())
-                    * p.d()
-                    / sigma
-                  );
+                Cb_*p.d()*sqrt(fuels.rho(pressure, p.T(), p.X())*p.d()/sigma);
 
             scalar fraction = deltaT/tauBag;
 
             // new droplet diameter, implicit calculation
             p.d() = (fraction*dBag + p.d())/(1.0 + fraction);
         }
-
     }
-
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

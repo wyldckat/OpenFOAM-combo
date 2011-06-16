@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -22,81 +22,58 @@ solvers
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-05;
+        relTol          0.1;
+    }
+
+    rhoFinal
+    {
+        $rho;
+        tolerance       1e-05;
         relTol          0;
     }
-    U
+
+    "(U|hs)"
     {
         solver          PBiCG;
         preconditioner  DILU;
         tolerance       1e-05;
-        relTol          0;
+        relTol          0.1;
     }
+
     p
     {
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-06;
-        relTol          0;
+        relTol          0.1;
     }
-    G
+
+    pFinal
     {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-05;
-        relTol          0;
-    }
-    Yi
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
+        $p;
         tolerance       1e-06;
         relTol          0;
     }
-    O2
+
+    "(U|hs)Final"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-06;
-        relTol          0;
-    }
-    N2
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-06;
-        relTol          0;
-    }
-    H2O
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-06;
-        relTol          0;
-    }
-    hs
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
+        $U;
         tolerance       1e-05;
         relTol          0;
     }
-    k
+
+    "(k|epsilon)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
+        $UFinal;
     }
-    epsilon
+
+    "(Yi|O2|N2|H2O)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
+        $UFinal;
     }
 }
 
-PISO
+PIMPLE
 {
     transonic       no;
     nCorrectors     2;
@@ -104,5 +81,9 @@ PISO
     momentumPredictor yes;
 }
 
+relaxationFactors
+{
+    ".*Final"       1;
+}
 
 // ************************************************************************* //

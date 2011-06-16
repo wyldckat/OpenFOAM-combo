@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -23,22 +23,22 @@ boundaryField
 {
     frontAndBack
     {
-        type            mutWallFunction;
+        type            mutUWallFunction;
         value           uniform 0;
     }
     topAndBottom
     {
-        type            mutWallFunction;
+        type            mutUWallFunction;
         value           uniform 0;
     }
     hot
     {
-        type            mutWallFunction;
+        type            mutUWallFunction;
         value           uniform 0;
     }
     cold
     {
-        type            mutWallFunction;
+        type            mutUWallFunction;
         value           uniform 0;
     }
 }

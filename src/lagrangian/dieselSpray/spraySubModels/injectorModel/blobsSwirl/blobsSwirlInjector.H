@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,17 +28,18 @@ Description
     Model for parcels injection in pressure Swirl Atomizers.
 
     Accurate description in:
-    @verbatim
+    \verbatim
         Z. Han, S. Parrish, P.V. Farrell, R.D. Reitz
-        "Modeling Atomization Processes Of Pressure Swirl Hollow-Cone Fuel Sprays"
+        "Modeling Atomization Processes Of Pressure
+        Swirl Hollow-Cone Fuel Sprays"
         Atomization and Sprays, vol. 7, pp. 663-684, 1997
-    @endverbatim
+    \endverbatim
     and
-    @verbatim
+    \verbatim
         L. Allocca, G. Bella, A. De Vita, L. Di Angelo
         "Experimental Validation of a GDI Spray Model"
         SAE Technical Paper Series, 2002-01-1137
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -53,8 +54,9 @@ Description
 
 namespace Foam
 {
+
 /*---------------------------------------------------------------------------*\
-                           Class blobsSwirlInjector Declaration
+                     Class blobsSwirlInjector Declaration
 \*---------------------------------------------------------------------------*/
 
 class blobsSwirlInjector
@@ -75,26 +77,22 @@ private:
         scalarList cTau_;
         scalarList A_;
 
-    // The initial spray angle for the parcels
+        //- Initial spray angle for the parcels
         mutable scalar angle_;
 
-    // The initial velocity for the parcels
+        //- Initial velocity for the parcels
         mutable scalar u_;
 
-    // The orifice-air cone area ratio
-
+        //- Orifice-air cone area ratio
         mutable scalar x_;
 
-    // The initial sheet tickness
-
+        //- Initial sheet tickness
         mutable scalar h_;
 
-    // private member functions
 
-        scalar kv
-        (
-            const label inj
-        ) const;
+    // Private Member Functions
+
+        scalar kv(const label inj) const;
 
         scalar deltaPressureInj(const scalar time, const label inj) const;
         scalar averagePressure(const label inj) const;
@@ -107,25 +105,21 @@ private:
             const scalar time
         ) const;
 
+
 public:
 
     //- Runtime type information
-        TypeName("blobsSwirlInjector");
+    TypeName("blobsSwirlInjector");
 
 
     // Constructors
 
         //- Construct from components
-        blobsSwirlInjector
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        blobsSwirlInjector(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~blobsSwirlInjector();
+    //- Destructor
+    virtual ~blobsSwirlInjector();
 
 
     // Member Functions
@@ -152,8 +146,6 @@ public:
         (
             const label i
         ) const;
-
-
 };
 
 

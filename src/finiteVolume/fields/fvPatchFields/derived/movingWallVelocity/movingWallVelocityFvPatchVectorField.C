@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,24 +29,23 @@ License
 #include "surfaceFields.H"
 #include "fvcMeshPhi.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
+Foam::movingWallVelocityFvPatchVectorField::
+movingWallVelocityFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF
 )
 :
-    fixedValueFvPatchVectorField(p, iF)
+    fixedValueFvPatchVectorField(p, iF),
+    UName_("U")
 {}
 
 
-movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
+Foam::movingWallVelocityFvPatchVectorField::
+movingWallVelocityFvPatchVectorField
 (
     const movingWallVelocityFvPatchVectorField& ptf,
     const fvPatch& p,
@@ -54,45 +53,52 @@ movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
     const fvPatchFieldMapper& mapper
 )
 :
-    fixedValueFvPatchVectorField(ptf, p, iF, mapper)
+    fixedValueFvPatchVectorField(ptf, p, iF, mapper),
+    UName_(ptf.UName_)
 {}
 
 
-movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
+Foam::movingWallVelocityFvPatchVectorField::
+movingWallVelocityFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
     const dictionary& dict
 )
 :
-    fixedValueFvPatchVectorField(p, iF)
+    fixedValueFvPatchVectorField(p, iF),
+    UName_(dict.lookupOrDefault<word>("U", "U"))
 {
     fvPatchVectorField::operator=(vectorField("value", dict, p.size()));
 }
 
 
-movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
+Foam::movingWallVelocityFvPatchVectorField::
+movingWallVelocityFvPatchVectorField
 (
-    const movingWallVelocityFvPatchVectorField& pivpvf
+    const movingWallVelocityFvPatchVectorField& mwvpvf
 )
 :
-    fixedValueFvPatchVectorField(pivpvf)
+    fixedValueFvPatchVectorField(mwvpvf),
+    UName_(mwvpvf.UName_)
 {}
 
 
-movingWallVelocityFvPatchVectorField::movingWallVelocityFvPatchVectorField
+Foam::movingWallVelocityFvPatchVectorField::
+movingWallVelocityFvPatchVectorField
 (
-    const movingWallVelocityFvPatchVectorField& pivpvf,
+    const movingWallVelocityFvPatchVectorField& mwvpvf,
     const DimensionedField<vector, volMesh>& iF
 )
 :
-    fixedValueFvPatchVectorField(pivpvf, iF)
+    fixedValueFvPatchVectorField(mwvpvf, iF),
+    UName_(mwvpvf.UName_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void movingWallVelocityFvPatchVectorField::updateCoeffs()
+void Foam::movingWallVelocityFvPatchVectorField::updateCoeffs()
 {
     if (updated())
     {
@@ -111,15 +117,17 @@ void movingWallVelocityFvPatchVectorField::updateCoeffs()
         oldFc[i] = pp[i].centre(oldPoints);
     }
 
-    vectorField Up = (pp.faceCentres() - oldFc)/mesh.time().deltaT().value();
+    const vectorField Up((pp.faceCentres() - oldFc)/mesh.time().deltaTValue());
 
-    const volVectorField& U = db().lookupObject<volVectorField>("U");
-    scalarField phip =
-        p.patchField<surfaceScalarField, scalar>(fvc::meshPhi(U));
+    const volVectorField& U = db().lookupObject<volVectorField>(UName_);
+    scalarField phip
+    (
+        p.patchField<surfaceScalarField, scalar>(fvc::meshPhi(U))
+    );
 
-    vectorField n = p.nf();
+    const vectorField n(p.nf());
     const scalarField& magSf = p.magSf();
-    scalarField Un = phip/(magSf + VSMALL);
+    tmp<scalarField> Un = phip/(magSf + VSMALL);
 
 
     vectorField::operator=(Up + n*(Un - (n & Up)));
@@ -128,23 +136,23 @@ void movingWallVelocityFvPatchVectorField::updateCoeffs()
 }
 
 
-void movingWallVelocityFvPatchVectorField::write(Ostream& os) const
+void Foam::movingWallVelocityFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchVectorField::write(os);
+    writeEntryIfDifferent<word>(os, "U", "U", UName_);
     writeEntry("value", os);
 }
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField
-(
-    fvPatchVectorField,
-    movingWallVelocityFvPatchVectorField
-);
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchVectorField,
+        movingWallVelocityFvPatchVectorField
+    );
+}
 
 // ************************************************************************* //

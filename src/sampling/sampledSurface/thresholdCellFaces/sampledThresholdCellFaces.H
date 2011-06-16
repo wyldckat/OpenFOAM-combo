@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,8 +67,8 @@ class sampledThresholdCellFaces
         //- Threshold value
         const scalar upperThreshold_;
 
-        //- zone name (if restricted to zones)
-        word zoneName_;
+        //- If restricted to zones, name of this zone or a regular expression
+        keyType zoneKey_;
 
         //- Triangulated faces or keep faces as is
         bool triangulate_;
@@ -118,9 +118,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~sampledThresholdCellFaces();
+    //- Destructor
+    virtual ~sampledThresholdCellFaces();
 
 
     // Member Functions
@@ -137,7 +136,6 @@ public:
         //  Do nothing (and return false) if no update was needed
         virtual bool update();
 
-
         //- Points of surface
         virtual const pointField& points() const
         {
@@ -151,16 +149,10 @@ public:
         }
 
         //- sample field on surface
-        virtual tmp<scalarField> sample
-        (
-            const volScalarField&
-        ) const;
+        virtual tmp<scalarField> sample(const volScalarField&) const;
 
         //- sample field on surface
-        virtual tmp<vectorField> sample
-        (
-            const volVectorField&
-        ) const;
+        virtual tmp<vectorField> sample( const volVectorField&) const;
 
         //- sample field on surface
         virtual tmp<sphericalTensorField> sample
@@ -169,17 +161,13 @@ public:
         ) const;
 
         //- sample field on surface
-        virtual tmp<symmTensorField> sample
-        (
-            const volSymmTensorField&
-        ) const;
+        virtual tmp<symmTensorField> sample(const volSymmTensorField&) const;
 
         //- sample field on surface
         virtual tmp<tensorField> sample
         (
             const volTensorField&
         ) const;
-
 
         //- interpolate field on surface
         virtual tmp<scalarField> interpolate

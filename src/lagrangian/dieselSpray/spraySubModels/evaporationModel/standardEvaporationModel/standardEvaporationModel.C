@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,27 +28,24 @@ License
 #include "standardEvaporationModel.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(standardEvaporationModel, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(standardEvaporationModel, 0);
-
-addToRunTimeSelectionTable
-(
-    evaporationModel,
-    standardEvaporationModel,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        evaporationModel,
+        standardEvaporationModel,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
-standardEvaporationModel::standardEvaporationModel
+Foam::standardEvaporationModel::standardEvaporationModel
 (
     const dictionary& dict
 )
@@ -61,20 +58,19 @@ standardEvaporationModel::standardEvaporationModel
     evaporationScheme_(evapDict_.lookup("evaporationScheme")),
     nEvapIter_(0)
 {
-    if (evaporationScheme_ == "implicit") 
+    if (evaporationScheme_ == "implicit")
     {
         nEvapIter_ = 2;
     }
-    else if (evaporationScheme_ == "explicit") 
+    else if (evaporationScheme_ == "explicit")
     {
         nEvapIter_ = 1;
     }
-    else 
+    else
     {
         FatalError
             << "evaporationScheme type " << evaporationScheme_
-            << " unknown.\n"
-            << "Use implicit or explicit."
+            << " unknown. Use implicit or explicit." << nl
             << abort(FatalError);
     }
 }
@@ -82,28 +78,34 @@ standardEvaporationModel::standardEvaporationModel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-standardEvaporationModel::~standardEvaporationModel()
+Foam::standardEvaporationModel::~standardEvaporationModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool standardEvaporationModel::evaporation() const
+bool Foam::standardEvaporationModel::evaporation() const
 {
     return true;
 }
 
+
 // Correlation for the Sherwood Number
-scalar standardEvaporationModel::Sh
+Foam::scalar Foam::standardEvaporationModel::Sh
 (
     const scalar ReynoldsNumber,
     const scalar SchmidtNumber
 ) const
 {
-    return 2.0 + preReScFactor_*pow(ReynoldsNumber,ReExponent_)*pow(SchmidtNumber,ScExponent_);
+    return
+        2.0
+      + preReScFactor_
+       *pow(ReynoldsNumber, ReExponent_)
+       *pow(SchmidtNumber, ScExponent_);
 }
 
-scalar standardEvaporationModel::relaxationTime
+
+Foam::scalar Foam::standardEvaporationModel::relaxationTime
 (
     const scalar diameter,
     const scalar liquidDensity,
@@ -131,7 +133,7 @@ scalar standardEvaporationModel::relaxationTime
         and Xratio -> infinity (as it should)
         ... this is numerically nasty
 
-    NB! by N. Nordin
+    NB!
         X_v,s = (p_v,s/p) X_v,d
         where X_v,d = 1 for single component fuel
         according to eq (3.136)
@@ -150,20 +152,20 @@ scalar standardEvaporationModel::relaxationTime
     // is d(diameter)/dt and not d(mass)/dt
 
     scalar denominator =
-        6.0 * massDiffusionCoefficient
-      * Sh(ReynoldsNumber, SchmidtNumber)
-      * rhoFuelVapor * lgExpr;
+        6.0*massDiffusionCoefficient
+       *Sh(ReynoldsNumber, SchmidtNumber)
+       *rhoFuelVapor*lgExpr;
 
     if (denominator > SMALL)
     {
-        time = max(VSMALL, liquidDensity * pow(diameter, 2.0)/denominator);
+        time = max(VSMALL, liquidDensity*sqr(diameter)/denominator);
     }
 
     return time;
 }
 
 
-scalar standardEvaporationModel::boilingTime
+Foam::scalar Foam::standardEvaporationModel::boilingTime
 (
     const scalar liquidDensity,
     const scalar cpFuel,
@@ -172,15 +174,15 @@ scalar standardEvaporationModel::boilingTime
     const scalar Nusselt,
     const scalar deltaTemp,
     const scalar diameter,
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar, 
-    const scalar 
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar
 ) const
 {
     scalar time = GREAT;
@@ -191,22 +193,14 @@ scalar standardEvaporationModel::boilingTime
     // limit for the boiling time... which we have anyway.
     scalar deltaT = max(0.5, deltaTemp);
 
-    time = liquidDensity*cpFuel*sqr(diameter)/
-    (
-        6.0 * kappa * Nusselt * log(1.0 + cpFuel * deltaT/max(SMALL, heatOfVapour))
-    );
+    time =
+        liquidDensity*cpFuel*sqr(diameter)
+       /(6.0*kappa*Nusselt*log(1.0 + cpFuel*deltaT/max(SMALL, heatOfVapour)));
 
     time = max(VSMALL, time);
 
     return time;
 }
 
-inline label standardEvaporationModel::nEvapIter() const
-{
-    return nEvapIter_;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

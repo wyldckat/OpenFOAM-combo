@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -37,23 +37,29 @@ writeFormat     ascii;
 
 writePrecision  6;
 
-writeCompression uncompressed;
+writeCompression off;
 
 timeFormat      general;
 
 timePrecision   6;
 
-runTimeModifiable yes;
+runTimeModifiable true;
 
 functions
 {
-    probes1
+    probes
     {
         type            probes;
-        functionObjectLibs ( "libsampling.so" );
+        functionObjectLibs ("libsampling.so");
         enabled         true;
         outputControl   timeStep;
         outputInterval  1;
+
+        fields
+        (
+            p
+        );
+
         probeLocations
         (
             ( 0.0254 0.0253 0 )
@@ -64,18 +70,16 @@ functions
             ( 0.1524 0.0253 0 )
             ( 0.1778 0.0253 0 )
         );
-        fields
-        (
-            p
-        );
+
     }
 
     fieldAverage1
     {
         type            fieldAverage;
-        functionObjectLibs ( "libfieldFunctionObjects.so" );
+        functionObjectLibs ("libfieldFunctionObjects.so");
         enabled         true;
         outputControl   outputTime;
+
         fields
         (
             U
@@ -93,7 +97,40 @@ functions
             }
         );
     }
-}
 
+    surfaceSampling
+    {
+        // Sample near-wall velocity
+
+        type surfaces;
+
+        // Where to load it from (if not already in solver)
+        functionObjectLibs ("libsampling.so");
+        enabled         true;
+        outputControl   outputTime;
+
+        interpolationScheme cellPoint;
+
+        surfaceFormat vtk;
+
+        // Fields to be sampled
+        fields
+        (
+            U
+        );
+
+        surfaces
+        (
+            nearWall
+            {
+                type            patchInternalField;
+                patches         ( lowerWall );
+                distance        1E-6;
+                interpolate     true;
+                triangulate     false;
+            }
+        );
+    }
+}
 
 // ************************************************************************* //

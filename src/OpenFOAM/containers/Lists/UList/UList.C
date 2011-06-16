@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -113,7 +113,7 @@ Foam::label Foam::UList<T>::byteSize() const
             << abort(FatalError);
     }
 
-    return this->size_*sizeof(T);
+    return this->size_*label(sizeof(T));
 }
 
 
@@ -142,6 +142,13 @@ template<class T, class Cmp>
 void Foam::stableSort(UList<T>& a, const Cmp& cmp)
 {
     std::stable_sort(a.begin(), a.end(), cmp);
+}
+
+
+template<class T>
+void Foam::shuffle(UList<T>& a)
+{
+    std::random_shuffle(a.begin(), a.end());
 }
 
 

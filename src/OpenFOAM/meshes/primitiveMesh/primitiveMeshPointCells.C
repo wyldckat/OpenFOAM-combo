@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,11 +63,11 @@ void Foam::primitiveMesh::calcPointCells() const
 
         labelList npc(nPoints(), 0);
 
-        forAll (cf, cellI)
+        forAll(cf, cellI)
         {
             const labelList curPoints = cf[cellI].labels(faces());
 
-            forAll (curPoints, pointI)
+            forAll(curPoints, pointI)
             {
                 label ptI = curPoints[pointI];
 
@@ -81,18 +81,18 @@ void Foam::primitiveMesh::calcPointCells() const
         pcPtr_ = new labelListList(npc.size());
         labelListList& pointCellAddr = *pcPtr_;
 
-        forAll (pointCellAddr, pointI)
+        forAll(pointCellAddr, pointI)
         {
             pointCellAddr[pointI].setSize(npc[pointI]);
         }
         npc = 0;
 
 
-        forAll (cf, cellI)
+        forAll(cf, cellI)
         {
             const labelList curPoints = cf[cellI].labels(faces());
 
-            forAll (curPoints, pointI)
+            forAll(curPoints, pointI)
             {
                 label ptI = curPoints[pointI];
 

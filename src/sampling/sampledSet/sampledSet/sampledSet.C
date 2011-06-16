@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -354,10 +354,11 @@ void Foam::sampledSet::setSamples
     {
         operator[](sampleI) = samplingPts[sampleI];
     }
+    curveDist_ = samplingCurveDist;
+
     cells_ = samplingCells;
     faces_ = samplingFaces;
     segments_ = samplingSegments;
-    curveDist_ = samplingCurveDist;
 }
 
 
@@ -375,7 +376,6 @@ Foam::sampledSet::sampledSet
     mesh_(mesh),
     searchEngine_(searchEngine),
     segments_(0),
-    curveDist_(0),
     cells_(0),
     faces_(0)
 {}
@@ -393,7 +393,6 @@ Foam::sampledSet::sampledSet
     mesh_(mesh),
     searchEngine_(searchEngine),
     segments_(0),
-    curveDist_(0),
     cells_(0),
     faces_(0)
 {}
@@ -415,7 +414,7 @@ Foam::autoPtr<Foam::sampledSet> Foam::sampledSet::New
     const dictionary& dict
 )
 {
-    word sampleType(dict.lookup("type"));
+    const word sampleType(dict.lookup("type"));
 
     wordConstructorTable::iterator cstrIter =
         wordConstructorTablePtr_->find(sampleType);
@@ -424,11 +423,11 @@ Foam::autoPtr<Foam::sampledSet> Foam::sampledSet::New
     {
         FatalErrorIn
         (
-            "sampledSet::New(const word&, "
-            "const polyMesh&, meshSearch&, const dictionary&)"
-        )   << "Unknown sample type " << sampleType
-            << nl << nl
-            << "Valid sample types : " << nl
+            "sampledSet::New"
+            "(const word&, const polyMesh&, meshSearch&, const dictionary&)"
+        )   << "Unknown sample type "
+            << sampleType << nl << nl
+            << "Valid sample types : " << endl
             << wordConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }

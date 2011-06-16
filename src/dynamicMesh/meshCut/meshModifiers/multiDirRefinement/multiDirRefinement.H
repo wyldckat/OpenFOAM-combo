@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -91,7 +91,7 @@ class multiDirRefinement
         //- Given map from original to added cell set the refineCell for
         //  the added cells to be equal to the one on the original cells.
         static void addCells(const Map<label>&, List<refineCell>&);
-        
+
         //- Given map from original to added cell set the vectorField for
         //  the added cells to be equal to the one on the original cells.
         static void update(const Map<label>&, vectorField&);

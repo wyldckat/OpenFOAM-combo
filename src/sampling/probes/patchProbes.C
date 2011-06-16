@@ -28,7 +28,7 @@ License
 #include "IOmanip.H"
 // For 'nearInfo' helper class only
 #include "directMappedPatchBase.H"
-#include "meshSearch.H"
+//#include "meshSearch.H"
 #include "treeBoundBox.H"
 #include "treeDataFace.H"
 
@@ -58,9 +58,8 @@ void Foam::patchProbes::findElements(const fvMesh& mesh)
             << exit(FatalError);
     }
 
-
-    // All the info for nearest. Construct to miss
-    List<directMappedPatchBase::nearInfo> nearest(probeLocations_.size());
+     // All the info for nearest. Construct to miss
+    List<directMappedPatchBase::nearInfo> nearest(this->size());
 
     const polyPatch& pp = bm[patchI];
 
@@ -95,14 +94,11 @@ void Foam::patchProbes::findElements(const fvMesh& mesh)
 
         if (elementList_.empty())
         {
-            elementList_.setSize(probeLocations_.size());
+            elementList_.setSize(probeLocations().size());
 
-            // Octree based search engine
-            //meshSearch meshSearchEngine(mesh, false);
-
-            forAll(probeLocations_, probeI)
+            forAll(probeLocations(), probeI)
             {
-                const point sample = probeLocations_[probeI];
+                const point sample = probeLocations()[probeI];
 
                 scalar span = boundaryTree.bb().mag();
 
@@ -158,6 +154,8 @@ void Foam::patchProbes::findElements(const fvMesh& mesh)
             }
         }
     }
+
+
     // Find nearest.
     Pstream::listCombineGather(nearest, directMappedPatchBase::nearestEqOp());
     Pstream::listCombineScatter(nearest);
@@ -170,16 +168,15 @@ void Foam::patchProbes::findElements(const fvMesh& mesh)
             label procI = nearest[sampleI].second().second();
             label localI = nearest[sampleI].first().index();
 
-            Info<< "    " << sampleI << " coord:"<< probeLocations_[sampleI]
+            Info<< "    " << sampleI << " coord:"<< operator[](sampleI)
                 << " found on processor:" << procI
                 << " in local cell/face:" << localI
-                << " with cc:" << nearest[sampleI].first().rawPoint()
-                << " in patch : "<< pp.name() << endl;
+                << " with cc:" << nearest[sampleI].first().rawPoint() << endl;
         }
     }
 
     // Check if all patchProbes have been found.
-    forAll(probeLocations_, sampleI)
+    forAll(nearest, sampleI)
     {
         label localI = -1;
         if (nearest[sampleI].second().second() == Pstream::myProcNo())
@@ -189,13 +186,12 @@ void Foam::patchProbes::findElements(const fvMesh& mesh)
 
         if (elementList_.empty())
         {
-             elementList_.setSize(probeLocations_.size());
+             elementList_.setSize(probeLocations().size());
         }
 
         elementList_[sampleI] = localI;
     }
 }
-
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -222,7 +218,7 @@ Foam::patchProbes::~patchProbes()
 
 void Foam::patchProbes::write()
 {
-    if (probeLocations_.size() && checkFieldTypes())
+    if (this->size() && prepare())
     {
         sampleAndWrite(scalarFields_);
         sampleAndWrite(vectorFields_);
@@ -234,7 +230,6 @@ void Foam::patchProbes::write()
 
 void Foam::patchProbes::read(const dictionary& dict)
 {
-    dict.lookup("patchName") >> patchName_;
     probes::read(dict);
 }
 

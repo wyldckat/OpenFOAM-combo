@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,9 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "ThermoParcel.H"
-#include "radiationConstants.H"
+#include "physicoChemicalConstants.H"
+
+using namespace Foam::constant;
 
 // * * * * * * * * * * *  Protected Member Functions * * * * * * * * * * * * //
 
@@ -37,26 +39,31 @@ void Foam::ThermoParcel<ParcelType>::setCellValues
     const label cellI
 )
 {
-    KinematicParcel<ParcelType>::setCellValues(td, dt, cellI);
+    ParcelType::setCellValues(td, dt, cellI);
 
-    cpc_ = td.cpInterp().interpolate(this->position(), cellI);
+    tetIndices tetIs = this->currentTetIndices();
 
-    Tc_ = td.TInterp().interpolate(this->position(), cellI);
+    Cpc_ = td.CpInterp().interpolate(this->position(), tetIs);
 
-    if (Tc_ < td.constProps().TMin())
+    Tc_ = td.TInterp().interpolate(this->position(), tetIs);
+
+    if (Tc_ < td.cloud().constProps().TMin())
     {
-        WarningIn
-        (
-            "void Foam::ThermoParcel<ParcelType>::setCellValues"
-            "("
-                "TrackData&, "
-                "const scalar, "
-                "const label"
-            ")"
-        )   << "Limiting observed temperature in cell " << cellI << " to "
-            << td.constProps().TMin() <<  nl << endl;
+        if (debug)
+        {
+            WarningIn
+            (
+                "void Foam::ThermoParcel<ParcelType>::setCellValues"
+                "("
+                    "TrackData&, "
+                    "const scalar, "
+                    "const label"
+                ")"
+            )   << "Limiting observed temperature in cell " << cellI << " to "
+                << td.cloud().constProps().TMin() <<  nl << endl;
+        }
 
-        Tc_ = td.constProps().TMin();
+        Tc_ = td.cloud().constProps().TMin();
     }
 }
 
@@ -72,8 +79,27 @@ void Foam::ThermoParcel<ParcelType>::cellValueSourceCorrection
 {
     this->Uc_ += td.cloud().UTrans()[cellI]/this->massCell(cellI);
 
-    scalar cpMean = td.cpInterp().psi()[cellI];
-    Tc_ += td.cloud().hsTrans()[cellI]/(cpMean*this->massCell(cellI));
+    const scalar CpMean = td.CpInterp().psi()[cellI];
+    Tc_ += td.cloud().hsTrans()[cellI]/(CpMean*this->massCell(cellI));
+
+    if (Tc_ < td.cloud().constProps().TMin())
+    {
+        if (debug)
+        {
+            WarningIn
+            (
+                "void Foam::ThermoParcel<ParcelType>::cellValueSourceCorrection"
+                "("
+                    "TrackData&, "
+                    "const scalar, "
+                    "const label"
+                ")"
+            )   << "Limiting observed temperature in cell " << cellI << " to "
+                << td.cloud().constProps().TMin() <<  nl << endl;
+        }
+
+        Tc_ = td.cloud().constProps().TMin();
+    }
 }
 
 
@@ -88,19 +114,49 @@ void Foam::ThermoParcel<ParcelType>::calcSurfaceValues
     scalar& rhos,
     scalar& mus,
     scalar& Pr,
-    scalar& kappa
+    scalar& kappas
 ) const
 {
     // Surface temperature using two thirds rule
     Ts = (2.0*T + Tc_)/3.0;
 
-    // Assuming thermo props vary linearly with T for small dT
-    scalar factor = td.TInterp().interpolate(this->position(), cellI)/Ts;
-    rhos = this->rhoc_*factor;
-    mus = td.muInterp().interpolate(this->position(), cellI)/factor;
+    if (Ts < td.cloud().constProps().TMin())
+    {
+        if (debug)
+        {
+            WarningIn
+            (
+                "void Foam::ThermoParcel<ParcelType>::calcSurfaceValues"
+                "("
+                    "TrackData&, "
+                    "const label, "
+                    "const scalar, "
+                    "scalar&, "
+                    "scalar&, "
+                    "scalar&, "
+                    "scalar&, "
+                    "scalar&"
+                ") const"
+            )   << "Limiting parcel surface temperature to "
+                << td.cloud().constProps().TMin() <<  nl << endl;
+        }
 
-    Pr = td.constProps().Pr();
-    kappa = cpc_*mus/Pr;
+        Ts = td.cloud().constProps().TMin();
+    }
+
+    // Assuming thermo props vary linearly with T for small dT
+    const scalar TRatio = Tc_/Ts;
+
+    rhos = this->rhoc_*TRatio;
+
+    tetIndices tetIs = this->currentTetIndices();
+    mus = td.muInterp().interpolate(this->position(), tetIs)/TRatio;
+
+    Pr = td.cloud().constProps().Pr();
+    Pr = max(ROOTVSMALL, Pr);
+
+    kappas = Cpc_*mus/Pr;
+    kappas = max(ROOTVSMALL, kappas);
 }
 
 
@@ -116,21 +172,16 @@ void Foam::ThermoParcel<ParcelType>::calc
     // Define local properties at beginning of time step
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     const scalar np0 = this->nParticle_;
-    const scalar d0 = this->d_;
-    const vector U0 = this->U_;
-    const scalar rho0 = this->rho_;
-    const scalar T0 = this->T_;
-    const scalar cp0 = this->cp_;
     const scalar mass0 = this->mass();
 
 
     // Calc surface values
     // ~~~~~~~~~~~~~~~~~~~
-    scalar Ts, rhos, mus, Pr, kappa;
-    calcSurfaceValues(td, cellI, T0, Ts, rhos, mus, Pr, kappa);
+    scalar Ts, rhos, mus, Pr, kappas;
+    calcSurfaceValues(td, cellI, this->T_, Ts, rhos, mus, Pr, kappas);
 
     // Reynolds number
-    scalar Re = this->Re(U0, d0, rhos, mus);
+    scalar Re = this->Re(this->U_, this->d_, rhos, mus);
 
 
     // Sources
@@ -139,11 +190,17 @@ void Foam::ThermoParcel<ParcelType>::calc
     // Explicit momentum source for particle
     vector Su = vector::zero;
 
+    // Linearised momentum source coefficient
+    scalar Spu = 0.0;
+
     // Momentum transfer from the particle to the carrier phase
     vector dUTrans = vector::zero;
 
     // Explicit enthalpy source for particle
     scalar Sh = 0.0;
+
+    // Linearised enthalpy source coefficient
+    scalar Sph = 0.0;
 
     // Sensible enthalpy transfer from the particle to the carrier phase
     scalar dhsTrans = 0.0;
@@ -155,23 +212,20 @@ void Foam::ThermoParcel<ParcelType>::calc
     // Sum Ni*Cpi*Wi of emission species
     scalar NCpW = 0.0;
 
-    // Calculate new particle velocity
-    scalar T1 =
-        calcHeatTransfer
+    // Calculate new particle temperature
+    this->T_ =
+        this->calcHeatTransfer
         (
             td,
             dt,
             cellI,
             Re,
             Pr,
-            kappa,
-            d0,
-            rho0,
-            T0,
-            cp0,
+            kappas,
             NCpW,
             Sh,
-            dhsTrans
+            dhsTrans,
+            Sph
         );
 
 
@@ -179,30 +233,31 @@ void Foam::ThermoParcel<ParcelType>::calc
     // ~~~~~~
 
     // Calculate new particle velocity
-    vector U1 =
-        calcVelocity(td, dt, cellI, Re, mus, d0, U0, rho0, mass0, Su, dUTrans);
+    this->U_ =
+        this->calcVelocity(td, dt, cellI, Re, mus, mass0, Su, dUTrans, Spu);
 
 
     //  Accumulate carrier phase source terms
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (td.cloud().coupled())
+    if (td.cloud().solution().coupled())
     {
         // Update momentum transfer
         td.cloud().UTrans()[cellI] += np0*dUTrans;
 
+        // Update momentum transfer coefficient
+        td.cloud().UCoeff()[cellI] += np0*Spu;
+
         // Update sensible enthalpy transfer
         td.cloud().hsTrans()[cellI] += np0*dhsTrans;
-    }
 
-    // Set new particle properties
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    this->U_ = U1;
-    T_ = T1;
+        // Update sensible enthalpy coefficient
+        td.cloud().hsCoeff()[cellI] += np0*Sph;
+    }
 }
 
 
 template<class ParcelType>
-template <class TrackData>
+template<class TrackData>
 Foam::scalar Foam::ThermoParcel<ParcelType>::calcHeatTransfer
 (
     TrackData& td,
@@ -211,51 +266,59 @@ Foam::scalar Foam::ThermoParcel<ParcelType>::calcHeatTransfer
     const scalar Re,
     const scalar Pr,
     const scalar kappa,
-    const scalar d,
-    const scalar rho,
-    const scalar T,
-    const scalar cp,
     const scalar NCpW,
     const scalar Sh,
-    scalar& dhsTrans
+    scalar& dhsTrans,
+    scalar& Sph
 )
 {
     if (!td.cloud().heatTransfer().active())
     {
-        return T;
+        return T_;
     }
+
+    const scalar d = this->d();
+    const scalar rho = this->rho();
 
     // Calc heat transfer coefficient
     scalar htc = td.cloud().heatTransfer().htc(d, Re, Pr, kappa, NCpW);
 
     if (mag(htc) < ROOTVSMALL && !td.cloud().radiation())
     {
-        return max(T + dt*Sh/(this->volume(d)*rho*cp), td.constProps().TMin());
+        return
+            max
+            (
+                T_ + dt*Sh/(this->volume(d)*rho*Cp_),
+                td.cloud().constProps().TMin()
+            );
     }
 
+    htc = max(htc, ROOTVSMALL);
     const scalar As = this->areaS(d);
+
     scalar ap = Tc_ + Sh/As/htc;
-    scalar bp = 6.0*(Sh/As + htc*(Tc_ - T));
+    scalar bp = 6.0*(Sh/As + htc*(Tc_ - T_));
     if (td.cloud().radiation())
     {
-        const scalarField& G =
-            td.cloud().mesh().objectRegistry::lookupObject<volScalarField>("G");
-        const scalar Gc = G[cellI];
-        const scalar sigma = radiation::sigmaSB.value();
-        const scalar epsilon = td.constProps().epsilon0();
+        tetIndices tetIs = this->currentTetIndices();
+        const scalar Gc = td.GInterp().interpolate(this->position(), tetIs);
+        const scalar sigma = physicoChemical::sigma.value();
+        const scalar epsilon = td.cloud().constProps().epsilon0();
 
-        ap = (ap + epsilon*Gc/(4.0*htc))/(1.0 + epsilon*sigma*pow3(T)/htc);
-        bp += 6.0*(epsilon*(Gc/4.0 - sigma*pow4(T)));
+        ap = (ap + epsilon*Gc/(4.0*htc))/(1.0 + epsilon*sigma*pow3(T_)/htc);
+        bp += 6.0*(epsilon*(Gc/4.0 - sigma*pow4(T_)));
     }
-    bp /= rho*d*cp*(ap - T);
+    bp /= rho*d*Cp_*(ap - T_) + ROOTVSMALL;
 
     // Integrate to find the new parcel temperature
     IntegrationScheme<scalar>::integrationResult Tres =
-        td.cloud().TIntegrator().integrate(T, dt, ap, bp);
+        td.cloud().TIntegrator().integrate(T_, dt, ap*bp, bp);
 
-    scalar Tnew = max(Tres.value(), td.constProps().TMin());
+    scalar Tnew = max(Tres.value(), td.cloud().constProps().TMin());
 
-    dhsTrans += dt*htc*As*(0.5*(T + Tnew) - Tc_);
+    Sph = dt*htc*As;
+
+    dhsTrans += Sph*(0.5*(T_ + Tnew) - Tc_);
 
     return Tnew;
 }
@@ -263,17 +326,32 @@ Foam::scalar Foam::ThermoParcel<ParcelType>::calcHeatTransfer
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 Foam::ThermoParcel<ParcelType>::ThermoParcel
 (
     const ThermoParcel<ParcelType>& p
 )
 :
-    KinematicParcel<ParcelType>(p),
+    ParcelType(p),
     T_(p.T_),
-    cp_(p.cp_),
+    Cp_(p.Cp_),
     Tc_(p.Tc_),
-    cpc_(p.cpc_)
+    Cpc_(p.Cpc_)
+{}
+
+
+template<class ParcelType>
+Foam::ThermoParcel<ParcelType>::ThermoParcel
+(
+    const ThermoParcel<ParcelType>& p,
+    const polyMesh& mesh
+)
+:
+    ParcelType(p, mesh),
+    T_(p.T_),
+    Cp_(p.Cp_),
+    Tc_(p.Tc_),
+    Cpc_(p.Cpc_)
 {}
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,29 +28,24 @@ License
 #include "standardDragModel.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(standardDragModel, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        dragModel,
+        standardDragModel,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(standardDragModel, 0);
-
-addToRunTimeSelectionTable
-(
-    dragModel,
-    standardDragModel,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-standardDragModel::standardDragModel
-(
-    const dictionary& dict
-)
+Foam::standardDragModel::standardDragModel(const dictionary& dict)
 :
     dragModel(dict),
     dragDict_(dict.subDict(typeName + "Coeffs")),
@@ -61,15 +56,16 @@ standardDragModel::standardDragModel
     Cdistort_(readScalar(dragDict_.lookup("Cdistort")))
 {}
 
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-standardDragModel::~standardDragModel()
+Foam::standardDragModel::~standardDragModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-scalar standardDragModel::Cd
+Foam::scalar Foam::standardDragModel::Cd
 (
     const scalar Re,
     const scalar dev
@@ -86,11 +82,10 @@ scalar standardDragModel::Cd
     drag *= (1.0 + Cdistort_*dev);
 
     return drag;
-
 }
 
 
-scalar standardDragModel::relaxationTime
+Foam::scalar Foam::standardDragModel::relaxationTime
 (
     const vector& URel,
     const scalar diameter,
@@ -100,16 +95,12 @@ scalar standardDragModel::relaxationTime
     const scalar dev
 ) const
 {
-
     scalar time = GREAT;
     scalar Re = mag(URel)*diameter/nu;
 
     if (Re > 0.1)
     {
-        time = 4.0*liquidDensity*diameter /
-        (
-            3.0*rho*Cd(Re, dev)*mag(URel)
-        );
+        time = 4.0*liquidDensity*diameter/(3.0*rho*Cd(Re, dev)*mag(URel));
     }
     else
     {
@@ -117,13 +108,12 @@ scalar standardDragModel::relaxationTime
         // the nominator and denominator
         // use Cd = 24/Re and remove the SMALL/SMALL
         // expression for the velocities
-        time = liquidDensity*diameter*diameter/(18*rho*nu*(1.0 + Cdistort_*dev));
+        time =
+            liquidDensity*diameter*diameter/(18*rho*nu*(1.0 + Cdistort_*dev));
     }
+
     return time;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

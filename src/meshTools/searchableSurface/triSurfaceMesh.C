@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -162,7 +162,7 @@ bool Foam::triSurfaceMesh::isSurfaceClosed() const
         facesPerEdge.clear();
         forAll(pFaces, i)
         {
-            const labelledTri& f = triSurface::operator[](pFaces[i]);
+            const triSurface::FaceType& f = triSurface::operator[](pFaces[i]);
             label fp = findIndex(f, pointI);
 
             // Something weird: if I expand the code of addFaceToEdge in both
@@ -238,7 +238,7 @@ void Foam::triSurfaceMesh::getNextIntersections
     while (true)
     {
         // Start tracking from last hit.
-        point pt = hits[hits.size()-1].hitPoint() + perturbVec;
+        point pt = hits.last().hitPoint() + perturbVec;
 
         if (((pt-start)&dirVec) > magSqrDirVec)
         {
@@ -293,9 +293,9 @@ void Foam::triSurfaceMesh::calcBounds(boundBox& bb, label& nPoints) const
     nPoints = 0;
     bb = boundBox::invertedBox;
 
-    forAll(s, triI)
+    forAll(s, faceI)
     {
-        const labelledTri& f = s[triI];
+        const triSurface::FaceType& f = s[faceI];
 
         forAll(f, fp)
         {
@@ -475,9 +475,9 @@ void Foam::triSurfaceMesh::clearOut()
 Foam::pointField Foam::triSurfaceMesh::coordinates() const
 {
     // Use copy to calculate face centres so they don't get stored
-    return PrimitivePatch<labelledTri, SubList, const pointField&>
+    return PrimitivePatch<triSurface::FaceType, SubList, const pointField&>
     (
-        SubList<labelledTri>(*this, triSurface::size()),
+        SubList<triSurface::FaceType>(*this, triSurface::size()),
         triSurface::points()
     ).faceCentres();
 }
@@ -492,7 +492,7 @@ void Foam::triSurfaceMesh::movePoints(const pointField& newPoints)
 
 
 const Foam::indexedOctree<Foam::treeDataTriSurface>&
-    Foam::triSurfaceMesh::tree() const
+Foam::triSurfaceMesh::tree() const
 {
     if (tree_.empty())
     {
@@ -528,7 +528,7 @@ const Foam::indexedOctree<Foam::treeDataTriSurface>&
         (
             new indexedOctree<treeDataTriSurface>
             (
-                treeDataTriSurface(*this),
+                treeDataTriSurface(*this, tolerance_),
                 bb,
                 maxTreeDepth_,  // maxLevel
                 10,             // leafsize
@@ -544,7 +544,7 @@ const Foam::indexedOctree<Foam::treeDataTriSurface>&
 
 
 const Foam::indexedOctree<Foam::treeDataEdge>&
- Foam::triSurfaceMesh::edgeTree() const
+Foam::triSurfaceMesh::edgeTree() const
 {
     if (edgeTree_.empty())
     {
@@ -573,6 +573,9 @@ const Foam::indexedOctree<Foam::treeDataEdge>&
         bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         bb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
 
+        scalar oldTol = indexedOctree<treeDataTriSurface>::perturbTol();
+        indexedOctree<treeDataEdge>::perturbTol() = tolerance_;
+
         edgeTree_.reset
         (
             new indexedOctree<treeDataEdge>
@@ -590,6 +593,8 @@ const Foam::indexedOctree<Foam::treeDataEdge>&
                 3.0                 // duplicity
             )
         );
+
+        indexedOctree<treeDataEdge>::perturbTol() = oldTol;
     }
     return edgeTree_();
 }
@@ -804,12 +809,12 @@ void Foam::triSurfaceMesh::getNormal
     {
         if (info[i].hit())
         {
-            label triI = info[i].index();
+            label faceI = info[i].index();
             //- Cached:
-            //normal[i] = faceNormals()[triI];
+            //normal[i] = faceNormals()[faceI];
 
             //- Uncached
-            normal[i] = triSurface::operator[](triI).normal(points());
+            normal[i] = triSurface::operator[](faceI).normal(points());
             normal[i] /= mag(normal[i]) + VSMALL;
         }
         else

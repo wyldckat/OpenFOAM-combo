@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::DsmcParcel<ParcelType>::constantProperties::constantProperties()
 :
     mass_(0),
@@ -35,7 +35,7 @@ inline Foam::DsmcParcel<ParcelType>::constantProperties::constantProperties()
 {}
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::DsmcParcel<ParcelType>::constantProperties::constantProperties
 (
     const dictionary& dict
@@ -51,29 +51,20 @@ inline Foam::DsmcParcel<ParcelType>::constantProperties::constantProperties
 {}
 
 
-template <class ParcelType>
-inline Foam::DsmcParcel<ParcelType>::trackData::trackData
-(
-    DsmcCloud<ParcelType>& cloud
-)
-:
-    Particle<ParcelType>::trackData(cloud),
-    cloud_(cloud)
-{}
-
-
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::DsmcParcel<ParcelType>::DsmcParcel
 (
-    DsmcCloud<ParcelType>& owner,
+    const polyMesh& mesh,
     const vector& position,
     const vector& U,
     const scalar Ei,
-    const label celli,
+    const label cellI,
+    const label tetFaceI,
+    const label tetPtI,
     const label typeId
 )
 :
-    Particle<ParcelType>(owner, position, celli),
+    ParcelType(mesh, position, cellI, tetFaceI, tetPtI),
     U_(U),
     Ei_(Ei),
     typeId_(typeId)
@@ -82,7 +73,7 @@ inline Foam::DsmcParcel<ParcelType>::DsmcParcel
 
 // * * * * * * * * * constantProperties Member Functions * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::DsmcParcel<ParcelType>::constantProperties::mass() const
 {
@@ -90,23 +81,22 @@ Foam::DsmcParcel<ParcelType>::constantProperties::mass() const
 }
 
 
-template <class ParcelType>
-inline Foam::scalar
-Foam::DsmcParcel<ParcelType>::constantProperties::d() const
+template<class ParcelType>
+inline Foam::scalar Foam::DsmcParcel<ParcelType>::constantProperties::d() const
 {
     return d_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::DsmcParcel<ParcelType>::constantProperties::sigmaT() const
 {
-    return mathematicalConstant::pi*d_*d_;
+    return constant::mathematical::pi*d_*d_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::DsmcParcel<ParcelType>::constantProperties::internalDegreesOfFreedom()
 const
@@ -115,7 +105,7 @@ const
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::DsmcParcel<ParcelType>::constantProperties::omega() const
 {
@@ -123,47 +113,37 @@ Foam::DsmcParcel<ParcelType>::constantProperties::omega() const
 }
 
 
-// * * * * * * * * * * * trackData Member Functions  * * * * * * * * * * * * //
-
-template <class ParcelType>
-inline Foam::DsmcCloud<ParcelType>&
-Foam::DsmcParcel<ParcelType>::trackData::cloud()
-{
-    return cloud_;
-}
-
-
 // * * * * * * * * * * DsmcParcel Member Functions  * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::label Foam::DsmcParcel<ParcelType>::typeId() const
 {
     return typeId_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline const Foam::vector& Foam::DsmcParcel<ParcelType>::U() const
 {
     return U_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar Foam::DsmcParcel<ParcelType>::Ei() const
 {
     return Ei_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::vector& Foam::DsmcParcel<ParcelType>::U()
 {
     return U_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar& Foam::DsmcParcel<ParcelType>::Ei()
 {
     return Ei_;

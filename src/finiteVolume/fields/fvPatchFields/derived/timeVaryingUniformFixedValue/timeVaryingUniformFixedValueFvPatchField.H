@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,17 +25,19 @@ Class
     Foam::timeVaryingUniformFixedValueFvPatchField
 
 Description
-    A time-varying form of a uniform fixed value boundary condition.
+    A time-varying form of a uniform fixed value boundary condition. The
+    variation is specified as an interpolationTable (see
+    Foam::interpolationTable for read options).
 
     Example of the boundary condition specification:
-    @verbatim
+    \verbatim
     inlet
     {
         type            timeVaryingUniformFixedValue;
         fileName        "$FOAM_CASE/time-series";
         outOfBounds     clamp;           // (error|warn|clamp|repeat)
     }
-    @endverbatim
+    \endverbatim
 
 Note
     This class is derived directly from a fixedValue patch rather than from

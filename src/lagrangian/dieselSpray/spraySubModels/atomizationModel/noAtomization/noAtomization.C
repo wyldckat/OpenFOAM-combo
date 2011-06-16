@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,26 +29,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "basicMultiComponentMixture.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(noAtomization, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+    addToRunTimeSelectionTable
+    (
+        atomizationModel,
+        noAtomization,
+        dictionary
+    );
+}
 
-defineTypeNameAndDebug(noAtomization, 0);
-
-addToRunTimeSelectionTable
-(
-    atomizationModel,
-    noAtomization,
-    dictionary
-);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-noAtomization::noAtomization
+Foam::noAtomization::noAtomization
 (
     const dictionary& dict,
     spray& sm
@@ -60,26 +58,22 @@ noAtomization::noAtomization
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-noAtomization::~noAtomization()
+Foam::noAtomization::~noAtomization()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void noAtomization::atomizeParcel
+void Foam::noAtomization::atomizeParcel
 (
     parcel& p,
     const scalar deltaT,
     const vector& vel,
-    const liquidMixture& fuels
+    const liquidMixtureProperties& fuels
 ) const
 {
     p.liquidCore() = 0.0;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

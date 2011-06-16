@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,61 +28,21 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "thermoPhysicsTypes.H"
-#include "ReactingMultiphaseCloud.H"
-
 #include "ConstantRateDevolatilisation.H"
 #include "NoDevolatilisation.H"
 #include "SingleKineticRateDevolatilisation.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeReactingMultiphaseDevolatilisationModels(ParcelType)              \
+#define makeReactingMultiphaseParcelDevolatilisationModels(CloudType)         \
                                                                               \
-    makeReactingMultiphaseDevolatilisationModelThermoType                     \
-    (                                                                         \
-        ParcelType,                                                           \
-        constGasThermoPhysics                                                 \
-    );                                                                        \
-    makeReactingMultiphaseDevolatilisationModelThermoType                     \
-    (                                                                         \
-        ParcelType,                                                           \
-        gasThermoPhysics                                                      \
-    );                                                                        \
-    makeReactingMultiphaseDevolatilisationModelThermoType                     \
-    (                                                                         \
-        ParcelType,                                                           \
-        icoPoly8ThermoPhysics                                                 \
-    );
-
-
-#define makeReactingMultiphaseDevolatilisationModelThermoType(ParcelType, ThermoType)\
-                                                                              \
-    makeDevolatilisationModel                                                 \
-    (                                                                         \
-        ReactingMultiphaseCloud<ParcelType<ThermoType> >                      \
-    );                                                                        \
-                                                                              \
-    makeDevolatilisationModelThermoType                                       \
-    (                                                                         \
-        ConstantRateDevolatilisation,                                         \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );                                                                        \
-    makeDevolatilisationModelThermoType                                       \
-    (                                                                         \
-        NoDevolatilisation,                                                   \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );                                                                        \
-    makeDevolatilisationModelThermoType                                       \
+    makeDevolatilisationModel(CloudType);                                     \
+    makeDevolatilisationModelType(ConstantRateDevolatilisation, CloudType);   \
+    makeDevolatilisationModelType(NoDevolatilisation, CloudType);             \
+    makeDevolatilisationModelType                                             \
     (                                                                         \
         SingleKineticRateDevolatilisation,                                    \
-        ReactingMultiphaseCloud,                                              \
-        ParcelType,                                                           \
-        ThermoType                                                            \
+        CloudType                                                             \
     );
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,8 @@ Description
 #include "regionProperties.H"
 #include "compressibleCourantNo.H"
 #include "solidRegionDiffNo.H"
+#include "basicSolidThermo.H"
+#include "radiationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -92,6 +94,8 @@ int main(int argc, char *argv[])
         // --- PIMPLE loop
         for (int oCorr=0; oCorr<nOuterCorr; oCorr++)
         {
+            bool finalIter = oCorr == nOuterCorr-1;
+
             forAll(fluidRegions, i)
             {
                 Info<< "\nSolving for fluid region "

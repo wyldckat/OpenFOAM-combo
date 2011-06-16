@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,17 +80,6 @@ Foam::OFstreamAllocator::~OFstreamAllocator()
 }
 
 
-std::ostream& Foam::OFstreamAllocator::stdStream()
-{
-    if (!ofPtr_)
-    {
-        FatalErrorIn("OFstreamAllocator::stdStream()")
-            << "No stream allocated." << abort(FatalError);
-    }
-    return *ofPtr_;
-}
-
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::OFstream::OFstream
@@ -130,13 +119,35 @@ Foam::OFstream::OFstream
 }
 
 
-// * * * * * * * * * * * * * * * * Destructors * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::OFstream::~OFstream()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+std::ostream& Foam::OFstream::stdStream()
+{
+    if (!ofPtr_)
+    {
+        FatalErrorIn("OFstream::stdStream()")
+            << "No stream allocated." << abort(FatalError);
+    }
+    return *ofPtr_;
+}
+
+
+const std::ostream& Foam::OFstream::stdStream() const
+{
+    if (!ofPtr_)
+    {
+        FatalErrorIn("OFstreamAllocator::stdStream() const")
+            << "No stream allocated." << abort(FatalError);
+    }
+    return *ofPtr_;
+}
+
 
 void Foam::OFstream::print(Ostream& os) const
 {

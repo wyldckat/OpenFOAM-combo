@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Description
-    Translates a STAR-CD SMAP data file into FOAM field format.
+    Translates a STAR-CD SMAP data file into OpenFOAM field format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
     fileNameList fieldNames = readDir(runTime.timePath(), fileName::FILE);
     dictionary fieldNameDict;
-    forAll (fieldNames, i)
+    forAll(fieldNames, i)
     {
         fieldNameDict.add(fieldNames[i], word(fieldNames[i]));
     }
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 
 #   include "createMesh.H"
 
-    IFstream smapFile(args.additionalArgs()[0]);
+    IFstream smapFile(args[1]);
 
     if (!smapFile.good())
     {
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 
         label cell;
         scalar value;
-        forAll (mesh.cells(), celli)
+        forAll(mesh.cells(), celli)
         {
             if (celli > 0)
             {
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

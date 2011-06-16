@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ template<class T>
 inline Foam::UIndirectList<T>::UIndirectList
 (
     const UList<T>& completeList,
-    const UList<label>& addr
+    const labelUList& addr
 )
 :
     completeList_(const_cast<UList<T>&>(completeList)),
@@ -50,6 +50,34 @@ template<class T>
 inline bool Foam::UIndirectList<T>::empty() const
 {
     return addressing_.empty();
+}
+
+
+template<class T>
+inline T& Foam::UIndirectList<T>::first()
+{
+    return completeList_[addressing_.first()];
+}
+
+
+template<class T>
+inline const T& Foam::UIndirectList<T>::first() const
+{
+    return completeList_[addressing_.first()];
+}
+
+
+template<class T>
+inline T& Foam::UIndirectList<T>::last()
+{
+    return completeList_[addressing_.last()];
+}
+
+
+template<class T>
+inline const T& Foam::UIndirectList<T>::last() const
+{
+    return completeList_[addressing_.last()];
 }
 
 

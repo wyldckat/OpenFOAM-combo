@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -1014,7 +1014,7 @@ void Foam::polyDualMesh::calcDual
 
         {
             // Check orientation.
-            const face& f = dynDualFaces[dynDualFaces.size()-1];
+            const face& f = dynDualFaces.last();
             vector n = f.normal(dualPoints);
             if (((mesh.points()[owner] - dualPoints[f[0]]) & n) > 0)
             {
@@ -1129,7 +1129,7 @@ void Foam::polyDualMesh::calcDual
 
             {
                 // Check orientation.
-                const face& f = dynDualFaces[dynDualFaces.size()-1];
+                const face& f = dynDualFaces.last();
                 vector n = f.normal(dualPoints);
                 if (((mesh.points()[owner] - dualPoints[f[0]]) & n) > 0)
                 {
@@ -1400,8 +1400,8 @@ Foam::polyDualMesh::polyDualMesh
     polyMesh
     (
         mesh,
-        xferCopy(pointField()),   // to prevent any warnings "points not allocated"
-        xferCopy(faceList()),     // to prevent any warnings "faces  not allocated"
+        xferCopy(pointField()),// to prevent any warnings "points not allocated"
+        xferCopy(faceList()),  // to prevent any warnings "faces  not allocated"
         xferCopy(cellList())
     ),
     cellPoint_
@@ -1445,8 +1445,8 @@ Foam::polyDualMesh::polyDualMesh
     polyMesh
     (
         mesh,
-        xferCopy(pointField()),   // to prevent any warnings "points not allocated"
-        xferCopy(faceList()),     // to prevent any warnings "faces  not allocated"
+        xferCopy(pointField()),// to prevent any warnings "points not allocated"
+        xferCopy(faceList()),  // to prevent any warnings "faces  not allocated"
         xferCopy(cellList())
     ),
     cellPoint_

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,30 +46,28 @@ using namespace Foam;
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validArgs.append("input surface file");
-    argList::validArgs.append("output surface file");
-    argList::validArgs.append("included angle [0..180]");
+    argList::validArgs.append("input surfaceFile");
+    argList::validArgs.append("output surfaceFile");
+    argList::validArgs.append("includedAngle [0..180]");
     argList args(argc, argv);
 
-    fileName inFileName(args.additionalArgs()[0]);
-    fileName outFileName(args.additionalArgs()[1]);
-    scalar includedAngle(readScalar(IStringStream(args.additionalArgs()[2])()));
+    const fileName inFileName  = args[1];
+    const fileName outFileName = args[2];
+    const scalar includedAngle = args.argRead<scalar>(3);
 
-    Pout<< "Surface        : " << inFileName << nl
-        << endl;
+    Info<< "Surface        : " << inFileName << nl << endl;
 
 
     // Read
     // ~~~~
 
-    Info << "Reading : " << inFileName << endl;
+    Info<< "Reading : " << inFileName << endl;
     triSurface surf(inFileName);
 
     Info<< "Read surface:" << endl;
     surf.writeStats(Info);
     Info<< endl;
-    
+
 
 
     // Construct features from surface&featureangle
@@ -80,7 +78,7 @@ int main(int argc, char *argv[])
 
     surfaceFeatures set(surf, includedAngle);
 
-    Pout<< nl
+    Info<< nl
         << "Feature set:" << nl
         << "    feature points : " << set.featurePoints().size() << nl
         << "    feature edges  : " << set.featureEdges().size() << nl
@@ -116,7 +114,7 @@ int main(int argc, char *argv[])
     }
 
 
-    Info << "Writing : " << outFileName << endl;
+    Info<< "Writing : " << outFileName << endl;
     surf.write(outFileName, true);
 
     Info<< "End\n" << endl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,7 @@ makeBasicMixture
 (
     pureMixture,
     constTransport,
-    hConstThermo,
+    eConstThermo,
     perfectGas
 );
 
@@ -70,15 +70,16 @@ makeBasicMixture
 (
     pureMixture,
     sutherlandTransport,
-    hConstThermo,
+    eConstThermo,
     perfectGas
 );
+
 
 makeBasicMixture
 (
     pureMixture,
     constTransport,
-    eConstThermo,
+    hConstThermo,
     perfectGas
 );
 
@@ -86,7 +87,7 @@ makeBasicMixture
 (
     pureMixture,
     sutherlandTransport,
-    eConstThermo,
+    hConstThermo,
     perfectGas
 );
 
@@ -110,6 +111,12 @@ makeBasicPolyMixture
 (
     pureMixture,
     3
+);
+
+makeBasicPolyMixture
+(
+    pureMixture,
+    8
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,7 @@ License
 
 void Foam::surfMesh::setInstance(const fileName& inst)
 {
-    if (debug or true)
+    if (debug)
     {
         Info<< "void surfMesh::setInstance(const fileName& inst) : "
             << "Resetting file instance to " << inst << endl;
@@ -74,7 +74,7 @@ Foam::surfMesh::readUpdateState Foam::surfMesh::readUpdate()
         // Topological change
         if (debug)
         {
-            Info << "Topological change" << endl;
+            Info<< "Topological change" << endl;
         }
 
         clearOut();
@@ -98,7 +98,7 @@ Foam::surfMesh::readUpdateState Foam::surfMesh::readUpdate()
             )
         );
 
-        storedFaces() = faceIOList
+        storedFaces() = faceCompactIOList
         (
             IOobject
             (
@@ -168,7 +168,7 @@ Foam::surfMesh::readUpdateState Foam::surfMesh::readUpdate()
         // Points moved
         if (debug)
         {
-            Info << "Point motion" << endl;
+            Info<< "Point motion" << endl;
         }
 
         clearGeom();
@@ -194,7 +194,7 @@ Foam::surfMesh::readUpdateState Foam::surfMesh::readUpdate()
     {
         if (debug)
         {
-            Info << "No change" << endl;
+            Info<< "No change" << endl;
         }
     }
 

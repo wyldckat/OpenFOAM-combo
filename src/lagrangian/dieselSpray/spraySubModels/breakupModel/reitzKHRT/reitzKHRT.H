@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,6 +67,7 @@ private:
         scalar msLimit_;
         scalar weberLimit_;
 
+
 public:
 
     //- Runtime type information
@@ -76,16 +77,11 @@ public:
     // Constructors
 
         //- Construct from components
-        reitzKHRT
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        reitzKHRT(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~reitzKHRT();
+    //- Destructor
+    virtual ~reitzKHRT();
 
 
     // Member Operators
@@ -95,9 +91,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
 };
 
 

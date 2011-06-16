@@ -1,18 +1,18 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
 
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 
-application="mdEquilibrationFoam"
+for caseName in periodicCubeArgon periodicCubeWater
+do
+(
+    cd $caseName || exit
 
-cd periodicCubeArgon
     runApplication blockMesh
     runApplication mdInitialise
-    runApplication $application
-cd ..
-
-cd periodicCubeWater
-    runApplication blockMesh
-    runApplication mdInitialise
-    runApplication $application
-cd ..
+    runApplication `getApplication`
+)
+done
+# ----------------------------------------------------------------- end-of-file

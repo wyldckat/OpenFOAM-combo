@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,8 @@ Application
     ansysToFoam
 
 Description
-    Converts an ANSYS input mesh file, exported from I-DEAS, to FOAM format.
+    Converts an ANSYS input mesh file, exported from I-DEAS,
+    to OpenFOAM format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -94,23 +95,20 @@ cspace                ","{space}
 
 alpha                 [_A-Za-z]
 digit                 [0-9]
-dec_digit             [0-9]
-octal_digit           [0-7]
-hex_digit             [0-9a-fA-F]
 
 identifier            {alpha}({alpha}|{digit})*
-integer               {dec_digit}+
-label                 [1-9]{dec_digit}*
+integer               {digit}+
+label                 [1-9]{digit}*
 
 exponent_part         [eE][-+]?{digit}+
 fractional_constant   [-+]?(({digit}*"."{digit}+)|({digit}+"."?))
 
-double                (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
+floatNum              (({fractional_constant}{exponent_part}?)|({digit}+{exponent_part}))
 
-x                     {double}
-y                     {double}
-z                     {double}
-value                 {double}
+x                     {floatNum}
+y                     {floatNum}
+z                     {floatNum}
+value                 {floatNum}
 
 node                  ^{space}"N"{cspace}
 element               ^{space}"EN"{cspace}
@@ -299,7 +297,12 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append("ANSYS input file");
-    argList::validOptions.insert("scale", "scale factor");
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
 
     argList args(argc, argv);
 
@@ -308,8 +311,7 @@ int main(int argc, char *argv[])
         FatalError.exit();
     }
 
-    scalar scaleFactor = 1.0;
-    args.optionReadIfPresent("scale", scaleFactor);
+    const scalar scaleFactor = args.optionLookupOrDefault("scale", 1.0);
 
 #   include "createTime.H"
 
@@ -325,20 +327,15 @@ int main(int argc, char *argv[])
     }
 
     yyFlexLexer lexer(&ansysStream);
-    while(lexer.yylex() != 0)
+    while (lexer.yylex() != 0)
     {}
 
-    Info << "Creating points" << endl;
+    Info<< "Creating points" << endl;
 
     pointField points(slPoints.size());
 
-    label i=0;
-    for
-    (
-        SLList<point>::iterator pointIter = slPoints.begin();
-        pointIter != slPoints.end();
-        ++pointIter
-    )
+    label i = 0;
+    forAllConstIter(SLList<point>, slPoints, pointIter)
     {
         // Scale points for the given scale factor
         points[i++] = scaleFactor * pointIter();
@@ -347,28 +344,18 @@ int main(int argc, char *argv[])
 
     labelList pointMap(maxNodei+1);
 
-    i=0;
-    for
-    (
-        SLList<label>::iterator pointMapIter = slPointMap.begin();
-        pointMapIter != slPointMap.end();
-        ++pointMapIter
-    )
+    i = 0;
+    forAllConstIter(SLList<label>, slPointMap, pointMapIter)
     {
         pointMap[pointMapIter()] = i++;
     }
 
-    Info << "Creating cells" << endl;
+    Info<< "Creating cells" << endl;
 
     labelList cellMap(maxCelli+1);
 
-    i=0;
-    for
-    (
-        SLList<label>::iterator cellMapIter = slCellMap.begin();
-        cellMapIter != slCellMap.end();
-        ++cellMapIter
-    )
+    i = 0;
+    forAllConstIter(SLList<label>, slCellMap, cellMapIter)
     {
         cellMap[cellMapIter()] = i++;
     }
@@ -387,12 +374,7 @@ int main(int argc, char *argv[])
     cellShapeList cellShapes(slCellLabels.size());
     label nCells = 0;
 
-    for
-    (
-        SLPtrList<labelList>::iterator cellIter = slCellLabels.begin();
-        cellIter != slCellLabels.end();
-        ++cellIter
-    )
+    forAllConstIter(SLPtrList<labelList>, slCellLabels, cellIter)
     {
         if      // Tetrahedron
         (
@@ -498,7 +480,7 @@ int main(int argc, char *argv[])
         { 4,  2,  1,  3,  0,  5}, // hex
     };
 
-    Info << "Creating boundary patches" << endl;
+    Info<< "Creating boundary patches" << endl;
 
     faceListList boundary(slPatchCells.size());
     wordList patchNames(slPatchCells.size());
@@ -572,7 +554,7 @@ int main(int argc, char *argv[])
         }
         patchFaces[patchI].setSize(patchNFaces[patchI]);
 
-        Info << "Patch " << patchI << " named " << patchNames[patchI]
+        Info<< "Patch " << patchI << " named " << patchNames[patchI]
             << ": " << boundary[patchI].size() << " faces" << endl;
     }
 
@@ -580,27 +562,37 @@ int main(int argc, char *argv[])
     dummyMesh.clear();
 
 
-    Info << "ansysToFoam: " << endl
+    Info<< "ansysToFoam: " << endl
         << "Ansys file format does not provide information about the type of "
         << "the patch (eg. wall, symmetry plane, cyclic etc)." << endl
         << "All the patches have been created "
         << "as type patch. Please reset after mesh conversion as necessary."
         << endl;
 
-    wordList patchTypes(patchFaces.size(), polyPatch::typeName);
-    wordList patchPhysicalTypes(patchFaces.size());
+    PtrList<dictionary> patchDicts;
 
     preservePatchTypes
     (
         runTime,
         runTime.constant(),
-        polyMesh::defaultRegion,
+        polyMesh::meshSubDir,
         patchNames,
-        patchTypes,
+        patchDicts,
         defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
+        defaultFacesType
     );
+
+    // Add information to dictionary
+    forAll(patchNames, patchI)
+    {
+        if (!patchDicts.set(patchI))
+        {
+            patchDicts.set(patchI, new dictionary());
+        }
+        // Add but not overwrite
+        patchDicts[patchI].add("type", polyPatch::typeName, false);
+    }
+
 
     polyMesh pShapeMesh
     (
@@ -614,10 +606,9 @@ int main(int argc, char *argv[])
         cellShapes,
         patchFaces,
         patchNames,
-        patchTypes,
+        patchDicts,
         defaultFacesName,
-        defaultFacesType,
-        patchPhysicalTypes
+        defaultFacesType
     );
 
 
@@ -707,7 +698,7 @@ int main(int argc, char *argv[])
     // Set the precision of the points data to 10
     IOstream::defaultPrecision(10);
 
-    Info << "Writing polyMesh" << endl;
+    Info<< "Writing polyMesh" << endl;
     pShapeMesh.write();
 
     Info<< nl << "end" << endl;

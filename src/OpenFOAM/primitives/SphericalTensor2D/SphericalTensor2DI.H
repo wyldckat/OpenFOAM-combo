@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -159,7 +159,7 @@ inline Cmpt det(const SphericalTensor2D<Cmpt>& st)
 template <class Cmpt>
 inline SphericalTensor2D<Cmpt> inv(const SphericalTensor2D<Cmpt>& st)
 {
-    return SphericalTensor2D<Cmpt>(1.0/st.ii()); 
+    return SphericalTensor2D<Cmpt>(1.0/st.ii());
 }
 
 

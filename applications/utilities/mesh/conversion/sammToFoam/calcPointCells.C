@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,7 @@ Description
 
 void sammMesh::calcPointCells() const
 {
-    const static label UNIT_POINT_CELLS = 12;
+    static const label UNIT_POINT_CELLS = 12;
 
     if (pointCellsPtr_)
     {
@@ -66,14 +66,14 @@ void sammMesh::calcPointCells() const
     // do not come from the cell shape, but from the slaves of the coupled
     // match. It is also adventageous to remove the duplicates from the
     // point-cell addressing, because this removes a lot of waste later.
-    // 
+    //
 
     // For each cell
     forAll(cellShapes_, cellI)
     {
         const faceList& faces = cellFaces_[cellI];
 
-        forAll (faces, i)
+        forAll(faces, i)
         {
             // For each vertex
             const labelList& labels = faces[i];

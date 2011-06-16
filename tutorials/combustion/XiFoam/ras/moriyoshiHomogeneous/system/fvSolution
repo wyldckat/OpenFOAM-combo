@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,103 +17,30 @@ FoamFile
 
 solvers
 {
-    rho
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    U
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    p
+    "(p|rho)"
     {
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-06;
+        relTol          0.1;
+    }
+
+    "(p|rho)Final"
+    {
+        $p;
+        tolerance       1e-06;
         relTol          0;
     }
 
-    ft
+    "(U|b|Su|Xi|h|hu|k|epsilon)"
     {
         solver          PBiCG;
         preconditioner  DILU;
         tolerance       1e-05;
-        relTol          0;
+        relTol          0.1;
     }
 
-    fu
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    b
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    Xi
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    Su
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    h
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    hu
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    R
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    k
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0;
-    }
-
-    epsilon
+    "(U|b|Su|Xi|h|hu|k|epsilon)Final"
     {
         solver          PBiCG;
         preconditioner  DILU;
@@ -122,11 +49,11 @@ solvers
     }
 }
 
-PISO
+PIMPLE
 {
-    nCorrectors     2;
+    nOuterCorrectors 2;
+    nCorrectors     1;
     nNonOrthogonalCorrectors 0;
-    momentumPredictor yes;
 }
 
 

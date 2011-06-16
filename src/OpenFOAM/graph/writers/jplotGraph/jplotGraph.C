@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "jplotGraph.H"
@@ -37,18 +35,18 @@ namespace Foam
 {
     typedef graph::writer graphWriter;
     addToRunTimeSelectionTable(graphWriter, jplotGraph, word);
-};
+}
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 void Foam::jplotGraph::write(const graph& g, Ostream& os) const
 {
-    os  << "# JPlot file" << endl
+    os  << "# JPlot file" << nl
         << "# column 1: " << g.xName() << endl;
 
     label fieldI = 0;
 
-    for (graph::const_iterator iter = g.begin(); iter != g.end(); ++iter)
+    forAllConstIter(graph, g, iter)
     {
         os  << "# column " << fieldI + 2 << ": " << (*iter()).name() << endl;
         fieldI++;

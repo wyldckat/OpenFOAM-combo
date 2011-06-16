@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "distanceSurface.H"
-#include "isoSurface.H"
 #include "volFieldsFwd.H"
 #include "pointFields.H"
 #include "volPointInterpolation.H"
@@ -61,7 +60,15 @@ Foam::distanceSurface::interpolateField
     );
 
     // Sample.
-    return surface().interpolate(volFld, pointFld());
+    return surface().interpolate
+    (
+        (
+            average_
+          ? pointAverage(pointFld())()
+          : volFld
+        ),
+        pointFld()
+    );
 }
 
 

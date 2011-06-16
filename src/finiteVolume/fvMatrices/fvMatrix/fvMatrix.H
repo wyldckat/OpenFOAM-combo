@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ SourceFiles
 #include "tmp.H"
 #include "autoPtr.H"
 #include "dimensionedTypes.H"
-#include "zeroField.H"
+#include "zero.H"
 #include "className.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -101,6 +101,8 @@ tmp<GeometricField<Type, fvPatchField, volMesh> > operator&
 template<class Type>
 Ostream& operator<<(Ostream&, const fvMatrix<Type>&);
 
+template<class T> class UIndirectList;
+
 
 /*---------------------------------------------------------------------------*\
                            Class fvMatrix Declaration
@@ -114,8 +116,9 @@ class fvMatrix
 {
     // Private data
 
-        // Reference to GeometricField<Type, fvPatchField, volMesh>
-        GeometricField<Type, fvPatchField, volMesh>& psi_;
+        //- Const reference to GeometricField<Type, fvPatchField, volMesh>
+        //  Converted into a non-const reference at the point of solution.
+        const GeometricField<Type, fvPatchField, volMesh>& psi_;
 
         //- Dimension set
         dimensionSet dimensions_;
@@ -136,14 +139,18 @@ class fvMatrix
         mutable GeometricField<Type, fvsPatchField, surfaceMesh>
             *faceFluxCorrectionPtr_;
 
+protected:
 
-    // Private member functions
+    //- Declare friendship with the fvSolver class
+    friend class fvSolver;
+
+    // Protected Member Functions
 
         //- Add patch contribution to internal field
         template<class Type2>
         void addToInternalField
         (
-            const unallocLabelList& addr,
+            const labelUList& addr,
             const Field<Type2>& pf,
             Field<Type2>& intf
         ) const;
@@ -151,7 +158,7 @@ class fvMatrix
         template<class Type2>
         void addToInternalField
         (
-            const unallocLabelList& addr,
+            const labelUList& addr,
             const tmp<Field<Type2> >& tpf,
             Field<Type2>& intf
         ) const;
@@ -160,7 +167,7 @@ class fvMatrix
         template<class Type2>
         void subtractFromInternalField
         (
-            const unallocLabelList& addr,
+            const labelUList& addr,
             const Field<Type2>& pf,
             Field<Type2>& intf
         ) const;
@@ -168,7 +175,7 @@ class fvMatrix
         template<class Type2>
         void subtractFromInternalField
         (
-            const unallocLabelList& addr,
+            const labelUList& addr,
             const tmp<Field<Type2> >& tpf,
             Field<Type2>& intf
         ) const;
@@ -190,12 +197,22 @@ class fvMatrix
                 const bool couples=true
             ) const;
 
+        // Matrix manipulation functionality
+
+            //- Set solution in given cells to the specified values
+            template<template<class> class ListType>
+            void setValuesFromList
+            (
+                const labelUList& cells,
+                const ListType<Type>& values
+            );
+
 
 public:
 
     //- Solver class returned by the solver function
     //  used for systems in which it is useful to cache the solver for reuse
-    //  e.g. if the solver is potentialy expensive to construct (AMG) and can
+    //  e.g. if the solver is potentially expensive to construct (AMG) and can
     //  be used several times (PISO)
     class fvSolver
     {
@@ -234,7 +251,7 @@ public:
         //- Construct given a field to solve for
         fvMatrix
         (
-            GeometricField<Type, fvPatchField, volMesh>&,
+            const GeometricField<Type, fvPatchField, volMesh>&,
             const dimensionSet&
         );
 
@@ -242,17 +259,16 @@ public:
         fvMatrix(const fvMatrix<Type>&);
 
         //- Construct as copy of tmp<fvMatrix<Type> > deleting argument
-#       ifdef ConstructFromTmp
+        #ifdef ConstructFromTmp
         fvMatrix(const tmp<fvMatrix<Type> >&);
-#       endif
+        #endif
 
         //- Construct from Istream given field to solve for
-        fvMatrix(GeometricField<Type, fvPatchField, volMesh>&, Istream&);
+        fvMatrix(const GeometricField<Type, fvPatchField, volMesh>&, Istream&);
 
 
-    // Destructor
-
-        virtual ~fvMatrix();
+    //- Destructor
+    virtual ~fvMatrix();
 
 
     // Member functions
@@ -260,11 +276,6 @@ public:
         // Access
 
             const GeometricField<Type, fvPatchField, volMesh>& psi() const
-            {
-                return psi_;
-            }
-
-            GeometricField<Type, fvPatchField, volMesh>& psi()
             {
                 return psi_;
             }
@@ -312,12 +323,20 @@ public:
 
         // Operations
 
-            //- Set solution in given cells and eliminate corresponding
-            //  equations from the matrix
+            //- Set solution in given cells to the specified values
+            //  and eliminate the corresponding equations from the matrix.
             void setValues
             (
-                const labelList& cells,
-                const Field<Type>& values
+                const labelUList& cells,
+                const UList<Type>& values
+            );
+
+            //- Set solution in given cells to the specified values
+            //  and eliminate the corresponding equations from the matrix.
+            void setValues
+            (
+                const labelUList& cells,
+                const UIndirectList<Type>& values
             );
 
             //- Set reference level for solution
@@ -436,11 +455,12 @@ public:
         void operator+=(const dimensioned<Type>&);
         void operator-=(const dimensioned<Type>&);
 
-        void operator+=(const zeroField&);
-        void operator-=(const zeroField&);
+        void operator+=(const zero&);
+        void operator-=(const zero&);
 
         void operator*=(const DimensionedField<scalar, volMesh>&);
         void operator*=(const tmp<DimensionedField<scalar, volMesh> >&);
+        void operator*=(const volScalarField&);
         void operator*=(const tmp<volScalarField>&);
 
         void operator*=(const dimensioned<scalar>&);
@@ -648,14 +668,14 @@ template<class Type>
 tmp<fvMatrix<Type> > operator==
 (
     const fvMatrix<Type>&,
-    const zeroField&
+    const zero&
 );
 
 template<class Type>
 tmp<fvMatrix<Type> > operator==
 (
     const tmp<fvMatrix<Type> >&,
-    const zeroField&
+    const zero&
 );
 
 

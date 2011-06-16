@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,7 @@ void Foam::polyMesh::clearGeom()
 
     primitiveMesh::clearGeom();
 
-    forAll (boundary_, patchI)
+    forAll(boundary_, patchI)
     {
         boundary_[patchI].clearGeom();
     }
@@ -70,6 +70,9 @@ void Foam::polyMesh::clearGeom()
     // Reset valid directions (could change with rotation)
     geometricD_ = Vector<label>::zero;
     solutionD_ = Vector<label>::zero;
+
+    // Remove the stored tet base points
+    deleteDemandDrivenData(tetBasePtIsPtr_);
 
     pointMesh::Delete(*this);
 }

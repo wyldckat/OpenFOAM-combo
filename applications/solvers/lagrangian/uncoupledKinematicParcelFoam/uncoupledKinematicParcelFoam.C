@@ -41,7 +41,12 @@ Description
 
 int main(int argc, char *argv[])
 {
-    argList::validOptions.insert("cloudName", "cloud name");
+    argList::addOption
+    (
+        "cloudName",
+        "name",
+        "specify alternative cloud name. default is 'kinematicCloud'"
+    );
 
     #include "setRootCase.H"
     #include "createTime.H"
@@ -60,7 +65,6 @@ int main(int argc, char *argv[])
 
         Info<< "Evolving " << kinematicCloud.name() << endl;
         kinematicCloud.evolve();
-        kinematicCloud.info();
 
         runTime.write();
 

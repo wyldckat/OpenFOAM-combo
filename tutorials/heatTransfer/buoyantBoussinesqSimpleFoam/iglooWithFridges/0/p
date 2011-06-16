@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -22,30 +22,26 @@ boundaryField
 {
     ground
     {
-        type            buoyantPressure;
-        rho             rhok;
-        value           uniform 0;
+        type            calculated;
+        value           $internalField;
     }
 
     igloo_region0
     {
-        type            buoyantPressure;
-        rho             rhok;
-        value           uniform 0;
+        type            calculated;
+        value           $internalField;
     }
 
     twoFridgeFreezers_seal_0
     {
-        type            buoyantPressure;
-        rho             rhok;
-        value           uniform 0;
+        type            calculated;
+        value           $internalField;
     }
 
     twoFridgeFreezers_herring_1
     {
-        type            buoyantPressure;
-        rho             rhok;
-        value           uniform 0;
+        type            calculated;
+        value           $internalField;
     }
 }
 

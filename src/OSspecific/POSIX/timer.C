@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -43,7 +41,7 @@ unsigned int Foam::timer::oldTimeOut_ = 0;
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 void Foam::timer::signalHandler(int)
-{ 
+{
     if (debug)
     {
         Info<< "Foam::timer::signalHandler(int sig) : "
@@ -55,8 +53,6 @@ void Foam::timer::signalHandler(int)
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-
-// Construct from components
 Foam::timer::timer(const unsigned int newTimeOut)
 :
     newTimeOut_(newTimeOut)
@@ -71,7 +67,7 @@ Foam::timer::timer(const unsigned int newTimeOut)
             (
                 "Foam::timer::timer(const unsigned int)"
             )   << "timer already used."
-                << abort(FatalError);    
+                << abort(FatalError);
         }
 
         // Install alarm signal handler:
@@ -79,7 +75,7 @@ Foam::timer::timer(const unsigned int newTimeOut)
         // - clear list of signals to mask
         struct sigaction newAction;
         newAction.sa_handler = timer::signalHandler;
-	    newAction.sa_flags = SA_NODEFER;
+        newAction.sa_flags = SA_NODEFER;
         sigemptyset(&newAction.sa_mask);
 
         if (sigaction(SIGALRM, &newAction, &oldAction_) < 0)
@@ -88,7 +84,7 @@ Foam::timer::timer(const unsigned int newTimeOut)
             (
                 "Foam::timer::timer(const unsigned int)"
             )   << "sigaction(SIGALRM) error"
-                << abort(FatalError);    
+                << abort(FatalError);
         }
 
         oldTimeOut_ = ::alarm(newTimeOut);
@@ -130,7 +126,7 @@ Foam::timer::~timer()
                 "Foam::timer::~timer(const struct sigaction&"
                 "const struct sigaction&)"
             )   << "sigaction(SIGALRM) error"
-                << abort(FatalError);    
+                << abort(FatalError);
         }
     }
 }

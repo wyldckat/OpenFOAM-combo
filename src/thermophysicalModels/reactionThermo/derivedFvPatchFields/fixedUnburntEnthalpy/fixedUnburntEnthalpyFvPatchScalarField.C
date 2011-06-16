@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,14 +29,11 @@ License
 #include "volFields.H"
 #include "hhuCombustionThermo.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
+Foam::fixedUnburntEnthalpyFvPatchScalarField::
+fixedUnburntEnthalpyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
@@ -46,7 +43,8 @@ fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
 {}
 
 
-fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
+Foam::fixedUnburntEnthalpyFvPatchScalarField::
+fixedUnburntEnthalpyFvPatchScalarField
 (
     const fixedUnburntEnthalpyFvPatchScalarField& ptf,
     const fvPatch& p,
@@ -58,7 +56,8 @@ fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
 {}
 
 
-fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
+Foam::fixedUnburntEnthalpyFvPatchScalarField::
+fixedUnburntEnthalpyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -69,7 +68,8 @@ fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
 {}
 
 
-fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
+Foam::fixedUnburntEnthalpyFvPatchScalarField::
+fixedUnburntEnthalpyFvPatchScalarField
 (
     const fixedUnburntEnthalpyFvPatchScalarField& tppsf
 )
@@ -78,7 +78,8 @@ fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
 {}
 
 
-fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
+Foam::fixedUnburntEnthalpyFvPatchScalarField::
+fixedUnburntEnthalpyFvPatchScalarField
 (
     const fixedUnburntEnthalpyFvPatchScalarField& tppsf,
     const DimensionedField<scalar, volMesh>& iF
@@ -90,7 +91,7 @@ fixedUnburntEnthalpyFvPatchScalarField::fixedUnburntEnthalpyFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void fixedUnburntEnthalpyFvPatchScalarField::updateCoeffs()
+void Foam::fixedUnburntEnthalpyFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -101,10 +102,10 @@ void fixedUnburntEnthalpyFvPatchScalarField::updateCoeffs()
     (
         "thermophysicalProperties"
     );
-    
+
     const label patchi = patch().index();
 
-    fvPatchScalarField& Tw = 
+    fvPatchScalarField& Tw =
         const_cast<fvPatchScalarField&>(thermo.Tu().boundaryField()[patchi]);
     Tw.evaluate();
     operator==(thermo.hu(Tw, patchi));
@@ -115,10 +116,13 @@ void fixedUnburntEnthalpyFvPatchScalarField::updateCoeffs()
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, fixedUnburntEnthalpyFvPatchScalarField);
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchScalarField,
+        fixedUnburntEnthalpyFvPatchScalarField
+    );
+}
 
 // ************************************************************************* //

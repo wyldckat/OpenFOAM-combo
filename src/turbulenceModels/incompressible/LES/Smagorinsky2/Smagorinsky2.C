@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,10 +46,12 @@ Smagorinsky2::Smagorinsky2
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
     Smagorinsky(U, phi, transport),
 
     cD2_
@@ -73,7 +75,7 @@ Smagorinsky2::Smagorinsky2
 
 tmp<volSymmTensorField> Smagorinsky2::B() const
 {
-    volSymmTensorField D = dev(symm(fvc::grad(U())));
+    volSymmTensorField D(dev(symm(fvc::grad(U()))));
 
     return (((2.0/3.0)*I)*k() - 2.0*nuSgs_*D - (2.0*cD2_)*delta()*(D&D));
 }
@@ -84,7 +86,7 @@ tmp<fvVectorMatrix> Smagorinsky2::divDevBeff
     volVectorField& U
 ) const
 {
-    volTensorField gradU = fvc::grad(U);
+    volTensorField gradU(fvc::grad(U));
 
     volSymmTensorField aniNuEff
     (
@@ -94,7 +96,7 @@ tmp<fvVectorMatrix> Smagorinsky2::divDevBeff
 
     return
     (
-      - fvm::laplacian(aniNuEff, U) - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvm::laplacian(aniNuEff, U) - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 

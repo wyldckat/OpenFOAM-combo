@@ -140,6 +140,7 @@ public:
 
 } // End namespace incompressible
 } // End namespace Foam
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

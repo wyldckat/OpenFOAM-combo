@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,9 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Simple central-difference snGrad scheme with non-orthogonal correction.
-
 \*---------------------------------------------------------------------------*/
 
 #include "correctedSnGrad.H"
@@ -38,5 +35,28 @@ namespace fv
     makeSnGradScheme(correctedSnGrad)
 }
 }
+
+
+template<>
+Foam::tmp<Foam::surfaceScalarField>
+Foam::fv::correctedSnGrad<Foam::scalar>::correction
+(
+    const volScalarField& vsf
+) const
+{
+    return fullGradCorrection(vsf);
+}
+
+
+template<>
+Foam::tmp<Foam::surfaceVectorField>
+Foam::fv::correctedSnGrad<Foam::vector>::correction
+(
+    const volVectorField& vvf
+) const
+{
+    return fullGradCorrection(vvf);
+}
+
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,23 +21,24 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "reactionTypes.H"
 #include "makeReactionThermo.H"
 
 #include "ArrheniusReactionRate.H"
-#include "thirdBodyArrheniusReactionRate.H"
-#include "FallOffReactionRate.H"
-#include "ChemicallyActivatedReactionRate.H"
-#include "LindemannFallOffFunction.H"
-#include "TroeFallOffFunction.H"
-#include "SRIFallOffFunction.H"
+#include "infiniteReactionRate.H"
 #include "LandauTellerReactionRate.H"
+#include "thirdBodyArrheniusReactionRate.H"
+
+#include "ChemicallyActivatedReactionRate.H"
 #include "JanevReactionRate.H"
 #include "powerSeriesReactionRate.H"
+
+#include "FallOffReactionRate.H"
+#include "LindemannFallOffFunction.H"
+#include "SRIFallOffFunction.H"
+#include "TroeFallOffFunction.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -49,13 +50,16 @@ namespace Foam
 
 defineTemplateTypeNameAndDebug(gasReaction, 0);
 defineTemplateRunTimeSelectionTable(gasReaction, Istream);
+defineTemplateRunTimeSelectionTable(gasReaction, dictionary);
 
 
 // * * * * * * * * * * * * * Make CHEMKIN reactions  * * * * * * * * * * * * //
 
 makeIRNReactions(gasThermoPhysics, ArrheniusReactionRate)
+makeIRNReactions(gasThermoPhysics, infiniteReactionRate)
 makeIRNReactions(gasThermoPhysics, LandauTellerReactionRate)
 makeIRNReactions(gasThermoPhysics, thirdBodyArrheniusReactionRate)
+
 makeIRReactions(gasThermoPhysics, JanevReactionRate)
 makeIRReactions(gasThermoPhysics, powerSeriesReactionRate)
 

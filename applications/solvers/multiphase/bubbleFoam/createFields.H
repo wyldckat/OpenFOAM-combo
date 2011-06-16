@@ -91,7 +91,7 @@
             "transportProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     );
@@ -171,15 +171,19 @@
 
     Info<< "Calculating field DDtUa and DDtUb\n" << endl;
 
-    volVectorField DDtUa =
+    volVectorField DDtUa
+    (
         fvc::ddt(Ua)
       + fvc::div(phia, Ua)
-      - fvc::div(phia)*Ua;
+      - fvc::div(phia)*Ua
+    );
 
-    volVectorField DDtUb =
+    volVectorField DDtUb
+    (
         fvc::ddt(Ub)
       + fvc::div(phib, Ub)
-      - fvc::div(phib)*Ub;
+      - fvc::div(phib)*Ub
+    );
 
 
     Info<< "Calculating field g.h\n" << endl;
@@ -188,4 +192,4 @@
 
     label pRefCell = 0;
     scalar pRefValue = 0.0;
-    setRefCell(p, mesh.solutionDict().subDict("PISO"), pRefCell, pRefValue);
+    setRefCell(p, mesh.solutionDict().subDict("PIMPLE"), pRefCell, pRefValue);

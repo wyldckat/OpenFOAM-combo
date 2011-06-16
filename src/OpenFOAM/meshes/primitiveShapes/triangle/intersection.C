@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "intersection.H"
@@ -31,27 +29,37 @@ Description
 
 Foam::scalar Foam::intersection::planarTol_ = 0.2;
 
-template<>
-const char* Foam::NamedEnum<Foam::intersection::direction, 2>::names[] =
+namespace Foam
 {
-    "vector",
-    "contactSphere"
-};
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::intersection::direction,
+        2
+    >::names[] =
+    {
+        "vector",
+        "contactSphere"
+    };
+
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::intersection::algorithm,
+        3
+    >::names[] =
+    {
+        "fullRay",
+        "halfRay",
+        "visible"
+    };
+}
 
 const Foam::NamedEnum<Foam::intersection::direction, 2>
 Foam::intersection::directionNames_;
 
-template<>
-const char* Foam::NamedEnum<Foam::intersection::algorithm, 3>::names[] =
-{
-    "fullRay",
-    "halfRay",
-    "visible"
-};
-
 const Foam::NamedEnum<Foam::intersection::algorithm, 3>
 Foam::intersection::algorithmNames_;
-
 
 
 // ************************************************************************* //

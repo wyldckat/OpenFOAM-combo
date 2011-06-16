@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ addToRunTimeSelectionTable(LESModel, spectEddyVisc, dictionary);
 
 void spectEddyVisc::updateSubGridScaleFields(const volTensorField& gradU)
 {
-    volScalarField Re = sqr(delta())*mag(symm(gradU))/nu();
+    const volScalarField Re(sqr(delta())*mag(symm(gradU))/nu());
     for (label i=0; i<5; i++)
     {
         nuSgs_ =
@@ -65,12 +65,13 @@ spectEddyVisc::spectEddyVisc
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
     GenEddyVisc(U, phi, transport),
-
 
     cB_
     (
@@ -128,7 +129,7 @@ spectEddyVisc::spectEddyVisc
 
 tmp<volScalarField> spectEddyVisc::k() const
 {
-    volScalarField eps = 2*nuEff()*magSqr(symm(fvc::grad(U())));
+    const volScalarField eps(2*nuEff()*magSqr(symm(fvc::grad(U()))));
 
     return
         cK1_*pow(delta()*eps, 2.0/3.0)

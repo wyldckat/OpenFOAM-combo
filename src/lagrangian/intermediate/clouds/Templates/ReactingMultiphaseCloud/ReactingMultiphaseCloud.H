@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,6 @@ SourceFiles
 #ifndef ReactingMultiphaseCloud_H
 #define ReactingMultiphaseCloud_H
 
-#include "ReactingCloud.H"
 #include "reactingMultiphaseCloud.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -61,12 +60,34 @@ class SurfaceReactionModel;
                    Class ReactingMultiphaseCloud Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class ParcelType>
+template<class CloudType>
 class ReactingMultiphaseCloud
 :
-    public ReactingCloud<ParcelType>,
+    public CloudType,
     public reactingMultiphaseCloud
 {
+public:
+
+    // Public typedefs
+
+        //- Type of cloud this cloud was instantiated for
+        typedef CloudType cloudType;
+
+        //- Type of parcel the cloud was instantiated for
+        typedef typename CloudType::particleType parcelType;
+
+        //- Convenience typedef for this cloud type
+        typedef ReactingMultiphaseCloud<CloudType> reactingMultiphaseCloudType;
+
+
+private:
+
+    // Private data
+
+        //- Cloud copy pointer
+        autoPtr<ReactingMultiphaseCloud<CloudType> > cloudCopyPtr_;
+
+
     // Private member functions
 
         //- Disallow default bitwise copy construct
@@ -81,7 +102,7 @@ protected:
     // Protected data
 
         //- Parcel constant properties
-        typename ParcelType::constantProperties constProps_;
+        typename parcelType::constantProperties constProps_;
 
 
         // References to the cloud sub-models
@@ -89,14 +110,14 @@ protected:
             //- Devolatilisation model
             autoPtr
             <
-                DevolatilisationModel<ReactingMultiphaseCloud<ParcelType> >
+                DevolatilisationModel<ReactingMultiphaseCloud<CloudType> >
             >
             devolatilisationModel_;
 
             //- Surface reaction model
             autoPtr
             <
-                SurfaceReactionModel<ReactingMultiphaseCloud<ParcelType> >
+                SurfaceReactionModel<ReactingMultiphaseCloud<CloudType> >
             >
             surfaceReactionModel_;
 
@@ -111,18 +132,18 @@ protected:
             scalar dMassSurfaceReaction_;
 
 
-    // Protected member functions
+    // Protected Member Functions
+
+        // Initialisation
+
+            //- Set cloud sub-models
+            void setModels();
+
 
         // Cloud evolution functions
 
-            //- Pre-evolve
-            void preEvolve();
-
-            //- Evolve the cloud
-            void evolveCloud();
-
-            //- Post-evolve
-            void postEvolve();
+            //- Reset state of cloud
+            void cloudReset(ReactingMultiphaseCloud<CloudType>& c);
 
 
 public:
@@ -136,25 +157,58 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const dimensionedVector& g,
-            basicThermo& thermo,
+            const SLGThermo& thermo,
             bool readFields = true
         );
+
+
+        //- Copy constructor with new name
+        ReactingMultiphaseCloud
+        (
+            ReactingMultiphaseCloud<CloudType>& c,
+            const word& name
+        );
+
+        //- Copy constructor with new name - creates bare cloud
+        ReactingMultiphaseCloud
+        (
+            const fvMesh& mesh,
+            const word& name,
+            const ReactingMultiphaseCloud<CloudType>& c
+        );
+
+        //- Construct and return clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > clone(const word& name)
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ReactingMultiphaseCloud(*this, name)
+            );
+        }
+
+        //- Construct and return bare clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > cloneBare(const word& name) const
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ReactingMultiphaseCloud(this->mesh(), name, *this)
+            );
+        }
 
 
     //- Destructor
     virtual ~ReactingMultiphaseCloud();
 
 
-    //- Type of parcel the cloud was instantiated for
-    typedef ParcelType parcelType;
-
-
     // Member Functions
 
         // Access
 
+            //- Return a reference to the cloud copy
+            inline const ReactingMultiphaseCloud& cloudCopy() const;
+
             //- Return the constant properties
-            inline const typename ParcelType::constantProperties&
+            inline const typename parcelType::constantProperties&
                 constProps() const;
 
 
@@ -163,22 +217,19 @@ public:
                 //- Return reference to devolatilisation model
                 inline const DevolatilisationModel
                 <
-                    ReactingMultiphaseCloud<ParcelType>
+                    ReactingMultiphaseCloud<CloudType>
                 >&
                 devolatilisation() const;
 
                 //- Return reference to reacting surface reaction model
                 inline const SurfaceReactionModel
                 <
-                    ReactingMultiphaseCloud<ParcelType>
+                    ReactingMultiphaseCloud<CloudType>
                 >&
                 surfaceReaction() const;
 
 
         // Check
-
-            //- Print cloud information
-            void info() const;
 
             //- Add to cumulative volatilisation mass transfer
             void addToMassDevolatilisation(const scalar dMass);
@@ -189,19 +240,41 @@ public:
 
         // Cloud evolution functions
 
+            //- Set parcel thermo properties
+            void setParcelThermoProperties
+            (
+                parcelType& parcel,
+                const scalar lagrangianDt
+            );
+
             //- Check parcel properties
             void checkParcelProperties
             (
-                ParcelType& parcel,
+                parcelType& parcel,
                 const scalar lagrangianDt,
                 const bool fullyDescribed
             );
 
-            //- Reset the spray source terms
+            //- Store the current cloud state
+            void storeState();
+
+            //- Reset the current cloud to the previously stored state
+            void restoreState();
+
+            //- Reset the cloud source terms
             void resetSourceTerms();
 
-            //- Evolve the spray (inject, move)
+            //- Evolve the cloud
             void evolve();
+
+            //- Print cloud information
+            void info() const;
+
+
+        // I-O
+
+            //- Write the field data for the cloud
+            virtual void writeFields() const;
 };
 
 

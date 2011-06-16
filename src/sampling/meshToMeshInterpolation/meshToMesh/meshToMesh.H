@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,12 +50,12 @@ namespace Foam
 {
 
 template<class Type>
-class octree;
+class indexedOctree;
 
-class octreeDataCell;
+class treeDataCell;
 
 /*---------------------------------------------------------------------------*\
-                           Class meshToMesh Declaration
+                         Class meshToMesh Declaration
 \*---------------------------------------------------------------------------*/
 
 class meshToMesh
@@ -99,7 +99,7 @@ class meshToMesh
             const pointField& points,
             const fvMesh& fromMesh,
             const List<bool>& boundaryCell,
-            const octree<octreeDataCell>& oc
+            const indexedOctree<treeDataCell>& oc
         ) const;
 
         void calculateInverseDistanceWeights() const;
@@ -150,9 +150,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~meshToMesh();
+    //- Destructor
+    ~meshToMesh();
 
 
     //- Patch-field interpolation class
@@ -173,10 +172,9 @@ public:
             {}
 
 
-        // Destructor
-
-            virtual ~patchFieldInterpolator()
-            {}
+        //- Destructor
+        virtual ~patchFieldInterpolator()
+        {}
 
 
         // Member Functions
@@ -206,7 +204,7 @@ public:
             {
                 return fromMesh_;
             }
- 
+
             const fvMesh& toMesh() const
             {
                 return toMesh_;

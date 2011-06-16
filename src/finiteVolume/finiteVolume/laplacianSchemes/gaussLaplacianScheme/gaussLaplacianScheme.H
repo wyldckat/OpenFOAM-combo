@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -61,7 +61,7 @@ class gaussLaplacianScheme
         tmp<fvMatrix<Type> > fvmLaplacianUncorrected
         (
             const surfaceScalarField& gammaMagSf,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         );
 
         tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > gammaSnGradCorr
@@ -109,10 +109,9 @@ public:
         {}
 
 
-    // Destructor
-
-        virtual ~gaussLaplacianScheme()
-        {}
+    //- Destructor
+    virtual ~gaussLaplacianScheme()
+    {}
 
 
     // Member Functions
@@ -125,7 +124,7 @@ public:
         tmp<fvMatrix<Type> > fvmLaplacian
         (
             const GeometricField<GType, fvsPatchField, surfaceMesh>&,
-            GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>&
         );
 
         tmp<GeometricField<Type, fvPatchField, volMesh> > fvcLaplacian
@@ -145,7 +144,7 @@ template<>                                                                  \
 tmp<fvMatrix<Type> > gaussLaplacianScheme<Type, scalar>::fvmLaplacian       \
 (                                                                           \
     const GeometricField<scalar, fvsPatchField, surfaceMesh>&,              \
-    GeometricField<Type, fvPatchField, volMesh>&                            \
+    const GeometricField<Type, fvPatchField, volMesh>&                      \
 );                                                                          \
                                                                             \
 template<>                                                                  \

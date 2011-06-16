@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,7 +82,7 @@ protected:
         Switch printCoeffs_;
         dictionary coeffDict_;
 
-        dimensionedScalar k0_;
+        dimensionedScalar kMin_;
 
         autoPtr<LESdelta> delta_;
 
@@ -121,9 +121,10 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel
+                const basicThermo& thermoPhysicalModel,
+                const word& turbulenceModelName
             ),
-            (rho, U, phi, thermoPhysicalModel)
+            (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
         );
 
 
@@ -136,7 +137,8 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
@@ -148,7 +150,8 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
@@ -169,16 +172,16 @@ public:
                 return coeffDict_;
             }
 
-            //- Return the value of k0 which k is not allowed to be less than
-            const dimensionedScalar& k0() const
+            //- Return the lower allowable limit for k (default: SMALL)
+            const dimensionedScalar& kMin() const
             {
-                return k0_;
+                return kMin_;
             }
 
-            //- Allow k0 to be changed
-            dimensionedScalar& k0()
+            //- Allow kMin to be changed
+            dimensionedScalar& kMin()
             {
-                return k0_;
+                return kMin_;
             }
 
             //- Access function to filter width
@@ -187,12 +190,6 @@ public:
                 return delta_();
             }
 
-
-        //- Return the SGS turbulent kinetic energy.
-        virtual tmp<volScalarField> k() const = 0;
-
-        //- Return the SGS turbulent dissipation.
-        virtual tmp<volScalarField> epsilon() const = 0;
 
         //- Return the SGS turbulent viscosity
         virtual tmp<volScalarField> muSgs() const = 0;
@@ -209,8 +206,22 @@ public:
         //- Return the SGS turbulent thermal diffusivity
         virtual tmp<volScalarField> alphaSgs() const = 0;
 
-        //- Return the SGS thermal conductivity.
-        virtual tmp<volScalarField> alphaEff() const = 0;
+        //- Return the effective thermal diffusivity
+        virtual tmp<volScalarField> alphaEff() const
+        {
+            return tmp<volScalarField>
+            (
+                new volScalarField("alphaEff", alphaSgs() + alpha())
+            );
+        }
+
+        //- Return the effective turbulence thermal diffusivity for a patch
+        virtual tmp<scalarField> alphaEff(const label patchI) const
+        {
+            return
+                alphaSgs()().boundaryField()[patchI]
+              + alpha().boundaryField()[patchI];
+        }
 
         //- Return the sub-grid stress tensor.
         virtual tmp<volSymmTensorField> B() const = 0;
@@ -260,13 +271,13 @@ public:
         //- Correct Eddy-Viscosity and related properties.
         //  This calls correct(const tmp<volTensorField>& gradU) by supplying
         //  gradU calculated locally.
-        void correct();
+        virtual void correct();
 
         //- Correct Eddy-Viscosity and related properties
         virtual void correct(const tmp<volTensorField>& gradU);
 
         //- Read LESProperties dictionary
-        virtual bool read() = 0;
+        virtual bool read();
 };
 
 

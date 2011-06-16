@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,9 +40,7 @@ SourceFiles
 #ifndef ReactingCloud_H
 #define ReactingCloud_H
 
-#include "ThermoCloud.H"
 #include "reactingCloud.H"
-#include "multiComponentMixture.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,21 +59,35 @@ class PhaseChangeModel;
                       Class ReactingCloud Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class ParcelType>
+template<class CloudType>
 class ReactingCloud
 :
-    public ThermoCloud<ParcelType>,
+    public CloudType,
     public reactingCloud
 {
 public:
 
-    //- Type of thermodynamics the cloud was instantiated for
-    typedef typename ParcelType::thermoType thermoType;
+    // Public typedefs
+
+        //- Type of cloud this cloud was instantiated for
+        typedef CloudType cloudType;
+
+        //- Type of parcel the cloud was instantiated for
+        typedef typename CloudType::particleType parcelType;
+
+        //- Convenience typedef for this cloud type
+        typedef ReactingCloud<CloudType> reactingCloudType;
 
 
 private:
 
-    // Private Member Functions
+    // Private data
+
+        //- Cloud copy pointer
+        autoPtr<ReactingCloud<CloudType> > cloudCopyPtr_;
+
+
+    // Private member functions
 
         //- Disallow default bitwise copy construct
         ReactingCloud(const ReactingCloud&);
@@ -89,20 +101,17 @@ protected:
     // Protected data
 
         //- Parcel constant properties
-        typename ParcelType::constantProperties constProps_;
-
-        //- Multi-component carrier phase thermo
-        multiComponentMixture<thermoType>& mcCarrierThermo_;
+        typename parcelType::constantProperties constProps_;
 
 
         // References to the cloud sub-models
 
             //- Reacting composition model
-            autoPtr<CompositionModel<ReactingCloud<ParcelType> > >
+            autoPtr<CompositionModel<ReactingCloud<CloudType> > >
                 compositionModel_;
 
             //- Reacting phase change model
-            autoPtr<PhaseChangeModel<ReactingCloud<ParcelType> > >
+            autoPtr<PhaseChangeModel<ReactingCloud<CloudType> > >
                 phaseChangeModel_;
 
 
@@ -131,16 +140,16 @@ protected:
             );
 
 
+        // Initialisation
+
+            //- Set cloud sub-models
+            void setModels();
+
+
         // Cloud evolution functions
 
-            //- Pre-evolve
-            void preEvolve();
-
-            //- Evolve the cloud
-            void evolveCloud();
-
-            //- Post-evolve
-            void postEvolve();
+            //- Reset state of cloud
+            void cloudReset(ReactingCloud<CloudType>& c);
 
 
 public:
@@ -154,43 +163,64 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const dimensionedVector& g,
-            basicThermo& thermo,
+            const SLGThermo& thermo,
             bool readFields = true
         );
+
+        //- Copy constructor with new name
+        ReactingCloud(ReactingCloud<CloudType>& c, const word& name);
+
+        //- Copy constructor with new name - creates bare cloud
+        ReactingCloud
+        (
+            const fvMesh& mesh,
+            const word& name,
+            const ReactingCloud<CloudType>& c
+        );
+
+        //- Construct and return clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > clone(const word& name)
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ReactingCloud(*this, name)
+            );
+        }
+
+        //- Construct and return bare clone based on (this) with new name
+        virtual autoPtr<Cloud<parcelType> > cloneBare(const word& name) const
+        {
+            return autoPtr<Cloud<parcelType> >
+            (
+                new ReactingCloud(this->mesh(), name, *this)
+            );
+        }
 
 
     //- Destructor
     virtual ~ReactingCloud();
 
 
-    //- Type of parcel the cloud was instantiated for
-    typedef ParcelType parcelType;
-
-
     // Member Functions
 
         // Access
 
+            //- Return a reference to the cloud copy
+            inline const ReactingCloud& cloudCopy() const;
+
             //- Return the constant properties
-            inline const typename ParcelType::constantProperties&
+            inline const typename parcelType::constantProperties&
                 constProps() const;
-
-            //- Return const access to multi-component carrier phase thermo
-            inline const multiComponentMixture<thermoType>&
-                mcCarrierThermo() const;
-
-            //- Return access to multi-component carrier phase thermo
-            inline multiComponentMixture<thermoType>& mcCarrierThermo();
 
 
             // Sub-models
 
                 //- Return reference to reacting composition model
-                inline const CompositionModel<ReactingCloud<ParcelType> >&
+                inline const CompositionModel<ReactingCloud<CloudType> >&
                     composition() const;
 
                 //- Return reference to reacting phase change model
-                inline const PhaseChangeModel<ReactingCloud<ParcelType> >&
+                inline const PhaseChangeModel<ReactingCloud<CloudType> >&
                     phaseChange() const;
 
 
@@ -202,9 +232,20 @@ public:
                     inline DimensionedField<scalar, volMesh>&
                         rhoTrans(const label i);
 
+                    //- Return const access to mass source fields
+                    inline const PtrList<DimensionedField<scalar, volMesh> >&
+                        rhoTrans() const;
+
                     //- Return reference to mass source fields
                     inline PtrList<DimensionedField<scalar, volMesh> >&
                         rhoTrans();
+
+                    //- Return mass source term for specie i - specie eqn
+                    inline tmp<fvScalarMatrix> SYi
+                    (
+                        const label i,
+                        volScalarField& Yi
+                    ) const;
 
                     //- Return tmp mass source for field i - fully explicit
                     inline tmp<DimensionedField<scalar, volMesh> >
@@ -214,11 +255,11 @@ public:
                     //  - fully explicit
                     inline tmp<DimensionedField<scalar, volMesh> > Srho() const;
 
+                    //- Return total mass source term [kg/m3/s]
+                    inline tmp<fvScalarMatrix> Srho(volScalarField& rho) const;
+
 
         // Check
-
-            //- Print cloud information
-            void info() const;
 
             //- Add to cumulative phase change mass transfer
             void addToMassPhaseChange(const scalar dMass);
@@ -226,19 +267,47 @@ public:
 
         // Cloud evolution functions
 
+            //- Set parcel thermo properties
+            void setParcelThermoProperties
+            (
+                parcelType& parcel,
+                const scalar lagrangianDt
+            );
+
             //- Check parcel properties
             void checkParcelProperties
             (
-                ParcelType& parcel,
+                parcelType& parcel,
                 const scalar lagrangianDt,
                 const bool fullyDescribed
             );
 
-            //- Reset the spray source terms
+            //- Store the current cloud state
+            void storeState();
+
+            //- Reset the current cloud to the previously stored state
+            void restoreState();
+
+            //- Reset the cloud source terms
             void resetSourceTerms();
 
-            //- Evolve the spray (inject, move)
+            //- Apply relaxation to (steady state) cloud sources
+            void relaxSources(const ReactingCloud<CloudType>& cloudOldTime);
+
+            //- Apply scaling to (transient) cloud sources
+            void scaleSources();
+
+            //- Evolve the cloud
             void evolve();
+
+            //- Print cloud information
+            void info() const;
+
+
+        // I-O
+
+            //- Write the field data for the cloud
+            virtual void writeFields() const;
 };
 
 

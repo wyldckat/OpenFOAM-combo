@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -84,12 +84,11 @@ void Foam::mixerFvMesh::addZonesAndModifiers()
 
     // Inner slider
     const word innerSliderName(motionDict_.subDict("slider").lookup("inside"));
-    const polyPatch& innerSlider =
-        boundaryMesh()[boundaryMesh().findPatchID(innerSliderName)];
+    const polyPatch& innerSlider = boundaryMesh()[innerSliderName];
 
     labelList isf(innerSlider.size());
 
-    forAll (isf, i)
+    forAll(isf, i)
     {
         isf[i] = innerSlider.start() + i;
     }
@@ -105,12 +104,11 @@ void Foam::mixerFvMesh::addZonesAndModifiers()
 
     // Outer slider
     const word outerSliderName(motionDict_.subDict("slider").lookup("outside"));
-    const polyPatch& outerSlider =
-        boundaryMesh()[boundaryMesh().findPatchID(outerSliderName)];
+    const polyPatch& outerSlider = boundaryMesh()[outerSliderName];
 
     labelList osf(outerSlider.size());
 
-    forAll (osf, i)
+    forAll(osf, i)
     {
         osf[i] = outerSlider.start() + i;
     }
@@ -155,7 +153,7 @@ void Foam::mixerFvMesh::addZonesAndModifiers()
     }
 
     movingCells.setSize(nMovingCells);
-    Info << "Number of cells in the moving region: " << nMovingCells << endl;
+    Info<< "Number of cells in the moving region: " << nMovingCells << endl;
 
     cz[0] = new cellZone
     (
@@ -165,11 +163,11 @@ void Foam::mixerFvMesh::addZonesAndModifiers()
         cellZones()
     );
 
-    Info << "Adding point, face and cell zones" << endl;
+    Info<< "Adding point, face and cell zones" << endl;
     addZones(pz, fz, cz);
 
     // Add a topology modifier
-    Info << "Adding topology modifiers" << endl;
+    Info<< "Adding topology modifiers" << endl;
     topoChanger_.setSize(1);
     topoChanger_.set
     (
@@ -217,19 +215,18 @@ void Foam::mixerFvMesh::calcMovingMasks() const
     const cellList& c = cells();
     const faceList& f = faces();
 
-    const labelList& cellAddr =
-        cellZones()[cellZones().findZoneID("movingCells")];
+    const labelList& cellAddr = cellZones()["movingCells"];
 
-    forAll (cellAddr, cellI)
+    forAll(cellAddr, cellI)
     {
         const cell& curCell = c[cellAddr[cellI]];
 
-        forAll (curCell, faceI)
+        forAll(curCell, faceI)
         {
             // Mark all the points as moving
             const face& curFace = f[curCell[faceI]];
 
-            forAll (curFace, pointI)
+            forAll(curFace, pointI)
             {
                 movingPointsMask[curFace[pointI]] = 1;
             }
@@ -242,14 +239,13 @@ void Foam::mixerFvMesh::calcMovingMasks() const
       + "Zone"
     );
 
-    const labelList& innerSliderAddr =
-        faceZones()[faceZones().findZoneID(innerSliderZoneName)];
+    const labelList& innerSliderAddr = faceZones()[innerSliderZoneName];
 
-    forAll (innerSliderAddr, faceI)
+    forAll(innerSliderAddr, faceI)
     {
         const face& curFace = f[innerSliderAddr[faceI]];
 
-        forAll (curFace, pointI)
+        forAll(curFace, pointI)
         {
             movingPointsMask[curFace[pointI]] = 1;
         }
@@ -261,14 +257,13 @@ void Foam::mixerFvMesh::calcMovingMasks() const
       + "Zone"
     );
 
-    const labelList& outerSliderAddr =
-        faceZones()[faceZones().findZoneID(outerSliderZoneName)];
+    const labelList& outerSliderAddr = faceZones()[outerSliderZoneName];
 
-    forAll (outerSliderAddr, faceI)
+    forAll(outerSliderAddr, faceI)
     {
         const face& curFace = f[outerSliderAddr[faceI]];
 
-        forAll (curFace, pointI)
+        forAll(curFace, pointI)
         {
             movingPointsMask[curFace[pointI]] = 0;
         }
@@ -294,8 +289,9 @@ Foam::mixerFvMesh::mixerFvMesh
                 "dynamicMeshDict",
                 time().constant(),
                 *this,
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
         ).subDict(typeName + "Coeffs")
     ),
@@ -348,7 +344,7 @@ bool Foam::mixerFvMesh::update()
         csPtr_->globalPosition
         (
             csPtr_->localPosition(points())
-          + vector(0, rpm_*360.0*time().deltaT().value()/60.0, 0)
+          + vector(0, rpm_*360.0*time().deltaTValue()/60.0, 0)
             *movingPointsMask()
         )
     );
@@ -360,7 +356,7 @@ bool Foam::mixerFvMesh::update()
     {
         if (debug)
         {
-            Info << "Mesh topology is changing" << endl;
+            Info<< "Mesh topology is changing" << endl;
         }
 
         deleteDemandDrivenData(movingPointsMaskPtr_);
@@ -371,7 +367,7 @@ bool Foam::mixerFvMesh::update()
         csPtr_->globalPosition
         (
             csPtr_->localPosition(oldPoints())
-          + vector(0, rpm_*360.0*time().deltaT().value()/60.0, 0)
+          + vector(0, rpm_*360.0*time().deltaTValue()/60.0, 0)
             *movingPointsMask()
         )
     );

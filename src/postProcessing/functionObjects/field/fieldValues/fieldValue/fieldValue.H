@@ -61,7 +61,7 @@ protected:
 
     // Protected data
 
-         //- Name of this fieldValue object
+        //- Name of this fieldValue object
         word name_;
 
         //- Database this class is registered to
@@ -121,7 +121,7 @@ public:
     virtual ~fieldValue();
 
 
-    // Public member functions
+    // Public Member Functions
 
         // Access
 
@@ -164,12 +164,13 @@ public:
             //- Execute the at the final time-loop, currently does nothing
             virtual void end();
 
-            //- Comnbine fields from all processor domains into single field
+            //- Combine fields from all processor domains into single field
             template<class Type>
-            tmp<Field<Type> > combineFields
-            (
-                const Field<Type>& field
-            ) const;
+            void combineFields(Field<Type>& field);
+
+            //- Combine fields from all processor domains into single field
+            template<class Type>
+            void combineFields(tmp<Field<Type> >&);
 };
 
 

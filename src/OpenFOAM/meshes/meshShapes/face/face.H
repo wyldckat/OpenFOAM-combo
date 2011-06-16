@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,12 +27,16 @@ Class
 Description
     A face is a list of labels corresponding to mesh vertices.
 
+SeeAlso
+    Foam::triFace
+
 SourceFiles
     faceI.H
     face.C
     faceIntersection.C
     faceContactSphere.C
     faceAreaInContact.C
+    faceTemplates.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -126,6 +130,14 @@ class face
 
 public:
 
+    //- Return types for classify
+    enum proxType
+    {
+        NONE,
+        POINT,  // Close to point
+        EDGE    // Close to edge
+    };
+
     // Static data members
 
         static const char* const typeName;
@@ -140,7 +152,7 @@ public:
         explicit inline face(label);
 
         //- Construct from list of labels
-        explicit inline face(const UList<label>&);
+        explicit inline face(const labelUList&);
 
         //- Construct from list of labels
         explicit inline face(const labelList&);
@@ -161,8 +173,12 @@ public:
         //  return the collapsed size
         label collapse();
 
+        //- Flip the face in-place.
+        //  The starting points of the original and flipped face are identical.
+        void flip();
+
         //- Return the points corresponding to this face
-        inline pointField points(const pointField& meshPoints) const;
+        inline pointField points(const pointField&) const;
 
         //- Centre point of face
         point centre(const pointField&) const;
@@ -171,18 +187,20 @@ public:
         template<class Type>
         Type average(const pointField&, const Field<Type>&) const;
 
-        //- Scalar magnitude
+        //- Magnitude of face area
         inline scalar mag(const pointField&) const;
 
         //- Vector normal; magnitude is equal to area of face
         vector normal(const pointField&) const;
 
         //- Return face with reverse direction
+        //  The starting points of the original and reverse face are identical.
         face reverseFace() const;
 
         //- Navigation through face vertices
 
             //- Which vertex on face (face index given a global index)
+            //  returns -1 if not found
             label which(const label globalIndex) const;
 
             //- Next vertex on face
@@ -199,10 +217,19 @@ public:
             const pointField& newPoints
         ) const;
 
+        //- Return the inertia tensor, with optional reference
+        //  point and density specification
+        tensor inertia
+        (
+            const pointField&,
+            const point& refPt = vector::zero,
+            scalar density = 1.0
+        ) const;
+
         //- Return potential intersection with face with a ray starting
         //  at p, direction n (does not need to be normalized)
-        //  Does face-center decomposition and returns triangle intersection
-        //  point closest to p. Face-center is calculated from point average.
+        //  Does face-centre decomposition and returns triangle intersection
+        //  point closest to p. Face-centre is calculated from point average.
         //  For a hit, the distance is signed.  Positive number
         //  represents the point in front of triangle
         //  In case of miss the point is the nearest point on the face
@@ -215,20 +242,20 @@ public:
         (
             const point& p,
             const vector& n,
-            const pointField& meshPoints,
+            const pointField&,
             const intersection::algorithm alg = intersection::FULL_RAY,
             const intersection::direction dir = intersection::VECTOR
         ) const;
 
         //- Fast intersection with a ray.
-        //  Does face-center decomposition and returns triangle intersection
+        //  Does face-centre decomposition and returns triangle intersection
         //  point closest to p. See triangle::intersection for details.
         pointHit intersection
         (
             const point& p,
             const vector& q,
             const point& ctr,
-            const pointField& meshPoints,
+            const pointField&,
             const intersection::algorithm alg,
             const scalar tol = 0.0
         ) const;
@@ -237,7 +264,21 @@ public:
         pointHit nearestPoint
         (
             const point& p,
-            const pointField& meshPoints
+            const pointField&
+        ) const;
+
+        //- Return nearest point to face and classify it:
+        //  + near point (nearType=POINT, nearLabel=0, 1, 2)
+        //  + near edge (nearType=EDGE, nearLabel=0, 1, 2)
+        //    Note: edges are counted from starting vertex so
+        //    e.g. edge n is from f[n] to f[0], where the face has n + 1
+        //    points
+        pointHit nearestPointClassify
+        (
+            const point& p,
+            const pointField&,
+            label& nearType,
+            label& nearLabel
         ) const;
 
         //- Return contact sphere diameter
@@ -245,27 +286,28 @@ public:
         (
             const point& p,
             const vector& n,
-            const pointField& meshPoints
+            const pointField&
         ) const;
 
         //- Return area in contact, given the displacement in vertices
         scalar areaInContact
         (
-            const pointField& points,
+            const pointField&,
             const scalarField& v
         ) const;
 
         //- Return number of edges
         inline label nEdges() const;
 
-        //- Return edges in face point ordering, i.e. edges()[0] is edge
-        //  between [0] and [1]
+        //- Return edges in face point ordering,
+        //  i.e. edges()[0] is edge between [0] and [1]
         edgeList edges() const;
 
         //- Return n-th face edge
         inline edge faceEdge(const label n) const;
 
         //- Return the edge direction on the face
+        //  Returns:
         //  -  0: edge not found on the face
         //  - +1: forward (counter-clockwise) on the face
         //  - -1: reverse (clockwise) on the face

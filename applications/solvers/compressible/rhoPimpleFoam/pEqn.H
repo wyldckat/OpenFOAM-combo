@@ -1,14 +1,16 @@
 rho = thermo.rho();
+rho = max(rho, rhoMin);
+rho = min(rho, rhoMax);
+rho.relax();
 
-volScalarField rUA = 1.0/UEqn().A();
-U = rUA*UEqn().H();
+U = rAU*UEqn().H();
 
-if (nCorr <= 1)
+if (pimple.nCorr() <= 1)
 {
     UEqn.clear();
 }
 
-if (transonic)
+if (pimple.transonic())
 {
     surfaceScalarField phid
     (
@@ -16,34 +18,25 @@ if (transonic)
         fvc::interpolate(psi)
        *(
             (fvc::interpolate(U) & mesh.Sf())
-          + fvc::ddtPhiCorr(rUA, rho, U, phi)
+          + fvc::ddtPhiCorr(rAU, rho, U, phi)
         )
     );
 
-    for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
     {
         fvScalarMatrix pEqn
         (
             fvm::ddt(psi, p)
           + fvm::div(phid, p)
-          - fvm::laplacian(rho*rUA, p)
+          - fvm::laplacian(rho*rAU, p)
         );
 
-        if
+        pEqn.solve
         (
-            oCorr == nOuterCorr-1
-            && corr == nCorr-1
-            && nonOrth == nNonOrthCorr
-        )
-        {
-            pEqn.solve(mesh.solver("pFinal"));
-        }
-        else
-        {
-            pEqn.solve();
-        }
+            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
+        );
 
-        if (nonOrth == nNonOrthCorr)
+        if (nonOrth == pimple.nNonOrthCorr())
         {
             phi == pEqn.flux();
         }
@@ -55,34 +48,25 @@ else
         fvc::interpolate(rho)*
         (
             (fvc::interpolate(U) & mesh.Sf())
-          + fvc::ddtPhiCorr(rUA, rho, U, phi)
+          + fvc::ddtPhiCorr(rAU, rho, U, phi)
         );
 
-    for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
     {
         // Pressure corrector
         fvScalarMatrix pEqn
         (
             fvm::ddt(psi, p)
           + fvc::div(phi)
-          - fvm::laplacian(rho*rUA, p)
+          - fvm::laplacian(rho*rAU, p)
         );
 
-        if
+        pEqn.solve
         (
-            oCorr == nOuterCorr-1
-         && corr == nCorr-1
-         && nonOrth == nNonOrthCorr
-        )
-        {
-            pEqn.solve(mesh.solver("pFinal"));
-        }
-        else
-        {
-            pEqn.solve();
-        }
+            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
+        );
 
-        if (nonOrth == nNonOrthCorr)
+        if (nonOrth == pimple.nNonOrthCorr())
         {
             phi += pEqn.flux();
         }
@@ -92,30 +76,18 @@ else
 #include "rhoEqn.H"
 #include "compressibleContinuityErrs.H"
 
-//if (oCorr != nOuterCorr-1)
-{
-    // Explicitly relax pressure for momentum corrector
-    p.relax();
+// Explicitly relax pressure for momentum corrector
+p.relax();
 
-    rho = thermo.rho();
-    rho.relax();
-    Info<< "rho max/min : " << max(rho).value()
-        << " " << min(rho).value() << endl;
-}
+// Recalculate density from the relaxed pressure
+rho = thermo.rho();
+rho = max(rho, rhoMin);
+rho = min(rho, rhoMax);
+rho.relax();
+Info<< "rho max/min : " << max(rho).value()
+    << " " << min(rho).value() << endl;
 
-U -= rUA*fvc::grad(p);
+U -= rAU*fvc::grad(p);
 U.correctBoundaryConditions();
 
 DpDt = fvc::DDt(surfaceScalarField("phiU", phi/fvc::interpolate(rho)), p);
-
-bound(p, pMin);
-
-// For closed-volume cases adjust the pressure and density levels
-// to obey overall mass continuity
-/*
-if (closedVolume)
-{
-    p += (initialMass - fvc::domainIntegrate(psi*p))
-        /fvc::domainIntegrate(psi);
-}
-*/

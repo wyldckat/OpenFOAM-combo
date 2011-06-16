@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,10 +48,12 @@ kOmega::kOmega
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    RASModel(typeName, U, phi, lamTransportModel),
+    RASModel(modelName, U, phi, transport, turbulenceModelName),
 
     Cmu_
     (
@@ -136,7 +138,10 @@ kOmega::kOmega
         autoCreateNut("nut", mesh_)
     )
 {
-    nut_ = k_/(omega_ + omegaSmall_);
+    bound(k_, kMin_);
+    bound(omega_, omegaMin_);
+
+    nut_ = k_/omega_;
     nut_.correctBoundaryConditions();
 
     printCoeffs();
@@ -191,7 +196,7 @@ tmp<fvVectorMatrix> kOmega::divDevReff(volVectorField& U) const
     return
     (
       - fvm::laplacian(nuEff(), U)
-      - fvc::div(nuEff()*dev(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*dev(T(fvc::grad(U))))
     );
 }
 
@@ -245,7 +250,7 @@ void kOmega::correct()
     omegaEqn().boundaryManipulate(omega_.boundaryField());
 
     solve(omegaEqn);
-    bound(omega_, omega0_);
+    bound(omega_, omegaMin_);
 
 
     // Turbulent kinetic energy equation
@@ -262,11 +267,11 @@ void kOmega::correct()
 
     kEqn().relax();
     solve(kEqn);
-    bound(k_, k0_);
+    bound(k_, kMin_);
 
 
     // Re-calculate viscosity
-    nut_ = k_/(omega_ + omegaSmall_);
+    nut_ = k_/omega_;
     nut_.correctBoundaryConditions();
 }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -74,11 +74,13 @@ class wallPointData
         //- Evaluate distance to point. Update distSqr, origin from whomever
         //  is nearer pt. Return true if w2 is closer to point,
         //  false otherwise.
+        template<class TrackingData>
         inline bool update
         (
             const point&,
             const wallPointData<Type>& w2,
-            const scalar tol
+            const scalar tol,
+            TrackingData& td
         );
 
 
@@ -112,35 +114,41 @@ public:
 
             //- Influence of neighbouring face.
             //  Calls update(...) with cellCentre of cellI
+            template<class TrackingData>
             inline bool updateCell
             (
                 const polyMesh& mesh,
                 const label thisCellI,
                 const label neighbourFaceI,
                 const wallPointData<Type>& neighbourWallInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
 
             //- Influence of neighbouring cell.
             //  Calls update(...) with faceCentre of faceI
+            template<class TrackingData>
             inline bool updateFace
             (
                 const polyMesh& mesh,
                 const label thisFaceI,
                 const label neighbourCellI,
                 const wallPointData<Type>& neighbourWallInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
 
             //- Influence of different value on same face.
             //  Merge new and old info.
             //  Calls update(...) with faceCentre of faceI
+            template<class TrackingData>
             inline bool updateFace
             (
                 const polyMesh& mesh,
                 const label thisFaceI,
                 const wallPointData<Type>& neighbourWallInfo,
-                const scalar tol
+                const scalar tol,
+                TrackingData& td
             );
 
     // Member Operators
@@ -150,6 +158,46 @@ public:
         friend Ostream& operator<< <Type>(Ostream&, const wallPointData<Type>&);
         friend Istream& operator>> <Type>(Istream&, wallPointData<Type>&);
 };
+
+
+//- Data associated with wallPointData type are contiguous. List the usual
+//  ones.
+
+template <>
+inline bool contiguous<wallPointData<bool> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<label> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<scalar> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<vector> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<sphericalTensor> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<symmTensor> >()
+{
+    return contiguous<wallPoint>();
+}
+template <>
+inline bool contiguous<wallPointData<tensor> >()
+{
+    return contiguous<wallPoint>();
+}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

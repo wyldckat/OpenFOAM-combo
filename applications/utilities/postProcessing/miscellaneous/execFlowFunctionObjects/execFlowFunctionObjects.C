@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ Global
 Description
     Execute the set of functionObjects specified in the selected dictionary
     (which defaults to system/controlDict) for the selected set of times.
+    Alternative dictionaries should be placed in the system/ folder.
 
     The flow (p-U) and optionally turbulence fields are available for the
     function objects to operate on allowing forces and other related properties
@@ -58,22 +59,22 @@ namespace Foam
             (
                 IOobject
                 (
-                    args.option("dict"),
+                    args["dict"],
                     runTime.system(),
                     runTime,
-                    IOobject::MUST_READ
+                    IOobject::MUST_READ_IF_MODIFIED
                 )
             );
 
             functionObjectList fol(runTime, dict);
             fol.start();
-            fol.execute();
+            fol.execute(true);  // override outputControl - force writing
         }
         else
         {
             functionObjectList fol(runTime);
             fol.start();
-            fol.execute();
+            fol.execute(true);  // override outputControl - force writing
         }
     }
 }
@@ -129,7 +130,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
             "RASProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         );
@@ -139,16 +140,16 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
             "LESProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         );
 
-        singlePhaseTransportModel laminarTransport(U, phi);
-
         if (RASPropertiesHeader.headerOk())
         {
             IOdictionary RASProperties(RASPropertiesHeader);
+
+            singlePhaseTransportModel laminarTransport(U, phi);
 
             autoPtr<incompressible::RASModel> RASModel
             (
@@ -164,6 +165,8 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
         else if (LESPropertiesHeader.headerOk())
         {
             IOdictionary LESProperties(LESPropertiesHeader);
+
+            singlePhaseTransportModel laminarTransport(U, phi);
 
             autoPtr<incompressible::LESModel> sgsModel
             (
@@ -181,7 +184,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
                     "transportProperties",
                     runTime.constant(),
                     mesh,
-                    IOobject::MUST_READ,
+                    IOobject::MUST_READ_IF_MODIFIED,
                     IOobject::NO_WRITE
                 )
             );
@@ -211,7 +214,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
             "RASProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         );
@@ -221,7 +224,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
             "LESProperties",
             runTime.constant(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         );
@@ -263,7 +266,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
                     "transportProperties",
                     runTime.constant(),
                     mesh,
-                    IOobject::MUST_READ,
+                    IOobject::MUST_READ_IF_MODIFIED,
                     IOobject::NO_WRITE
                 )
             );

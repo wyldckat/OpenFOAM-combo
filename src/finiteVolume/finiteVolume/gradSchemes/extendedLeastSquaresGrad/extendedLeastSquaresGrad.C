@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "extendedLeastSquaresGrad.H"
@@ -34,27 +34,20 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace fv
-{
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 template<class Type>
-tmp
+Foam::tmp
 <
-    GeometricField
+    Foam::GeometricField
     <
-        typename outerProduct<vector, Type>::type, fvPatchField, volMesh
+        typename Foam::outerProduct<Foam::vector, Type>::type,
+        Foam::fvPatchField,
+    Foam::volMesh
     >
 >
-extendedLeastSquaresGrad<Type>::grad
+Foam::fv::extendedLeastSquaresGrad<Type>::calcGrad
 (
-    const GeometricField<Type, fvPatchField, volMesh>& vsf
+    const GeometricField<Type, fvPatchField, volMesh>& vsf,
+    const word& name
 ) const
 {
     typedef typename outerProduct<vector, Type>::type GradType;
@@ -67,7 +60,7 @@ extendedLeastSquaresGrad<Type>::grad
         (
             IOobject
             (
-                "grad("+vsf.name()+')',
+                name,
                 vsf.instance(),
                 mesh,
                 IOobject::NO_READ,
@@ -95,8 +88,8 @@ extendedLeastSquaresGrad<Type>::grad
     const surfaceVectorField& ownLs = lsv.pVectors();
     const surfaceVectorField& neiLs = lsv.nVectors();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     forAll(owner, facei)
     {
@@ -114,13 +107,15 @@ extendedLeastSquaresGrad<Type>::grad
     {
         const fvsPatchVectorField& patchOwnLs = ownLs.boundaryField()[patchi];
 
-        const unallocLabelList& faceCells =
+        const labelUList& faceCells =
             lsGrad.boundaryField()[patchi].patch().faceCells();
 
         if (vsf.boundaryField()[patchi].coupled())
         {
-            Field<Type> neiVsf = 
-                vsf.boundaryField()[patchi].patchNeighbourField();
+            const Field<Type> neiVsf
+            (
+                vsf.boundaryField()[patchi].patchNeighbourField()
+            );
 
             forAll(neiVsf, patchFaceI)
             {
@@ -160,13 +155,5 @@ extendedLeastSquaresGrad<Type>::grad
     return tlsGrad;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace fv
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,7 +81,7 @@ class GeometricField
 :
     public DimensionedField<Type, GeoMesh>
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Read from file if it is present
         bool readIfPresent();
@@ -128,12 +128,14 @@ public:
 
             //- Construct from a BoundaryMesh,
             //  reference to the internal field
-            //  and a wordList of patch types
+            //  and a wordList of patch types and optional the actual patch
+            //  types (to override constraint patches)
             GeometricBoundaryField
             (
                 const BoundaryMesh&,
                 const DimensionedInternalField&,
-                const wordList&
+                const wordList& wantedPatchTypes,
+                const wordList& actualPatchTypes = wordList()
             );
 
             //- Construct from a BoundaryMesh,
@@ -237,7 +239,7 @@ private:
         GeometricBoundaryField boundaryField_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Read the field from the dictionary
         tmp<GeometricBoundaryField> readField(const dictionary&);
@@ -283,7 +285,8 @@ public:
             const IOobject&,
             const Mesh&,
             const dimensionSet&,
-            const wordList& patchFieldTypes
+            const wordList& wantedPatchTypes,
+            const wordList& actualPatchTypes = wordList()
         );
 
         //- Constructor given IOobject, mesh, dimensioned<Type> and patch type.
@@ -301,7 +304,8 @@ public:
             const IOobject&,
             const Mesh&,
             const dimensioned<Type>&,
-            const wordList& patchFieldTypes
+            const wordList& wantedPatchTypes,
+            const wordList& actualPatchTypes = wordList()
         );
 
         //- Constructor from components
@@ -319,14 +323,6 @@ public:
         (
             const IOobject&,
             const Mesh&
-        );
-
-        //- Construct and read from given stream
-        GeometricField
-        (
-            const IOobject&,
-            const Mesh&,
-            Istream&
         );
 
         //- Construct from dictionary
@@ -387,7 +383,8 @@ public:
         (
             const IOobject&,
             const GeometricField<Type, PatchField, GeoMesh>&,
-            const wordList& patchFieldTypes
+            const wordList& patchFieldTypes,
+            const wordList& actualPatchTypes = wordList()
         );
 
 

@@ -1,11 +1,11 @@
 #!/bin/sh
-#---------------------------------*- sh -*-------------------------------------
+#------------------------------------------------------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
 #    \\/     M anipulation  |
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # License
 #     This file is part of OpenFOAM.
 #
@@ -31,45 +31,72 @@
 #     Prints its argument (which should be a ':' separated path)
 #     without all
 #         - duplicate elements
-#         - (if '-strip') non-accessible directories
 #         - elements whose start matches a wildcard
+#         - inaccessible directories (with the -strip (at your option)
 #
-#     Note:
-#         - this routine will fail when directories have embedded spaces
-#         - false matches possible if a wildcard contains '.' (sed regex)
+# Note
+#     - this routine will fail when directories have embedded spaces
+#     - false matches possible if a wildcard contains '.' (sed regex)
+#     - the wildcards can themselves can be written together and separated
+#       by colons or whitespace
 #------------------------------------------------------------------------------
-if [ "$#" -lt 1 -o "$1" = "-h" -o "$1" = "-help" ]
-then
-   cat <<USAGE 1>&2
-Usage: ${0##*/} [-strip] path [wildcard] .. [wildcard]
+usage() {
+    cat <<USAGE 1>&2
+Usage: ${0##*/} [OPTION] path [wildcard1] .. [wildcardN]
+options:
+  -strip            remove inaccessible directories
+  -help             print the usage
 
-    Prints its argument (which should be a ':' separated list) cleansed from
-      - duplicate elements
-      - elements whose start matches one of the wildcard(s)
-      - (if '-strip') non-accessible directories
+  Prints its argument (which should be a ':' separated list) cleansed from
+    - duplicate elements
+    - elements whose start matches one of the wildcard(s)
+    - inaccessible directories (with the -strip (at your option)
+
+  Exit status
+      0  on success
+      1  for miscellaneous errors.
+      2  initial value of 'path' is empty
+
 USAGE
-   exit 1
-fi
+    exit 1
+}
 
 
-strip=''
-if [ "$1" = "-strip" ]
-then
-    strip=true
-    shift
-fi
+unset strip
+# parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)
+        usage
+        ;;
+    -strip)
+        strip=true
+        shift
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
 
+
+[ "$#" -ge 1 ] || usage
 
 dirList="$1"
 shift
 
+[ -n "$1" ] || exit 2    # quick exit on empty 'dirList'
+
+
 ##DEBUG echo "input>$dirList<" 1>&2
 
-# preserve current IFS and split on whitespace
+# preserve current IFS and split on colon or whitespace
 oldIFS="$IFS"
-IFS=' '
+IFS=': '
 
 # "wildcard1 ... wildcardN" may have been passed as a single parameter
+# or may contain ':' separators
 set -- $*
 
 # strip out wildcards via sed
@@ -78,7 +105,10 @@ do
     wildcard=$1
     shift
     ##DEBUG echo "remove>$wildcard<" 1>&2
-    dirList=`echo "$dirList" | sed -e "s@${wildcard}[^:]*:@@g"`
+    if [ -n "$wildcard" ]
+    then
+        dirList=$(echo "$dirList:" | sed -e "s@${wildcard}[^:]*:@@g")
+    fi
 done
 
 # split on ':' (and on space as well to avoid any surprises)
@@ -96,24 +126,24 @@ do
     if [ -e "$dir" ]
     then
         #- no duplicate dirs
-        duplicate=`echo " $dirList " | sed -ne "s@ $dir @DUP@p"`
+        duplicate=$(echo " $dirList " | sed -ne "s@ $dir @DUP@p")
 
         if [ ! "$duplicate" ]
         then
             dirList="$dirList $dir"
         fi
-    elif [ "$strip" != "true" ]
+    elif [ "$strip" != true ]
     then
         # Print non-existing directories if not in 'strip' mode.
         dirList="$dirList $dir"
     fi
 done
 
-# parse on whitespace
+# split on whitespace
 IFS=' '
 set -- $dirList
 
-# join on ':'
+# rejoin on ':'
 IFS=':'
 dirList="$*"
 

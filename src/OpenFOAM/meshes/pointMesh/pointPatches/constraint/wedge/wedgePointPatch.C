@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,23 +34,21 @@ Description
 
 namespace Foam
 {
+    defineTypeNameAndDebug(wedgePointPatch, 0);
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(wedgePointPatch, 0);
-
-// Add the patch constructor functions to the hash tables
-addToRunTimeSelectionTable
-(
-    facePointPatch,
-    wedgePointPatch,
-    polyPatch
-);
+    // Add the patch constructor functions to the hash tables
+    addToRunTimeSelectionTable
+    (
+        facePointPatch,
+        wedgePointPatch,
+        polyPatch
+    );
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void wedgePointPatch::applyConstraint
+void Foam::wedgePointPatch::applyConstraint
 (
     const label pointi,
     pointConstraint& pc
@@ -59,9 +57,5 @@ void wedgePointPatch::applyConstraint
     pc.applyConstraint(pointNormals()[pointi]);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

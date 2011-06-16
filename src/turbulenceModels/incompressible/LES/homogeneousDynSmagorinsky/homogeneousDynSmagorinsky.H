@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Description
     Algebraic eddy viscosity SGS model founded on the assumption that
     local equilibrium prevails.
     Thus,
-    @verbatim
+    \verbatim
         B = 2/3*k*I - 2*nuSgs*dev(D)
         Beff = 2/3*k*I - 2*nuEff*dev(D)
 
@@ -58,8 +58,8 @@ Description
         M = delta^2*(F(||D||*dev(D)) - 4*||F(D)||*F(dev(D)))
 
     The averaging <...> is over the whole domain, i.e. homogeneous turbulence
-    is assumed.
-    @endverbatim
+    is assumed
+    \endverbatim
 
 SourceFiles
     homogeneousDynSmagorinsky.C
@@ -123,7 +123,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

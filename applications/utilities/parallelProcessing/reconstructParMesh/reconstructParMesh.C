@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Description
     used to reconstruct fields.
 
     Note:
-    - uses geometric matching tolerance (set with -mergeTol option)
+    - uses geometric matching tolerance (set with -mergeTol (at your option)
 
     If the parallel case does not have correct procBoundaries use the
     -fullMatch option which will check all boundary faces (bit slower).
@@ -279,14 +279,29 @@ autoPtr<mapPolyMesh> mergeSharedPoints
 
 int main(int argc, char *argv[])
 {
-    argList::noParallel();
-    argList::validOptions.insert("mergeTol", "relative merge distance");
-    argList::validOptions.insert("fullMatch", "");
+    argList::addNote
+    (
+        "reconstruct a mesh using geometric information only"
+    );
 
-#   include "addTimeOptions.H"
-#   include "addRegionOption.H"
-#   include "setRootCase.H"
-#   include "createTime.H"
+    argList::noParallel();
+    argList::addOption
+    (
+        "mergeTol",
+        "scalar",
+        "specify the merge distance relative to the bounding box size "
+        "(default 1E-7)"
+    );
+    argList::addBoolOption
+    (
+        "fullMatch",
+        "do (slower) geometric matching on all boundary faces"
+    );
+
+    #include "addTimeOptions.H"
+    #include "addRegionOption.H"
+    #include "setRootCase.H"
+    #include "createTime.H"
 
     Info<< "This is an experimental tool which tries to merge"
         << " individual processor" << nl
@@ -305,11 +320,11 @@ int main(int argc, char *argv[])
 
 
     word regionName = polyMesh::defaultRegion;
-    fileName regionPrefix = "";
-    if (args.optionFound("region"))
+    word regionDir = word::null;
+
+    if (args.optionReadIfPresent("region", regionName))
     {
-        regionName = args.option("region");
-        regionPrefix = regionName;
+        regionDir = regionName;
         Info<< "Operating on region " << regionName << nl << endl;
     }
 
@@ -370,7 +385,7 @@ int main(int argc, char *argv[])
     // Read all databases.
     PtrList<Time> databases(nProcs);
 
-    forAll (databases, procI)
+    forAll(databases, procI)
     {
         Info<< "Reading database "
             << args.caseName()/fileName(word("processor") + name(procI))
@@ -424,7 +439,7 @@ int main(int argc, char *argv[])
         (
             databases[procI].findInstance
             (
-                regionPrefix/polyMesh::meshSubDir,
+                regionDir/polyMesh::meshSubDir,
                 "points"
             )
         );
@@ -437,7 +452,8 @@ int main(int argc, char *argv[])
                 << "(there is a points file in " << pointsInstance
                 << ")" << endl
                 << "Please rerun with the correct time specified"
-                << " (through the -constant, -time or -latestTime option)."
+                << " (through the -constant, -time or -latestTime "
+                << "(at your option)."
                 << endl << exit(FatalError);
         }
 
@@ -453,10 +469,10 @@ int main(int argc, char *argv[])
                 "points",
                 databases[procI].findInstance
                 (
-                    regionPrefix/polyMesh::meshSubDir,
+                    regionDir/polyMesh::meshSubDir,
                     "points"
                 ),
-                regionPrefix/polyMesh::meshSubDir,
+                regionDir/polyMesh::meshSubDir,
                 databases[procI],
                 IOobject::MUST_READ,
                 IOobject::NO_WRITE,

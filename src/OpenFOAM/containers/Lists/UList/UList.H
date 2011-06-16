@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,6 +59,7 @@ template<class T> class SubList;
 template<class T> class UList;
 template<class T> Ostream& operator<<(Ostream&, const UList<T>&);
 
+typedef UList<label> labelUList;
 
 /*---------------------------------------------------------------------------*\
                            Class UList Declaration
@@ -131,7 +132,7 @@ public:
             inline label fcIndex(const label i) const;
 
             //- Return the reverse circular index, i.e. the previous index
-            //  which returns to the last at the begining of the list
+            //  which returns to the last at the beginning of the list
             inline label rcIndex(const label i) const;
 
             //- Return the binary size in number of characters of the UList
@@ -149,6 +150,18 @@ public:
             //  similar to the STL front() method and the string::data() method
             //  This can be used (with caution) when interfacing with C code.
             inline T* data();
+
+            //- Return the first element of the list.
+            inline T& first();
+
+            //- Return first element of the list.
+            inline const T& first() const;
+
+            //- Return the last element of the list.
+            inline T& last();
+
+            //- Return the last element of the list.
+            inline const T& last() const;
 
 
         // Check
@@ -331,6 +344,9 @@ void stableSort(UList<T>&);
 template<class T, class Cmp>
 void stableSort(UList<T>&, const Cmp&);
 
+template<class T>
+void shuffle(UList<T>&);
+
 // Reverse the first n elements of the list
 template<class T>
 inline void reverse(UList<T>&, const label n);
@@ -351,28 +367,28 @@ inline void reverse(UList<T>&);
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 /**
- * @def forAll(list, i)
- * Loop across all elements in @a list
- * @par Usage
- * @code
+ * \def forAll(list, i)
+ * Loop across all elements in \a list
+ * \par Usage
+ * \code
  * forAll(anyList, i)
  * {
  *      statements;
  * }
- * @endcode
- * @sa forAllReverse
+ * \endcode
+ * \sa forAllReverse
 */
 /**
- * @def forAllReverse(list, i)
- * Reverse loop across all elements in @a list
- * @par Usage
- * @code
+ * \def forAllReverse(list, i)
+ * Reverse loop across all elements in \a list
+ * \par Usage
+ * \code
  * forAllReverse(anyList, i)
  * {
  *      statements;
  * }
- * @endcode
- * @sa forAll
+ * \endcode
+ * \sa forAll
 */
 #define forAll(list, i) \
     for (Foam::label i=0; i<(list).size(); i++)
@@ -381,17 +397,17 @@ inline void reverse(UList<T>&);
     for (Foam::label i=(list).size()-1; i>=0; i--)
 
 /**
- * @def forAllIter(Container, container, iter)
- * Iterate across all elements in the @a container object of type
- * @a Container.
- * @par Usage
- * @code
+ * \def forAllIter(Container, container, iter)
+ * Iterate across all elements in the \a container object of type
+ * \a Container.
+ * \par Usage
+ * \code
  * forAll(ContainerType, container, iter)
  * {
  *     statements;
  * }
- * @endcode
- * @sa forAllConstIter
+ * \endcode
+ * \sa forAllConstIter
 */
 #define forAllIter(Container,container,iter)                                   \
     for                                                                        \
@@ -402,17 +418,17 @@ inline void reverse(UList<T>&);
     )
 
 /**
- * @def forAllConstIter(Container, container, iter)
- * Iterate across all elements in the @a container object of type
- * @a Container with const access.
- * @par Usage
- * @code
+ * \def forAllConstIter(Container, container, iter)
+ * Iterate across all elements in the \a container object of type
+ * \a Container with const access.
+ * \par Usage
+ * \code
  * forAllConstIter(ContainerType, container, iter)
  * {
  *     statements;
  * }
- * @endcode
- * @sa forAllIter
+ * \endcode
+ * \sa forAllIter
 */
 #define forAllConstIter(Container,container,iter)                              \
     for                                                                        \

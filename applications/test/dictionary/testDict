@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  Any                                   |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -33,12 +33,10 @@ active
     value           $internalField;
 }
 
-
 inactive
 {
     type            zeroGradient;
 }
-
 
 boundaryField
 {
@@ -67,7 +65,6 @@ boundaryField
         // error           #remove self;
         x               5;
         y               6;
-        another         #calc{x $x; y $y;};
     }
 
     // this should have no effect
@@ -97,12 +94,10 @@ baz
     $active
 }
 
-
 "anynumber.*"
 {
     $active
 }
-
 
 // this should work
 #remove active

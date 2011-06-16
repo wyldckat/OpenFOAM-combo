@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,14 +25,13 @@ License
 
 #include "primitiveMeshGeometry.H"
 #include "pyramidPointFaceRef.H"
-
-namespace Foam
-{
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(primitiveMeshGeometry, 0);
-
+namespace Foam
+{
+    defineTypeNameAndDebug(primitiveMeshGeometry, 0);
 }
 
 
@@ -271,8 +270,7 @@ bool Foam::primitiveMeshGeometry::checkFaceDotProduct
     const labelList& nei = mesh.faceNeighbour();
 
     // Severe nonorthogonality threshold
-    const scalar severeNonorthogonalityThreshold =
-        ::cos(orthWarn/180.0*mathematicalConstant::pi);
+    const scalar severeNonorthogonalityThreshold = ::cos(degToRad(orthWarn));
 
     scalar minDDotS = GREAT;
 
@@ -303,8 +301,7 @@ bool Foam::primitiveMeshGeometry::checkFaceDotProduct
                         Pout<< "Severe non-orthogonality for face " << faceI
                             << " between cells " << own[faceI]
                             << " and " << nei[faceI]
-                            << ": Angle = "
-                            << ::acos(dDotS)/mathematicalConstant::pi*180.0
+                            << ": Angle = " << radToDeg(::acos(dDotS))
                             << " deg." << endl;
                     }
 
@@ -329,8 +326,7 @@ bool Foam::primitiveMeshGeometry::checkFaceDotProduct
                             << faceI
                             << " between cells " << own[faceI] << " and "
                             << nei[faceI]
-                            << ": Angle = "
-                            << ::acos(dDotS)/mathematicalConstant::pi*180.0
+                            << ": Angle = " << radToDeg(::acos(dDotS))
                             << " deg." << endl;
                     }
 
@@ -376,9 +372,8 @@ bool Foam::primitiveMeshGeometry::checkFaceDotProduct
         if (neiSize > 0)
         {
             Info<< "Mesh non-orthogonality Max: "
-                << ::acos(minDDotS)/mathematicalConstant::pi*180.0
-                << " average: " <<
-                   ::acos(sumDDotS/neiSize)/mathematicalConstant::pi*180.0
+                << radToDeg(::acos(minDDotS))
+                << " average: " << radToDeg(::acos(sumDDotS/neiSize))
                 << endl;
         }
     }
@@ -560,7 +555,7 @@ bool Foam::primitiveMeshGeometry::checkFaceSkewness
                 cellCentres[own[faceI]]*dNei/(dOwn+dNei)
               + cellCentres[nei[faceI]]*dOwn/(dOwn+dNei);
 
-            scalar skewness = 
+            scalar skewness =
                 mag(faceCentres[faceI] - faceIntersection)
               / (
                     mag(cellCentres[nei[faceI]]-cellCentres[own[faceI]])
@@ -780,7 +775,7 @@ bool Foam::primitiveMeshGeometry::checkFaceAngles
             << abort(FatalError);
     }
 
-    const scalar maxSin = Foam::sin(maxDeg/180.0*mathematicalConstant::pi);
+    const scalar maxSin = Foam::sin(degToRad(maxDeg));
 
     const faceList& fcs = mesh.faces();
 
@@ -800,7 +795,7 @@ bool Foam::primitiveMeshGeometry::checkFaceAngles
         faceNormal /= mag(faceNormal) + VSMALL;
 
         // Get edge from f[0] to f[size-1];
-        vector ePrev(p[f[0]] - p[f[f.size()-1]]);
+        vector ePrev(p[f.first()] - p[f.last()]);
         scalar magEPrev = mag(ePrev);
         ePrev /= magEPrev + VSMALL;
 
@@ -860,8 +855,7 @@ bool Foam::primitiveMeshGeometry::checkFaceAngles
         if (maxEdgeSin > SMALL)
         {
             scalar maxConcaveDegr =
-                Foam::asin(Foam::min(1.0, maxEdgeSin))
-             * 180.0/mathematicalConstant::pi;
+                radToDeg(Foam::asin(Foam::min(1.0, maxEdgeSin)));
 
             Info<< "There are " << nConcave
                 << " faces with concave angles between consecutive"
@@ -948,8 +942,8 @@ bool Foam::primitiveMeshGeometry::checkFaceAngles
 //        {
 //            const point& fc = faceCentres[faceI];
 //
-//            // Calculate the sum of magnitude of areas and compare to magnitude
-//            // of sum of areas.
+//            // Calculate the sum of magnitude of areas and compare to
+//            // magnitude of sum of areas.
 //
 //            scalar sumA = 0.0;
 //
@@ -1140,8 +1134,8 @@ bool Foam::primitiveMeshGeometry::checkFaceTwist
                 "(const bool, const scalar, const primitiveMesh&"
                 ", const pointField&, const labelList&, labelHashSet*)"
             )   << nWarped  << " faces with severe warpage "
-                << "(cosine of the angle between triangle normal and face normal"
-                << " < " << minTwist << ") found.\n"
+                << "(cosine of the angle between triangle normal and "
+                << "face normal < " << minTwist << ") found.\n"
                 << endl;
         }
 
@@ -1247,7 +1241,7 @@ bool Foam::primitiveMeshGeometry::checkCellDeterminant
         forAll(cFaces, cFaceI)
         {
             label faceI = cFaces[cFaceI];
-    
+
             scalar magArea = mag(faceAreas[faceI]);
 
             magAreaSum += magArea;
@@ -1274,7 +1268,7 @@ bool Foam::primitiveMeshGeometry::checkCellDeterminant
             nWarnDet++;
         }
     }
-    
+
     reduce(minDet, minOp<scalar>());
     reduce(sumDet, sumOp<scalar>());
     reduce(nSumDet, sumOp<label>());

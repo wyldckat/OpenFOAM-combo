@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,36 +26,49 @@ License
 #include "cellSource.H"
 #include "fvMesh.H"
 #include "volFields.H"
-#include "IOList.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
+defineTypeNameAndDebug(Foam::fieldValues::cellSource, 0);
+
 namespace Foam
 {
-    namespace fieldValues
+
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldValues::cellSource::sourceType,
+        2
+    >::names[] =
     {
-        defineTypeNameAndDebug(cellSource, 0);
-    }
+        "cellZone",
+        "all"
+    };
+
 
     template<>
-    const char* NamedEnum<fieldValues::cellSource::sourceType, 2>::
-        names[] = {"cellZone", "all"};
-
-    const NamedEnum<fieldValues::cellSource::sourceType, 2>
-        fieldValues::cellSource::sourceTypeNames_;
-
-    template<>
-    const char* NamedEnum<fieldValues::cellSource::operationType, 7>::
-        names[] =
-        {
-            "none", "sum", "volAverage",
-            "volIntegrate", "weightedAverage", "min", "max"
-        };
-
-    const NamedEnum<fieldValues::cellSource::operationType, 7>
-        fieldValues::cellSource::operationTypeNames_;
-
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldValues::cellSource::operationType,
+        7
+    >::names[] =
+    {
+        "none",
+        "sum",
+        "volAverage",
+        "volIntegrate",
+        "weightedAverage",
+        "min",
+        "max"
+    };
 }
+
+
+const Foam::NamedEnum<Foam::fieldValues::cellSource::sourceType, 2>
+    Foam::fieldValues::cellSource::sourceTypeNames_;
+
+const Foam::NamedEnum<Foam::fieldValues::cellSource::operationType, 7>
+    Foam::fieldValues::cellSource::operationTypeNames_;
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -109,7 +122,22 @@ void Foam::fieldValues::cellSource::initialise(const dictionary& dict)
 {
     setCellZoneCells();
 
-    Info<< type() << " " << name_ << ":" << nl
+    if (nCells_ == 0)
+    {
+        WarningIn
+        (
+            "Foam::fieldValues::cellSource::initialise(const dictionary&)"
+        )
+            << type() << " " << name_ << ": "
+            << sourceTypeNames_[source_] << "(" << sourceName_ << "):" << nl
+            << "    Source has no cells - deactivating" << endl;
+
+        active_ = false;
+        return;
+    }
+
+    Info<< type() << " " << name_ << ":"
+        << sourceTypeNames_[source_] << "(" << sourceName_ << "):" << nl
         << "    total cells  = " << nCells_ << nl
         << "    total volume = " << gSum(filterField(mesh().V()))
         << nl << endl;
@@ -206,11 +234,10 @@ void Foam::fieldValues::cellSource::write()
 
     if (active_)
     {
+        scalar totalVolume = gSum(filterField(mesh().V()));
         if (Pstream::master())
         {
-            outputFilePtr_()
-                << obr_.time().value() << tab
-                << sum(filterField(mesh().V()));
+            outputFilePtr_() << obr_.time().value() << tab << totalVolume;
         }
 
         forAll(fields_, i)
@@ -236,4 +263,3 @@ void Foam::fieldValues::cellSource::write()
 
 
 // ************************************************************************* //
-

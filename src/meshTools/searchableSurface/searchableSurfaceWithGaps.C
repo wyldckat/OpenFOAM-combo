@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -240,7 +240,7 @@ void Foam::searchableSurfaceWithGaps::findLine
         // test in pairs: only if both perturbations hit something
         // do we accept the hit.
 
-        const vectorField smallVec(SMALL*(compactEnd-compactStart));
+        const vectorField smallVec(1E-6*(compactEnd-compactStart));
 
         List<pointIndexHit> plusInfo;
         surface().findLine
@@ -294,7 +294,7 @@ void Foam::searchableSurfaceWithGaps::findLine
             offset0.setSize(plusMissMap.size());
             offset1.setSize(plusMissMap.size());
 
-            const vectorField smallVec(SMALL*(compactEnd-compactStart));
+            const vectorField smallVec(1E-6*(compactEnd-compactStart));
 
             surface().findLine
             (

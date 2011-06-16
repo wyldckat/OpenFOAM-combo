@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-6
+10
 (
     bottomWall
     {
@@ -29,33 +29,69 @@ FoamFile
         nFaces          1200;
         startFace       176500;
     }
-    sides1
+    sides1_half0
     {
         type            cyclic;
-        nFaces          2000;
+        nFaces          1000;
         startFace       177700;
-        featureCos      0.9;
+        matchTolerance  0.0001;
+        neighbourPatch  sides1_half1;
     }
-    sides2
+    sides1_half1
     {
         type            cyclic;
-        nFaces          2000;
+        nFaces          1000;
+        startFace       178700;
+        matchTolerance  0.0001;
+        neighbourPatch  sides1_half0;
+    }
+    sides2_half0
+    {
+        type            cyclic;
+        nFaces          1000;
         startFace       179700;
-        featureCos      0.9;
+        matchTolerance  0.0001;
+        neighbourPatch  sides2_half1;
     }
-    inout1
+    sides2_half1
     {
         type            cyclic;
-        nFaces          1500;
+        nFaces          1000;
+        startFace       180700;
+        matchTolerance  0.0001;
+        neighbourPatch  sides2_half0;
+    }
+    inout1_half0
+    {
+        type            cyclic;
+        nFaces          750;
         startFace       181700;
-        featureCos      0.9;
+        matchTolerance  0.0001;
+        neighbourPatch  inout1_half1;
     }
-    inout2
+    inout1_half1
     {
         type            cyclic;
-        nFaces          1500;
+        nFaces          750;
+        startFace       182450;
+        matchTolerance  0.0001;
+        neighbourPatch  inout1_half0;
+    }
+    inout2_half0
+    {
+        type            cyclic;
+        nFaces          750;
         startFace       183200;
-        featureCos      0.9;
+        matchTolerance  0.0001;
+        neighbourPatch  inout2_half1;
+    }
+    inout2_half1
+    {
+        type            cyclic;
+        nFaces          750;
+        startFace       183950;
+        matchTolerance  0.0001;
+        neighbourPatch  inout2_half0;
     }
 )
 

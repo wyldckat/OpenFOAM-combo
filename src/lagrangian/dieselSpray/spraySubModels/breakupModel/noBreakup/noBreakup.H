@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,6 @@ Description
 SourceFiles
     noBreakupI.H
     noBreakup.C
-    noBreakupIO.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -45,7 +44,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class noBreakup Declaration
+                         Class noBreakup Declaration
 \*---------------------------------------------------------------------------*/
 
 class noBreakup
@@ -62,16 +61,11 @@ public:
     // Constructors
 
         //- Construct from components
-        noBreakup
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        noBreakup(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~noBreakup();
+    //- Destructor
+    virtual ~noBreakup();
 
 
     // Member Functions
@@ -81,9 +75,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
 };
 
 

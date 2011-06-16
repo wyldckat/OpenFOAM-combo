@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,22 +24,14 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "basicThermoParcel.H"
-#include "ThermoCloud.H"
+#include "Cloud.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTemplateTypeNameAndDebug(basicThermoParcel, 0);
     defineTemplateTypeNameAndDebug(Cloud<basicThermoParcel>, 0);
-
-    defineParcelTypeNameAndDebug(KinematicParcel<basicThermoParcel>, 0);
-    defineParcelTypeNameAndDebug(ThermoParcel<basicThermoParcel>, 0);
-    defineTemplateTypeNameAndDebug(ThermoParcel<basicThermoParcel>, 0);
-
-    defineParcelTypeNameAndDebug(KinematicCloud<basicThermoParcel>, 0);
-
-    defineParcelTypeNameAndDebug(ThermoCloud<basicThermoParcel>, 0);
-};
-
+}
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,7 @@ Description
     the same point. The neighbour labels are also ordered in ascending
     order but only for groups of edges belonging to each point. An example
     is given below:
-    @verbatim
+    \verbatim
         owner     eighbour
         0         1
         0         20
@@ -60,7 +60,7 @@ Description
         8         28
         9         10
         9         29
-    @endverbatim
+    \endverbatim
 
     There exists an alternative way of addressing the owner
     list: instead of repeating the same label in the owner list, it is
@@ -68,9 +68,9 @@ Description
     neighbour list. This reduces the size of owner addressing from a list
     over all edges to a list over all points + 1:
 
-    @verbatim
+    \verbatim
         Owner start list: 0 2 4 6 8 10 12 14 16 18
-    @endverbatim
+    \endverbatim
 
     We shall use the second form of the addressing for fast lookup
     of edge label from the known owner and neighbour, using the following
@@ -158,9 +158,8 @@ public:
     {}
 
 
-    // Destructor
-
-        virtual ~lduAddressing();
+    //- Destructor
+    virtual ~lduAddressing();
 
 
     // Member Functions
@@ -172,13 +171,13 @@ public:
         }
 
         //- Return lower addressing
-        virtual const unallocLabelList& lowerAddr() const = 0;
+        virtual const labelUList& lowerAddr() const = 0;
 
         //- Return upper addressing
-        virtual const unallocLabelList& upperAddr() const = 0;
+        virtual const labelUList& upperAddr() const = 0;
 
         //- Return patch to internal addressing given patch number
-        virtual const unallocLabelList& patchAddr
+        virtual const labelUList& patchAddr
         (
             const label patchNo
         ) const = 0;
@@ -187,13 +186,13 @@ public:
         virtual const lduSchedule& patchSchedule() const = 0;
 
         //- Return losort addressing
-        const unallocLabelList& losortAddr() const;
+        const labelUList& losortAddr() const;
 
         //- Return owner start addressing
-        const unallocLabelList& ownerStartAddr() const;
+        const labelUList& ownerStartAddr() const;
 
         //- Return losort start addressing
-        const unallocLabelList& losortStartAddr() const;
+        const labelUList& losortStartAddr() const;
 
         //- Return off-diagonal index given owner and neighbour label
         label triIndex(const label a, const label b) const;

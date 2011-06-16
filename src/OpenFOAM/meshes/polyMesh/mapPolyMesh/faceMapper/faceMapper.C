@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ void Foam::faceMapper::calcAddressing() const
 
         label nInsertedFaces = 0;
 
-        forAll (directAddr, faceI)
+        forAll(directAddr, faceI)
         {
             if (directAddr[faceI] < 0)
             {
@@ -88,7 +88,7 @@ void Foam::faceMapper::calcAddressing() const
 
         const List<objectMap>& ffp = mpm_.facesFromPointsMap();
 
-        forAll (ffp, ffpI)
+        forAll(ffp, ffpI)
         {
             // Get addressing
             const labelList& mo = ffp[ffpI].masterObjects();
@@ -110,7 +110,7 @@ void Foam::faceMapper::calcAddressing() const
 
         const List<objectMap>& ffe = mpm_.facesFromEdgesMap();
 
-        forAll (ffe, ffeI)
+        forAll(ffe, ffeI)
         {
             // Get addressing
             const labelList& mo = ffe[ffeI].masterObjects();
@@ -132,7 +132,7 @@ void Foam::faceMapper::calcAddressing() const
 
         const List<objectMap>& fff = mpm_.facesFromFacesMap();
 
-        forAll (fff, fffI)
+        forAll(fff, fffI)
         {
             // Get addressing
             const labelList& mo = fff[fffI].masterObjects();
@@ -157,7 +157,7 @@ void Foam::faceMapper::calcAddressing() const
         // so check if addressing size still zero.
         const labelList& fm = mpm_.faceMap();
 
-        forAll (fm, faceI)
+        forAll(fm, faceI)
         {
             if (fm[faceI] > -1 && addr[faceI].empty())
             {
@@ -175,7 +175,7 @@ void Foam::faceMapper::calcAddressing() const
 
         label nInsertedFaces = 0;
 
-        forAll (addr, faceI)
+        forAll(addr, faceI)
         {
             if (addr[faceI].empty())
             {
@@ -219,7 +219,7 @@ Foam::faceMapper::faceMapper(const mapPolyMesh& mpm)
     // Check for possibility of direct mapping
     if
     (
-        mpm_.facesFromPointsMap().empty() 
+        mpm_.facesFromPointsMap().empty()
      && mpm_.facesFromEdgesMap().empty()
      && mpm_.facesFromFacesMap().empty()
     )
@@ -247,21 +247,21 @@ Foam::faceMapper::faceMapper(const mapPolyMesh& mpm)
 
         const List<objectMap>& ffp = mpm_.facesFromPointsMap();
 
-        forAll (ffp, ffpI)
+        forAll(ffp, ffpI)
         {
             fm[ffp[ffpI].index()] = 0;
         }
 
         const List<objectMap>& ffe = mpm_.facesFromEdgesMap();
 
-        forAll (ffe, ffeI)
+        forAll(ffe, ffeI)
         {
             fm[ffe[ffeI].index()] = 0;
         }
 
         const List<objectMap>& fff = mpm_.facesFromFacesMap();
 
-        forAll (fff, fffI)
+        forAll(fff, fffI)
         {
             fm[fff[fffI].index()] = 0;
         }
@@ -302,13 +302,13 @@ Foam::label Foam::faceMapper::internalSizeBeforeMapping() const
 }
 
 
-const Foam::unallocLabelList& Foam::faceMapper::directAddressing() const
+const Foam::labelUList& Foam::faceMapper::directAddressing() const
 {
     if (!direct())
     {
         FatalErrorIn
         (
-            "const unallocLabelList& faceMapper::directAddressing() const"
+            "const labelUList& faceMapper::directAddressing() const"
         )   << "Requested direct addressing for an interpolative mapper."
             << abort(FatalError);
     }

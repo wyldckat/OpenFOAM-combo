@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -450,7 +450,7 @@ bool Foam::faceTriangulation::split
         label index1 = -1;
         label index2 = -1;
 
-        for (label iter = 0; iter < f.size(); iter++)
+        forAll(f, iter)
         {
             findDiagonal
             (

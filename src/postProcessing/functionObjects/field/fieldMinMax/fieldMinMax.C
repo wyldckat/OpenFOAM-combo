@@ -31,18 +31,21 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
+defineTypeNameAndDebug(Foam::fieldMinMax, 0);
+
 namespace Foam
 {
-    defineTypeNameAndDebug(fieldMinMax, 0);
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::fieldMinMax::modeType,
+        2
+    >::names[] =
+    {
+        "magnitude",
+        "component"
+    };
 }
-
-
-template<>
-const char* Foam::NamedEnum<Foam::fieldMinMax::modeType, 2>::names[] =
-{
-    "magnitude",
-    "component"
-};
 
 
 const Foam::NamedEnum<Foam::fieldMinMax::modeType, 2>
@@ -62,6 +65,7 @@ Foam::fieldMinMax::fieldMinMax
     name_(name),
     obr_(obr),
     active_(true),
+    write_(true),
     log_(false),
     mode_(mdMag),
     fieldSet_(),
@@ -95,9 +99,10 @@ void Foam::fieldMinMax::read(const dictionary& dict)
 {
     if (active_)
     {
+        write_ = dict.lookupOrDefault<Switch>("write", true);
         log_ = dict.lookupOrDefault<Switch>("log", false);
 
-        mode_ = modeTypeNames_[dict.lookup("mode")];
+        mode_ = modeTypeNames_[dict.lookupOrDefault<word>("mode", "magnitude")];
         dict.lookup("fields") >> fieldSet_;
     }
 }
@@ -174,7 +179,10 @@ void Foam::fieldMinMax::write()
     if (active_)
     {
         // Create the fieldMinMax file if not already created
-        makeFile();
+        if (write_)
+        {
+            makeFile();
+        }
 
         forAll(fieldSet_, fieldI)
         {
@@ -198,13 +206,17 @@ void Foam::fieldMinMax::calcMinMaxFields<Foam::scalar>
     {
         const volScalarField& field =
             obr_.lookupObject<volScalarField>(fieldName);
-        scalar minValue = min(field).value();
-        scalar maxValue = max(field).value();
+        const scalar minValue = min(field).value();
+        const scalar maxValue = max(field).value();
 
         if (Pstream::master())
         {
-            fieldMinMaxFilePtr_() << obr_.time().value() << tab
-                << fieldName << tab << minValue << tab << maxValue << endl;
+            if (write_)
+            {
+                fieldMinMaxFilePtr_()
+                    << obr_.time().value() << tab
+                    << fieldName << tab << minValue << tab << maxValue << endl;
+            }
 
             if (log_)
             {

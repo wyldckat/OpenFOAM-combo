@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,7 +51,7 @@ namespace Foam
 class Time;
 
 /*---------------------------------------------------------------------------*\
-                           Class functionObject Declaration
+                       Class functionObject Declaration
 \*---------------------------------------------------------------------------*/
 
 class functionObject
@@ -135,9 +135,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~functionObject();
+    //- Destructor
+    virtual ~functionObject();
 
 
     // Member Functions
@@ -148,8 +147,9 @@ public:
         //- Called at the start of the time-loop
         virtual bool start() = 0;
 
-        //- Called at each ++ or += of the time-loop
-        virtual bool execute() = 0;
+        //- Called at each ++ or += of the time-loop. forceWrite overrides the
+        //  outputControl behaviour.
+        virtual bool execute(const bool forceWrite) = 0;
 
         //- Called when Time::run() determines that the time-loop exits.
         //  By default it simply calls execute().

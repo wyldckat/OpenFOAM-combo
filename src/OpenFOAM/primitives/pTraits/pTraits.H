@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,9 @@ Class
 Description
     Traits class for primitives.
 
-    All primitives need a specialised version of this class
+    All primitives need a specialised version of this class. The
+    specialised version will normally also require a conversion
+    method.
 
 \*---------------------------------------------------------------------------*/
 
@@ -55,28 +57,17 @@ public:
 
     // Constructors
 
+        //- Construct from primitive
         pTraits(const PrimitiveType& p)
         :
             PrimitiveType(p)
         {}
 
+        //- Construct from Istream
         pTraits(Istream& is)
         :
             PrimitiveType(is)
         {}
-
-
-    // Member operators
-
-        operator PrimitiveType() const
-        {
-            return *this;
-        }
-
-        operator PrimitiveType&()
-        {
-            return *this;
-        }
 };
 
 

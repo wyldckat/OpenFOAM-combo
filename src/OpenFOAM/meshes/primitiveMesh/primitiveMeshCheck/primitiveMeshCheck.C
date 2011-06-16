@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,10 +25,11 @@ License
 
 #include "primitiveMesh.H"
 #include "pyramidPointFaceRef.H"
+#include "tetPointRef.H"
 #include "ListOps.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "SortableList.H"
-
+#include "EdgeMap.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -36,6 +37,7 @@ Foam::scalar Foam::primitiveMesh::closedThreshold_  = 1.0e-6;
 Foam::scalar Foam::primitiveMesh::aspectThreshold_  = 1000;
 Foam::scalar Foam::primitiveMesh::nonOrthThreshold_ = 70;    // deg
 Foam::scalar Foam::primitiveMesh::skewThreshold_    = 4;
+Foam::scalar Foam::primitiveMesh::planarCosAngle_   = 1.0e-6;
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -113,7 +115,7 @@ bool Foam::primitiveMesh::checkClosedCells
 
     label nErrorClosed = 0;
 
-    forAll (c, cI)
+    forAll(c, cI)
     {
         const cell& curCell = c[cI];
 
@@ -149,14 +151,14 @@ bool Foam::primitiveMesh::checkClosedCells
     const labelList& nei = faceNeighbour();
     const vectorField& areas = faceAreas();
 
-    forAll (own, faceI)
+    forAll(own, faceI)
     {
         // Add to owner
         sumClosed[own[faceI]] += areas[faceI];
         sumMagClosed[own[faceI]] += cmptMag(areas[faceI]);
     }
 
-    forAll (nei, faceI)
+    forAll(nei, faceI)
     {
         // Subtract from neighbour
         sumClosed[nei[faceI]] -= areas[faceI];
@@ -186,7 +188,7 @@ bool Foam::primitiveMesh::checkClosedCells
     {
         scalar maxOpenness = 0;
 
-        for(direction cmpt=0; cmpt<vector::nComponents; cmpt++)
+        for (direction cmpt=0; cmpt<vector::nComponents; cmpt++)
         {
             maxOpenness = max
             (
@@ -300,12 +302,12 @@ bool Foam::primitiveMesh::checkFaceAreas
             << "checking face area magnitudes" << endl;
     }
 
-    const scalarField magFaceAreas = mag(faceAreas());
+    const scalarField magFaceAreas(mag(faceAreas()));
 
     scalar minArea = GREAT;
     scalar maxArea = -GREAT;
 
-    forAll (magFaceAreas, faceI)
+    forAll(magFaceAreas, faceI)
     {
         if (magFaceAreas[faceI] < VSMALL)
         {
@@ -366,7 +368,7 @@ bool Foam::primitiveMesh::checkCellVolumes
 
     label nNegVolCells = 0;
 
-    forAll (vols, cellI)
+    forAll(vols, cellI)
     {
         if (vols[cellI] < VSMALL)
         {
@@ -426,7 +428,7 @@ bool Foam::primitiveMesh::checkFaceOrthogonality
             << "checking mesh non-orthogonality" << endl;
     }
 
-    // for all internal faces check theat the d dot S product is positive
+    // for all internal faces check that the d dot S product is positive
     const vectorField& centres = cellCentres();
     const vectorField& areas = faceAreas();
 
@@ -435,7 +437,7 @@ bool Foam::primitiveMesh::checkFaceOrthogonality
 
     // Severe nonorthogonality threshold
     const scalar severeNonorthogonalityThreshold =
-        ::cos(nonOrthThreshold_/180.0*mathematicalConstant::pi);
+        ::cos(degToRad(nonOrthThreshold_));
 
     scalar minDDotS = GREAT;
 
@@ -445,7 +447,7 @@ bool Foam::primitiveMesh::checkFaceOrthogonality
 
     label errorNonOrth = 0;
 
-    forAll (nei, faceI)
+    forAll(nei, faceI)
     {
         vector d = centres[nei[faceI]] - centres[own[faceI]];
         const vector& s = areas[faceI];
@@ -497,9 +499,8 @@ bool Foam::primitiveMesh::checkFaceOrthogonality
             if (debug || report)
             {
                 Info<< "    Mesh non-orthogonality Max: "
-                    << ::acos(minDDotS)/mathematicalConstant::pi*180.0
-                    << " average: " <<
-                    ::acos(sumDDotS/neiSize)/mathematicalConstant::pi*180.0
+                    << radToDeg(::acos(minDDotS))
+                    << " average: " << radToDeg(::acos(sumDDotS/neiSize))
                     << endl;
             }
         }
@@ -559,7 +560,7 @@ bool Foam::primitiveMesh::checkFacePyramids
 
     label nErrorPyrs = 0;
 
-    forAll (f, faceI)
+    forAll(f, faceI)
     {
         // Create the owner pyramid - it will have negative volume
         scalar pyrVol = pyramidPointFaceRef(f[faceI], ctrs[own[faceI]]).mag(p);
@@ -680,7 +681,7 @@ bool Foam::primitiveMesh::checkFaceSkewness
             nWarnSkew++;
         }
 
-        if(skewness > maxSkew)
+        if (skewness > maxSkew)
         {
             maxSkew = skewness;
         }
@@ -728,7 +729,7 @@ bool Foam::primitiveMesh::checkFaceSkewness
             nWarnSkew++;
         }
 
-        if(skewness > maxSkew)
+        if (skewness > maxSkew)
         {
             maxSkew = skewness;
         }
@@ -780,7 +781,7 @@ bool Foam::primitiveMesh::checkPoints
 
     const labelListList& pf = pointFaces();
 
-    forAll (pf, pointI)
+    forAll(pf, pointI)
     {
         if (pf[pointI].empty())
         {
@@ -794,7 +795,7 @@ bool Foam::primitiveMesh::checkPoints
     }
 
 
-    forAll (pf, pointI)
+    forAll(pf, pointI)
     {
         const labelList& pc = pointCells(pointI);
 
@@ -864,7 +865,7 @@ bool Foam::primitiveMesh::checkFaceAngles
             << exit(FatalError);
     }
 
-    const scalar maxSin = Foam::sin(maxDeg/180.0*mathematicalConstant::pi);
+    const scalar maxSin = Foam::sin(degToRad(maxDeg));
 
     const pointField& p = points();
     const faceList& fcs = faces();
@@ -882,7 +883,7 @@ bool Foam::primitiveMesh::checkFaceAngles
         const face& f = fcs[faceI];
 
         // Get edge from f[0] to f[size-1];
-        vector ePrev(p[f[0]] - p[f[f.size()-1]]);
+        vector ePrev(p[f.first()] - p[f.last()]);
         scalar magEPrev = mag(ePrev);
         ePrev /= magEPrev + VSMALL;
 
@@ -940,8 +941,7 @@ bool Foam::primitiveMesh::checkFaceAngles
     if (nConcave > 0)
     {
         scalar maxConcaveDegr =
-            Foam::asin(Foam::min(1.0, maxEdgeSin))
-           *180.0/mathematicalConstant::pi;
+            radToDeg(Foam::asin(Foam::min(1.0, maxEdgeSin)));
 
         if (debug || report)
         {
@@ -1278,7 +1278,7 @@ bool Foam::primitiveMesh::checkUpperTriangular
     // and add it to the check list (upper triangular order).
     // Once the list is completed, check it against the faceCell list
 
-    forAll (c, cellI)
+    forAll(c, cellI)
     {
         const labelList& curFaces = c[cellI];
 
@@ -1416,7 +1416,7 @@ bool Foam::primitiveMesh::checkCellsZipUp
     const faceList& f = faces();
     const cellList& c = cells();
 
-    forAll (c, cellI)
+    forAll(c, cellI)
     {
         const labelList& curFaces = c[cellI];
 
@@ -1424,15 +1424,15 @@ bool Foam::primitiveMesh::checkCellsZipUp
 
         labelList edgeUsage(cellEdges.size(), 0);
 
-        forAll (curFaces, faceI)
+        forAll(curFaces, faceI)
         {
             edgeList curFaceEdges = f[curFaces[faceI]].edges();
 
-            forAll (curFaceEdges, faceEdgeI)
+            forAll(curFaceEdges, faceEdgeI)
             {
                 const edge& curEdge = curFaceEdges[faceEdgeI];
 
-                forAll (cellEdges, cellEdgeI)
+                forAll(cellEdges, cellEdgeI)
                 {
                     if (cellEdges[cellEdgeI] == curEdge)
                     {
@@ -1446,7 +1446,7 @@ bool Foam::primitiveMesh::checkCellsZipUp
         edgeList singleEdges(cellEdges.size());
         label nSingleEdges = 0;
 
-        forAll (edgeUsage, edgeI)
+        forAll(edgeUsage, edgeI)
         {
             if (edgeUsage[edgeI] == 1)
             {
@@ -1517,7 +1517,7 @@ bool Foam::primitiveMesh::checkFaceVertices
 
     label nErrorFaces = 0;
 
-    forAll (f, fI)
+    forAll(f, fI)
     {
         const face& curFace = f[fI];
 
@@ -1863,19 +1863,21 @@ bool Foam::primitiveMesh::checkFaceFaces
 
     if (nErrorDuplicate > 0 || nErrorOrder > 0)
     {
+        // These are actually warnings, not errors.
         if (nErrorDuplicate > 0)
         {
-            Info<< " ***Number of duplicate (not baffle) faces found: "
-                << nErrorDuplicate << endl;
+            Info<< "  <<Number of duplicate (not baffle) faces found: "
+                << nErrorDuplicate
+                << ". This might indicate a problem." << endl;
         }
 
         if (nErrorOrder > 0)
         {
-            Info<< " ***Number of faces with non-consecutive shared points: "
-                << nErrorOrder << endl;
+            Info<< "  <<Number of faces with non-consecutive shared points: "
+                << nErrorOrder << ". This might indicate a problem." << endl;
         }
 
-        return true;
+        return false;   //return true;
     }
     else
     {
@@ -2045,6 +2047,121 @@ bool Foam::primitiveMesh::checkCellDeterminant
         if (debug || report)
         {
             Info<< "    Cell determinant check OK." << endl;
+        }
+
+        return false;
+    }
+
+    return false;
+}
+
+
+bool Foam::primitiveMesh::checkConcaveCells
+(
+    const bool report,
+    labelHashSet* setPtr
+) const
+{
+    if (debug)
+    {
+        Info<< "bool primitiveMesh::checkConcaveCells(const bool"
+            << ", labelHashSet*) const: "
+            << "checking for concave cells" << endl;
+    }
+
+    const cellList& c = cells();
+    const labelList& fOwner = faceOwner();
+    const vectorField& fAreas = faceAreas();
+    const pointField& fCentres = faceCentres();
+
+    label nConcaveCells = 0;
+
+    forAll(c, cellI)
+    {
+        const cell& cFaces = c[cellI];
+
+        bool concave = false;
+
+        forAll(cFaces, i)
+        {
+            if (concave)
+            {
+                break;
+            }
+
+            label fI = cFaces[i];
+
+            const point& fC = fCentres[fI];
+
+            vector fN = fAreas[fI];
+
+            fN /= max(mag(fN), VSMALL);
+
+            // Flip normal if required so that it is always pointing out of
+            // the cell
+            if (fOwner[fI] != cellI)
+            {
+                fN *= -1;
+            }
+
+            // Is the centre of any other face of the cell on the
+            // wrong side of the plane of this face?
+
+            forAll(cFaces, j)
+            {
+                if (j != i)
+                {
+                    label fJ = cFaces[j];
+
+                    const point& pt = fCentres[fJ];
+
+                    // If the cell is concave, the point will be on the
+                    // positive normal side of the plane of f, defined by
+                    // its centre and normal, and the angle between (pt -
+                    // fC) and fN will be less than 90 degrees, so the dot
+                    // product will be positive.
+
+                    vector pC = (pt - fC);
+
+                    pC /= max(mag(pC), VSMALL);
+
+                    if ((pC & fN) > -planarCosAngle_)
+                    {
+                        // Concave or planar face
+
+                        concave = true;
+
+                        if (setPtr)
+                        {
+                            setPtr->insert(cellI);
+                        }
+
+                        nConcaveCells++;
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    reduce(nConcaveCells, sumOp<label>());
+
+    if (nConcaveCells > 0)
+    {
+        if (debug || report)
+        {
+            Info<< " ***Concave cells (using face planes) found,"
+                << " number of cells: " << nConcaveCells << endl;
+        }
+
+        return true;
+    }
+    else
+    {
+        if (debug || report)
+        {
+            Info<< "    Concave cell check OK." << endl;
         }
 
         return false;

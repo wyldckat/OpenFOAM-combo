@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -77,8 +77,7 @@ public:
         //  Note: this does not initialise the coefficients or the source.
         simpleMatrix(const label);
 
-        //- Construct given size and initial values for the
-        //  coefficients and source
+        //- Construct given size and initial values for coefficients and source
         simpleMatrix(const label, const scalar, const Type&);
 
         //- Construct from components

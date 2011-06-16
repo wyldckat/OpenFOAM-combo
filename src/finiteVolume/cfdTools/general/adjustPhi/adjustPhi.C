@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ bool Foam::adjustPhi
         scalar fixedMassOut = 0.0;
         scalar adjustableMassOut = 0.0;
 
-        forAll (phi.boundaryField(), patchi)
+        forAll(phi.boundaryField(), patchi)
         {
             const fvPatchVectorField& Up = U.boundaryField()[patchi];
             const fvsPatchScalarField& phip = phi.boundaryField()[patchi];
@@ -107,7 +107,7 @@ bool Foam::adjustPhi
         {
             massCorr = (massIn - fixedMassOut)/adjustableMassOut;
         }
-        else if(mag(fixedMassOut - massIn)/totalFlux > 1e-10)
+        else if (mag(fixedMassOut - massIn)/totalFlux > 1e-10)
         {
             FatalErrorIn
             (
@@ -123,7 +123,7 @@ bool Foam::adjustPhi
                 << exit(FatalError);
         }
 
-        forAll (phi.boundaryField(), patchi)
+        forAll(phi.boundaryField(), patchi)
         {
             const fvPatchVectorField& Up = U.boundaryField()[patchi];
             fvsPatchScalarField& phip = phi.boundaryField()[patchi];

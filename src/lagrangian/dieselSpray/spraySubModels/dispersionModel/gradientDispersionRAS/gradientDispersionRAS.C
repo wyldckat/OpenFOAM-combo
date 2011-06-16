@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,27 +28,24 @@ License
 #include "gradientDispersionRAS.H"
 #include "addToRunTimeSelectionTable.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(gradientDispersionRAS, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(gradientDispersionRAS, 0);
-
-addToRunTimeSelectionTable
-(
-    dispersionModel,
-    gradientDispersionRAS,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        dispersionModel,
+        gradientDispersionRAS,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-gradientDispersionRAS::gradientDispersionRAS
+Foam::gradientDispersionRAS::gradientDispersionRAS
 (
     const dictionary& dict,
     spray& sm
@@ -60,37 +57,32 @@ gradientDispersionRAS::gradientDispersionRAS
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-gradientDispersionRAS::~gradientDispersionRAS()
+Foam::gradientDispersionRAS::~gradientDispersionRAS()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void gradientDispersionRAS::disperseParcels() const
+void Foam::gradientDispersionRAS::disperseParcels() const
 {
 
     const scalar cps = 0.16432;
 
-    scalar dt = spray_.runTime().deltaT().value();
+    scalar dt = spray_.runTime().deltaTValue();
     const volScalarField& k = turbulence().k();
-    volVectorField gradk = fvc::grad(k);
+    const volVectorField gradk(fvc::grad(k));
     const volScalarField& epsilon = turbulence().epsilon();
     const volVectorField& U = spray_.U();
 
-    for
-    (
-        spray::iterator elmnt = spray_.begin();
-        elmnt != spray_.end();
-        ++elmnt
-    )
+    forAllIter(spray, spray_, elmnt)
     {
-        label celli = elmnt().cell();
-        scalar UrelMag = mag(elmnt().U() - U[celli] - elmnt().Uturb());
+        const label cellI = elmnt().cell();
+        scalar UrelMag = mag(elmnt().U() - U[cellI] - elmnt().Uturb());
 
         scalar Tturb = min
         (
-            k[celli]/epsilon[celli], 
-            cps*pow(k[celli], 1.5)/epsilon[celli]/(UrelMag + SMALL)
+            k[cellI]/epsilon[cellI],
+            cps*pow(k[cellI], 1.5)/epsilon[cellI]/(UrelMag + SMALL)
         );
         // parcel is perturbed by the turbulence
         if (dt < Tturb)
@@ -101,22 +93,22 @@ void gradientDispersionRAS::disperseParcels() const
             {
                 elmnt().tTurb() = 0.0;
 
-                scalar sigma = sqrt(2.0*k[celli]/3.0);
-                vector dir = -gradk[celli]/(mag(gradk[celli]) + SMALL);
+                scalar sigma = sqrt(2.0*k[cellI]/3.0);
+                vector dir = -gradk[cellI]/(mag(gradk[cellI]) + SMALL);
 
                 // numerical recipes... Ch. 7. Random Numbers...
                 scalar x1 = 0.0;
                 scalar x2 = 0.0;
                 scalar rsq = 10.0;
-                while((rsq > 1.0) || (rsq == 0.0))
+                while ((rsq > 1.0) || (rsq == 0.0))
                 {
-                    x1 = 2.0*spray_.rndGen().scalar01() - 1.0;
-                    x2 = 2.0*spray_.rndGen().scalar01() - 1.0;
+                    x1 = 2.0*spray_.rndGen().sample01<scalar>() - 1.0;
+                    x2 = 2.0*spray_.rndGen().sample01<scalar>() - 1.0;
                     rsq = x1*x1 + x2*x2;
                 }
-                
+
                 scalar fac = sqrt(-2.0*log(rsq)/rsq);
-                
+
                 // in 2D calculations the -grad(k) is always
                 // away from the axis of symmetry
                 // This creates a 'hole' in the spray and to
@@ -129,7 +121,7 @@ void gradientDispersionRAS::disperseParcels() const
                 {
                     fac *= mag(x1);
                 }
-                
+
                 elmnt().Uturb() = sigma*fac*dir;
             }
         }
@@ -141,9 +133,5 @@ void gradientDispersionRAS::disperseParcels() const
     }
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

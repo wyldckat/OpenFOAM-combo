@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -144,6 +144,20 @@ Foam::directMappedPolyPatch::directMappedPolyPatch
 {}
 
 
+Foam::directMappedPolyPatch::directMappedPolyPatch
+(
+    const directMappedPolyPatch& pp,
+    const polyBoundaryMesh& bm,
+    const label index,
+    const labelUList& mapAddressing,
+    const label newStart
+)
+:
+    polyPatch(pp, bm, index, mapAddressing, newStart),
+    directMappedPatchBase(*this, pp, mapAddressing)
+{}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::directMappedPolyPatch::~directMappedPolyPatch()
@@ -155,44 +169,49 @@ Foam::directMappedPolyPatch::~directMappedPolyPatch()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 //- Initialise the calculation of the patch geometry
-void Foam::directMappedPolyPatch::initGeometry()
+void Foam::directMappedPolyPatch::initGeometry(PstreamBuffers& pBufs)
 {
-    polyPatch::initGeometry();
-    directMappedPatchBase::clearOut();
+    polyPatch::initGeometry(pBufs);
 }
 
 //- Calculate the patch geometry
-void Foam::directMappedPolyPatch::calcGeometry()
+void Foam::directMappedPolyPatch::calcGeometry(PstreamBuffers& pBufs)
 {
-    polyPatch::calcGeometry();
+    polyPatch::calcGeometry(pBufs);
     directMappedPatchBase::clearOut();
 }
 
 //- Initialise the patches for moving points
-void Foam::directMappedPolyPatch::initMovePoints(const pointField& p)
+void Foam::directMappedPolyPatch::initMovePoints
+(
+    PstreamBuffers& pBufs,
+    const pointField& p
+)
 {
-    polyPatch::initMovePoints(p);
-    directMappedPatchBase::clearOut();
+    polyPatch::initMovePoints(pBufs, p);
 }
 
 //- Correct patches after moving points
-void Foam::directMappedPolyPatch::movePoints(const pointField& p)
+void Foam::directMappedPolyPatch::movePoints
+(
+    PstreamBuffers& pBufs,
+    const pointField& p
+)
 {
-    polyPatch::movePoints(p);
+    polyPatch::movePoints(pBufs, p);
     directMappedPatchBase::clearOut();
 }
 
 //- Initialise the update of the patch topology
-void Foam::directMappedPolyPatch::initUpdateMesh()
+void Foam::directMappedPolyPatch::initUpdateMesh(PstreamBuffers& pBufs)
 {
-    polyPatch::initUpdateMesh();
-    directMappedPatchBase::clearOut();
+    polyPatch::initUpdateMesh(pBufs);
 }
 
 //- Update of the patch topology
-void Foam::directMappedPolyPatch::updateMesh()
+void Foam::directMappedPolyPatch::updateMesh(PstreamBuffers& pBufs)
 {
-    polyPatch::updateMesh();
+    polyPatch::updateMesh(pBufs);
     directMappedPatchBase::clearOut();
 }
 

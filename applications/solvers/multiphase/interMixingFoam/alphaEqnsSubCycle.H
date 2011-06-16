@@ -1,16 +1,10 @@
-label nAlphaCorr
-(
-    readLabel(piso.lookup("nAlphaCorr"))
-);
-
-label nAlphaSubCycles
-(
-    readLabel(piso.lookup("nAlphaSubCycles"))
-);
+const dictionary& pimpleDict = pimple.dict();
+label nAlphaCorr(readLabel(pimpleDict.lookup("nAlphaCorr")));
+label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
 
 if (nAlphaSubCycles > 1)
 {
-    surfaceScalarField rhoPhiSum = 0.0*rhoPhi;
+    surfaceScalarField rhoPhiSum(0.0*rhoPhi);
     dimensionedScalar totalDeltaT = runTime.deltaT();
 
     for
@@ -19,7 +13,7 @@ if (nAlphaSubCycles > 1)
         !(++alphaSubCycle).end();
     )
     {
-#       include "alphaEqns.H"
+        #include "alphaEqns.H"
         rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi;
     }
 
@@ -27,13 +21,13 @@ if (nAlphaSubCycles > 1)
 }
 else
 {
-#       include "alphaEqns.H"
+    #include "alphaEqns.H"
 }
 
 interface.correct();
 
 {
-    volScalarField rhoNew = alpha1*rho1 + alpha2*rho2 + alpha3*rho3;
+    volScalarField rhoNew(alpha1*rho1 + alpha2*rho2 + alpha3*rho3);
 
     //solve(fvm::ddt(rho) + fvc::div(rhoPhi));
     //Info<< "density error = "

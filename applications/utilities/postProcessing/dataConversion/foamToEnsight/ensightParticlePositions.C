@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,10 +37,10 @@ using namespace Foam;
 
 void ensightParticlePositions
 (
-    const Foam::fvMesh& mesh,
-    const Foam::fileName& postProcPath,
-    const Foam::word& timeFile,
-    const Foam::word& cloudName,
+    const fvMesh& mesh,
+    const fileName& postProcPath,
+    const word& timeFile,
+    const word& cloudName,
     const bool dataExists
 )
 {

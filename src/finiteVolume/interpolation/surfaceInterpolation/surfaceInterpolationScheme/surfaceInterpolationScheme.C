@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,7 +59,7 @@ tmp<surfaceInterpolationScheme<Type> > surfaceInterpolationScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     if (surfaceInterpolation::debug || surfaceInterpolationScheme<Type>::debug)
     {
@@ -79,8 +79,8 @@ tmp<surfaceInterpolationScheme<Type> > surfaceInterpolationScheme<Type>::New
         (
             "surfaceInterpolationScheme<Type>::New(const fvMesh&, Istream&)",
             schemeData
-        )   << "Unknown discretisation scheme " << schemeName
-            << endl << endl
+        )   << "Unknown discretisation scheme "
+            << schemeName << nl << nl
             << "Valid schemes are :" << endl
             << MeshConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
@@ -113,7 +113,7 @@ tmp<surfaceInterpolationScheme<Type> > surfaceInterpolationScheme<Type>::New
             << exit(FatalIOError);
     }
 
-    word schemeName(schemeData);
+    const word schemeName(schemeData);
 
     if (surfaceInterpolation::debug || surfaceInterpolationScheme<Type>::debug)
     {
@@ -134,8 +134,8 @@ tmp<surfaceInterpolationScheme<Type> > surfaceInterpolationScheme<Type>::New
             "surfaceInterpolationScheme<Type>::New"
             "(const fvMesh&, const surfaceScalarField&, Istream&)",
             schemeData
-        )   << "Unknown discretisation scheme " << schemeName
-            << endl << endl
+        )   << "Unknown discretisation scheme "
+            << schemeName << nl << nl
             << "Valid schemes are :" << endl
             << MeshFluxConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);
@@ -184,8 +184,8 @@ surfaceInterpolationScheme<Type>::interpolate
     const scalarField& y = ys.internalField();
 
     const fvMesh& mesh = vf.mesh();
-    const unallocLabelList& P = mesh.owner();
-    const unallocLabelList& N = mesh.neighbour();
+    const labelUList& P = mesh.owner();
+    const labelUList& N = mesh.neighbour();
 
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsf
     (
@@ -213,7 +213,7 @@ surfaceInterpolationScheme<Type>::interpolate
 
     // Interpolate across coupled patches using given lambdas and ys
 
-    forAll (lambdas.boundaryField(), pi)
+    forAll(lambdas.boundaryField(), pi)
     {
         const fvsPatchScalarField& pLambda = lambdas.boundaryField()[pi];
         const fvsPatchScalarField& pY = ys.boundaryField()[pi];
@@ -263,8 +263,8 @@ surfaceInterpolationScheme<Type>::interpolate
     const scalarField& lambda = lambdas.internalField();
 
     const fvMesh& mesh = vf.mesh();
-    const unallocLabelList& P = mesh.owner();
-    const unallocLabelList& N = mesh.neighbour();
+    const labelUList& P = mesh.owner();
+    const labelUList& N = mesh.neighbour();
 
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsf
     (
@@ -291,7 +291,7 @@ surfaceInterpolationScheme<Type>::interpolate
 
     // Interpolate across coupled patches using given lambdas
 
-    forAll (lambdas.boundaryField(), pi)
+    forAll(lambdas.boundaryField(), pi)
     {
         const fvsPatchScalarField& pLambda = lambdas.boundaryField()[pi];
 

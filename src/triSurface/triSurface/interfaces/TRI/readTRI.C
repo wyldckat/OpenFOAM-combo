@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ Description
     Is converted into regions: regions numbered from 0 up, each colour is
     region.
     Most of reading/stitching taken from STL reader.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "triSurface.H"
@@ -37,14 +37,9 @@ Description
 #include "readHexLabel.H"
 #include "stringList.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool triSurface::readTRI(const fileName& TRIfileName)
+bool Foam::triSurface::readTRI(const fileName& TRIfileName)
 {
     IFstream TRIfile(TRIfileName);
 
@@ -62,7 +57,7 @@ bool triSurface::readTRI(const fileName& TRIfileName)
     // Max region number so far
     label maxRegion = 0;
 
-    while(TRIfile)
+    while (TRIfile)
     {
         string line = getLineNoComment(TRIfile);
 
@@ -113,12 +108,12 @@ bool triSurface::readTRI(const fileName& TRIfileName)
 
         label region  = -1;
 
-        HashTable<label, string>::const_iterator findName =
+        HashTable<label, string>::const_iterator fnd =
             STLsolidNames.find(solidName);
 
-        if (findName != STLsolidNames.end())
+        if (fnd != STLsolidNames.end())
         {
-            region = findName();
+            region = fnd();
         }
         else
         {
@@ -135,22 +130,18 @@ bool triSurface::readTRI(const fileName& TRIfileName)
 
     pointField rawPoints(STLpoints.size());
 
-    label i = 0;
-    for
-    (
-        SLList<STLpoint>::iterator iter = STLpoints.begin();
-        iter != STLpoints.end();
-        ++iter
-    )
+    label pointI = 0;
+    forAllConstIter(SLList<STLpoint>, STLpoints, iter)
     {
-        rawPoints[i++] = *iter;
+        rawPoints[pointI++] = *iter;
     }
 
     setSize(STLlabels.size());
 
-    label pointI = 0;
-    SLList<label>::iterator iter = STLlabels.begin();
-    forAll (*this, i)
+    // Assign triangles
+    pointI = 0;
+    SLList<label>::const_iterator iter = STLlabels.begin();
+    forAll(*this, i)
     {
         operator[](i)[0] = pointI++;
         operator[](i)[1] = pointI++;
@@ -159,7 +150,10 @@ bool triSurface::readTRI(const fileName& TRIfileName)
         ++iter;
     }
 
-    stitchTriangles(rawPoints);
+    // Assign coordinates
+    storedPoints().transfer(rawPoints);
+    // Merge duplicate points
+    stitchTriangles();
 
     // Convert solidNames into regionNames
     stringList names(STLsolidNames.toc());
@@ -175,9 +169,5 @@ bool triSurface::readTRI(const fileName& TRIfileName)
     return true;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     NSRDS function number 114
 
     Source:
-    @verbatim
+    \verbatim
                       NSRDS - AICHE
                  Data Compilation Tables
                     of Properties of
@@ -47,7 +47,7 @@ Description
             Department of Chemical Engineering
             The Pennsylvania State University
                 University Park, PA 16802
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -84,24 +84,20 @@ public:
     // Constructors
 
         //- Construct from components
-        NSRDSfunc14(scalar Tc, scalar a, scalar b, scalar c, scalar d)
-        :
-            Tc_(Tc),
-            a_(a),
-            b_(b),
-            c_(c),
-            d_(d)
-        {}
+        NSRDSfunc14
+        (
+            const scalar Tc,
+            const scalar a,
+            const scalar b,
+            const scalar c,
+            const scalar d
+        );
 
         //- Construct from Istream
-        NSRDSfunc14(Istream& is)
-        :
-            Tc_(readScalar(is)),
-            a_(readScalar(is)),
-            b_(readScalar(is)),
-            c_(readScalar(is)),
-            d_(readScalar(is))
-        {}
+        NSRDSfunc14(Istream& is);
+
+        //- Construct from dictionary
+        NSRDSfunc14(const dictionary& dict);
 
 
     // Member Functions
@@ -109,10 +105,16 @@ public:
         //- Evaluate the function and return the result
         scalar f(scalar, scalar T) const
         {
-            scalar t = 1.0 - T/Tc_;
-            return a_*a_/t + b_ - t*(2.0*a_*c_ + t*(a_*d_ + t*(c_*c_/3.0 + t*(0.5*c_*d_ + 0.2*d_*d_*t))));
-        }
+            scalar Tdash = min(T, Tc_ - ROOTVSMALL);
 
+            scalar t = 1.0 - Tdash/Tc_;
+            return
+                a_*a_/(t + ROOTVSMALL) + b_ - t
+               *(
+                   2.0*a_*c_
+                 + t*(a_*d_ + t*(c_*c_/3.0 + t*(0.5*c_*d_ + 0.2*d_*d_*t)))
+                );
+        }
 
         //- Write the function coefficients
         void writeData(Ostream& os) const

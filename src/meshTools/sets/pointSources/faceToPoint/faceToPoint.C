@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,19 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(faceToPoint, 0);
+    addToRunTimeSelectionTable(topoSetSource, faceToPoint, word);
+    addToRunTimeSelectionTable(topoSetSource, faceToPoint, istream);
 
-defineTypeNameAndDebug(faceToPoint, 0);
-
-addToRunTimeSelectionTable(topoSetSource, faceToPoint, word);
-
-addToRunTimeSelectionTable(topoSetSource, faceToPoint, istream);
-
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::faceToPoint::faceAction,
+        1
+    >::names[] =
+    {
+        "all"
+    };
 }
 
 
@@ -49,12 +55,6 @@ Foam::topoSetSource::addToUsageTable Foam::faceToPoint::usage_
     "\n    Usage: faceToPoint <faceSet> all\n\n"
     "    Select all points of faces in the faceSet\n\n"
 );
-
-template<>
-const char* Foam::NamedEnum<Foam::faceToPoint::faceAction, 1>::names[] =
-{
-    "all"
-};
 
 const Foam::NamedEnum<Foam::faceToPoint::faceAction, 1>
     Foam::faceToPoint::faceActionNames_;
@@ -68,12 +68,7 @@ void Foam::faceToPoint::combine(topoSet& set, const bool add) const
     faceSet loadedSet(mesh_, setName_);
 
     // Add all points from faces in loadedSet
-    for
-    (
-        faceSet::const_iterator iter = loadedSet.begin();
-        iter != loadedSet.end();
-        ++iter
-    )
+    forAllConstIter(faceSet, loadedSet, iter)
     {
         const face& f = mesh_.faces()[iter.key()];
 

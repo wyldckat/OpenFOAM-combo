@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,12 +54,12 @@ namespace Foam
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-void Foam::polyPatch::movePoints(const pointField& p)
+void Foam::polyPatch::movePoints(PstreamBuffers&, const pointField& p)
 {
     primitivePatch::movePoints(p);
 }
 
-void Foam::polyPatch::updateMesh()
+void Foam::polyPatch::updateMesh(PstreamBuffers&)
 {
     clearAddressing();
 }
@@ -166,6 +166,33 @@ Foam::polyPatch::polyPatch
 {}
 
 
+Foam::polyPatch::polyPatch
+(
+    const polyPatch& pp,
+    const polyBoundaryMesh& bm,
+    const label index,
+    const labelUList& mapAddressing,
+    const label newStart
+)
+:
+    patchIdentifier(pp, index),
+    primitivePatch
+    (
+        faceSubList
+        (
+            bm.mesh().faces(),
+            mapAddressing.size(),
+            newStart
+        ),
+        bm.mesh().points()
+    ),
+    start_(newStart),
+    boundaryMesh_(bm),
+    faceCellsPtr_(NULL),
+    mePtr_(NULL)
+{}
+
+
 Foam::polyPatch::polyPatch(const polyPatch& p)
 :
     patchIdentifier(p),
@@ -246,9 +273,9 @@ Foam::tmp<Foam::vectorField> Foam::polyPatch::faceCellCentres() const
     // get reference to global cell centres
     const vectorField& gcc = boundaryMesh_.mesh().cellCentres();
 
-    const unallocLabelList& faceCells = this->faceCells();
+    const labelUList& faceCells = this->faceCells();
 
-    forAll (faceCells, facei)
+    forAll(faceCells, facei)
     {
         cc[facei] = gcc[faceCells[facei]];
     }
@@ -257,7 +284,7 @@ Foam::tmp<Foam::vectorField> Foam::polyPatch::faceCellCentres() const
 }
 
 
-const Foam::unallocLabelList& Foam::polyPatch::faceCells() const
+const Foam::labelUList& Foam::polyPatch::faceCells() const
 {
     if (!faceCellsPtr_)
     {
@@ -306,12 +333,13 @@ void Foam::polyPatch::write(Ostream& os) const
 }
 
 
-void Foam::polyPatch::initOrder(const primitivePatch&) const
+void Foam::polyPatch::initOrder(PstreamBuffers&, const primitivePatch&) const
 {}
 
 
 bool Foam::polyPatch::order
 (
+    PstreamBuffers&,
     const primitivePatch&,
     labelList& faceMap,
     labelList& rotation

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -88,7 +88,7 @@ public:
             tinterpScheme_(new linear<Type>(mesh))
         {}
 
-        //- Construct from Istream
+        //- Construct from mesh and Istream
         gaussGrad(const fvMesh& mesh, Istream& is)
         :
             gradScheme<Type>(mesh),
@@ -115,30 +115,30 @@ public:
 
     // Member Functions
 
-        //- Return the gradient of the given field 
+        //- Return the gradient of the given field
         //  calculated using Gauss' theorem on the given surface field
         static
         tmp
         <
             GeometricField
             <typename outerProduct<vector, Type>::type, fvPatchField, volMesh>
-        > grad
+        > gradf
         (
-            const GeometricField<Type, fvsPatchField, surfaceMesh>&
+            const GeometricField<Type, fvsPatchField, surfaceMesh>&,
+            const word& name
         );
 
-
-        //- Return the gradient of the given field calculated
-        //  using Gauss' theorem on the interpolated field
-        tmp
+        //- Return the gradient of the given field to the gradScheme::grad
+        //  for optional caching
+        virtual tmp
         <
             GeometricField
             <typename outerProduct<vector, Type>::type, fvPatchField, volMesh>
-        > grad
+        > calcGrad
         (
-            const GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>& vsf,
+            const word& name
         ) const;
-
 
         //- Correct the boundary values of the gradient using the patchField
         // snGrad functions

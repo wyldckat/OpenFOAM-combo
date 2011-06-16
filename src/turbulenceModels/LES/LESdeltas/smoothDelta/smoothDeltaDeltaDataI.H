@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,16 +30,17 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-
 // Update this with w2 if applicable
+template<class TrackingData>
 inline bool smoothDelta::deltaData::update
 (
     const smoothDelta::deltaData& w2,
     const scalar scale,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
-{   
-    if (!valid() || (delta_ < VSMALL))
+{
+    if (!valid(td) || (delta_ < VSMALL))
     {
         // My delta not set. Take over neighbour.
         delta_ = w2.delta()/scale;
@@ -62,7 +63,7 @@ inline bool smoothDelta::deltaData::update
         return false;
     }
 }
-    
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -82,95 +83,121 @@ inline smoothDelta::deltaData::deltaData(const scalar delta)
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-inline bool smoothDelta::deltaData::valid() const
+template<class TrackingData>
+inline bool smoothDelta::deltaData::valid(TrackingData& td) const
 {
     return delta_ > -SMALL;
 }
 
 
 // Checks for cyclic faces
+template<class TrackingData>
 inline bool smoothDelta::deltaData::sameGeometry
 (
     const polyMesh&,
     const deltaData&,
-    const scalar
+    const scalar,
+    TrackingData& td
 ) const
 {
     return true;
 }
 
 
+template<class TrackingData>
 inline void smoothDelta::deltaData::leaveDomain
 (
     const polyMesh&,
     const polyPatch&,
     const label,
-    const point&
+    const point&,
+    TrackingData& td
 )
 {}
 
 
+template<class TrackingData>
 inline void smoothDelta::deltaData::transform
 (
     const polyMesh&,
-    const tensor&
+    const tensor&,
+    TrackingData& td
 )
 {}
 
 
 // Update absolute geometric quantities.
+template<class TrackingData>
 inline void smoothDelta::deltaData::enterDomain
 (
     const polyMesh&,
     const polyPatch&,
     const label,
-    const point&
+    const point&,
+    TrackingData& td
 )
 {}
 
 
 // Update this (cellI) with face information.
+template<class TrackingData>
 inline bool smoothDelta::deltaData::updateCell
 (
     const polyMesh&,
     const label,
     const label,
     const deltaData& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     // Take over info from face if more than deltaRatio larger.
-    return update(neighbourWallInfo, maxDeltaRatio, tol);
-}    
+    return update(neighbourWallInfo, td, tol, td);
+}
 
 
 // Update this (face) with cell information.
+template<class TrackingData>
 inline bool smoothDelta::deltaData::updateFace
 (
     const polyMesh&,
     const label,
     const label,
     const deltaData& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     // Take over information from cell without any scaling (scale = 1.0)
-    return update(neighbourWallInfo, 1.0, tol);
-}    
+    return update(neighbourWallInfo, 1.0, tol, td);
+}
 
 
 // Update this (face) with coupled face information.
+template<class TrackingData>
 inline bool smoothDelta::deltaData::updateFace
 (
     const polyMesh&,
     const label,
     const deltaData& neighbourWallInfo,
-    const scalar tol
+    const scalar tol,
+    TrackingData& td
 )
 {
     // Take over information from coupled face without any scaling (scale = 1.0)
-    return update(neighbourWallInfo, 1.0, tol);
-}    
+    return update(neighbourWallInfo, 1.0, tol, td);
+}
+
+
+template <class TrackingData>
+inline bool smoothDelta::deltaData::equal
+(
+    const deltaData& rhs,
+    TrackingData& td
+) const
+{
+    return operator==(rhs);
+}
 
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //

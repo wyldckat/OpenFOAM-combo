@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,8 +28,8 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-
 int Foam::fvSchemes::debug(Foam::debug::debugSwitch("fvSchemes", false));
+
 
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
@@ -51,8 +51,199 @@ void Foam::fvSchemes::clear()
     defaultLaplacianScheme_.clear();
     fluxRequired_.clear();
     defaultFluxRequired_ = false;
-    cacheFields_.clear();
 }
+
+
+void Foam::fvSchemes::read(const dictionary& dict)
+{
+    if (dict.found("ddtSchemes"))
+    {
+        ddtSchemes_ = dict.subDict("ddtSchemes");
+    }
+    else if (dict.found("timeScheme"))
+    {
+        // For backward compatibility.
+        // The timeScheme will be deprecated with warning or removed
+        WarningIn("fvSchemes::read()")
+            << "Using deprecated 'timeScheme' instead of 'ddtSchemes'"
+            << nl << endl;
+
+        word schemeName(dict.lookup("timeScheme"));
+
+        if (schemeName == "EulerImplicit")
+        {
+            schemeName = "Euler";
+        }
+        else if (schemeName == "BackwardDifferencing")
+        {
+            schemeName = "backward";
+        }
+        else if (schemeName == "SteadyState")
+        {
+            schemeName = "steadyState";
+        }
+        else
+        {
+            FatalIOErrorIn("fvSchemes::read()", dict.lookup("timeScheme"))
+                << "\n    Only EulerImplicit, BackwardDifferencing and "
+                   "SteadyState\n    are supported by the old timeScheme "
+                   "specification.\n    Please use ddtSchemes instead."
+                << exit(FatalIOError);
+        }
+
+        ddtSchemes_.set("default", schemeName);
+
+        ddtSchemes_.lookup("default")[0].lineNumber() =
+            dict.lookup("timeScheme").lineNumber();
+    }
+    else
+    {
+        ddtSchemes_.set("default", "none");
+    }
+
+    if
+    (
+        ddtSchemes_.found("default")
+     && word(ddtSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultDdtScheme_ = ddtSchemes_.lookup("default");
+    }
+
+
+    if (dict.found("d2dt2Schemes"))
+    {
+        d2dt2Schemes_ = dict.subDict("d2dt2Schemes");
+    }
+    else if (dict.found("timeScheme"))
+    {
+        // For backward compatibility.
+        // The timeScheme will be deprecated with warning or removed
+        WarningIn("fvSchemes::read()")
+            << "Using deprecated 'timeScheme' instead of 'd2dt2Schemes'"
+            << nl << endl;
+
+        word schemeName(dict.lookup("timeScheme"));
+
+        if (schemeName == "EulerImplicit")
+        {
+            schemeName = "Euler";
+        }
+        else if (schemeName == "SteadyState")
+        {
+            schemeName = "steadyState";
+        }
+
+        d2dt2Schemes_.set("default", schemeName);
+
+        d2dt2Schemes_.lookup("default")[0].lineNumber() =
+            dict.lookup("timeScheme").lineNumber();
+    }
+    else
+    {
+        d2dt2Schemes_.set("default", "none");
+    }
+
+    if
+    (
+        d2dt2Schemes_.found("default")
+     && word(d2dt2Schemes_.lookup("default")) != "none"
+    )
+    {
+        defaultD2dt2Scheme_ = d2dt2Schemes_.lookup("default");
+    }
+
+
+    if (dict.found("interpolationSchemes"))
+    {
+        interpolationSchemes_ = dict.subDict("interpolationSchemes");
+    }
+    else if (!interpolationSchemes_.found("default"))
+    {
+        interpolationSchemes_.add("default", "linear");
+    }
+
+    if
+    (
+        interpolationSchemes_.found("default")
+     && word(interpolationSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultInterpolationScheme_ =
+            interpolationSchemes_.lookup("default");
+    }
+
+
+    divSchemes_ = dict.subDict("divSchemes");
+
+    if
+    (
+        divSchemes_.found("default")
+     && word(divSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultDivScheme_ = divSchemes_.lookup("default");
+    }
+
+
+    gradSchemes_ = dict.subDict("gradSchemes");
+
+    if
+    (
+        gradSchemes_.found("default")
+     && word(gradSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultGradScheme_ = gradSchemes_.lookup("default");
+    }
+
+
+    if (dict.found("snGradSchemes"))
+    {
+        snGradSchemes_ = dict.subDict("snGradSchemes");
+    }
+    else if (!snGradSchemes_.found("default"))
+    {
+        snGradSchemes_.add("default", "corrected");
+    }
+
+    if
+    (
+        snGradSchemes_.found("default")
+     && word(snGradSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultSnGradScheme_ = snGradSchemes_.lookup("default");
+    }
+
+
+    laplacianSchemes_ = dict.subDict("laplacianSchemes");
+
+    if
+    (
+        laplacianSchemes_.found("default")
+     && word(laplacianSchemes_.lookup("default")) != "none"
+    )
+    {
+        defaultLaplacianScheme_ = laplacianSchemes_.lookup("default");
+    }
+
+
+    if (dict.found("fluxRequired"))
+    {
+        fluxRequired_ = dict.subDict("fluxRequired");
+
+        if
+        (
+            fluxRequired_.found("default")
+         && word(fluxRequired_.lookup("default")) != "none"
+        )
+        {
+            defaultFluxRequired_ = Switch(fluxRequired_.lookup("default"));
+        }
+    }
+}
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -65,7 +256,11 @@ Foam::fvSchemes::fvSchemes(const objectRegistry& obr)
             "fvSchemes",
             obr.time().system(),
             obr,
-            IOobject::MUST_READ,
+            (
+                obr.readOpt() == IOobject::MUST_READ
+              ? IOobject::MUST_READ_IF_MODIFIED
+              : obr.readOpt()
+            ),
             IOobject::NO_WRITE
         )
     ),
@@ -168,17 +363,19 @@ Foam::fvSchemes::fvSchemes(const objectRegistry& obr)
             tokenList()
         )()
     ),
-    defaultFluxRequired_(false),
-    cacheFields_
-    (
-        ITstream
-        (
-            objectPath() + "::cacheFields",
-            tokenList()
-        )()
-    )
+    defaultFluxRequired_(false)
 {
-    read();
+    // persistent settings across reads is incorrect
+    clear();
+
+    if
+    (
+        readOpt() == IOobject::MUST_READ
+     || readOpt() == IOobject::MUST_READ_IF_MODIFIED
+    )
+    {
+        read(schemesDict());
+    }
 }
 
 
@@ -188,202 +385,10 @@ bool Foam::fvSchemes::read()
 {
     if (regIOobject::read())
     {
-        const dictionary& dict = schemesDict();
-
         // persistent settings across reads is incorrect
         clear();
 
-        if (dict.found("ddtSchemes"))
-        {
-            ddtSchemes_ = dict.subDict("ddtSchemes");
-        }
-        else if (dict.found("timeScheme"))
-        {
-            // For backward compatibility.
-            // The timeScheme will be deprecated with warning or removed
-            WarningIn("fvSchemes::read()")
-                << "Using deprecated 'timeScheme' instead of 'ddtSchemes'"
-                << nl << endl;
-
-            word schemeName(dict.lookup("timeScheme"));
-
-            if (schemeName == "EulerImplicit")
-            {
-                schemeName = "Euler";
-            }
-            else if (schemeName == "BackwardDifferencing")
-            {
-                schemeName = "backward";
-            }
-            else if (schemeName == "SteadyState")
-            {
-                schemeName = "steadyState";
-            }
-            else
-            {
-                FatalIOErrorIn("fvSchemes::read()", dict.lookup("timeScheme"))
-                    << "\n    Only EulerImplicit, BackwardDifferencing and "
-                       "SteadyState\n    are supported by the old timeScheme "
-                       "specification.\n    Please use ddtSchemes instead."
-                    << exit(FatalIOError);
-            }
-
-            ddtSchemes_.set("default", schemeName);
-
-            ddtSchemes_.lookup("default")[0].lineNumber() =
-                dict.lookup("timeScheme").lineNumber();
-        }
-        else
-        {
-            ddtSchemes_.set("default", "none");
-        }
-
-        if
-        (
-            ddtSchemes_.found("default")
-         && word(ddtSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultDdtScheme_ = ddtSchemes_.lookup("default");
-        }
-
-
-        if (dict.found("d2dt2Schemes"))
-        {
-            d2dt2Schemes_ = dict.subDict("d2dt2Schemes");
-        }
-        else if (dict.found("timeScheme"))
-        {
-            // For backward compatibility.
-            // The timeScheme will be deprecated with warning or removed
-            WarningIn("fvSchemes::read()")
-                << "Using deprecated 'timeScheme' instead of 'd2dt2Schemes'"
-                << nl << endl;
-
-            word schemeName(dict.lookup("timeScheme"));
-
-            if (schemeName == "EulerImplicit")
-            {
-                schemeName = "Euler";
-            }
-            else if (schemeName == "SteadyState")
-            {
-                schemeName = "steadyState";
-            }
-
-            d2dt2Schemes_.set("default", schemeName);
-
-            d2dt2Schemes_.lookup("default")[0].lineNumber() =
-                dict.lookup("timeScheme").lineNumber();
-        }
-        else
-        {
-            d2dt2Schemes_.set("default", "none");
-        }
-
-        if
-        (
-            d2dt2Schemes_.found("default")
-         && word(d2dt2Schemes_.lookup("default")) != "none"
-        )
-        {
-            defaultD2dt2Scheme_ = d2dt2Schemes_.lookup("default");
-        }
-
-
-        if (dict.found("interpolationSchemes"))
-        {
-            interpolationSchemes_ = dict.subDict("interpolationSchemes");
-        }
-        else if (!interpolationSchemes_.found("default"))
-        {
-            interpolationSchemes_.add("default", "linear");
-        }
-
-        if
-        (
-            interpolationSchemes_.found("default")
-         && word(interpolationSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultInterpolationScheme_ =
-                interpolationSchemes_.lookup("default");
-        }
-
-
-        divSchemes_ = dict.subDict("divSchemes");
-
-        if
-        (
-            divSchemes_.found("default")
-         && word(divSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultDivScheme_ = divSchemes_.lookup("default");
-        }
-
-
-        gradSchemes_ = dict.subDict("gradSchemes");
-
-        if
-        (
-            gradSchemes_.found("default")
-         && word(gradSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultGradScheme_ = gradSchemes_.lookup("default");
-        }
-
-
-        if (dict.found("snGradSchemes"))
-        {
-            snGradSchemes_ = dict.subDict("snGradSchemes");
-        }
-        else if (!snGradSchemes_.found("default"))
-        {
-            snGradSchemes_.add("default", "corrected");
-        }
-
-        if
-        (
-            snGradSchemes_.found("default")
-         && word(snGradSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultSnGradScheme_ = snGradSchemes_.lookup("default");
-        }
-
-
-        laplacianSchemes_ = dict.subDict("laplacianSchemes");
-
-        if
-        (
-            laplacianSchemes_.found("default")
-         && word(laplacianSchemes_.lookup("default")) != "none"
-        )
-        {
-            defaultLaplacianScheme_ = laplacianSchemes_.lookup("default");
-        }
-
-
-        if (dict.found("fluxRequired"))
-        {
-            fluxRequired_ = dict.subDict("fluxRequired");
-
-            if
-            (
-                fluxRequired_.found("default")
-             && word(fluxRequired_.lookup("default")) != "none"
-            )
-            {
-                defaultFluxRequired_ = Switch(fluxRequired_.lookup("default"));
-            }
-        }
-
-        if (dict.found("cacheFields"))
-        {
-            cacheFields_ = dict.subDict("cacheFields");
-        }
+        read(schemesDict());
 
         return true;
     }
@@ -558,24 +563,6 @@ bool Foam::fvSchemes::fluxRequired(const word& name) const
     else
     {
         return defaultFluxRequired_;
-    }
-}
-
-
-bool Foam::fvSchemes::cache(const word& name) const
-{
-    if (debug)
-    {
-        Info<< "Lookup cache for " << name << endl;
-    }
-
-    if (cacheFields_.found(name))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
     }
 }
 

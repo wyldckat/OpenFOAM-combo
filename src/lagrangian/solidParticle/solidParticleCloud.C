@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,14 +28,6 @@ License
 #include "volFields.H"
 #include "interpolationCellPoint.H"
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-namespace Foam
-{
-    defineParticleTypeNameAndDebug(solidParticle, 0);
-    defineTemplateTypeNameAndDebug(Cloud<solidParticle>, 0);
-};
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::solidParticleCloud::solidParticleCloud
@@ -54,7 +46,7 @@ Foam::solidParticleCloud::solidParticleCloud
             "particleProperties",
             mesh_.time().constant(),
             mesh_,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -71,6 +63,12 @@ Foam::solidParticleCloud::solidParticleCloud
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+bool Foam::solidParticleCloud::hasWallImpactDistance() const
+{
+    return true;
+}
+
+
 void Foam::solidParticleCloud::move(const dimensionedVector& g)
 {
     const volScalarField& rho = mesh_.lookupObject<const volScalarField>("rho");
@@ -81,9 +79,10 @@ void Foam::solidParticleCloud::move(const dimensionedVector& g)
     interpolationCellPoint<vector> UInterp(U);
     interpolationCellPoint<scalar> nuInterp(nu);
 
-    solidParticle::trackData td(*this, rhoInterp, UInterp, nuInterp, g.value());
+    solidParticle::trackingData
+        td(*this, rhoInterp, UInterp, nuInterp, g.value());
 
-    Cloud<solidParticle>::move(td);
+    Cloud<solidParticle>::move(td, mesh_.time().deltaTValue());
 }
 
 

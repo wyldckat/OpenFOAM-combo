@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class ORourkeCollisionModel Declaration
+                   Class ORourkeCollisionModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class ORourkeCollisionModel
@@ -52,11 +52,15 @@ class ORourkeCollisionModel
 {
 
 private:
-    // Reference to the cell volumes
-    const scalarField& vols_;
 
-    dictionary coeffsDict_;
-    Switch coalescence_;
+    // Private data
+
+        // Reference to the cell volumes
+        const scalarField& vols_;
+
+        dictionary coeffsDict_;
+        Switch coalescence_;
+
 
 public:
 
@@ -71,12 +75,12 @@ public:
         (
             const dictionary& dict,
             spray& sm,
-            Random& rndGen
+            cachedRandom& rndGen
         );
 
-    // Destructor
 
-        ~ORourkeCollisionModel();
+    //- Destructor
+    virtual ~ORourkeCollisionModel();
 
 
     // Member Functions

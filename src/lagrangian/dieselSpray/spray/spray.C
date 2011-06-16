@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,15 +40,18 @@ License
 #include "symmetryPolyPatch.H"
 #include "wedgePolyPatch.H"
 
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTemplateTypeNameAndDebug(IOPtrList<injector>, 0);
+namespace Foam
+{
+    defineTemplateTypeNameAndDebug(Cloud<parcel>, 0);
+    defineTemplateTypeNameAndDebug(IOPtrList<injector>, 0);
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::spray::spray
 (
     const volVectorField& U,
@@ -66,7 +69,7 @@ Foam::spray::spray
     runTime_(U.time()),
     time0_(runTime_.value()),
     mesh_(U.mesh()),
-    rndGen_(label(0)),
+    rndGen_(label(0), -1),
     g_(g.value()),
 
     U_(U),
@@ -81,7 +84,7 @@ Foam::spray::spray
             "sprayProperties",
             U.time().constant(),
             U.db(),
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -96,7 +99,7 @@ Foam::spray::spray
             "injectorProperties",
             U.time().constant(),
             U.db(),
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         ),
         injector::iNew(U.time())
@@ -167,7 +170,7 @@ Foam::spray::spray
 
     fuels_
     (
-        liquidMixture::New
+        liquidMixtureProperties::New
         (
             mesh_.lookupObject<dictionary>("thermophysicalProperties")
         )
@@ -239,16 +242,16 @@ Foam::spray::spray
     label n=0;
 
     // check for the type of boundary condition
-    forAll(bMesh, patchi)
+    forAll(bMesh, patchI)
     {
-        if (isA<symmetryPolyPatch>(bMesh[patchi]))
+        if (isA<symmetryPolyPatch>(bMesh[patchI]))
         {
             symPlaneExist = true;
         }
-        else if (isA<wedgePolyPatch>(bMesh[patchi]))
+        else if (isA<wedgePolyPatch>(bMesh[patchI]))
         {
             wedgeExist = true;
-            patches[n++] = patchi;
+            patches[n++] = patchI;
         }
     }
 
@@ -289,17 +292,17 @@ Foam::spray::spray
         axisOfWedgeNormal_ /= mag(axisOfWedgeNormal_);
 
         scalar arcCos = (v1 & v2)/mag(v1);
-        angleOfWedge_ = mathematicalConstant::pi - acos(arcCos);
+        angleOfWedge_ = constant::mathematical::pi - acos(arcCos);
 
         Info<< "Calculated angle of wedge is "
-            << angleOfWedge_*180/mathematicalConstant::pi << " deg."
+            << radToDeg(angleOfWedge_) << " deg."
             << endl;
     }
     else
     {
         if (symPlaneExist)
         {
-            angleOfWedge_ = mathematicalConstant::pi;
+            angleOfWedge_ = constant::mathematical::pi;
             Info<< "Constructing 180 deg three dimensional spray injection."
                 << endl;
         }
@@ -330,15 +333,15 @@ Foam::spray::spray
         }
         if (liquidToGasIndex_[i] == -1)
         {
-            Info << "In composition:" << endl;
+            Info<< "In composition:" << endl;
             for (label k=0; k<Ns; k++)
             {
                 word specieName(composition_.Y()[k].name());
-                Info << specieName << endl;
+                Info<< specieName << endl;
             }
 
-            FatalError<<
-                "The liquid component " << liquidName
+            FatalError
+                << "The liquid component " << liquidName
                 << " does not exist in the species composition.Y() list.\n"
                 << "(Probably not defined in <chem.inp>)"
                 << abort(FatalError);

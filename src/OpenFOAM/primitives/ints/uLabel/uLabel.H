@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -131,9 +131,9 @@ public:
 
         enum
         {
-            dim = 3,         // Dimensionality of space
-            rank = 0,        // Rank of uLabel is 0
-            nComponents = 1  // Number of components in uLabel is 1
+            dim = 3,         //!< Dimensionality of space
+            rank = 0,        //!< Rank of uLabel is 0
+            nComponents = 1  //!< Number of components in uLabel is 1
         };
 
 
@@ -149,11 +149,8 @@ public:
 
     // Constructors
 
-        //- Construct from uLabel
-        pTraits(const uLabel ul)
-        {
-            p_ = ul;
-        }
+        //- Construct from primitive
+        explicit pTraits(const uLabel&);
 
         //- Construct from Istream
         pTraits(Istream&);
@@ -161,11 +158,13 @@ public:
 
     // Member Functions
 
+        //- Access to the uLabel value
         operator uLabel() const
         {
             return p_;
         }
 
+        //- Access to the uLabel value
         operator uLabel&()
         {
             return p_;

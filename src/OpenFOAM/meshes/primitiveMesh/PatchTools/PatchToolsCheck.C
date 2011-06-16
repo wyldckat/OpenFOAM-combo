@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,7 +94,7 @@ Foam::PatchTools::checkOrientation
         const Face& f = p[faceI];
         const point& p0 = p.points()[f[0]];
         const point& p1 = p.points()[f[1]];
-        const point& p2 = p.points()[f[f.size()-1]];
+        const point& p2 = p.points()[f.last()];
 
         const vector pointNormal((p1 - p0) ^ (p2 - p0));
         if ((pointNormal & p.faceNormals()[faceI]) < 0)

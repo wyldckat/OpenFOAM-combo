@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Application
     PDRFoam
@@ -54,6 +53,18 @@ Description
     PDR (porosity/distributed resistance) modelling is included to handle
     regions containing blockages which cannot be resolved by the mesh.
 
+    The fields used by this solver are:
+
+    betav:  Volume porosity
+    Lobs:   Average diameter of obstacle in cell (m)
+    Aw:     Obstacle surface area per unit volume (1/m)
+    CR:     Drag tensor (1/m)
+    CT:     Turbulence generation parameter (1/m)
+    Nv:     Number of obstacles in cell per unit volume (m^-2)
+    nsv:    Tensor whose diagonal indicates the number to substract from
+            Nv to get the number of obstacles crossing the flow in each
+            direction.
+
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
@@ -65,6 +76,7 @@ Description
 #include "ignition.H"
 #include "Switch.H"
 #include "bound.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,8 +91,10 @@ int main(int argc, char *argv[])
     #include "createFields.H"
     #include "initContinuityErrs.H"
     #include "readTimeControls.H"
-    #include "CourantNo.H"
+    #include "compressibleCourantNo.H"
     #include "setInitialDeltaT.H"
+
+    pimpleControl pimple(mesh);
 
     scalar StCoNum = 0.0;
 
@@ -91,34 +105,40 @@ int main(int argc, char *argv[])
     while (runTime.run())
     {
         #include "readTimeControls.H"
-        #include "readPISOControls.H"
-        #include "CourantNo.H"
+        #include "compressibleCourantNo.H"
         #include "setDeltaT.H"
 
         runTime++;
-
         Info<< "\n\nTime = " << runTime.timeName() << endl;
 
         #include "rhoEqn.H"
-        #include "UEqn.H"
 
-        // --- PISO loop
-        for (int corr=1; corr<=nCorr; corr++)
+        // --- Pressure-velocity PIMPLE corrector loop
+        for (pimple.start(); pimple.loop(); pimple++)
         {
-            #include "bEqn.H"
-            #include "ftEqn.H"
-            #include "huEqn.H"
-            #include "hEqn.H"
+            #include "UEqn.H"
 
-            if (!ign.ignited())
+            // --- PISO loop
+            for (int corr=1; corr<=pimple.nCorr(); corr++)
             {
-                hu == h;
+                #include "bEqn.H"
+                #include "ftEqn.H"
+                #include "huEqn.H"
+                #include "hEqn.H"
+
+                if (!ign.ignited())
+                {
+                    hu == h;
+                }
+
+                #include "pEqn.H"
             }
 
-            #include "pEqn.H"
+            if (pimple.turbCorr())
+            {
+                turbulence->correct();
+            }
         }
-
-        turbulence->correct();
 
         runTime.write();
 

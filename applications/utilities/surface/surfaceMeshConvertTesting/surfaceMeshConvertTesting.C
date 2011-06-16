@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,19 +31,19 @@ Description
 Usage
     - surfaceMeshConvertTesting inputFile outputFile [OPTION]
 
-    @param -clean \n
+    \param -clean \n
     Perform some surface checking/cleanup on the input surface
 
-    @param -orient \n
+    \param -orient \n
     Check face orientation on the input surface
 
-    @param -scale \<scale\> \n
+    \param -scale \<scale\> \n
     Specify a scaling factor for writing the files
 
-    @param -triSurface \n
+    \param -triSurface \n
     Use triSurface library for input/output
 
-    @param -keyed \n
+    \param -keyed \n
     Use keyedSurface for input/output
 
 Note
@@ -71,24 +71,37 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "convert between surface formats, "
+        "but primarily for testing functionality\n"
+        "Normally use surfaceMeshConvert instead."
+    );
+
     argList::noParallel();
     argList::validArgs.append("inputFile");
     argList::validArgs.append("outputFile");
-    argList::validOptions.insert("clean", "");
-    argList::validOptions.insert("orient", "");
-    argList::validOptions.insert("surfMesh", "");
-    argList::validOptions.insert("scale", "scale");
-    argList::validOptions.insert("triSurface", "");
-    argList::validOptions.insert("unsorted", "");
-    argList::validOptions.insert("triFace", "");
+
+    argList::addBoolOption("clean");
+    argList::addBoolOption("orient");
+    argList::addBoolOption("surfMesh");
+    argList::addBoolOption("triSurface");
+    argList::addBoolOption("unsorted");
+    argList::addBoolOption("triFace");
+
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
+
 #   include "setRootCase.H"
-    const stringList& params = args.additionalArgs();
 
-    scalar scaleFactor = 0;
-    args.optionReadIfPresent("scale", scaleFactor);
+    const scalar scaleFactor = args.optionLookupOrDefault("scale", 0.0);
 
-    fileName importName(params[0]);
-    fileName exportName(params[1]);
+    const fileName importName = args[1];
+    const fileName exportName = args[2];
 
     if (importName == exportName)
     {
@@ -351,7 +364,8 @@ int main(int argc, char *argv[])
 
 
 
-            Info<< "writing surfMesh again well: " << surfOut.objectPath() << endl;
+            Info<< "writing surfMesh again well: " << surfOut.objectPath()
+                << endl;
             surfOut.write();
 
             // write directly

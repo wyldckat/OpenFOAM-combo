@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -56,17 +56,17 @@ protected:
         const dictionary& dict_;
 
         spray& spray_;
-        Random& rndGen_;
-        
+        cachedRandom& rndGen_;
+
         Switch includeOscillation_;
-        
+
         dictionary TABcoeffsDict_;
         scalar y0_;
         scalar yDot0_;
         scalar TABComega_;
         scalar TABCmu_;
         scalar TABWeCrit_;
-        
+
 
 public:
 
@@ -91,16 +91,11 @@ public:
     // Constructors
 
         //- Construct from components
-        breakupModel
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        breakupModel(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        virtual ~breakupModel();
+    //- Destructor
+    virtual ~breakupModel();
 
 
     // Selector
@@ -131,7 +126,7 @@ public:
             parcel& p,
             const scalar deltaT,
             const vector& Ug,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
 
         virtual void breakupParcel
@@ -139,9 +134,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const = 0;
-        
 };
 
 

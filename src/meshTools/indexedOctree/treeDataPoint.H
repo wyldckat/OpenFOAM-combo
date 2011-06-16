@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,6 +29,8 @@ Description
     octree searches.
     Used for searching for nearest point. No bounding boxes around points.
     Only overlaps and calcNearest are implemented, rest makes little sense.
+
+    Optionally works on subset of points.
 
 SourceFiles
     treeDataPoint.C
@@ -60,6 +62,11 @@ class treeDataPoint
 
         const pointField& points_;
 
+        //- Subset of points to work on (or empty)
+        const labelList pointLabels_;
+
+        const bool useSubset_;
+
 public:
 
     // Declare name of the class and its debug switch
@@ -68,22 +75,40 @@ public:
 
     // Constructors
 
-        //- Construct from components. Holds reference to points!
-        treeDataPoint(const pointField& points);
+        //- Construct from pointField. Holds reference!
+        treeDataPoint(const pointField&);
+
+        //- Construct from subset of pointField. Holds reference!
+        treeDataPoint(const pointField&, const labelList&);
 
 
     // Member Functions
 
         // Access
 
-            label size() const
+            inline label size() const
             {
-                return points_.size();
+                return
+                (
+                    useSubset_
+                  ? pointLabels_.size()
+                  : points_.size()
+                );
+            }
+
+            inline const labelList& pointLabels() const
+            {
+                return pointLabels_;
+            }
+
+            const pointField& points() const
+            {
+                return points_;
             }
 
             //- Get representative point cloud for all shapes inside
             //  (one point per shape)
-            pointField points() const;
+            pointField shapePoints() const;
 
 
         // Search
@@ -107,7 +132,7 @@ public:
             //  Returns actual point and distance (squared)
             void findNearest
             (
-                const labelList& indices,
+                const labelUList& indices,
                 const point& sample,
 
                 scalar& nearestDistSqr,
@@ -119,7 +144,7 @@ public:
             //  Returns point and distance (squared)
             void findNearest
             (
-                const labelList& indices,
+                const labelUList& indices,
                 const linePointRef& ln,
 
                 treeBoundBox& tightest,

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "cellClassification.H"
@@ -35,13 +33,12 @@ Description
 #include "MeshWave.H"
 #include "ListOps.H"
 #include "meshTools.H"
+#include "cpuTime.H"
+#include "globalMeshData.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(cellClassification, 0);
-}
+defineTypeNameAndDebug(Foam::cellClassification, 0);
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -328,7 +325,7 @@ void Foam::cellClassification::markCells
         changedFaces,                       // Labels of changed faces
         changedFacesInfo,                   // Information on changed faces
         cellInfoList,                       // Information on all cells
-        mesh_.globalData().nTotalCells()    // max iterations
+        mesh_.globalData().nTotalCells()+1  // max iterations
     );
 
     // Get information out of cellInfoList
@@ -687,7 +684,7 @@ Foam::label Foam::cellClassification::fillHangingCells
 {
     label nTotChanged = 0;
 
-    for(label iter = 0; iter < maxIter; iter++)
+    for (label iter = 0; iter < maxIter; iter++)
     {
         label nChanged = 0;
 
@@ -744,7 +741,7 @@ Foam::label Foam::cellClassification::fillRegionEdges
 {
     label nTotChanged = 0;
 
-    for(label iter = 0; iter < maxIter; iter++)
+    for (label iter = 0; iter < maxIter; iter++)
     {
         // Get interface between meshType cells and non-meshType cells as a list
         // of faces and for each face the cell which is the meshType.
@@ -813,7 +810,7 @@ Foam::label Foam::cellClassification::fillRegionPoints
 {
     label nTotChanged = 0;
 
-    for(label iter = 0; iter < maxIter; iter++)
+    for (label iter = 0; iter < maxIter; iter++)
     {
         // Get interface between meshType cells and non-meshType cells as a list
         // of faces and for each face the cell which is the meshType.
@@ -834,15 +831,10 @@ Foam::label Foam::cellClassification::fillRegionPoints
 
         label nChanged = 0;
 
-        for
-        (
-            labelHashSet::const_iterator iter = nonManifoldPoints.begin();
-            iter != nonManifoldPoints.end();
-            ++iter
-        )
+        forAllConstIter(labelHashSet, nonManifoldPoints, iter)
         {
             // Find a face on fp using point and remove it.
-            label patchPointI = meshPointMap[iter.key()];
+            const label patchPointI = meshPointMap[iter.key()];
 
             const labelList& pFaces = fp.pointFaces()[patchPointI];
 
@@ -851,16 +843,14 @@ Foam::label Foam::cellClassification::fillRegionPoints
             // one would be best to remove.
             forAll(pFaces, i)
             {
-                label patchFaceI = pFaces[i];
-
-                label ownerCell = outsideOwner[patchFaceI];
+                const label patchFaceI = pFaces[i];
+                const label ownerCell  = outsideOwner[patchFaceI];
 
                 if (operator[](ownerCell) == meshType)
                 {
                     operator[](ownerCell) = fillType;
 
                     nChanged++;
-
                     break;
                 }
             }

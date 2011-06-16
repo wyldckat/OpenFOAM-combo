@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -352,7 +352,8 @@ bool Foam::edgeFaceCirculator::operator!=(const edgeFaceCirculator& circ) const
 
 
 //- Step to next face.
-Foam::edgeFaceCirculator& Foam::edgeFaceCirculator::operator++()
+Foam::edgeFaceCirculator&
+Foam::edgeFaceCirculator::operator++()
 {
     if (faceLabel_ == -1)
     {

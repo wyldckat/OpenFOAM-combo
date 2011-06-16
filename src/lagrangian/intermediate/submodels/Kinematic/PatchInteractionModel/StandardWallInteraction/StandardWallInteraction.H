@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -74,16 +74,73 @@ protected:
         scalar mu_;
 
 
+        // Counters for initial particle fates
+
+            //- Number of parcels escaped
+            label nEscape0_;
+
+            //- Mass of parcels escaped
+            scalar massEscape0_;
+
+            //- Number of parcels stuck to patches
+            label nStick0_;
+
+            //- Mass of parcels stuck to patches
+            scalar massStick0_;
+
+
+        // Counters for particle fates
+
+            //- Number of parcels escaped
+            label nEscape_;
+
+            //- Mass of parcels escaped
+            scalar massEscape_;
+
+            //- Number of parcels stuck to patches
+            label nStick_;
+
+            //- Mass of parcels stuck to patches
+            scalar massStick_;
+
+
+    // Protected Member Functions
+
+        //- Read interaction properties from file
+        void readProps();
+
+        //- Write interaction properties to file
+        void writeProps
+        (
+            const label nEscape,
+            const scalar massEscape,
+            const label nStick,
+            const scalar massStick
+        ) const;
+
+
 public:
 
     //- Runtime type information
-    TypeName("StandardWallInteraction");
+    TypeName("standardWallInteraction");
 
 
     // Constructors
 
         //- Construct from dictionary
         StandardWallInteraction(const dictionary& dict, CloudType& cloud);
+
+        //- Construct copy from owner cloud and patch interaction model
+        StandardWallInteraction(const StandardWallInteraction<CloudType>& pim);
+
+        //- Construct and return a clone using supplied owner cloud
+        virtual autoPtr<PatchInteractionModel<CloudType> > clone() const
+        {
+            return autoPtr<PatchInteractionModel<CloudType> >
+            (
+                new StandardWallInteraction<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -92,19 +149,22 @@ public:
 
     // Member Functions
 
-        //- Flag to indicate whether model activates patch interaction model
-        virtual bool active() const;
-
         //- Apply velocity correction
         //  Returns true if particle remains in same cell
         virtual bool correct
         (
+            typename CloudType::parcelType& p,
             const polyPatch& pp,
-            const label faceId,
             bool& keepParticle,
-            bool& active,
-            vector& U
-        ) const;
+            const scalar trackFraction,
+            const tetIndices& tetIs
+        );
+
+
+        // I-O
+
+            //- Write patch interaction info to stream
+            virtual void info(Ostream& os) const;
 };
 
 

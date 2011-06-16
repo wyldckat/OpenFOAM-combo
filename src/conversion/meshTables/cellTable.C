@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -80,7 +78,7 @@ void Foam::cellTable::addDefaults()
 
 void Foam::cellTable::setEntry
 (
-    const label& id,
+    const label id,
     const word& keyWord,
     const word& value
 )
@@ -168,7 +166,7 @@ Foam::Map<Foam::word> Foam::cellTable::names() const
 
 Foam::Map<Foam::word> Foam::cellTable::names
 (
-    const List<wordRe>& patterns
+    const UList<wordRe>& patterns
 ) const
 {
     Map<word> lookup;
@@ -191,7 +189,7 @@ Foam::Map<Foam::word> Foam::cellTable::names
 }
 
 
-Foam::word Foam::cellTable::name(const label& id) const
+Foam::word Foam::cellTable::name(const label id) const
 {
     word theName("cellTable_" + Foam::name(id));
 
@@ -288,19 +286,19 @@ Foam::Map<Foam::word> Foam::cellTable::shells() const
 
 
 
-void Foam::cellTable::setMaterial(const label& id, const word& matlType)
+void Foam::cellTable::setMaterial(const label id, const word& matlType)
 {
     setEntry(id, "MaterialType", matlType);
 }
 
 
-void Foam::cellTable::setName(const label& id, const word& name)
+void Foam::cellTable::setName(const label id, const word& name)
 {
     setEntry(id, "Label", name);
 }
 
 
-void Foam::cellTable::setName(const label& id)
+void Foam::cellTable::setName(const label id)
 {
     iterator iter = find(id);
 

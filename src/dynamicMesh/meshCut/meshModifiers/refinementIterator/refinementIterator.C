@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,12 +36,7 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-defineTypeNameAndDebug(refinementIterator, 0);
-
-}
+defineTypeNameAndDebug(Foam::refinementIterator, 0);
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -116,7 +111,7 @@ Foam::Map<Foam::label> Foam::refinementIterator::setRefinement
             if (debug)
             {
                 Pout<< "refinementIterator : exiting iteration since no valid"
-                    << " loops found for " << currentRefCells.size() 
+                    << " loops found for " << currentRefCells.size()
                     << " cells" << endl;
 
 
@@ -145,7 +140,7 @@ Foam::Map<Foam::label> Foam::refinementIterator::setRefinement
 
             break;
         }
-            
+
         if (debug)
         {
             fileName cutsFile("cuts_" + runTime.timeName() + ".obj");
@@ -212,12 +207,7 @@ Foam::Map<Foam::label> Foam::refinementIterator::setRefinement
         // from meshRefiner.updateMesh call) and add to global list of added
         const Map<label>& addedNow = meshRefiner_.addedCells();
 
-        for
-        (
-            Map<label>::const_iterator iter = addedNow.begin();
-            iter != addedNow.end();
-            ++iter
-        )
+        forAllConstIter(Map<label>, addedNow, iter)
         {
             if (!addedCells.insert(iter.key(), iter()))
             {

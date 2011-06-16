@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,6 +66,18 @@ class topoSetSource
 public:
 
     // Public data types
+
+        //- Enumeration defining the types of sources
+        enum sourceType
+        {
+            CELLSETSOURCE,
+            FACESETSOURCE,
+            POINTSETSOURCE,
+
+            CELLZONESOURCE,
+            FACEZONESOURCE,
+            POINTZONESOURCE
+        };
 
         //- Enumeration defining the valid actions
         enum setAction
@@ -254,9 +266,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~topoSetSource();
+    //- Destructor
+    virtual ~topoSetSource();
 
 
     // Member Functions
@@ -268,6 +279,8 @@ public:
 
 
     // Member Functions
+
+        virtual sourceType setType() const = 0;
 
         virtual void applyToSet(const setAction action, topoSet&) const = 0;
 

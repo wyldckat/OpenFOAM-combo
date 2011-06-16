@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,9 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    A subset of mesh points.
-
 \*---------------------------------------------------------------------------*/
 
 #include "pointZone.H"
@@ -32,6 +29,7 @@ Description
 #include "polyMesh.H"
 #include "primitiveMesh.H"
 #include "demandDrivenData.H"
+#include "syncTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -42,72 +40,20 @@ namespace Foam
     addToRunTimeSelectionTable(pointZone, pointZone, dictionary);
 }
 
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-const Foam::Map<Foam::label>& Foam::pointZone::pointLookupMap() const
-{
-    if (!pointLookupMapPtr_)
-    {
-        calcPointLookupMap();
-    }
-
-    return *pointLookupMapPtr_;
-}
-
-
-void Foam::pointZone::calcPointLookupMap() const
-{
-    if (debug)
-    {
-        Info<< "void pointZone::calcPointLookupMap() const : "
-            << "Calculating point lookup map"
-            << endl;
-    }
-
-    if (pointLookupMapPtr_)
-    {
-        FatalErrorIn
-        (
-            "void pointZone::calcPointLookupMap() const"
-        )   << "point lookup map already calculated"
-            << abort(FatalError);
-    }
-
-    const labelList& addr = *this;
-
-    pointLookupMapPtr_ = new Map<label>(2*addr.size());
-    Map<label>& plm = *pointLookupMapPtr_;
-
-    forAll (addr, pointI)
-    {
-        plm.insert(addr[pointI], pointI);
-    }
-
-    if (debug)
-    {
-        Info<< "void pointZone::calcPointLookupMap() const : "
-            << "Finished calculating point lookup map"
-            << endl;
-    }
-}
-
+const char* const Foam::pointZone::labelsName = "pointLabels";
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::pointZone::pointZone
 (
     const word& name,
-    const labelList& addr,
+    const labelUList& addr,
     const label index,
     const pointZoneMesh& zm
 )
 :
-    labelList(addr),
-    name_(name),
-    index_(index),
-    zoneMesh_(zm),
-    pointLookupMapPtr_(NULL)
+    zone(name, addr, index),
+    zoneMesh_(zm)
 {}
 
 
@@ -119,15 +65,11 @@ Foam::pointZone::pointZone
     const pointZoneMesh& zm
 )
 :
-    labelList(addr),
-    name_(name),
-    index_(index),
-    zoneMesh_(zm),
-    pointLookupMapPtr_(NULL)
+    zone(name, addr, index),
+    zoneMesh_(zm)
 {}
 
 
-// Construct from dictionary
 Foam::pointZone::pointZone
 (
     const word& name,
@@ -136,29 +78,21 @@ Foam::pointZone::pointZone
     const pointZoneMesh& zm
 )
 :
-    labelList(dict.lookup("pointLabels")),
-    name_(name),
-    index_(index),
-    zoneMesh_(zm),
-    pointLookupMapPtr_(NULL)
+    zone(name, dict, this->labelsName, index),
+    zoneMesh_(zm)
 {}
 
 
-// Construct given the original zone and resetting the
-// point list and zone mesh information
 Foam::pointZone::pointZone
 (
     const pointZone& pz,
-    const labelList& addr,
+    const labelUList& addr,
     const label index,
     const pointZoneMesh& zm
 )
 :
-    labelList(addr),
-    name_(pz.name()),
-    index_(index),
-    zoneMesh_(zm),
-    pointLookupMapPtr_(NULL)
+    zone(pz, addr, index),
+    zoneMesh_(zm)
 {}
 
 
@@ -170,40 +104,18 @@ Foam::pointZone::pointZone
     const pointZoneMesh& zm
 )
 :
-    labelList(addr),
-    name_(pz.name()),
-    index_(index),
-    zoneMesh_(zm),
-    pointLookupMapPtr_(NULL)
+    zone(pz, addr, index),
+    zoneMesh_(zm)
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::pointZone::~pointZone()
-{
-    clearAddressing();
-}
+{}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-Foam::label Foam::pointZone::whichPoint(const label globalPointID) const
-{
-    const Map<label>& plm = pointLookupMap();
-
-    Map<label>::const_iterator plmIter = plm.find(globalPointID);
-
-    if (plmIter == plm.end())
-    {
-        return -1;
-    }
-    else
-    {
-        return plmIter();
-    }
-}
-
 
 const Foam::pointZoneMesh& Foam::pointZone::zoneMesh() const
 {
@@ -211,54 +123,67 @@ const Foam::pointZoneMesh& Foam::pointZone::zoneMesh() const
 }
 
 
-void Foam::pointZone::clearAddressing()
+Foam::label Foam::pointZone::whichPoint(const label globalPointID) const
 {
-    deleteDemandDrivenData(pointLookupMapPtr_);
+    return zone::localID(globalPointID);
 }
 
 
 bool Foam::pointZone::checkDefinition(const bool report) const
 {
-    const labelList& addr = *this;
-
-    bool boundaryError = false;
-
-    forAll(addr, i)
-    {
-        if (addr[i] < 0 || addr[i] >= zoneMesh_.mesh().points().size())
-        {
-            boundaryError = true;
-
-            if (report)
-            {
-                SeriousErrorIn
-                (
-                    "bool pointZone::checkDefinition("
-                    "const bool report) const"
-                )   << "Zone " << name()
-                    << " contains invalid point label " << addr[i] << nl
-                    << "Valid point labels are 0.."
-                    << zoneMesh_.mesh().points().size()-1 << endl;
-            }
-        }
-    }
-    return boundaryError;
+    return zone::checkDefinition(zoneMesh_.mesh().points().size(), report);
 }
 
 
-void Foam::pointZone::write(Ostream& os) const
+bool Foam::pointZone::checkParallelSync(const bool report) const
 {
-    os  << nl << name()
-        << nl << static_cast<const labelList&>(*this);
+    const polyMesh& mesh = zoneMesh().mesh();
+
+    labelList maxZone(mesh.nPoints(), -1);
+    labelList minZone(mesh.nPoints(), labelMax);
+    forAll(*this, i)
+    {
+        label pointI = operator[](i);
+        maxZone[pointI] = index();
+        minZone[pointI] = index();
+    }
+    syncTools::syncPointList(mesh, maxZone, maxEqOp<label>(), -1);
+    syncTools::syncPointList(mesh, minZone, minEqOp<label>(), labelMax);
+
+    bool error = false;
+
+    forAll(maxZone, pointI)
+    {
+        // Check point in zone on both sides
+        if (maxZone[pointI] != minZone[pointI])
+        {
+            if (report && !error)
+            {
+                Info<< " ***Problem with pointZone " << index()
+                    << " named " << name()
+                    << ". Point " << pointI
+                    << " at " << mesh.points()[pointI]
+                    << " is in zone "
+                    << (minZone[pointI] == labelMax ? -1 : minZone[pointI])
+                    << " on some processors and in zone "
+                    << maxZone[pointI]
+                    << " on some other processors."
+                    << endl;
+            }
+            error = true;
+        }
+    }
+
+    return error;
 }
 
 
 void Foam::pointZone::writeDict(Ostream& os) const
 {
-    os  << nl << name() << nl << token::BEGIN_BLOCK << nl
+    os  << nl << name_ << nl << token::BEGIN_BLOCK << nl
         << "    type " << type() << token::END_STATEMENT << nl;
 
-    writeEntry("pointLabels", os);
+    writeEntry(this->labelsName, os);
 
     os  << token::END_BLOCK << endl;
 }
@@ -266,14 +191,21 @@ void Foam::pointZone::writeDict(Ostream& os) const
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
-void Foam::pointZone::operator=(const pointZone& cz)
+void Foam::pointZone::operator=(const pointZone& zn)
 {
     clearAddressing();
-    labelList::operator=(cz);
+    labelList::operator=(zn);
 }
 
 
-void Foam::pointZone::operator=(const labelList& addr)
+void Foam::pointZone::operator=(const labelUList& addr)
+{
+    clearAddressing();
+    labelList::operator=(addr);
+}
+
+
+void Foam::pointZone::operator=(const Xfer<labelList>& addr)
 {
     clearAddressing();
     labelList::operator=(addr);
@@ -282,10 +214,10 @@ void Foam::pointZone::operator=(const labelList& addr)
 
 // * * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * //
 
-Foam::Ostream& Foam::operator<<(Ostream& os, const pointZone& p)
+Foam::Ostream& Foam::operator<<(Ostream& os, const pointZone& zn)
 {
-    p.write(os);
-    os.check("Ostream& operator<<(Ostream& f, const pointZone& p");
+    zn.write(os);
+    os.check("Ostream& operator<<(Ostream&, const pointZone&");
     return os;
 }
 

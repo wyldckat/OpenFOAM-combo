@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,7 @@ License
 // * * * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * //
 
 const scalar Foam::multiphaseMixture::convertToRad =
-    Foam::mathematicalConstant::pi/180.0;
+    Foam::constant::mathematical::pi/180.0;
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -123,7 +123,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::rho() const
 
     tmp<volScalarField> trho = iter()*iter().rho();
 
-    for(++iter; iter != phases_.end(); ++iter)
+    for (++iter; iter != phases_.end(); ++iter)
     {
         trho() += iter()*iter().rho();
     }
@@ -138,7 +138,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::mu() const
 
     tmp<volScalarField> tmu = iter()*iter().rho()*iter().nu();
 
-    for(++iter; iter != phases_.end(); ++iter)
+    for (++iter; iter != phases_.end(); ++iter)
     {
         tmu() += iter()*iter().rho()*iter().nu();
     }
@@ -154,7 +154,7 @@ Foam::tmp<Foam::surfaceScalarField> Foam::multiphaseMixture::muf() const
     tmp<surfaceScalarField> tmuf =
         fvc::interpolate(iter())*iter().rho()*fvc::interpolate(iter().nu());
 
-    for(++iter; iter != phases_.end(); ++iter)
+    for (++iter; iter != phases_.end(); ++iter)
     {
         tmuf() +=
             fvc::interpolate(iter())*iter().rho()*fvc::interpolate(iter().nu());
@@ -208,7 +208,7 @@ Foam::multiphaseMixture::surfaceTensionForce() const
         PtrDictionary<phase>::const_iterator iter2 = iter1;
         ++iter2;
 
-        for(; iter2 != phases_.end(); ++iter2)
+        for (; iter2 != phases_.end(); ++iter2)
         {
             const phase& alpha2 = iter2();
 
@@ -245,35 +245,22 @@ void Foam::multiphaseMixture::solve()
 
     const Time& runTime = mesh_.time();
 
-    label nAlphaSubCycles
-    (
-        readLabel
-        (
-            mesh_.solutionDict().subDict("PISO").lookup("nAlphaSubCycles")
-        )
-    );
+    const dictionary& pimpleDict = mesh_.solutionDict().subDict("PIMPLE");
 
-    label nAlphaCorr
-    (
-        readLabel(mesh_.solutionDict().subDict("PISO").lookup("nAlphaCorr"))
-    );
+    label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
 
-    bool cycleAlpha
-    (
-        Switch(mesh_.solutionDict().subDict("PISO").lookup("cycleAlpha"))
-    );
+    label nAlphaCorr(readLabel(pimpleDict.lookup("nAlphaCorr")));
 
-    scalar cAlpha
-    (
-        readScalar(mesh_.solutionDict().subDict("PISO").lookup("cAlpha"))
-    );
+    bool cycleAlpha(Switch(pimpleDict.lookup("cycleAlpha")));
+
+    scalar cAlpha(readScalar(pimpleDict.lookup("cAlpha")));
 
 
     volScalarField& alpha = phases_.first();
 
     if (nAlphaSubCycles > 1)
     {
-        surfaceScalarField rhoPhiSum = 0.0*rhoPhi_;
+        surfaceScalarField rhoPhiSum(0.0*rhoPhi_);
         dimensionedScalar totalDeltaT = runTime.deltaT();
 
         for
@@ -314,9 +301,11 @@ Foam::tmp<Foam::surfaceVectorField> Foam::multiphaseMixture::nHatfv
     surfaceVectorField gradAlphaf = fvc::interpolate(gradAlpha);
     */
 
-    surfaceVectorField gradAlphaf =
+    surfaceVectorField gradAlphaf
+    (
         fvc::interpolate(alpha2)*fvc::interpolate(fvc::grad(alpha1))
-      - fvc::interpolate(alpha1)*fvc::interpolate(fvc::grad(alpha2));
+      - fvc::interpolate(alpha1)*fvc::interpolate(fvc::grad(alpha2))
+    );
 
     // Face unit interface normal
     return gradAlphaf/(mag(gradAlphaf) + deltaN_);
@@ -361,9 +350,11 @@ void Foam::multiphaseMixture::correctContactAngle
 
             vectorField& nHatPatch = nHatb[patchi];
 
-            vectorField AfHatPatch =
+            vectorField AfHatPatch
+            (
                 mesh_.Sf().boundaryField()[patchi]
-               /mesh_.magSf().boundaryField()[patchi];
+               /mesh_.magSf().boundaryField()[patchi]
+            );
 
             alphaContactAngleFvPatchScalarField::thetaPropsTable::
                 const_iterator tp =
@@ -396,21 +387,25 @@ void Foam::multiphaseMixture::correctContactAngle
                 scalar thetaR = convertToRad*tp().thetaR(matched);
 
                 // Calculated the component of the velocity parallel to the wall
-                vectorField Uwall =
+                vectorField Uwall
+                (
                     U_.boundaryField()[patchi].patchInternalField()
-                  - U_.boundaryField()[patchi];
+                  - U_.boundaryField()[patchi]
+                );
                 Uwall -= (AfHatPatch & Uwall)*AfHatPatch;
 
                 // Find the direction of the interface parallel to the wall
-                vectorField nWall =
-                    nHatPatch - (AfHatPatch & nHatPatch)*AfHatPatch;
+                vectorField nWall
+                (
+                    nHatPatch - (AfHatPatch & nHatPatch)*AfHatPatch
+                );
 
                 // Normalise nWall
                 nWall /= (mag(nWall) + SMALL);
 
                 // Calculate Uwall resolved normal to the interface parallel to
                 // the interface
-                scalarField uwall = nWall & Uwall;
+                scalarField uwall(nWall & Uwall);
 
                 theta += (thetaA - thetaR)*tanh(uwall/uTheta);
             }
@@ -418,9 +413,9 @@ void Foam::multiphaseMixture::correctContactAngle
 
             // Reset nHatPatch to correspond to the contact angle
 
-            scalarField a12 = nHatPatch & AfHatPatch;
+            scalarField a12(nHatPatch & AfHatPatch);
 
-            scalarField b1 = cos(theta);
+            scalarField b1(cos(theta));
 
             scalarField b2(nHatPatch.size());
 
@@ -429,10 +424,10 @@ void Foam::multiphaseMixture::correctContactAngle
                 b2[facei] = cos(acos(a12[facei]) - theta[facei]);
             }
 
-            scalarField det = 1.0 - a12*a12;
+            scalarField det(1.0 - a12*a12);
 
-            scalarField a = (b1 - a12*b2)/det;
-            scalarField b = (b2 - a12*b1)/det;
+            scalarField a((b1 - a12*b2)/det);
+            scalarField b((b2 - a12*b1)/det);
 
             nHatPatch = a*AfHatPatch + b*nHatPatch;
 
@@ -457,12 +452,12 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::K
 }
 
 
-Foam::tmp<Foam::surfaceScalarField>
+Foam::tmp<Foam::volScalarField>
 Foam::multiphaseMixture::nearInterface() const
 {
-    tmp<surfaceScalarField> tnearInt
+    tmp<volScalarField> tnearInt
     (
-        new surfaceScalarField
+        new volScalarField
         (
             IOobject
             (
@@ -477,8 +472,7 @@ Foam::multiphaseMixture::nearInterface() const
 
     forAllConstIter(PtrDictionary<phase>, phases_, iter)
     {
-        surfaceScalarField alphaf = fvc::interpolate(iter());
-        tnearInt() = max(tnearInt(), pos(alphaf - 0.01)*pos(0.99 - alphaf));
+        tnearInt() = max(tnearInt(), pos(iter() - 0.01)*pos(0.99 - iter()));
     }
 
     return tnearInt;
@@ -509,7 +503,7 @@ void Foam::multiphaseMixture::solveAlphas
         )
     );
 
-    surfaceScalarField phic = mag(phi_/mesh_.magSf());
+    surfaceScalarField phic(mag(phi_/mesh_.magSf()));
     phic = min(cAlpha*phic, max(phic));
 
     for (int gCorr=0; gCorr<nAlphaCorr; gCorr++)
@@ -519,7 +513,7 @@ void Foam::multiphaseMixture::solveAlphas
         if (cycleAlpha)
         {
             PtrDictionary<phase>::iterator refPhaseIter = phases_.begin();
-            for(label i=0; i<nSolves%phases_.size(); i++)
+            for (label i=0; i<nSolves%phases_.size(); i++)
             {
                 ++refPhaseIter;
             }
@@ -528,7 +522,7 @@ void Foam::multiphaseMixture::solveAlphas
 
         phase& refPhase = *refPhasePtr;
 
-        volScalarField refPhaseNew = refPhase;
+        volScalarField refPhaseNew(refPhase);
         refPhaseNew == 1.0;
 
         rhoPhi_ = phi_*refPhase.rho();
@@ -551,9 +545,11 @@ void Foam::multiphaseMixture::solveAlphas
 
                 if (&alpha2 == &alpha) continue;
 
-                surfaceScalarField phir = phic*nHatf(alpha, alpha2);
-                surfaceScalarField phirb12 =
-                    -fvc::flux(-phir, alpha2, alphacScheme);
+                surfaceScalarField phir(phic*nHatf(alpha, alpha2));
+                surfaceScalarField phirb12
+                (
+                    -fvc::flux(-phir, alpha2, alphacScheme)
+                );
 
                 alphaEqn += fvm::div(phirb12, alpha, alphacScheme);
             }

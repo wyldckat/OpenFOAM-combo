@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -481,7 +481,7 @@ inline Tensor<Cmpt> cof(const Tensor<Cmpt>& t)
 }
 
 
-//- Return the inverse of a tensor give the determinant
+//- Return the inverse of a tensor given the determinant
 template <class Cmpt>
 inline Tensor<Cmpt> inv(const Tensor<Cmpt>& t, const Cmpt dett)
 {

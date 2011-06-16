@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,8 +25,8 @@ Class
     Foam::constInjector
 
 Description
-    Injector model with
-    specified Constant values for the droplet diameter and spray cone angle
+    Injector model with specified Constant values for the droplet diameter
+    and spray cone angle
 
 \*---------------------------------------------------------------------------*/
 
@@ -41,7 +41,7 @@ Description
 namespace Foam
 {
 /*---------------------------------------------------------------------------*\
-                           Class constInjector Declaration
+                       Class constInjector Declaration
 \*---------------------------------------------------------------------------*/
 
 class constInjector
@@ -58,25 +58,21 @@ private:
         scalarList dropletNozzleDiameterRatio_;
         scalarList sprayAngle_;
 
+
 public:
 
     //- Runtime type information
-        TypeName("constInjector");
+    TypeName("constInjector");
 
 
     // Constructors
 
         //- Construct from components
-        constInjector
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        constInjector(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~constInjector();
+    //- Destructor
+    virtual ~constInjector();
 
 
     // Member Functions
@@ -87,23 +83,15 @@ public:
         //- Return the spray angle of the injector
         vector direction
         (
-            const label injector, 
+            const label injector,
             const label hole,
             const scalar time,
             const scalar d
         ) const;
 
-        scalar velocity
-        (
-            const label i,
-            const scalar time
-        ) const;
-        
-        scalar averageVelocity
-        (
-            const label i
-        ) const;
+        scalar velocity(const label i, const scalar time) const;
 
+        scalar averageVelocity(const label i) const;
 };
 
 

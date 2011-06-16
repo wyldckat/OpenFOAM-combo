@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
-  ========Merkle=                 |
+  =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,12 +28,12 @@ Description
     SchnerrSauer cavitation model.
 
     Reference:
-    @verbatim
+    \verbatim
         Schnerr, G. H., And Sauer, J.,
         "Physical and Numerical Modeling of Unsteady Cavitation Dynamics",
         Proc. 4th International Conference on Multiphase Flow,
         New Orleans, U.S.A., 2001.
-    @verbatim
+    \endverbatim
 
 SourceFiles
     SchnerrSauer.C
@@ -103,10 +103,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~SchnerrSauer()
-        {}
+    //- Destructor
+    virtual ~SchnerrSauer()
+    {}
 
 
     // Member Functions

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -12,14 +12,12 @@ FoamFile
     class       dictionary;
     object      snappyHexMeshDict;
 }
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // Which of the steps to run
 castellatedMesh true;
 snap            true;
 addLayers       false;
-
 
 // Geometry. Definition of all surfaces. All surfaces are of class
 // searchableSurface.
@@ -62,8 +60,6 @@ geometry
     }
 };
 
-
-
 // Settings for the castellatedMesh generation.
 castellatedMeshControls
 {
@@ -74,7 +70,7 @@ castellatedMeshControls
     // If local number of cells is >= maxLocalCells on any processor
     // switches from from refinement followed by balancing
     // (current method) to (weighted) balancing before refinement.
-    maxLocalCells 100000;
+    maxLocalCells 1000000;
 
     // Overall cell limit (approximately). Refinement will stop immediately
     // upon reaching this number so a refinement level might not complete.
@@ -95,13 +91,10 @@ castellatedMeshControls
     // nProcs). 0=balance always.
     maxLoadUnbalance 0.10;
 
-
     // Number of buffer layers between different levels.
     // 1 means normal 2:1 refinement restriction, larger means slower
     // refinement.
     nCellsBetweenLevels 1;
-
-
 
     // Explicit feature edge refinement
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,8 +109,6 @@ castellatedMeshControls
         //    level 2;
         //}
     );
-
-
 
     // Surface based refinement
     // ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,16 +135,29 @@ castellatedMeshControls
                 }
             }
 
-            // Optional angle to detect small-large cell situation perpendicular
-            // to the surface. Is the angle of face w.r.t the local surface
-            // normal. Use on flat(ish) surfaces only. Otherwise
-            // leave out or set to negative number.
+            // Optional specification of patch type (default is wall). No
+            // constraint types (cyclic, symmetry) etc. are allowed.
+            patchInfo
+            {
+                type patch;
+            }
+
+            //- Optional angle to detect small-large cell situation
+            //  perpendicular to the surface. Is the angle of face w.r.t.
+            //  the local surface normal. Use on flat(ish) surfaces only.
+            //  Otherwise leave out or set to negative number.
             //perpendicularAngle 10;
+
+            //- Optional faceZone and (for closed surface) cellZone with
+            //  how to select the cells that are in the cellZone
+            //  (inside / outside / specified insidePoint)
+            //faceZone sphere;
+            //cellZone sphere;
+            //cellZoneInside inside;  //outside/insidePoint
         }
     }
 
     resolveFeatureAngle 30;
-
 
     // Region-wise refinement
     // ~~~~~~~~~~~~~~~~~~~~~~
@@ -182,7 +186,6 @@ castellatedMeshControls
         //}
     }
 
-
     // Mesh selection
     // ~~~~~~~~~~~~~~
 
@@ -193,14 +196,11 @@ castellatedMeshControls
     // after refinement.
     locationInMesh (5 0.28 0.43);
 
-
     // Whether any faceZones (as specified in the refinementSurfaces)
     // are only on the boundary of corresponding cellZones or also allow
-    // free-standing zone faces
+    // free-standing zone faces. Not used if there are no faceZones.
     allowFreeStandingZoneFaces true;
 }
-
-
 
 // Settings for the snapping.
 snapControls
@@ -209,10 +209,10 @@ snapControls
     //  to surface
     nSmoothPatch 3;
 
-    //- Relative distance for points to be attracted by surface feature point
-    //  or edge. True distance is this factor times local
-    //  maximum edge length.
-    tolerance 4.0;
+    //- Maximum relative distance for points to be attracted by surface.
+    //  True distance is this factor times local maximum edge length.
+    // Note: changed(corrected) w.r.t 17x! (17x used 2* tolerance)
+    tolerance 1.0;
 
     //- Number of mesh displacement relaxation iterations.
     nSolveIter 30;
@@ -220,9 +220,11 @@ snapControls
     //- Maximum number of snapping relaxation iterations. Should stop
     //  before upon reaching a correct mesh.
     nRelaxIter 5;
+
+    //- Highly experimental and wip: number of feature edge snapping
+    //  iterations. Leave out altogether to disable.
+    //nFeatureSnapIter 10;
 }
-
-
 
 // Settings for the layer addition.
 addLayersControls
@@ -248,8 +250,10 @@ addLayersControls
     // Expansion factor for layer mesh
     expansionRatio 1.0;
 
-
     //- Wanted thickness of final added cell layer. If multiple layers
+    //  is the
+    //  thickness of the layer furthest away from the wall.
+    //  Relative to undistorted size of cell outside layer.
     //  is the thickness of the layer furthest away from the wall.
     //  See relativeSizes parameter.
     finalLayerThickness 0.3;
@@ -262,8 +266,8 @@ addLayersControls
     //- If points get not extruded do nGrow layers of connected faces that are
     //  also not grown. This helps convergence of the layer addition process
     //  close to features.
-    nGrow 1;
-
+    // Note: changed(corrected) w.r.t 17x! (didn't do anything in 17x)
+    nGrow 0;
 
     // Advanced settings
 
@@ -292,11 +296,11 @@ addLayersControls
     maxThicknessToMedialRatio 0.3;
 
     // Angle used to pick up medial axis points
-    minMedianAxisAngle 130;
+    // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
+    minMedianAxisAngle 90;
 
     // Create buffer region for new layer terminations
     nBufferCellsNoExtrude 0;
-
 
     // Overall max number of layer addition iterations. The mesher will exit
     // if it reaches this number of iterations; possibly with an illegal
@@ -308,8 +312,6 @@ addLayersControls
     // after nRelaxIter it uses the values in meshQualityControls::relaxed.
     nRelaxedIter 20;
 }
-
-
 
 // Generic mesh quality settings. At any undoable phase these determine
 // where to undo.
@@ -327,13 +329,20 @@ meshQualityControls
     //  Set to 180 to disable.
     maxConcave 80;
 
-    //- Minimum projected area v.s. actual area. Set to -1 to disable.
-    minFlatness 0.5;
-
     //- Minimum pyramid volume. Is absolute volume of cell pyramid.
     //  Set to a sensible fraction of the smallest cell volume expected.
     //  Set to very negative number (e.g. -1E30) to disable.
     minVol 1e-13;
+
+    //- Minimum quality of the tet formed by the face-centre
+    //  and variable base point minimum decomposition triangles and
+    //  the cell centre. This has to be a positive number for tracking
+    //  to work. Set to very negative number (e.g. -1E30) to
+    //  disable.
+    //     <0 = inside out tet,
+    //      0 = flat tet
+    //      1 = regular tet
+    minTetQuality 1e-9;
 
     //- Minimum face area. Set to <0 to disable.
     minArea -1;
@@ -361,15 +370,12 @@ meshQualityControls
     //  If <0 : delete always.
     //minVolCollapseRatio 0.5;
 
-
     // Advanced
 
     //- Number of error distribution iterations
     nSmoothScale 4;
     //- amount to scale back displacement at error points
     errorReduction 0.75;
-
-
 
     // Optional : some meshing phases allow usage of relaxed rules.
     // See e.g. addLayersControls::nRelaxedIter.
@@ -380,7 +386,6 @@ meshQualityControls
     }
 }
 
-
 // Advanced
 
 // Flags for optional output
@@ -390,10 +395,8 @@ meshQualityControls
 // 4 : write current intersections as .obj files
 debug 0;
 
-
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.
-mergeTolerance 1E-6;
-
+mergeTolerance 1e-6;
 
 // ************************************************************************* //

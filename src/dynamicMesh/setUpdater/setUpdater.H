@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,7 +54,7 @@ class setUpdater
 {
     // Private Member Functions
 
-        //- Updates all sets 
+        //- Updates all sets
         template<class Type>
         void updateSets(const mapPolyMesh& morphMap) const;
 
@@ -83,9 +83,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~setUpdater();
+    //- Destructor
+    virtual ~setUpdater();
 
 
     // Member Functions

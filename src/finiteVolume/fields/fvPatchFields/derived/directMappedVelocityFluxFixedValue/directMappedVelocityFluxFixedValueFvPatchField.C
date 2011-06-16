@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,16 +29,11 @@ License
 #include "volFields.H"
 #include "surfaceFields.H"
 #include "addToRunTimeSelectionTable.H"
-#include "mapDistribute.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-directMappedVelocityFluxFixedValueFvPatchField::
+Foam::directMappedVelocityFluxFixedValueFvPatchField::
 directMappedVelocityFluxFixedValueFvPatchField
 (
     const fvPatch& p,
@@ -46,11 +41,11 @@ directMappedVelocityFluxFixedValueFvPatchField
 )
 :
     fixedValueFvPatchVectorField(p, iF),
-    phiName_("undefinedPhi")
+    phiName_("phi")
 {}
 
 
-directMappedVelocityFluxFixedValueFvPatchField::
+Foam::directMappedVelocityFluxFixedValueFvPatchField::
 directMappedVelocityFluxFixedValueFvPatchField
 (
     const directMappedVelocityFluxFixedValueFvPatchField& ptf,
@@ -67,16 +62,16 @@ directMappedVelocityFluxFixedValueFvPatchField
         FatalErrorIn
         (
             "directMappedVelocityFluxFixedValueFvPatchField::"
-            "directMappedVelocityFluxFixedValueFvPatchField\n"
-            "(\n"
-            "    const directMappedVelocityFluxFixedValueFvPatchField&,\n"
-            "    const fvPatch&,\n"
-            "    const DimensionedField<vector, volMesh>&,\n"
-            "    const fvPatchFieldMapper&\n"
-            ")\n"
-        )   << "\n    patch type '" << p.type()
+            "directMappedVelocityFluxFixedValueFvPatchField"
+            "("
+                "const directMappedVelocityFluxFixedValueFvPatchField&, "
+                "const fvPatch&, "
+                "const DimensionedField<vector, volMesh>&, "
+                "const fvPatchFieldMapper&"
+            ")"
+        )   << "Patch type '" << p.type()
             << "' not type '" << directMappedPatchBase::typeName << "'"
-            << "\n    for patch " << p.name()
+            << " for patch " << p.name()
             << " of field " << dimensionedInternalField().name()
             << " in file " << dimensionedInternalField().objectPath()
             << exit(FatalError);
@@ -84,7 +79,7 @@ directMappedVelocityFluxFixedValueFvPatchField
 }
 
 
-directMappedVelocityFluxFixedValueFvPatchField::
+Foam::directMappedVelocityFluxFixedValueFvPatchField::
 directMappedVelocityFluxFixedValueFvPatchField
 (
     const fvPatch& p,
@@ -93,22 +88,45 @@ directMappedVelocityFluxFixedValueFvPatchField
 )
 :
     fixedValueFvPatchVectorField(p, iF, dict),
-    phiName_(dict.lookup("phi"))
+    phiName_(dict.lookupOrDefault<word>("phi", "phi"))
 {
     if (!isA<directMappedPatchBase>(this->patch().patch()))
     {
         FatalErrorIn
         (
             "directMappedVelocityFluxFixedValueFvPatchField::"
-            "directMappedVelocityFluxFixedValueFvPatchField\n"
-            "(\n"
-            "    const fvPatch& p,\n"
-            "    const DimensionedField<vector, volMesh>& iF,\n"
-            "    const dictionary& dict\n"
-            ")\n"
-        )   << "\n    patch type '" << p.type()
+            "directMappedVelocityFluxFixedValueFvPatchField"
+            "("
+                "const fvPatch&, "
+                "const DimensionedField<vector, volMesh>&, "
+                "const dictionary&"
+            ")"
+        )   << "Patch type '" << p.type()
             << "' not type '" << directMappedPatchBase::typeName << "'"
-            << "\n    for patch " << p.name()
+            << " for patch " << p.name()
+            << " of field " << dimensionedInternalField().name()
+            << " in file " << dimensionedInternalField().objectPath()
+            << exit(FatalError);
+    }
+
+    const directMappedPatchBase& mpp = refCast<const directMappedPatchBase>
+    (
+        this->patch().patch()
+    );
+    if (mpp.mode() == directMappedPolyPatch::NEARESTCELL)
+    {
+        FatalErrorIn
+        (
+            "directMappedVelocityFluxFixedValueFvPatchField::"
+            "directMappedVelocityFluxFixedValueFvPatchField"
+            "("
+                "const fvPatch&, "
+                "const DimensionedField<vector, volMesh>&, "
+                "const dictionary&"
+            ")"
+        )   << "Patch " << p.name()
+            << " of type '" << p.type()
+            << "' can not be used in 'nearestCell' mode"
             << " of field " << dimensionedInternalField().name()
             << " in file " << dimensionedInternalField().objectPath()
             << exit(FatalError);
@@ -116,7 +134,7 @@ directMappedVelocityFluxFixedValueFvPatchField
 }
 
 
-directMappedVelocityFluxFixedValueFvPatchField::
+Foam::directMappedVelocityFluxFixedValueFvPatchField::
 directMappedVelocityFluxFixedValueFvPatchField
 (
     const directMappedVelocityFluxFixedValueFvPatchField& ptf
@@ -127,7 +145,7 @@ directMappedVelocityFluxFixedValueFvPatchField
 {}
 
 
-directMappedVelocityFluxFixedValueFvPatchField::
+Foam::directMappedVelocityFluxFixedValueFvPatchField::
 directMappedVelocityFluxFixedValueFvPatchField
 (
     const directMappedVelocityFluxFixedValueFvPatchField& ptf,
@@ -141,7 +159,7 @@ directMappedVelocityFluxFixedValueFvPatchField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
+void Foam::directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
 {
     if (updated())
     {
@@ -181,7 +199,7 @@ void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
                 const fvPatchVectorField& Upf = UField.boundaryField()[patchI];
                 const scalarField& phipf = phiField.boundaryField()[patchI];
 
-                label faceStart = Upf.patch().patch().start();
+                label faceStart = Upf.patch().start();
 
                 forAll(Upf, faceI)
                 {
@@ -190,26 +208,10 @@ void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
                 }
             }
 
-            mapDistribute::distribute
-            (
-                Pstream::defaultCommsType,
-                distMap.schedule(),
-                distMap.constructSize(),
-                distMap.subMap(),
-                distMap.constructMap(),
-                allUValues
-            );
+            distMap.distribute(allUValues);
             newUValues.transfer(allUValues);
 
-            mapDistribute::distribute
-            (
-                Pstream::defaultCommsType,
-                distMap.schedule(),
-                distMap.constructSize(),
-                distMap.subMap(),
-                distMap.constructMap(),
-                allPhiValues
-            );
+            distMap.distribute(allPhiValues);
             newPhiValues.transfer(allPhiValues);
 
             break;
@@ -222,28 +224,10 @@ void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
             );
 
             newUValues = UField.boundaryField()[nbrPatchID];
-
-            mapDistribute::distribute
-            (
-                Pstream::defaultCommsType,
-                distMap.schedule(),
-                distMap.constructSize(),
-                distMap.subMap(),
-                distMap.constructMap(),
-                newUValues
-            );
+            distMap.distribute(newUValues);
 
             newPhiValues = phiField.boundaryField()[nbrPatchID];
-
-            mapDistribute::distribute
-            (
-                Pstream::defaultCommsType,
-                distMap.schedule(),
-                distMap.constructSize(),
-                distMap.subMap(),
-                distMap.constructMap(),
-                newPhiValues
-            );
+            distMap.distribute(newPhiValues);
 
             break;
         }
@@ -251,9 +235,10 @@ void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
         {
             FatalErrorIn
             (
-                "directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()"
-            )<< "patch can only be used in NEARESTPATCHFACE or NEARESTFACE "
-             << "mode" << nl << abort(FatalError);
+                "directMappedVelocityFluxFixedValueFvPatchField::"
+                "updateCoeffs()"
+            )   << "patch can only be used in NEARESTPATCHFACE or NEARESTFACE "
+                << "mode" << nl << abort(FatalError);
         }
     }
 
@@ -264,23 +249,27 @@ void directMappedVelocityFluxFixedValueFvPatchField::updateCoeffs()
 }
 
 
-void directMappedVelocityFluxFixedValueFvPatchField::write(Ostream& os) const
+void Foam::directMappedVelocityFluxFixedValueFvPatchField::write
+(
+    Ostream& os
+) const
 {
     fvPatchVectorField::write(os);
-    os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
+    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
     this->writeEntry("value", os);
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-makePatchTypeField
-(
-    fvPatchVectorField,
-    directMappedVelocityFluxFixedValueFvPatchField
-);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchVectorField,
+        directMappedVelocityFluxFixedValueFvPatchField
+    );
+}
+
 
 // ************************************************************************* //

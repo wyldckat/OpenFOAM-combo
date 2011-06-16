@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -109,7 +109,7 @@ public:
         }
 
         // Calculate the face value using cubic interpolation
-        scalar fVphif = 
+        scalar fVphif =
             cdWeight*(fVphiP - 0.25*(fV & (d & gradcN)))
           + (1 - cdWeight)*(fVphiN + 0.25*(fV & (d & gradcP)));
 

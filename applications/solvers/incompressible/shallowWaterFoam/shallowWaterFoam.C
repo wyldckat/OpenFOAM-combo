@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,6 +33,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
 
+    pimpleControl pimple(mesh);
+
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
@@ -52,10 +55,10 @@ int main(int argc, char *argv[])
     {
         Info<< "\n Time = " << runTime.timeName() << nl << endl;
 
-        #include "readPISOControls.H"
         #include "CourantNo.H"
 
-        for (int ucorr=0; ucorr<nOuterCorr; ucorr++)
+        // --- Pressure-velocity PIMPLE corrector loop
+        for (pimple.start(); pimple.loop(); pimple++)
         {
             surfaceScalarField phiv("phiv", phi/fvc::interpolate(h));
 
@@ -67,7 +70,7 @@ int main(int argc, char *argv[])
 
             hUEqn.relax();
 
-            if (momentumPredictor)
+            if (pimple.momentumPredictor())
             {
                 if (rotating)
                 {
@@ -87,52 +90,50 @@ int main(int argc, char *argv[])
             }
 
             // --- PISO loop
-            for (int corr=0; corr<nCorr; corr++)
+            for (int corr=0; corr<pimple.nCorr(); corr++)
             {
-                surfaceScalarField hf = fvc::interpolate(h);
-                volScalarField rUA = 1.0/hUEqn.A();
-                surfaceScalarField ghrUAf = magg*fvc::interpolate(h*rUA);
+                volScalarField rAU(1.0/hUEqn.A());
+                surfaceScalarField ghrAUf(magg*fvc::interpolate(h*rAU));
 
-                surfaceScalarField phih0 = ghrUAf*mesh.magSf()*fvc::snGrad(h0);
+                surfaceScalarField phih0(ghrAUf*mesh.magSf()*fvc::snGrad(h0));
 
                 if (rotating)
                 {
-                    hU = rUA*(hUEqn.H() - (F ^ hU));
+                    hU = rAU*(hUEqn.H() - (F ^ hU));
                 }
                 else
                 {
-                    hU = rUA*hUEqn.H();
+                    hU = rAU*hUEqn.H();
                 }
 
                 phi = (fvc::interpolate(hU) & mesh.Sf())
-                    + fvc::ddtPhiCorr(rUA, h, hU, phi)
+                    + fvc::ddtPhiCorr(rAU, h, hU, phi)
                     - phih0;
 
-                for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
+                for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
                 {
                     fvScalarMatrix hEqn
                     (
                         fvm::ddt(h)
                       + fvc::div(phi)
-                      - fvm::laplacian(ghrUAf, h)
+                      - fvm::laplacian(ghrAUf, h)
                     );
 
-                    if (ucorr < nOuterCorr-1 || corr < nCorr-1)
-                    {
-                        hEqn.solve();
-                    }
-                    else
-                    {
-                        hEqn.solve(mesh.solver(h.name() + "Final"));
-                    }
+                    hEqn.solve
+                    (
+                        mesh.solver
+                        (
+                            h.select(pimple.finalInnerIter(corr, nonOrth))
+                        )
+                    );
 
-                    if (nonOrth == nNonOrthCorr)
+                    if (nonOrth == pimple.nNonOrthCorr())
                     {
                         phi += hEqn.flux();
                     }
                 }
 
-                hU -= rUA*h*magg*fvc::grad(h + h0);
+                hU -= rAU*h*magg*fvc::grad(h + h0);
 
                 // Constrain the momentum to be in the geometry if 3D geometry
                 if (mesh.nGeometricD() == 3)

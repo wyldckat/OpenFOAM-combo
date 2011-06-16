@@ -118,9 +118,9 @@ void Foam::flowRateInletVelocityFvPatchVectorField::updateCoeffs()
     }
 
     // a simpler way of doing this would be nice
-    scalar avgU = -flowRate_/gSum(patch().magSf());
+    const scalar avgU = -flowRate_/gSum(patch().magSf());
 
-    vectorField n = patch().nf();
+    tmp<vectorField> n = patch().nf();
 
     const surfaceScalarField& phi =
         db().lookupObject<surfaceScalarField>(phiName_);
@@ -158,14 +158,8 @@ void Foam::flowRateInletVelocityFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchField<vector>::write(os);
     os.writeKeyword("flowRate") << flowRate_ << token::END_STATEMENT << nl;
-    if (phiName_ != "phi")
-    {
-        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
-    }
-    if (rhoName_ != "rho")
-    {
-        os.writeKeyword("rho") << rhoName_ << token::END_STATEMENT << nl;
-    }
+    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
+    writeEntryIfDifferent<word>(os, "rho", "rho", rhoName_);
     writeEntry("value", os);
 }
 

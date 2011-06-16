@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -261,7 +261,7 @@ template<class Type>
 tmp<fvMatrix<Type> >
 EulerDdtScheme<Type>::fvmDdt
 (
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -275,7 +275,7 @@ EulerDdtScheme<Type>::fvmDdt
 
     fvMatrix<Type>& fvm = tfvm();
 
-    scalar rDeltaT = 1.0/mesh().time().deltaT().value();
+    scalar rDeltaT = 1.0/mesh().time().deltaTValue();
 
     fvm.diag() = rDeltaT*mesh().V();
 
@@ -297,7 +297,7 @@ tmp<fvMatrix<Type> >
 EulerDdtScheme<Type>::fvmDdt
 (
     const dimensionedScalar& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -310,7 +310,7 @@ EulerDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalar rDeltaT = 1.0/mesh().time().deltaT().value();
+    scalar rDeltaT = 1.0/mesh().time().deltaTValue();
 
     fvm.diag() = rDeltaT*rho.value()*mesh().V();
 
@@ -334,7 +334,7 @@ tmp<fvMatrix<Type> >
 EulerDdtScheme<Type>::fvmDdt
 (
     const volScalarField& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -347,7 +347,7 @@ EulerDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalar rDeltaT = 1.0/mesh().time().deltaT().value();
+    scalar rDeltaT = 1.0/mesh().time().deltaTValue();
 
     fvm.diag() = rDeltaT*rho.internalField()*mesh().V();
 
@@ -394,8 +394,8 @@ EulerDdtScheme<Type>::fvcDdtPhiCorr
         new fluxFieldType
         (
             ddtIOobject,
-            fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime(), phiCorr())
-           *fvc::interpolate(rDeltaT*rA)*phiCorr
+            this->fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime(), phiCorr())
+          * fvc::interpolate(rDeltaT*rA)*phiCorr
         )
     );
 }
@@ -436,11 +436,13 @@ EulerDdtScheme<Type>::fvcDdtPhiCorr
             (
                 ddtIOobject,
                 rDeltaT
-               *fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime())
-               *(
-                   fvc::interpolate(rA*rho.oldTime())*phiAbs.oldTime()
-                 - (fvc::interpolate(rA*rho.oldTime()*U.oldTime())
-                  & mesh().Sf())
+              * this->fvcDdtPhiCoeff(U.oldTime(), phiAbs.oldTime())
+              * (
+                    fvc::interpolate(rA*rho.oldTime())*phiAbs.oldTime()
+                  - (
+                        fvc::interpolate(rA*rho.oldTime()*U.oldTime())
+                      & mesh().Sf()
+                    )
                 )
             )
         );
@@ -457,14 +459,14 @@ EulerDdtScheme<Type>::fvcDdtPhiCorr
             (
                 ddtIOobject,
                 rDeltaT
-               *fvcDdtPhiCoeff
+              * this->fvcDdtPhiCoeff
                 (
                     U.oldTime(),
                     phiAbs.oldTime()/fvc::interpolate(rho.oldTime())
                 )
-               *(
-                   fvc::interpolate(rA*rho.oldTime())
-                  *phiAbs.oldTime()/fvc::interpolate(rho.oldTime())
+              * (
+                    fvc::interpolate(rA*rho.oldTime())
+                  * phiAbs.oldTime()/fvc::interpolate(rho.oldTime())
                  - (
                        fvc::interpolate
                        (
@@ -487,10 +489,11 @@ EulerDdtScheme<Type>::fvcDdtPhiCorr
             (
                 ddtIOobject,
                 rDeltaT
-               *fvcDdtPhiCoeff(rho.oldTime(), U.oldTime(), phiAbs.oldTime())
-               *(
-                   fvc::interpolate(rA)*phiAbs.oldTime()
-                 - (fvc::interpolate(rA*U.oldTime()) & mesh().Sf())
+              * this->fvcDdtPhiCoeff
+                (rho.oldTime(), U.oldTime(), phiAbs.oldTime())
+              * (
+                    fvc::interpolate(rA)*phiAbs.oldTime()
+                  - (fvc::interpolate(rA*U.oldTime()) & mesh().Sf())
                 )
             )
         );

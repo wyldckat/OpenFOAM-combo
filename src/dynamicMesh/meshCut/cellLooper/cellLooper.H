@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -160,9 +160,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~cellLooper();
+    //- Destructor
+    virtual ~cellLooper();
 
 
     // Member Functions
@@ -172,7 +171,7 @@ public:
         //  Cut along circumference is expressed as cellVertCut,
         //  cellEdgeToWeight. Returns true if succesfull. Still might not
         //  be compatible with existing cuts but this should be handled by
-        //  caller). 
+        //  caller).
         virtual bool cut
         (
             const vector& refDir,

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -412,9 +410,8 @@ Foam::booleanSurface::booleanSurface
         Pout<< "booleanSurface : Generated cutSurf1: " << endl;
         cutSurf1.writeStats(Pout);
 
-        Pout<< "Writing to file cutSurf1.ftr" << endl;
-        OFstream cutSurf1Stream("cutSurf1.ftr");
-        cutSurf1.write(cutSurf1Stream);
+        Pout<< "Writing to file cutSurf1.obj" << endl;
+        cutSurf1.write("cutSurf1.obj");
     }
 
     if (debug)
@@ -431,9 +428,8 @@ Foam::booleanSurface::booleanSurface
         Pout<< "booleanSurface : Generated cutSurf2: " << endl;
         cutSurf2.writeStats(Pout);
 
-        Pout<< "Writing to file cutSurf2.ftr" << endl;
-        OFstream cutSurf2Stream("cutSurf2.ftr");
-        cutSurf2.write(cutSurf2Stream);
+        Pout<< "Writing to file cutSurf2.obj" << endl;
+        cutSurf2.write("cutSurf2.obj");
     }
 
 
@@ -493,7 +489,7 @@ Foam::booleanSurface::booleanSurface
     }
 
     labelList faceZone1;
-    (void)cutSurf1.markZones(isIntersectionEdge1, faceZone1);
+    cutSurf1.markZones(isIntersectionEdge1, faceZone1);
 
 
     // Check whether at least one of sides of intersection has been marked.
@@ -541,7 +537,7 @@ Foam::booleanSurface::booleanSurface
     }
 
     labelList faceZone2;
-    (void)cutSurf2.markZones(isIntersectionEdge2, faceZone2);
+    cutSurf2.markZones(isIntersectionEdge2, faceZone2);
 
 
     // Check whether at least one of sides of intersection has been marked.
@@ -594,7 +590,10 @@ Foam::booleanSurface::booleanSurface
 
     // Copy points from subSurf1 and remember the labels of the ones in
     // the intersection
-    labelList intersectionLabels(cutSurf1.nPoints() - cutSurf1.nSurfacePoints());
+    labelList intersectionLabels
+    (
+        cutSurf1.nPoints() - cutSurf1.nSurfacePoints()
+    );
 
     label combinedPointI = 0;
 
@@ -769,9 +768,8 @@ Foam::booleanSurface::booleanSurface
         Pout<< "booleanSurface : Generated cutSurf1: " << endl;
         cutSurf1.writeStats(Pout);
 
-        Pout<< "Writing to file cutSurf1.ftr" << endl;
-        OFstream cutSurf1Stream("cutSurf1.ftr");
-        cutSurf1.write(cutSurf1Stream);
+        Pout<< "Writing to file cutSurf1.obj" << endl;
+        cutSurf1.write("cutSurf1.obj");
     }
 
 
@@ -793,9 +791,8 @@ Foam::booleanSurface::booleanSurface
         Pout<< "booleanSurface : Generated cutSurf2: " << endl;
         cutSurf2.writeStats(Pout);
 
-        Pout<< "Writing to file cutSurf2.ftr" << endl;
-        OFstream cutSurf2Stream("cutSurf2.ftr");
-        cutSurf2.write(cutSurf2Stream);
+        Pout<< "Writing to file cutSurf2.obj" << endl;
+        cutSurf2.write("cutSurf2.obj");
     }
 
 
@@ -921,9 +918,8 @@ Foam::booleanSurface::booleanSurface
         Pout<< "booleanSurface : Generated combinedSurf: " << endl;
         combinedSurf.writeStats(Pout);
 
-        Pout<< "Writing to file combinedSurf.ftr" << endl;
-        OFstream combinedSurfStream("combinedSurf.ftr");
-        combinedSurf.write(combinedSurfStream);
+        Pout<< "Writing to file combinedSurf.obj" << endl;
+        combinedSurf.write("combinedSurf.obj");
     }
 
 
@@ -964,20 +960,11 @@ Foam::booleanSurface::booleanSurface
 
     forAll(combinedSurf, faceI)
     {
-        const labelledTri& f = combinedSurf[faceI];
-
-        pointHit curHit =
-            triPointRef
-            (
-                pts[f[0]],
-                pts[f[1]],
-                pts[f[2]]
-            ).nearestPoint(outsidePoint);
+        pointHit curHit = combinedSurf[faceI].nearestPoint(outsidePoint, pts);
 
         if (curHit.distance() < minHit.distance())
         {
             minHit = curHit;
-
             minFaceI = faceI;
         }
     }
@@ -1095,9 +1082,6 @@ Foam::booleanSurface::booleanSurface
     // Assign.
     triSurface::operator=(outSurf);
 }
-
-
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -86,18 +84,18 @@ void Foam::enrichedPatch::calcEnrichedFaces
 
     // Add slave faces into the enriched faces list
 
-    forAll (slavePatch_, faceI)
+    forAll(slavePatch_, faceI)
     {
         const face oldFace = slavePatch_[faceI];
         const face oldLocalFace = slaveLocalFaces[faceI];
-//         Info << "old slave face " << faceI << ": " << oldFace << endl;
+//         Info<< "old slave face " << faceI << ": " << oldFace << endl;
         const labelList& curEdges = slaveFaceEdges[faceI];
 
         DynamicList<label> newFace(oldFace.size()*enrichedFaceRatio_);
 
         // Note: The number of points and edges in a face is always identical
         // so both can be done is the same loop
-        forAll (oldFace, i)
+        forAll(oldFace, i)
         {
             // Add the point
             Map<label>::const_iterator mpIter =
@@ -132,7 +130,11 @@ void Foam::enrichedPatch::calcEnrichedFaces
 
             const labelList& slavePointsOnEdge =
                 pointsIntoSlaveEdges[curEdges[i]];
-//             Info << "slavePointsOnEdge for " << curEdges[i] << ": " << slavePointsOnEdge << endl;
+
+            // Info<< "slavePointsOnEdge for "
+            //     << curEdges[i] << ": " << slavePointsOnEdge
+            //     << endl;
+
             // If there are no points on the edge, skip everything
             // If there is only one point, no need for sorting
             if (slavePointsOnEdge.size())
@@ -168,7 +170,7 @@ void Foam::enrichedPatch::calcEnrichedFaces
 
                 pointField slavePosOnEdge(slavePointsOnEdge.size());
 
-                forAll (slavePointsOnEdge, edgePointI)
+                forAll(slavePointsOnEdge, edgePointI)
                 {
                     slavePosOnEdge[edgePointI] =
                         pointMap().find(slavePointsOnEdge[edgePointI])();
@@ -202,14 +204,14 @@ void Foam::enrichedPatch::calcEnrichedFaces
                 // Go through the points and collect them based on
                 // weights from lower to higher.  This gives the
                 // correct order of points along the edge.
-                for (label passI = 0; passI < edgePointWeights.size(); passI++)
+                forAll(edgePointWeights, passI)
                 {
                     // Max weight can only be one, so the sorting is
                     // done by elimination.
                     label nextPoint = -1;
                     scalar dist = 2;
 
-                    forAll (edgePointWeights, wI)
+                    forAll(edgePointWeights, wI)
                     {
                         if (edgePointWeights[wI] < dist)
                         {
@@ -241,18 +243,18 @@ void Foam::enrichedPatch::calcEnrichedFaces
 
     // Add master faces into the enriched faces list
 
-    forAll (masterPatch_, faceI)
+    forAll(masterPatch_, faceI)
     {
         const face& oldFace = masterPatch_[faceI];
         const face& oldLocalFace = masterLocalFaces[faceI];
-//         Info << "old master face: " << oldFace << endl;
+//         Info<< "old master face: " << oldFace << endl;
         const labelList& curEdges = masterFaceEdges[faceI];
 
         DynamicList<label> newFace(oldFace.size()*enrichedFaceRatio_);
 
         // Note: The number of points and edges in a face is always identical
         // so both can be done is the same loop
-        forAll (oldFace, i)
+        forAll(oldFace, i)
         {
             // Add the point
             Map<label>::const_iterator mpIter =
@@ -319,7 +321,7 @@ void Foam::enrichedPatch::calcEnrichedFaces
 
                 pointField masterPosOnEdge(masterPointsOnEdge.size());
 
-                forAll (masterPointsOnEdge, edgePointI)
+                forAll(masterPointsOnEdge, edgePointI)
                 {
                     masterPosOnEdge[edgePointI] =
                         pointMap().find(masterPointsOnEdge[edgePointI])();
@@ -353,14 +355,14 @@ void Foam::enrichedPatch::calcEnrichedFaces
                 // Go through the points and collect them based on
                 // weights from lower to higher.  This gives the
                 // correct order of points along the edge.
-                for (label pass = 0; pass < edgePointWeights.size(); pass++)
+                forAll(edgePointWeights, passI)
                 {
                     // Max weight can only be one, so the sorting is
                     // done by elimination.
                     label nextPoint = -1;
                     scalar dist = 2;
 
-                    forAll (edgePointWeights, wI)
+                    forAll(edgePointWeights, wI)
                     {
                         if (edgePointWeights[wI] < dist)
                         {

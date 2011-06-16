@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -110,13 +110,12 @@ labelList parseVertices(const string& line)
 int main(int argc, char *argv[])
 {
     argList::noParallel();
-    argList::validArgs.clear();
     argList::validArgs.append("OBJ file");
     argList::validArgs.append("output VTK file");
     argList args(argc, argv);
 
-    fileName objName(args.additionalArgs()[0]);
-    fileName outName(args.additionalArgs()[1]);
+    const fileName objName = args[1];
+    const fileName outName = args[2];
 
     std::ifstream OBJfile(objName.c_str());
 
@@ -265,7 +264,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2007 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,8 +81,8 @@ bool Foam::rawTopoChangerFvMesh::update()
         // - internal faces inflated out of nothing
         // - patch faces created out of previously internal faces
 
-        // Is face mapped in any way
-        PackedList<1> mappedFace(nFaces());
+        // Is face mapped in any way?
+        PackedBoolList mappedFace(nFaces());
 
         const label nOldInternal = topoChangeMap().oldPatchStarts()[0];
 

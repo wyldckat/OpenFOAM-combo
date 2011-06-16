@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,13 +32,9 @@ License
 #include "SortableList.H"
 #include "PackedBoolList.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-namespace Foam
-{
-    defineTypeNameAndDebug(Foam::triSurface, 0);
-}
+
+defineTypeNameAndDebug(Foam::triSurface, 0);
 
 
 Foam::fileName Foam::triSurface::triSurfInstance(const Time& d)
@@ -191,20 +187,18 @@ void Foam::triSurface::checkTriangles(const bool verbose)
 
     forAll(*this, faceI)
     {
-        const labelledTri& f = (*this)[faceI];
+        const triSurface::FaceType& f = (*this)[faceI];
 
-        if
-        (
-            (f[0] < 0) || (f[0] > maxPointI)
-         || (f[1] < 0) || (f[1] > maxPointI)
-         || (f[2] < 0) || (f[2] > maxPointI)
-        )
+        forAll(f, fp)
         {
-            FatalErrorIn("triSurface::checkTriangles(bool)")
-                << "triangle " << f
-                << " uses point indices outside point range 0.."
-                << maxPointI
-                << exit(FatalError);
+            if (f[fp] < 0 || f[fp] > maxPointI)
+            {
+                FatalErrorIn("triSurface::checkTriangles(bool)")
+                    << "triangle " << f
+                    << " uses point indices outside point range 0.."
+                    << maxPointI
+                    << exit(FatalError);
+            }
         }
     }
 
@@ -216,8 +210,6 @@ void Foam::triSurface::checkTriangles(const bool verbose)
     // List of valid triangles
     boolList valid(size(), true);
     bool hasInvalid = false;
-
-    const labelListList& fFaces = faceFaces();
 
     forAll(*this, faceI)
     {
@@ -242,47 +234,53 @@ void Foam::triSurface::checkTriangles(const bool verbose)
         else
         {
             // duplicate triangle check
-            const labelList& neighbours = fFaces[faceI];
+            const labelList& fEdges = faceEdges()[faceI];
 
             // Check if faceNeighbours use same points as this face.
             // Note: discards normal information - sides of baffle are merged.
-            forAll(neighbours, neighbourI)
+
+            forAll(fEdges, fp)
             {
-                if (neighbours[neighbourI] <= faceI)
+                const labelList& eFaces = edgeFaces()[fEdges[fp]];
+
+                forAll(eFaces, i)
                 {
-                    // lower numbered faces already checked
-                    continue;
-                }
+                    label neighbour = eFaces[i];
 
-                const labelledTri& n = (*this)[neighbours[neighbourI]];
-
-                if
-                (
-                    ((f[0] == n[0]) || (f[0] == n[1]) || (f[0] == n[2]))
-                 && ((f[1] == n[0]) || (f[1] == n[1]) || (f[1] == n[2]))
-                 && ((f[2] == n[0]) || (f[2] == n[1]) || (f[2] == n[2]))
-                )
-                {
-                    valid[faceI] = false;
-                    hasInvalid = true;
-
-                    if (verbose)
+                    if (neighbour > faceI)
                     {
-                        WarningIn
+                        // lower numbered faces already checked
+                        const labelledTri& n = (*this)[neighbour];
+
+                        if
                         (
-                            "triSurface::checkTriangles(bool verbose)"
-                        )   << "triangles share the same vertices:\n"
-                            << "    face 1 :" << faceI << endl;
-                        printTriangle(Warning, "    ", f, points());
+                            ((f[0] == n[0]) || (f[0] == n[1]) || (f[0] == n[2]))
+                         && ((f[1] == n[0]) || (f[1] == n[1]) || (f[1] == n[2]))
+                         && ((f[2] == n[0]) || (f[2] == n[1]) || (f[2] == n[2]))
+                        )
+                        {
+                            valid[faceI] = false;
+                            hasInvalid = true;
 
-                        Warning
-                            << endl
-                            << "    face 2 :"
-                            << neighbours[neighbourI] << endl;
-                        printTriangle(Warning, "    ", n, points());
+                            if (verbose)
+                            {
+                                WarningIn
+                                (
+                                    "triSurface::checkTriangles(bool verbose)"
+                                )   << "triangles share the same vertices:\n"
+                                    << "    face 1 :" << faceI << endl;
+                                printTriangle(Warning, "    ", f, points());
+
+                                Warning
+                                    << endl
+                                    << "    face 2 :"
+                                    << neighbour << endl;
+                                printTriangle(Warning, "    ", n, points());
+                            }
+
+                            break;
+                        }
                     }
-
-                    break;
                 }
             }
         }
@@ -333,7 +331,7 @@ void Foam::triSurface::checkEdges(const bool verbose)
                 << " has no edgeFaces"
                 << exit(FatalError);
         }
-        else if (myFaces.size() > 2)
+        else if (myFaces.size() > 2 && verbose)
         {
             WarningIn
             (
@@ -520,7 +518,7 @@ Foam::surfacePatchList Foam::triSurface::calcPatches(labelList& faceMap) const
         maxRegion = max
         (
             maxRegion,
-            operator[](faceMap[faceMap.size() - 1]).region()
+            operator[](faceMap.last()).region()
         );
     }
 
@@ -782,7 +780,6 @@ const Foam::labelList& Foam::triSurface::edgeOwner() const
 }
 
 
-//- Move points
 void Foam::triSurface::movePoints(const pointField& newPoints)
 {
     // Remove all geometry dependent data
@@ -796,8 +793,7 @@ void Foam::triSurface::movePoints(const pointField& newPoints)
 }
 
 
-// scale points
-void Foam::triSurface::scalePoints(const scalar& scaleFactor)
+void Foam::triSurface::scalePoints(const scalar scaleFactor)
 {
     // avoid bad scaling
     if (scaleFactor > 0 && scaleFactor != 1.0)
@@ -817,7 +813,7 @@ void Foam::triSurface::scalePoints(const scalar& scaleFactor)
 void Foam::triSurface::cleanup(const bool verbose)
 {
     // Merge points (already done for STL, TRI)
-    stitchTriangles(points(), SMALL, verbose);
+    stitchTriangles(SMALL, verbose);
 
     // Merging points might have changed geometric factors
     clearOut();
@@ -841,7 +837,7 @@ void Foam::triSurface::markZone
     // List of faces whose faceZone has been set.
     labelList changedFaces(1, faceI);
 
-    while(true)
+    while (true)
     {
         // Pick up neighbours of changedFaces
         DynamicList<label> newChangedFaces(2*changedFaces.size());
@@ -966,42 +962,30 @@ void Foam::triSurface::subsetMeshMap
 
     boolList pointHad(nPoints(), false);
 
-    forAll(include, oldFacei)
+    forAll(include, oldFaceI)
     {
-        if (include[oldFacei])
+        if (include[oldFaceI])
         {
             // Store new faces compact
-            faceMap[faceI++] = oldFacei;
+            faceMap[faceI++] = oldFaceI;
 
-            // Renumber labels for triangle
-            const labelledTri& tri = locFaces[oldFacei];
+            // Renumber labels for face
+            const triSurface::FaceType& f = locFaces[oldFaceI];
 
-            label a = tri[0];
-            if (!pointHad[a])
+            forAll(f, fp)
             {
-                pointHad[a] = true;
-                pointMap[pointI++] = a;
-            }
-
-            label b = tri[1];
-            if (!pointHad[b])
-            {
-                pointHad[b] = true;
-                pointMap[pointI++] = b;
-            }
-
-            label c = tri[2];
-            if (!pointHad[c])
-            {
-                pointHad[c] = true;
-                pointMap[pointI++] = c;
+                label labI = f[fp];
+                if (!pointHad[labI])
+                {
+                    pointHad[labI] = true;
+                    pointMap[pointI++] = labI;
+                }
             }
         }
     }
 
     // Trim
     faceMap.setSize(faceI);
-
     pointMap.setSize(pointI);
 }
 
@@ -1092,9 +1076,9 @@ void Foam::triSurface::writeStats(Ostream& os) const
     label nPoints = 0;
     boundBox bb = boundBox::invertedBox;
 
-    forAll(*this, triI)
+    forAll(*this, faceI)
     {
-        const labelledTri& f = operator[](triI);
+        const triSurface::FaceType& f = operator[](faceI);
 
         forAll(f, fp)
         {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,15 +62,18 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve
             << endl;
     }
 
+    GeometricField<Type, fvPatchField, volMesh>& psi =
+       const_cast<GeometricField<Type, fvPatchField, volMesh>&>(psi_);
+
     lduMatrix::solverPerformance solverPerfVec
     (
         "fvMatrix<Type>::solve",
-        psi_.name()
+        psi.name()
     );
 
-    scalarField saveDiag = diag();
+    scalarField saveDiag(diag());
 
-    Field<Type> source = source_;
+    Field<Type> source(source_);
 
     // At this point include the boundary source from the coupled boundaries.
     // This is corrected for the implict part by updateMatrixInterfaces within
@@ -81,21 +84,21 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve
     (
         pow
         (
-            psi_.mesh().solutionD(),
+            psi.mesh().solutionD(),
             pTraits<typename powProduct<Vector<label>, Type::rank>::type>::zero
         )
     );
 
-    for(direction cmpt=0; cmpt<Type::nComponents; cmpt++)
+    for (direction cmpt=0; cmpt<Type::nComponents; cmpt++)
     {
         if (validComponents[cmpt] == -1) continue;
 
         // copy field and source
 
-        scalarField psiCmpt = psi_.internalField().component(cmpt);
+        scalarField psiCmpt(psi.internalField().component(cmpt));
         addBoundaryDiag(diag(), cmpt);
 
-        scalarField sourceCmpt = source.component(cmpt);
+        scalarField sourceCmpt(source.component(cmpt));
 
         FieldField<Field, scalar> bouCoeffsCmpt
         (
@@ -108,7 +111,7 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve
         );
 
         lduInterfaceFieldPtrsList interfaces =
-            psi_.boundaryField().interfaces();
+            psi.boundaryField().interfaces();
 
         // Use the initMatrixInterfaces and updateMatrixInterfaces to correct
         // bouCoeffsCmpt for the explicit part of the coupled boundary
@@ -136,7 +139,7 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve
         // Solver call
         solverPerf = lduMatrix::solver::New
         (
-            psi_.name() + pTraits<Type>::componentNames[cmpt],
+            psi.name() + pTraits<Type>::componentNames[cmpt],
             *this,
             bouCoeffsCmpt,
             intCoeffsCmpt,
@@ -146,20 +149,16 @@ Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve
 
         solverPerf.print();
 
-        if
-        (
-            solverPerf.initialResidual() > solverPerfVec.initialResidual()
-         && !solverPerf.singular()
-        )
-        {
-            solverPerfVec = solverPerf;
-        }
+        solverPerfVec = max(solverPerfVec, solverPerf);
+        solverPerfVec.solverName() = solverPerf.solverName();
 
-        psi_.internalField().replace(cmpt, psiCmpt);
+        psi.internalField().replace(cmpt, psiCmpt);
         diag() = saveDiag;
     }
 
-    psi_.correctBoundaryConditions();
+    psi.correctBoundaryConditions();
+
+    psi.mesh().setSolverPerformance(psi.name(), solverPerfVec);
 
     return solverPerfVec;
 }
@@ -169,27 +168,58 @@ template<class Type>
 Foam::autoPtr<typename Foam::fvMatrix<Type>::fvSolver>
 Foam::fvMatrix<Type>::solver()
 {
-    return solver(psi_.mesh().solverDict(psi_.name()));
+    return solver
+    (
+        psi_.mesh().solverDict
+        (
+            psi_.select
+            (
+                psi_.mesh().data::template lookupOrDefault<bool>
+                ("finalIteration", false)
+            )
+        )
+    );
 }
+
 
 template<class Type>
 Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::fvSolver::solve()
 {
-    return solve(fvMat_.psi_.mesh().solverDict(fvMat_.psi_.name()));
+    return solve
+    (
+        fvMat_.psi_.mesh().solverDict
+        (
+            fvMat_.psi_.select
+            (
+                fvMat_.psi_.mesh().data::template lookupOrDefault<bool>
+                ("finalIteration", false)
+            )
+        )
+    );
 }
 
 
 template<class Type>
 Foam::lduMatrix::solverPerformance Foam::fvMatrix<Type>::solve()
 {
-    return solve(psi_.mesh().solverDict(psi_.name()));
+    return solve
+    (
+        psi_.mesh().solverDict
+        (
+            psi_.select
+            (
+                psi_.mesh().data::template lookupOrDefault<bool>
+                ("finalIteration", false)
+            )
+        )
+    );
 }
 
 
 template<class Type>
 Foam::tmp<Foam::Field<Type> > Foam::fvMatrix<Type>::residual() const
 {
-    tmp<Field<Type> > tres(source_);
+    tmp<Field<Type> > tres(new Field<Type>(source_));
     Field<Type>& res = tres();
 
     addBoundarySource(res);
@@ -197,7 +227,7 @@ Foam::tmp<Foam::Field<Type> > Foam::fvMatrix<Type>::residual() const
     // Loop over field components
     for (direction cmpt=0; cmpt<Type::nComponents; cmpt++)
     {
-        scalarField psiCmpt = psi_.internalField().component(cmpt);
+        scalarField psiCmpt(psi_.internalField().component(cmpt));
 
         scalarField boundaryDiagCmpt(psi_.size(), 0.0);
         addBoundaryDiag(boundaryDiagCmpt, cmpt);

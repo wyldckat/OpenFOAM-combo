@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,7 +37,6 @@ Description
 
 SourceFiles
     RASModel.C
-    newTurbulenceModel.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -88,29 +87,20 @@ protected:
         //- Model coefficients dictionary
         dictionary coeffDict_;
 
-        //- Value of y+ at the edge of the laminar sublayer
-        scalar yPlusLam_;
-
         //- Lower limit of k
-        dimensionedScalar k0_;
+        dimensionedScalar kMin_;
 
         //- Lower limit of epsilon
-        dimensionedScalar epsilon0_;
-
-        //- Small epsilon value used to avoid divide by zero
-        dimensionedScalar epsilonSmall_;
+        dimensionedScalar epsilonMin_;
 
         //- Lower limit for omega
-        dimensionedScalar omega0_;
-
-        //- Small omega value used to avoid divide by zero
-        dimensionedScalar omegaSmall_;
+        dimensionedScalar omegaMin_;
 
         //- Near wall distance boundary field
         nearWallDist y_;
 
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Print model coefficients
         virtual void printCoeffs();
@@ -144,9 +134,10 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel
+                const basicThermo& thermoPhysicalModel,
+                const word& turbulenceModelName
             ),
-            (rho, U, phi, thermoPhysicalModel)
+            (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
         );
 
 
@@ -159,19 +150,21 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
     // Selectors
 
-        //- Return a reference to the selected turbulence model
+        //- Return a reference to the selected RAS model
         static autoPtr<RASModel> New
         (
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName
         );
 
 
@@ -184,68 +177,40 @@ public:
 
         // Access
 
-            //- Return the value of k0 which k is not allowed to be less than
-            const dimensionedScalar& k0() const
+            //- Return the lower allowable limit for k (default: SMALL)
+            const dimensionedScalar& kMin() const
             {
-                return k0_;
+                return kMin_;
             }
 
-            //- Return the value of epsilon0 which epsilon is not allowed to be
-            //  less than
-            const dimensionedScalar& epsilon0() const
+            //- Return the lower allowable limit for epsilon (default: SMALL)
+            const dimensionedScalar& epsilonMin() const
             {
-                return epsilon0_;
+                return epsilonMin_;
             }
 
-            //- Return the value of epsilonSmall which is added to epsilon when
-            //  calculating nut
-            const dimensionedScalar& epsilonSmall() const
+            //- Return the lower allowable limit for omega (default: SMALL)
+            const dimensionedScalar& omegaMin() const
             {
-                return epsilonSmall_;
+                return omegaMin_;
             }
 
-            //- Return the value of omega0 which epsilon is not allowed to be
-            //  less than
-            const dimensionedScalar& omega0() const
+            //- Allow kMin to be changed
+            dimensionedScalar& kMin()
             {
-                return omega0_;
+                return kMin_;
             }
 
-            //- Return the value of omegaSmall which is added to epsilon when
-            //  calculating nut
-            const dimensionedScalar& omegaSmall() const
+            //- Allow epsilonMin to be changed
+            dimensionedScalar& epsilonMin()
             {
-                return omegaSmall_;
+                return epsilonMin_;
             }
 
-            //- Allow k0 to be changed
-            dimensionedScalar& k0()
+            //- Allow omegaMin to be changed
+            dimensionedScalar& omegaMin()
             {
-                return k0_;
-            }
-
-            //- Allow epsilon0 to be changed
-            dimensionedScalar& epsilon0()
-            {
-                return epsilon0_;
-            }
-
-            //- Allow epsilonSmall to be changed
-            dimensionedScalar& epsilonSmall()
-            {
-                return epsilonSmall_;
-            }
-
-            //- Allow omega0 to be changed
-            dimensionedScalar& omega0()
-            {
-                return omega0_;
-            }
-
-            //- Allow omegaSmall to be changed
-            dimensionedScalar& omegaSmall()
-            {
-                return omegaSmall_;
+                return omegaMin_;
             }
 
             //- Return the near wall distances
@@ -264,9 +229,6 @@ public:
             }
 
 
-        //- Return the turbulence viscosity
-        virtual tmp<volScalarField> mut() const = 0;
-
         //- Return the effective viscosity
         virtual tmp<volScalarField> muEff() const
         {
@@ -277,22 +239,21 @@ public:
         }
 
         //- Return the effective turbulent thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const = 0;
+        virtual tmp<volScalarField> alphaEff() const
+        {
+            return tmp<volScalarField>
+            (
+                new volScalarField("alphaEff", alphat() + alpha())
+            );
+        }
 
-        //- Return the turbulence kinetic energy
-        virtual tmp<volScalarField> k() const = 0;
-
-        //- Return the turbulence kinetic energy dissipation rate
-        virtual tmp<volScalarField> epsilon() const = 0;
-
-        //- Return the Reynolds stress tensor
-        virtual tmp<volSymmTensorField> R() const = 0;
-
-        //- Return the effective stress tensor including the laminar stress
-        virtual tmp<volSymmTensorField> devRhoReff() const = 0;
-
-        //- Return the source term for the momentum equation
-        virtual tmp<fvVectorMatrix> divDevRhoReff(volVectorField& U) const = 0;
+        //- Return the effective turbulent thermal diffusivity for a patch
+        virtual tmp<scalarField> alphaEff(const label patchI) const
+        {
+            return
+                alphat()().boundaryField()[patchI]
+              + alpha().boundaryField()[patchI];
+        }
 
         //- Return yPlus for the given patch
         virtual tmp<scalarField> yPlus
@@ -302,10 +263,10 @@ public:
         ) const;
 
         //- Solve the turbulence equations and correct the turbulence viscosity
-        virtual void correct() = 0;
+        virtual void correct();
 
         //- Read RASProperties dictionary
-        virtual bool read() = 0;
+        virtual bool read();
 };
 
 

@@ -25,8 +25,26 @@ Class
     Foam::surfaceInterpolateFields
 
 Description
-    Reads fields from the time folders and adds them to the mesh database
-    for further post-processing.
+    Linear interpolates volFields to surfaceFields
+
+    - at write it writes the fields
+    - it executes every time step
+
+    so it can either be used to calculate and write the interpolate or
+    (since the interpolates are registered) use some other functionObject
+    to work on them.
+
+    sampleSomeFields
+    {
+        type            surfaceInterpolateFields;
+        ..
+        enabled         true;
+        outputControl   outputTime;
+        ..
+        // Name of volField and corresponding surfaceField
+        fields          ((p pInterpolate)(U UInterpolate));
+    }
+
 
 SourceFiles
     surfaceInterpolateFields.C
@@ -38,7 +56,6 @@ SourceFiles
 #define surfaceInterpolateFields_H
 
 #include "OFstream.H"
-//#include "pointFieldFwd.H"
 #include "surfaceFields.H"
 #include "Tuple2.H"
 

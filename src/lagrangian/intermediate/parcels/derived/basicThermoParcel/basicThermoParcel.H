@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Class
     Foam::basicThermoParcel
 
 Description
-
+    Definition of basic thermo parcel
 
 SourceFiles
     basicThermoParcel.C
@@ -35,88 +35,23 @@ SourceFiles
 #ifndef basicThermoParcel_H
 #define basicThermoParcel_H
 
+#include "contiguous.H"
+#include "particle.H"
+#include "KinematicParcel.H"
 #include "ThermoParcel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    typedef ThermoParcel<KinematicParcel<particle> > basicThermoParcel;
 
-/*---------------------------------------------------------------------------*\
-                      Class basicThermoParcel Declaration
-\*---------------------------------------------------------------------------*/
-
-class basicThermoParcel
-:
-    public ThermoParcel<basicThermoParcel>
-{
-
-public:
-
-    //- Runtime type information
-    TypeName("basicThermoParcel");
-
-    // Constructors
-
-       //- Construct from owner, position, and cloud owner
-       //  Other properties initialised as null
-       basicThermoParcel
-       (
-            ThermoCloud<basicThermoParcel>& owner,
-            const vector position,
-            const label cellI
-       );
-
-       //- Construct from components
-       basicThermoParcel
-       (
-            ThermoCloud<basicThermoParcel>& owner,
-            const vector position,
-            const label cellI,
-            const label typeId,
-            const scalar nParticle0,
-            const scalar d0,
-            const vector U0,
-            const constantProperties& constProps
-        );
-
-        //- Construct from Istream
-        basicThermoParcel
-        (
-            const Cloud<basicThermoParcel>& c,
-            Istream& is,
-            bool readFields = true
-        );
-
-        //- Construct as a copy
-        basicThermoParcel(const basicThermoParcel& p);
-
-        //- Construct and return a clone
-        autoPtr<basicThermoParcel> clone() const
-        {
-            return
-                autoPtr<basicThermoParcel>
-                (
-                    new basicThermoParcel(*this)
-                );
-        }
-
-
-    //- Destructor
-    virtual ~basicThermoParcel();
-};
-
-
-template<>
-inline bool contiguous<basicThermoParcel>()
-{
-    return true;
+    template<>
+    inline bool contiguous<basicThermoParcel>()
+    {
+        return true;
+    }
 }
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

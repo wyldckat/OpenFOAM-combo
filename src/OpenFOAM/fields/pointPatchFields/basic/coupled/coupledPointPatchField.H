@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -120,11 +120,19 @@ public:
             ) = 0;
 
             //- Initialise swap of patch point values
-            virtual void initSwapAdd(Field<Type>&) const
+            virtual void initSwapAddSeparated
+            (
+                const Pstream::commsTypes,
+                Field<Type>&
+            ) const
             {}
 
             //- Complete swap of patch point values and add to local values
-            virtual void swapAdd(Field<Type>&) const = 0;
+            virtual void swapAddSeparated
+            (
+                const Pstream::commsTypes,
+                Field<Type>&
+            ) const = 0;
 };
 
 

@@ -1,8 +1,8 @@
-#------------------------------------------------------------------------------
+#-------------------------------*- makefile -*---------------------------------
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 1991-2009 OpenCFD Ltd.
+#   \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -21,11 +21,11 @@
 #     You should have received a copy of the GNU General Public License
 #     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Script
+# File
 #     MakefileApps
 #
 # Description
-#     Makefile used by 
+#     Makefile used by
 #         wmake all
 #     to make the applications in the subdirectories of the current directory
 #

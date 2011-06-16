@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -71,7 +71,7 @@ TemplateName(FaceCellWave);
                            Class FaceCellWave Declaration
 \*---------------------------------------------------------------------------*/
 
-template <class Type>
+template<class Type, class TrackingData = int>
 class FaceCellWave
 :
     public FaceCellWaveName
@@ -86,6 +86,9 @@ class FaceCellWave
 
         //- Information for all cells
         UList<Type>& allCellInfo_;
+
+        //- Additional data to be passed into container
+        TrackingData& td_;
 
         //- Has face changed
         boolList changedFace_;
@@ -110,30 +113,6 @@ class FaceCellWave
         //- Number of unvisited cells/faces
         label nUnvisitedCells_;
         label nUnvisitedFaces_;
-
-        //- Iteration counter
-        label iter_;
-
-
-    // Static Functions
-
-        //- Write faces info
-        static Ostream& writeFaces
-        (
-            const label nFaces,
-            const labelList& faceLabels,
-            const List<Type>& faceInfo,
-            Ostream& os
-        );
-
-        //- Read faces info
-        static Istream& readFaces
-        (
-            label& nFaces,
-            labelList& faceLabels,
-            List<Type>& faceInfo,
-            Istream& is
-        );
 
 
     // Private Member Functions
@@ -192,8 +171,7 @@ class FaceCellWave
                 const polyPatch& patch,
                 const label nFaces,
                 const labelList&,
-                const List<Type>&,
-                const bool isParallel
+                const List<Type>&
             );
 
             //- Extract info for single patch only
@@ -222,23 +200,6 @@ class FaceCellWave
                 const label nFaces,
                 const labelList& faceLabels,
                 List<Type>& faceInfo
-            ) const;
-
-            //- Send info to neighbour
-            void sendPatchInfo
-            (
-                const label neighbour,
-                const label nFaces,
-                const labelList&,
-                const List<Type>&
-            ) const;
-
-            //- Receive info from neighbour. Returns number of faces received.
-            label receivePatchInfo
-            (
-                const label neighbour,
-                labelList&,
-                List<Type>&
             ) const;
 
             //- Offset face labels by constant value
@@ -270,6 +231,11 @@ class FaceCellWave
             static const scalar geomTol_;
             static scalar propagationTol_;
 
+            //- Used as default trackdata value to satisfy default template
+            //  argument.
+            static label dummyTrackData_;
+
+
 public:
 
     // Static Functions
@@ -295,7 +261,8 @@ public:
         (
             const polyMesh&,
             UList<Type>& allFaceInfo,
-            UList<Type>& allCellInfo
+            UList<Type>& allCellInfo,
+            TrackingData& td = dummyTrackData_
         );
 
         //- Construct from mesh and list of changed faces with the Type
@@ -308,7 +275,8 @@ public:
             const List<Type>& changedFacesInfo,
             UList<Type>& allFaceInfo,
             UList<Type>& allCellInfo,
-            const label maxIter
+            const label maxIter,
+            TrackingData& td = dummyTrackData_
         );
 
 
@@ -326,6 +294,12 @@ public:
             UList<Type>& allCellInfo()
             {
                 return allCellInfo_;
+            }
+
+            //- Additional data to be passed into container
+            const TrackingData& data() const
+            {
+                return td_;
             }
 
             //- Access mesh
@@ -363,8 +337,8 @@ public:
             //  counted double)
             label cellToFace();
 
-            //- Iterate until no changes or maxIter reached. Returns number of
-            //  unset cells (see getUnsetCells)
+            //- Iterate until no changes or maxIter reached.  Returns actual
+            //  number of iterations.
             label iterate(const label maxIter);
 
 };

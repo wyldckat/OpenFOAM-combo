@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,14 +26,10 @@ License
 #include "ignition.H"
 #include "fvMesh.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool ignition::igniting() const
+bool Foam::ignition::igniting() const
 {
     if (!ignite())
     {
@@ -54,7 +50,7 @@ bool ignition::igniting() const
 }
 
 
-bool ignition::ignited() const
+bool Foam::ignition::ignited() const
 {
     if (!ignite())
     {
@@ -74,9 +70,5 @@ bool ignition::ignited() const
     return igned;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

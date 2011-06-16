@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,7 +51,12 @@ class extendedCentredCellToFaceStencil;
 template<class Polynomial>
 class CentredFitData
 :
-    public FitData<CentredFitData<Polynomial>, extendedCentredCellToFaceStencil, Polynomial>
+    public FitData
+    <
+        CentredFitData<Polynomial>,
+        extendedCentredCellToFaceStencil,
+        Polynomial
+    >
 {
     // Private data
 
@@ -60,7 +65,7 @@ class CentredFitData
         List<scalarList> coeffs_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Calculate the fit for the all the mesh faces
         //  and set the coefficients

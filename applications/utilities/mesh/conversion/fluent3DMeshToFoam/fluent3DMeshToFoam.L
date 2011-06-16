@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,6 +36,7 @@ Description
    ------ local definitions
  \* ------------------------------------------------------------------------ */
 
+#include "cyclicPolyPatch.H"
 #include "argList.H"
 #include "Time.H"
 #include "polyMesh.H"
@@ -43,7 +44,7 @@ Description
 #include "polyMeshZipUpCells.H"
 #include "wallPolyPatch.H"
 #include "symmetryPolyPatch.H"
-#include "cyclicPolyPatch.H"
+#include "oldCyclicPolyPatch.H"
 #include "Swap.H"
 #include "IFstream.H"
 #include "readHexLabel.H"
@@ -323,7 +324,7 @@ endOfSection               {space}")"{space}
         // point group type skipped
         (void)strtol(endPtr, &endPtr, 16);
 
-        pointi = pointGroupStartIndex[pointGroupStartIndex.size()-1];
+        pointi = pointGroupStartIndex.last();
 
         // reset number of components to default
         pointGroupNumberOfComponents = 3;
@@ -335,11 +336,11 @@ endOfSection               {space}")"{space}
         }
 
         Info<< "PointGroup: "
-            << pointGroupZoneID[pointGroupZoneID.size()-1]
+            << pointGroupZoneID.last()
             << " start: "
-            << pointGroupStartIndex[pointGroupStartIndex.size()-1]
+            << pointGroupStartIndex.last()
             << " end: "
-            << pointGroupEndIndex[pointGroupEndIndex.size()-1] << flush;
+            << pointGroupEndIndex.last() << flush;
     }
 
 <readNumberOfPoints,readPointGroupData>{endOfSection} {
@@ -386,14 +387,14 @@ endOfSection               {space}")"{space}
         Info<< "done." << endl;
 
         // check read of points
-        if (pointi != pointGroupEndIndex[pointGroupEndIndex.size()-1]+1)
+        if (pointi != pointGroupEndIndex.last()+1)
         {
             Warning
                 << "Problem with reading points: " << nl
                 << "    start index: "
-                << pointGroupStartIndex[pointGroupStartIndex.size()-1]
+                << pointGroupStartIndex.last()
                 << " end index: "
-                << pointGroupEndIndex[pointGroupEndIndex.size()-1]
+                << pointGroupEndIndex.last()
                 << " last points read: " << pointi << nl
                 << "    on line " << lineNo << endl;
         }
@@ -439,14 +440,14 @@ endOfSection               {space}")"{space}
 
         faceGroupElementType = strtol(endPtr, &endPtr, 16);
 
-        facei = faceGroupStartIndex[faceGroupStartIndex.size()-1];
+        facei = faceGroupStartIndex.last();
 
         Info<< "FaceGroup: "
-            << faceGroupZoneID[faceGroupZoneID.size()-1]
+            << faceGroupZoneID.last()
             << " start: "
-            << faceGroupStartIndex[faceGroupStartIndex.size()-1]
+            << faceGroupStartIndex.last()
             << " end: "
-            << faceGroupEndIndex[faceGroupEndIndex.size()-1] << flush;
+            << faceGroupEndIndex.last() << flush;
     }
 
 <readNumberOfFaces,readFaceGroupData>{space}{endOfSection} {
@@ -472,7 +473,7 @@ endOfSection               {space}")"{space}
         // set size of label list
         curFaceLabels.setSize(strtol(YYText(), &endPtr, 16));
 
-        forAll (curFaceLabels, i)
+        forAll(curFaceLabels, i)
         {
             curFaceLabels[i] = strtol(endPtr, &endPtr, 16) - 1;
         }
@@ -506,14 +507,14 @@ endOfSection               {space}")"{space}
         Info<< "done." << endl;
 
         // check read of fluentFaces
-        if (facei != faceGroupEndIndex[faceGroupEndIndex.size()-1]+1)
+        if (facei != faceGroupEndIndex.last()+1)
         {
             Warning
                 << "Problem with reading fluentFaces: " << nl
                 << "    start index: "
-                << faceGroupStartIndex[faceGroupStartIndex.size()-1]
+                << faceGroupStartIndex.last()
                 << " end index: "
-                << faceGroupEndIndex[faceGroupEndIndex.size()-1]
+                << faceGroupEndIndex.last()
                 << " last fluentFaces read: " << facei << nl
                 << "    on line " << lineNo << endl;
         }
@@ -559,13 +560,13 @@ endOfSection               {space}")"{space}
         cellGroupType.append(strtol(endPtr, &endPtr, 16));
 
         Info<< "CellGroup: "
-            << cellGroupZoneID[cellGroupZoneID.size()-1]
+            << cellGroupZoneID.last()
             << " start: "
-            << cellGroupStartIndex[cellGroupStartIndex.size()-1]
+            << cellGroupStartIndex.last()
             << " end: "
-            << cellGroupEndIndex[cellGroupEndIndex.size()-1]
+            << cellGroupEndIndex.last()
             << " type: "
-            << cellGroupType[cellGroupType.size()-1]
+            << cellGroupType.last()
             << endl;
     }
 
@@ -586,13 +587,13 @@ endOfSection               {space}")"{space}
         (void)strtol(endPtr, &endPtr, 16);
 
         Info<< "CellGroup: "
-            << cellGroupZoneID[cellGroupZoneID.size()-1]
+            << cellGroupZoneID.last()
             << " start: "
-            << cellGroupStartIndex[cellGroupStartIndex.size()-1]
+            << cellGroupStartIndex.last()
             << " end: "
-            << cellGroupEndIndex[cellGroupEndIndex.size()-1]
+            << cellGroupEndIndex.last()
             << " type: "
-            << cellGroupType[cellGroupType.size()-1]
+            << cellGroupType.last()
             << endl;
     }
 
@@ -761,10 +762,30 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append("Fluent mesh file");
-    argList::validOptions.insert("scale", "scale factor");
-    argList::validOptions.insert("ignoreCellGroups", "cell group names");
-    argList::validOptions.insert("ignoreFaceGroups", "face group names");
-    argList::validOptions.insert("cubit", "");
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1"
+    );
+    argList::addOption
+    (
+        "ignoreCellGroups",
+        "names",
+        "specify cell groups to ignore"
+    );
+    argList::addOption
+    (
+        "ignoreFaceGroups",
+        "names",
+        "specify face groups to ignore"
+    );
+
+    argList::addBoolOption
+    (
+        "cubit",
+        "special parsing of (incorrect) cubit files"
+    );
 
     argList args(argc, argv);
 
@@ -775,17 +796,11 @@ int main(int argc, char *argv[])
 
     args.optionReadIfPresent("scale", scaleFactor);
 
-    HashSet<word> ignoreCellGroups;
-    if (args.optionFound("ignoreCellGroups"))
-    {
-        args.optionLookup("ignoreCellGroups")() >> ignoreCellGroups;
-    }
+    wordHashSet ignoreCellGroups;
+    wordHashSet ignoreFaceGroups;
 
-    HashSet<word> ignoreFaceGroups;
-    if (args.optionFound("ignoreFaceGroups"))
-    {
-        args.optionLookup("ignoreFaceGroups")() >> ignoreFaceGroups;
-    }
+    args.optionReadIfPresent("ignoreCellGroups", ignoreCellGroups);
+    args.optionReadIfPresent("ignoreFaceGroups", ignoreFaceGroups);
 
     cubitFile = args.options().found("cubit");
 
@@ -800,7 +815,7 @@ int main(int argc, char *argv[])
 
 #   include "createTime.H"
 
-    fileName fluentFile(args.additionalArgs()[0]);
+    const fileName fluentFile = args[1];
     IFstream fluentStream(fluentFile);
 
     if (!fluentStream)
@@ -812,7 +827,7 @@ int main(int argc, char *argv[])
 
     yyFlexLexer lexer(&fluentStream.stdStream());
 
-    while(lexer.yylex() != 0)
+    while (lexer.yylex() != 0)
     {}
 
     Info<< "\nFINISHED LEXING\n\n";
@@ -842,7 +857,7 @@ int main(int argc, char *argv[])
     // faces and move to neighbour
 
     boolList fm(faces.size(), false);
-    forAll (faces, facei)
+    forAll(faces, facei)
     {
         if
         (
@@ -853,7 +868,7 @@ int main(int argc, char *argv[])
             fm[facei] = true;
             if (!cubitFile)
             {
-                faces[facei] = faces[facei].reverseFace();
+                faces[facei].flip();
             }
             Swap(owner[facei], neighbour[facei]);
         }
@@ -886,9 +901,16 @@ int main(int argc, char *argv[])
     fluentToFoamType.insert("interface", polyPatch::typeName);
     fluentToFoamType.insert("internal", polyPatch::typeName);
     fluentToFoamType.insert("solid", polyPatch::typeName);
-    fluentToFoamType.insert("fan", cyclicPolyPatch::typeName);
+    fluentToFoamType.insert("fan", oldCyclicPolyPatch::typeName);
     fluentToFoamType.insert("radiator", polyPatch::typeName);
     fluentToFoamType.insert("porous-jump", polyPatch::typeName);
+
+    //- Periodic halves map directly into split cyclics. The problem is the
+    //  initial matching since we require knowledge of the transformation.
+    //  It is ok if the periodics are already ordered. We should read the
+    //  periodic shadow faces section (section 18) to give use the ordering
+    //  For now just disable.
+    //fluentToFoamType.insert("periodic", cyclicPolyPatch::typeName);
 
 
     // Foam patch type for Fluent zone type
@@ -972,7 +994,7 @@ int main(int argc, char *argv[])
 
             // Set the owner of these faces to -1 so that they do not get
             // added to the mesh
-            for(label facei = start; facei <= end; facei++)
+            for (label facei = start; facei <= end; facei++)
             {
                 owner[facei] = -1;
             }
@@ -1025,15 +1047,59 @@ int main(int argc, char *argv[])
 
         if (iter != fluentToFoamType.end())
         {
-            newPatches[patchi] = polyPatch::New
-            (
-                iter(),
-                name,
-                0,
-                0,
-                patchi,
-                mesh.boundaryMesh()
-            ).ptr();
+            // See if we have a periodic and can derive the other side.
+            word neighbPatchName;
+            if (iter() == cyclicPolyPatch::typeName)
+            {
+                // Periodic
+                size_t n = name.rfind("-SIDE-1");
+
+                if (n != string::npos)
+                {
+                    neighbPatchName = name.substr(0, n) + "-SIDE-2";
+                }
+                else
+                {
+                    n = name.rfind("-SIDE-2");
+                    if (n != string::npos)
+                    {
+                        neighbPatchName = name.substr(0, n) + "-SIDE-1";
+                    }
+                }
+            }
+
+            if (neighbPatchName.size())
+            {
+                Info<< "Adding cyclicPolyPatch for Fluent zone " << name
+                    << " with neighbour patch " << neighbPatchName
+                    << endl;
+
+                newPatches[patchi] = new cyclicPolyPatch
+                (
+                    name,
+                    0,
+                    0,
+                    patchi,
+                    mesh.boundaryMesh(),
+                    neighbPatchName,
+                    cyclicPolyPatch::NOORDERING,
+                    vector::zero,
+                    vector::zero,
+                    vector::zero
+                );
+            }
+            else
+            {
+                newPatches[patchi] = polyPatch::New
+                (
+                    iter(),
+                    name,
+                    0,
+                    0,
+                    patchi,
+                    mesh.boundaryMesh()
+                ).ptr();
+            }
         }
         else
         {
@@ -1355,7 +1421,7 @@ int main(int argc, char *argv[])
     mesh.write();
 
 
-    Info<< nl << "End" << endl;
+    Info<< "\nEnd\n" << endl;
     return 0;
 }
 

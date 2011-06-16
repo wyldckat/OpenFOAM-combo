@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,36 +23,32 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "error.H"
-
 #include "ORourkeCollisionModel.H"
 #include "addToRunTimeSelectionTable.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
+#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(ORourkeCollisionModel, 0);
+namespace Foam
+{
+    defineTypeNameAndDebug(ORourkeCollisionModel, 0);
 
-addToRunTimeSelectionTable
-(
-    collisionModel,
-    ORourkeCollisionModel,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        collisionModel,
+        ORourkeCollisionModel,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-ORourkeCollisionModel::ORourkeCollisionModel
+Foam::ORourkeCollisionModel::ORourkeCollisionModel
 (
     const dictionary& dict,
     spray& sm,
-    Random& rndGen
+    cachedRandom& rndGen
 )
 :
     collisionModel(dict, sm, rndGen),
@@ -64,15 +60,14 @@ ORourkeCollisionModel::ORourkeCollisionModel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-ORourkeCollisionModel::~ORourkeCollisionModel()
+Foam::ORourkeCollisionModel::~ORourkeCollisionModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void ORourkeCollisionModel::collideParcels(const scalar dt) const
+void Foam::ORourkeCollisionModel::collideParcels(const scalar dt) const
 {
-
     if (spray_.size() < 2)
     {
         return;
@@ -95,43 +90,37 @@ void ORourkeCollisionModel::collideParcels(const scalar dt) const
             // No collision if parcels are not in the same cell
             if (cell1 == cell2)
             {
-#               include "sameCell.H"
-            } // if - parcels in same cell
+                #include "sameCell.H"
+            }
 
             // remove coalesced droplet
-            if (p2().m() < VSMALL) 
+            if (p2().m() < VSMALL)
             {
                 spray::iterator tmpElmnt = p2;
                 ++tmpElmnt;
                 spray_.deleteParticle(p2());
                 p2 = tmpElmnt;
             }
-            else 
+            else
             {
                 ++p2;
             }
-
-        } // inner loop
+        }
 
         // remove coalesced droplet
-        if (p1().m() < VSMALL) 
+        if (p1().m() < VSMALL)
         {
             spray::iterator tmpElmnt = p1;
             ++tmpElmnt;
             spray_.deleteParticle(p1());
             p1 = tmpElmnt;
         }
-        else 
+        else
         {
             ++p1;
         }
-    } // outer loop
+    }
+}
 
-} // end
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

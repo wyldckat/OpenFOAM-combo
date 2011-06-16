@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,12 +30,13 @@ Description
 
     The default model coefficients correspond to the following:
     @verbatim
-        kEpsilonCoeffs
+        PDRkEpsilonCoeffs
         {
             Cmu         0.09;
             C1          1.44;
             C2          1.92;
             C3          -0.33;  // only for compressible
+            C4          0.1;
             sigmak      1.0;    // only for compressible
             sigmaEps    1.3;
             Prt         1.0;    // only for compressible
@@ -53,14 +54,14 @@ Description
 
 SourceFiles
     PDRkEpsilon.C
-    PDRkEpsilonCorrect.C
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef compressiblePDRkEpsilon_H
 #define compressiblePDRkEpsilon_H
 
-#include "RASModel.H"
+
+#include "kEpsilon.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -77,25 +78,12 @@ namespace RASModels
 
 class PDRkEpsilon
 :
-    public RASModel
+    public kEpsilon
 {
     // Private data
 
-    // Model coefficients
-
-        dimensionedScalar Cmu_;
-        dimensionedScalar C1_;
-        dimensionedScalar C2_;
-        dimensionedScalar sigmak_;
-        dimensionedScalar sigmaEps_;
-        dimensionedScalar Prt_;
-
-    // Fields
-
-        volScalarField k_;
-        volScalarField epsilon_;
-        volScalarField mut_;
-        volScalarField alphat_;
+        // Model coefficients
+        dimensionedScalar C4_;
 
 
 public:
@@ -112,69 +100,17 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
     //- Destructor
-    virtual ~PDRkEpsilon()
-    {}
+    virtual ~PDRkEpsilon();
 
 
     // Member Functions
-
-        tmp<volScalarField> mut() const
-        {
-            return mut_;
-        }
-
-        //- Return the effective diffusivity for k
-        tmp<volScalarField> DkEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("DkEff", mut_/sigmak_ + mu())
-            );
-        }
-
-        //- Return the effective diffusivity for epsilon
-        tmp<volScalarField> DepsilonEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("DepsilonEff", mut_/sigmaEps_ + mu())
-            );
-        }
-
-        //- Return the effective turbulent thermal diffusivity
-        tmp<volScalarField> alphaEff() const
-        {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat_ + alpha())
-            );
-        }
-
-        //- Return the turbulence kinetic energy
-        tmp<volScalarField> k() const
-        {
-            return k_;
-        }
-
-        //- Return the turbulence kinetic energy dissipation rate
-        tmp<volScalarField> epsilon() const
-        {
-            return epsilon_;
-        }
-
-        //- Return the Reynolds stress tensor
-        tmp<volSymmTensorField> R() const;
-
-        //- Return the effective stress tensor including the laminar stress
-        tmp<volSymmTensorField> devRhoReff() const;
-
-        //- Return the source term for the momentum equation
-        tmp<fvVectorMatrix> divDevRhoReff(volVectorField& U) const;
 
         //- Solve the turbulence equations and correct the turbulence viscosity
         void correct();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,9 +31,9 @@ Description
       to obtain zone names.
     - Handles Nastran short and long formats, but not free format.
     - Properly handles the Nastran compact floating point notation: \n
-    @verbatim
+    \verbatim
         GRID          28        10.20269-.030265-2.358-8
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     NASsurfaceFormat.C
@@ -46,7 +46,7 @@ SourceFiles
 #include "MeshedSurface.H"
 #include "MeshedSurfaceProxy.H"
 #include "UnsortedMeshedSurface.H"
-#include "NASsurfaceFormatCore.H"
+#include "NASCore.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,7 +63,7 @@ template<class Face>
 class NASsurfaceFormat
 :
     public MeshedSurface<Face>,
-    public NASsurfaceFormatCore
+    public NASCore
 {
     // Private Member Functions
 
@@ -94,10 +94,9 @@ public:
         }
 
 
-    // Destructor
-
-        virtual ~NASsurfaceFormat()
-        {}
+    //- Destructor
+    virtual ~NASsurfaceFormat()
+    {}
 
 
     // Member Functions

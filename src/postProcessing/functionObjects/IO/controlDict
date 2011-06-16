@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -10,14 +10,9 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "system";
     object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// So we get a decent warning if we have multiple functionObject entries
-// with the same name.
-#inputMode error;
 
 application     icoFoam;
 
@@ -61,16 +56,11 @@ functions
         // Where to load it from
         functionObjectLibs ("libIOFunctionObjects.so");
 
-        // Optional mesh region to operate on. Only one partialWrite per
-        // region allowed.
-        region wallFilmRegion;
-
         // Execute upon outputTime
         outputControl   outputTime;
 
-        // Objects (fields or lagrangian fields in any of the clouds)
-        // to write every outputTime
-        objectNames    (p positions nParticle);
+        // Objects to write every outputTime
+        objectNames    (p);
         // Write as normal every writeInterval'th outputTime.
         writeInterval   3;
     }

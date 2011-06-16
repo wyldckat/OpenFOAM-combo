@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -73,7 +73,7 @@ bool Foam::ensightFile::allowUndef(bool value)
 }
 
 
-Foam::scalar Foam::ensightFile::undefValue(const scalar& value)
+Foam::scalar Foam::ensightFile::undefValue(const scalar value)
 {
     // enable its use too
     allowUndef_ = true;
@@ -90,7 +90,7 @@ Foam::Ostream& Foam::ensightFile::write
     std::streamsize count
 )
 {
-    stream().write(buf, count);
+    stdStream().write(buf, count);
     return *this;
 }
 
@@ -125,14 +125,14 @@ Foam::Ostream& Foam::ensightFile::write(const string& value)
     }
     else
     {
-        stream() << buf;
+        stdStream() << buf;
     }
 
     return *this;
 }
 
 
-Foam::Ostream& Foam::ensightFile::write(const label& value)
+Foam::Ostream& Foam::ensightFile::write(const label value)
 {
     if (format() == IOstream::BINARY)
     {
@@ -146,8 +146,8 @@ Foam::Ostream& Foam::ensightFile::write(const label& value)
     }
     else
     {
-        stream().width(10);
-        stream() << value;
+        stdStream().width(10);
+        stdStream() << value;
     }
 
     return *this;
@@ -156,7 +156,7 @@ Foam::Ostream& Foam::ensightFile::write(const label& value)
 
 Foam::Ostream& Foam::ensightFile::write
 (
-    const label& value,
+    const label value,
     const label fieldWidth
 )
 {
@@ -172,15 +172,15 @@ Foam::Ostream& Foam::ensightFile::write
     }
     else
     {
-        stream().width(fieldWidth);
-        stream() << value;
+        stdStream().width(fieldWidth);
+        stdStream() << value;
     }
 
     return *this;
 }
 
 
-Foam::Ostream& Foam::ensightFile::write(const scalar& value)
+Foam::Ostream& Foam::ensightFile::write(const scalar value)
 {
     if (format() == IOstream::BINARY)
     {
@@ -194,8 +194,8 @@ Foam::Ostream& Foam::ensightFile::write(const scalar& value)
     }
     else
     {
-        stream().width(12);
-        stream() << value;
+        stdStream().width(12);
+        stdStream() << value;
     }
 
     return *this;
@@ -206,7 +206,7 @@ void Foam::ensightFile::newline()
 {
     if (format() == IOstream::ASCII)
     {
-        stream() << nl;
+        stdStream() << nl;
     }
 }
 

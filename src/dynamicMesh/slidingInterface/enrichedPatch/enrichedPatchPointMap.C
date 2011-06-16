@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -49,7 +47,7 @@ void Foam::enrichedPatch::completePointMap() const
     const labelList& masterMeshPoints = masterPatch_.meshPoints();
     const pointField& masterLocalPoints = masterPatch_.localPoints();
 
-    forAll (masterMeshPoints, pointI)
+    forAll(masterMeshPoints, pointI)
     {
         if (!pmm.found(masterMeshPoints[pointI]))
         {
@@ -65,7 +63,7 @@ void Foam::enrichedPatch::completePointMap() const
     const labelList& slaveMeshPoints = slavePatch_.meshPoints();
     const pointField& slaveLocalPoints = slavePatch_.localPoints();
 
-    forAll (slaveMeshPoints, pointI)
+    forAll(slaveMeshPoints, pointI)
     {
         if (!pmm.found(slaveMeshPoints[pointI]))
         {

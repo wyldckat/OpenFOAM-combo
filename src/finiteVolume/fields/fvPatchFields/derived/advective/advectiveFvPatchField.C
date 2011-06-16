@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,15 +31,11 @@ License
 #include "CrankNicholsonDdtScheme.H"
 #include "backwardDdtScheme.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class Type>
-advectiveFvPatchField<Type>::advectiveFvPatchField
+Foam::advectiveFvPatchField<Type>::advectiveFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF
@@ -58,7 +54,7 @@ advectiveFvPatchField<Type>::advectiveFvPatchField
 
 
 template<class Type>
-advectiveFvPatchField<Type>::advectiveFvPatchField
+Foam::advectiveFvPatchField<Type>::advectiveFvPatchField
 (
     const advectiveFvPatchField& ptf,
     const fvPatch& p,
@@ -75,7 +71,7 @@ advectiveFvPatchField<Type>::advectiveFvPatchField
 
 
 template<class Type>
-advectiveFvPatchField<Type>::advectiveFvPatchField
+Foam::advectiveFvPatchField<Type>::advectiveFvPatchField
 (
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF,
@@ -127,7 +123,7 @@ advectiveFvPatchField<Type>::advectiveFvPatchField
 
 
 template<class Type>
-advectiveFvPatchField<Type>::advectiveFvPatchField
+Foam::advectiveFvPatchField<Type>::advectiveFvPatchField
 (
     const advectiveFvPatchField& ptpsf
 )
@@ -141,7 +137,7 @@ advectiveFvPatchField<Type>::advectiveFvPatchField
 
 
 template<class Type>
-advectiveFvPatchField<Type>::advectiveFvPatchField
+Foam::advectiveFvPatchField<Type>::advectiveFvPatchField
 (
     const advectiveFvPatchField& ptpsf,
     const DimensionedField<Type, volMesh>& iF
@@ -158,26 +154,26 @@ advectiveFvPatchField<Type>::advectiveFvPatchField
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-tmp<scalarField> advectiveFvPatchField<Type>::advectionSpeed() const
+Foam::tmp<Foam::scalarField>
+Foam::advectiveFvPatchField<Type>::advectionSpeed() const
 {
     const surfaceScalarField& phi =
-        this->db().objectRegistry::lookupObject<surfaceScalarField>(phiName_);
+        this->db().objectRegistry::template lookupObject<surfaceScalarField>
+        (phiName_);
 
-    fvsPatchField<scalar> phip = this->patch().lookupPatchField
-    (
-        phiName_,
-        reinterpret_cast<const surfaceScalarField*>(0),
-        reinterpret_cast<const scalar*>(0)
-    );
+    fvsPatchField<scalar> phip =
+        this->patch().template lookupPatchField<surfaceScalarField, scalar>
+        (
+            phiName_
+        );
 
     if (phi.dimensions() == dimDensity*dimVelocity*dimArea)
     {
-        const fvPatchScalarField& rhop = this->patch().lookupPatchField
-        (
-            rhoName_,
-            reinterpret_cast<const volScalarField*>(0),
-            reinterpret_cast<const scalar*>(0)
-        );
+        const fvPatchScalarField& rhop =
+            this->patch().template lookupPatchField<volScalarField, scalar>
+            (
+                rhoName_
+            );
 
         return phip/(rhop*this->patch().magSf());
     }
@@ -189,7 +185,7 @@ tmp<scalarField> advectiveFvPatchField<Type>::advectionSpeed() const
 
 
 template<class Type>
-void advectiveFvPatchField<Type>::updateCoeffs()
+void Foam::advectiveFvPatchField<Type>::updateCoeffs()
 {
     if (this->updated())
     {
@@ -201,10 +197,10 @@ void advectiveFvPatchField<Type>::updateCoeffs()
         this->dimensionedInternalField().mesh()
        .ddtScheme(this->dimensionedInternalField().name())
     );
-    scalar deltaT = this->db().time().deltaT().value();
+    scalar deltaT = this->db().time().deltaTValue();
 
     const GeometricField<Type, fvPatchField, volMesh>& field =
-        this->db().objectRegistry::
+        this->db().objectRegistry::template
         lookupObject<GeometricField<Type, fvPatchField, volMesh> >
         (
             this->dimensionedInternalField().name()
@@ -212,10 +208,10 @@ void advectiveFvPatchField<Type>::updateCoeffs()
 
     // Calculate the advection speed of the field wave
     // If the wave is incoming set the speed to 0.
-    scalarField w = Foam::max(advectionSpeed(), scalar(0));
+    const scalarField w(Foam::max(advectionSpeed(), scalar(0)));
 
     // Calculate the field wave coefficient alpha (See notes)
-    scalarField alpha = w*deltaT*this->patch().deltaCoeffs();
+    const scalarField alpha(w*deltaT*this->patch().deltaCoeffs());
 
     label patchi = this->patch().index();
 
@@ -224,7 +220,7 @@ void advectiveFvPatchField<Type>::updateCoeffs()
     if (lInf_ > SMALL)
     {
         // Calculate the field relaxation coefficient k (See notes)
-        scalarField k = w*deltaT/lInf_;
+        const scalarField k(w*deltaT/lInf_);
 
         if
         (
@@ -304,7 +300,7 @@ void advectiveFvPatchField<Type>::updateCoeffs()
 
 
 template<class Type>
-void advectiveFvPatchField<Type>::write(Ostream& os) const
+void Foam::advectiveFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
 
@@ -328,9 +324,5 @@ void advectiveFvPatchField<Type>::write(Ostream& os) const
     this->writeEntry("value", os);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

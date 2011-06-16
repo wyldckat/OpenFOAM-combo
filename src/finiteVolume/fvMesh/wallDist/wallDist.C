@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,7 +72,7 @@ void Foam::wallDist::correct()
     // Calculate distance starting from wallPatch faces.
     patchWave wave(cellDistFuncs::mesh(), wallPatchIDs, correctWalls_);
 
-    // Transfer cell values from wave into *this 
+    // Transfer cell values from wave into *this
     transfer(wave.distance());
 
     // Transfer values on patches into boundaryField of *this

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,14 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "treeDataPoint.H"
 #include "treeBoundBox.H"
 #include "indexedOctree.H"
-#include "polyMesh.H"
 #include "triangleFuncs.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -38,18 +35,37 @@ defineTypeNameAndDebug(Foam::treeDataPoint, 0);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::treeDataPoint::treeDataPoint(const pointField& points)
 :
-    points_(points)
+    points_(points),
+    useSubset_(false)
+{}
+
+
+Foam::treeDataPoint::treeDataPoint
+(
+    const pointField& points,
+    const labelList& pointLabels
+)
+:
+    points_(points),
+    pointLabels_(pointLabels),
+    useSubset_(true)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::pointField Foam::treeDataPoint::points() const
+Foam::pointField Foam::treeDataPoint::shapePoints() const
 {
-    return points_;
+    if (useSubset_)
+    {
+        return pointField(points_, pointLabels_);
+    }
+    else
+    {
+        return points_;
+    }
 }
 
 
@@ -72,7 +88,8 @@ bool Foam::treeDataPoint::overlaps
     const treeBoundBox& cubeBb
 ) const
 {
-    return cubeBb.contains(points_[index]);
+    label pointI = (useSubset_ ? pointLabels_[index] : index);
+    return cubeBb.contains(points_[pointI]);
 }
 
 
@@ -80,7 +97,7 @@ bool Foam::treeDataPoint::overlaps
 // nearestPoint.
 void Foam::treeDataPoint::findNearest
 (
-    const labelList& indices,
+    const labelUList& indices,
     const point& sample,
 
     scalar& nearestDistSqr,
@@ -90,9 +107,10 @@ void Foam::treeDataPoint::findNearest
 {
     forAll(indices, i)
     {
-        label index = indices[i];
+        const label index = indices[i];
+        label pointI = (useSubset_ ? pointLabels_[index] : index);
 
-        const point& pt = points_[index];
+        const point& pt = points_[pointI];
 
         scalar distSqr = magSqr(pt - sample);
 
@@ -110,7 +128,7 @@ void Foam::treeDataPoint::findNearest
 //  Returns point and distance (squared)
 void Foam::treeDataPoint::findNearest
 (
-    const labelList& indices,
+    const labelUList& indices,
     const linePointRef& ln,
 
     treeBoundBox& tightest,
@@ -124,9 +142,10 @@ void Foam::treeDataPoint::findNearest
 
     forAll(indices, i)
     {
-        label index = indices[i];
+        const label index = indices[i];
+        label pointI = (useSubset_ ? pointLabels_[index] : index);
 
-        const point& shapePt = points_[index];
+        const point& shapePt = points_[pointI];
 
         if (tightest.contains(shapePt))
         {

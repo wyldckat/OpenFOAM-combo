@@ -28,7 +28,7 @@ Description
 
 SourceFiles
     energyScalingFunction.C
-    newEnergyScalingFunction.C
+    energyScalingFunctionNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -47,7 +47,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                   Class energyScalingFunction Declaration
+                    Class energyScalingFunction Declaration
 \*---------------------------------------------------------------------------*/
 
 class energyScalingFunction
@@ -117,10 +117,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~energyScalingFunction()
-        {}
+    //- Destructor
+    virtual ~energyScalingFunction()
+    {}
 
 
     // Member Functions
@@ -133,7 +132,10 @@ public:
         }
 
         //- Read energyScalingFunction dictionary
-        virtual bool read(const dictionary& energyScalingFunctionProperties) = 0;
+        virtual bool read
+        (
+            const dictionary& energyScalingFunctionProperties
+        ) = 0;
 };
 
 

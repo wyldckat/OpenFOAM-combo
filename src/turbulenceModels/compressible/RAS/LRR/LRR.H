@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     compressible flows.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         LRRCoeffs
         {
             Cmu         0.09;
@@ -44,11 +44,10 @@ Description
             sigmaR      0.81967;    // only for compressible
             couplingFactor  0.0;    // only for incompressible
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     LRR.C
-    LRRcorrect.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -74,7 +73,10 @@ class LRR
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -117,7 +119,9 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel
+            const basicThermo& thermophysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -152,13 +156,10 @@ public:
             return mut_;
         }
 
-        //- Return the effective turbulent thermal diffusivity
-        virtual tmp<volScalarField> alphaEff() const
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat_ + alpha())
-            );
+            return alphat_;
         }
 
         //- Return the turbulence kinetic energy

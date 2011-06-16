@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,8 +36,8 @@ void Foam::GAMGAgglomeration::agglomerateLduAddressing
     const lduMesh& fineMesh = meshLevel(fineLevelIndex);
     const lduAddressing& fineMeshAddr = fineMesh.lduAddr();
 
-    const unallocLabelList& upperAddr = fineMeshAddr.upperAddr();
-    const unallocLabelList& lowerAddr = fineMeshAddr.lowerAddr();
+    const labelUList& upperAddr = fineMeshAddr.upperAddr();
+    const labelUList& lowerAddr = fineMeshAddr.lowerAddr();
 
     label nFineFaces = upperAddr.size();
 
@@ -88,7 +88,7 @@ void Foam::GAMGAgglomeration::agglomerateLduAddressing
     label nCoarseFaces = 0;
 
     // Loop through all fine faces
-    forAll (upperAddr, fineFacei)
+    forAll(upperAddr, fineFacei)
     {
         label rmUpperAddr = restrictMap[upperAddr[fineFacei]];
         label rmLowerAddr = restrictMap[lowerAddr[fineFacei]];
@@ -174,7 +174,7 @@ void Foam::GAMGAgglomeration::agglomerateLduAddressing
 
     label coarseFacei = 0;
 
-    forAll (cCellnFaces, cci)
+    forAll(cCellnFaces, cci)
     {
         label* cFaces = &cCellFaces[maxNnbrs*cci];
         label ccnFaces = cCellnFaces[cci];
@@ -223,20 +223,25 @@ void Foam::GAMGAgglomeration::agglomerateLduAddressing
     labelListList coarseInterfaceAddr(fineInterfaces.size());
 
     // Initialise transfer of restrict addressing on the interface
-    forAll (fineInterfaces, inti)
+    forAll(fineInterfaces, inti)
     {
         if (fineInterfaces.set(inti))
         {
             fineInterfaces[inti].initInternalFieldTransfer
             (
-                Pstream::blocking,
+                Pstream::nonBlocking,
                 restrictMap
             );
         }
     }
 
+    if (Pstream::parRun())
+    {
+        Pstream::waitRequests();
+    }
+
     // Add the coarse level
-    forAll (fineInterfaces, inti)
+    forAll(fineInterfaces, inti)
     {
         if (fineInterfaces.set(inti))
         {
@@ -245,16 +250,18 @@ void Foam::GAMGAgglomeration::agglomerateLduAddressing
                 inti,
                 GAMGInterface::New
                 (
+                    inti,
+                    coarseInterfaces,
                     fineInterfaces[inti],
                     fineInterfaces[inti].interfaceInternalField(restrictMap),
                     fineInterfaces[inti].internalFieldTransfer
                     (
-                        Pstream::blocking,
+                        Pstream::nonBlocking,
                         restrictMap
                     )
                 ).ptr()
             );
-            
+
             coarseInterfaceAddr[inti] = coarseInterfaces[inti].faceCells();
         }
     }

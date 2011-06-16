@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,16 +25,14 @@ Class
     Foam::ConeInjection
 
 Description
-    Cone injection
-
+    Multi-point cone injection model
     - User specifies
       - time of start of injection
-      - injector position
-      - direction (along injection axis)
-      - parcel flow rate
-      - parcel velocity
+      - list of injector positions and directions (along injection axes)
+      - number of parcels to inject per injector
+      - parcel velocities
       - inner and outer cone angles
-    - Parcel diameters obtained by PDF model
+    - Parcel diameters obtained by distribution model
 
 SourceFiles
     ConeInjection.C
@@ -45,7 +43,8 @@ SourceFiles
 #define ConeInjection_H
 
 #include "InjectionModel.H"
-#include "pdf.H"
+#include "distributionModel.H"
+#include "vectorList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -68,23 +67,26 @@ class ConeInjection
 {
     // Private data
 
+        //- List of position and axis for each injector
+        List<Tuple2<vector, vector> > positionAxis_;
+
+        //- List of cell labels corresponding to injector positions
+        labelList injectorCells_;
+
+        //- List of tetFace labels corresponding to injector positions
+        labelList injectorTetFaces_;
+
+        //- List of tetPt labels corresponding to injector positions
+        labelList injectorTetPts_;
+
         //- Injection duration [s]
         const scalar duration_;
 
-        //- Injector position [m]
-        vector position_;
+        //- Number of parcels to introduce per injector
+        const label parcelsPerInjector_;
 
-        //- Cell containing injector position []
-        label injectorCell_;
-
-        //- Injector direction []
-        vector direction_;
-
-        //- Number of parcels to introduce per second []
-        const label parcelsPerSecond_;
-
-        //- Volume flow rate of parcels to introduce relative to SOI [m^3]
-        const autoPtr<DataEntry<scalar> > volumeFlowRate_;
+        //- Flow rate profile relative to SOI []
+        const autoPtr<DataEntry<scalar> > flowRateProfile_;
 
         //- Parcel velocity magnitude relative to SOI [m/s]
         const autoPtr<DataEntry<scalar> > Umag_;
@@ -95,52 +97,44 @@ class ConeInjection
         //- Outer cone angle relative to SOI [deg]
         const autoPtr<DataEntry<scalar> > thetaOuter_;
 
-        //- Parcel size PDF model
-        const autoPtr<pdfs::pdf> parcelPDF_;
+        //- Parcel size distribution model
+        const autoPtr<distributionModels::distributionModel> sizeDistribution_;
+
+        //- Number of parcels per injector already injected
+        mutable label nInjected_;
 
 
         // Tangential vectors to the direction vector
 
             //- First tangential vector
-            vector tanVec1_;
+            vectorList tanVec1_;
 
             //- Second tangential vector
-            vector tanVec2_;
-
-
-protected:
-
-    // Protected member functions
-
-        //- Number of parcels to introduce over the time step relative to SOI
-        label parcelsToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
-
-        //- Number of parcels to introduce over the time step relative to SOI
-        scalar volumeToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
+            vectorList tanVec2_;
 
 
 public:
 
     //- Runtime type information
-    TypeName("ConeInjection");
+    TypeName("coneInjection");
 
 
     // Constructors
 
         //- Construct from dictionary
-        ConeInjection
-        (
-            const dictionary& dict,
-            CloudType& owner
-        );
+        ConeInjection(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
+        ConeInjection(const ConeInjection<CloudType>& im);
+
+        //- Construct and return a clone
+        virtual autoPtr<InjectionModel<CloudType> > clone() const
+        {
+            return autoPtr<InjectionModel<CloudType> >
+            (
+                new ConeInjection<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -149,23 +143,29 @@ public:
 
     // Member Functions
 
-        //- Flag to indicate whether model activates injection model
-        bool active() const;
-
         //- Return the end-of-injection time
         scalar timeEnd() const;
+
+        //- Number of parcels to introduce relative to SOI
+        virtual label parcelsToInject(const scalar time0, const scalar time1);
+
+        //- Volume of parcels to introduce relative to SOI
+        virtual scalar volumeToInject(const scalar time0, const scalar time1);
+
 
 
         // Injection geometry
 
-            //- Set the injection position and owner cell
+            //- Set the injection position and owner cell, tetFace and tetPt
             virtual void setPositionAndCell
             (
                 const label parcelI,
                 const label nParcels,
                 const scalar time,
                 vector& position,
-                label& cellOwner
+                label& cellOwner,
+                label& tetFaceI,
+                label& tetPtI
             );
 
             //- Set the parcel properties

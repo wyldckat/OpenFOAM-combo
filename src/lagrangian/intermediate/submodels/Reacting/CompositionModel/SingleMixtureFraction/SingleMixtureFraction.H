@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -71,7 +71,7 @@ class SingleMixtureFraction
             scalarField YMixture0_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Construct the indices and check correct specification of
         //  1 gas, 1 liquid and 1 solid
@@ -81,13 +81,25 @@ class SingleMixtureFraction
 public:
 
     //- Runtime type information
-    TypeName("SingleMixtureFraction");
+    TypeName("singleMixtureFraction");
 
 
     // Constructors
 
         //- Construct from dictionary
         SingleMixtureFraction(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
+        SingleMixtureFraction(const SingleMixtureFraction<CloudType>& cm);
+
+        //- Construct and return a clone
+        virtual autoPtr<CompositionModel<CloudType> > clone() const
+        {
+            return autoPtr<CompositionModel<CloudType> >
+            (
+                new SingleMixtureFraction<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor

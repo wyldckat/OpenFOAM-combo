@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,7 +46,8 @@ License
 namespace Foam
 {
     addChemistryReaderType(chemkinReader, gasThermoPhysics);
-};
+}
+
 
 /* * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * */
 
@@ -82,7 +83,11 @@ void Foam::chemkinReader::initReactionKeywordTable()
 {
     reactionKeywordTable_.insert("M", thirdBodyReactionType);
     reactionKeywordTable_.insert("LOW", unimolecularFallOffReactionType);
-    reactionKeywordTable_.insert("HIGH", chemicallyActivatedBimolecularReactionType);
+    reactionKeywordTable_.insert
+    (
+        "HIGH",
+        chemicallyActivatedBimolecularReactionType
+    );
     reactionKeywordTable_.insert("TROE", TroeReactionType);
     reactionKeywordTable_.insert("SRI", SRIReactionType);
     reactionKeywordTable_.insert("LT", LandauTellerReactionType);
@@ -111,7 +116,7 @@ Foam::scalar Foam::chemkinReader::molecularWeight
 {
     scalar molWt = 0.0;
 
-    forAll (specieComposition, i)
+    forAll(specieComposition, i)
     {
         label nAtoms = specieComposition[i].nAtoms;
         const word& elementName = specieComposition[i].elementName;
@@ -430,24 +435,24 @@ void Foam::chemkinReader::addReaction
 
     scalarList nAtoms(elementNames_.size(), 0.0);
 
-    forAll (lhs, i)
+    forAll(lhs, i)
     {
         const List<specieElement>& specieComposition =
             specieComposition_[speciesTable_[lhs[i].index]];
 
-        forAll (specieComposition, j)
+        forAll(specieComposition, j)
         {
             label elementi = elementIndices_[specieComposition[j].elementName];
             nAtoms[elementi] += lhs[i].stoichCoeff*specieComposition[j].nAtoms;
         }
     }
 
-    forAll (rhs, i)
+    forAll(rhs, i)
     {
         const List<specieElement>& specieComposition =
             specieComposition_[speciesTable_[rhs[i].index]];
 
-        forAll (specieComposition, j)
+        forAll(specieComposition, j)
         {
             label elementi = elementIndices_[specieComposition[j].elementName];
             nAtoms[elementi] -= rhs[i].stoichCoeff*specieComposition[j].nAtoms;
@@ -459,7 +464,7 @@ void Foam::chemkinReader::addReaction
     // for the change from mol/cm^3 to kmol/m^3 concentraction units
     const scalar concFactor = 0.001;
     scalar sumExp = 0.0;
-    forAll (lhs, i)
+    forAll(lhs, i)
     {
         sumExp += lhs[i].exponent;
     }
@@ -470,7 +475,7 @@ void Foam::chemkinReader::addReaction
     if (rType == nonEquilibriumReversible)
     {
         sumExp = 0.0;
-        forAll (rhs, i)
+        forAll(rhs, i)
         {
             sumExp += rhs[i].exponent;
         }
@@ -712,7 +717,7 @@ void Foam::chemkinReader::addReaction
                     Afactor*ArrheniusCoeffs[0],
                     ArrheniusCoeffs[1],
                     ArrheniusCoeffs[2]/RR,
-                    JanevCoeffs.begin()
+                    FixedList<scalar, 9>(JanevCoeffs)
                 )
             );
         }
@@ -734,7 +739,7 @@ void Foam::chemkinReader::addReaction
                     Afactor*ArrheniusCoeffs[0],
                     ArrheniusCoeffs[1],
                     ArrheniusCoeffs[2]/RR,
-                    powerSeriesCoeffs.begin()
+                    FixedList<scalar, 4>(powerSeriesCoeffs)
                 )
             );
         }
@@ -770,7 +775,7 @@ void Foam::chemkinReader::addReaction
     }
 
 
-    forAll (nAtoms, i)
+    forAll(nAtoms, i)
     {
         if (mag(nAtoms[i]) > SMALL)
         {
@@ -812,7 +817,7 @@ void Foam::chemkinReader::read
         yy_buffer_state* bufferPtr(yy_create_buffer(&thermoStream, yyBufSize));
         yy_switch_to_buffer(bufferPtr);
 
-        while(lex() != 0)
+        while (lex() != 0)
         {}
 
         yy_delete_buffer(bufferPtr);
@@ -837,7 +842,7 @@ void Foam::chemkinReader::read
 
     initReactionKeywordTable();
 
-    while(lex() != 0)
+    while (lex() != 0)
     {}
 
     yy_delete_buffer(bufferPtr);
@@ -846,7 +851,6 @@ void Foam::chemkinReader::read
 
 // * * * * * * * * * * * * * * * * Constructor * * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::chemkinReader::chemkinReader
 (
     const fileName& CHEMKINFileName,
@@ -855,18 +859,19 @@ Foam::chemkinReader::chemkinReader
 :
     lineNo_(1),
     specieNames_(10),
-    speciesTable_(static_cast<const wordList&>(wordList()))
+    speciesTable_(),
+    reactions_(speciesTable_, speciesThermo_)
 {
     read(CHEMKINFileName, thermoFileName);
 }
 
 
-// Construct from components
 Foam::chemkinReader::chemkinReader(const dictionary& thermoDict)
 :
     lineNo_(1),
     specieNames_(10),
-    speciesTable_(static_cast<const wordList&>(wordList()))
+    speciesTable_(),
+    reactions_(speciesTable_, speciesThermo_)
 {
     fileName chemkinFile
     (
@@ -897,5 +902,6 @@ Foam::chemkinReader::chemkinReader(const dictionary& thermoDict)
 
     read(chemkinFile, thermoFile);
 }
+
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

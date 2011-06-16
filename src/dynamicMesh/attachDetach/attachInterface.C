@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,17 +81,17 @@ void Foam::attachDetach::attachInterface
 
     const labelList removedPoints = removedPointMap.toc();
 
-    forAll (removedPoints, pointI)
+    forAll(removedPoints, pointI)
     {
         ref.setAction(polyRemovePoint(removedPoints[pointI]));
     }
 
-// Pout << "Points to be mapped: " << removedPoints << endl;
+// Pout<< "Points to be mapped: " << removedPoints << endl;
     // Remove all faces from the slave patch
-    for (label i = 0; i < slavePatch.size(); i++)
+    forAll(slavePatch, i)
     {
         ref.setAction(polyRemoveFace(i + slavePatchStart));
-// Pout << "Removing face " << i + slavePatchStart << endl;
+// Pout<< "Removing face " << i + slavePatchStart << endl;
     }
 
     // Modify the faces from the master patch
@@ -100,7 +100,7 @@ void Foam::attachDetach::attachInterface
 
     const boolList& mfFlip = mesh.faceZones()[faceZoneID_.index()].flipMap();
 
-    forAll (masterFaceCells, faceI)
+    forAll(masterFaceCells, faceI)
     {
         // If slave neighbour is greater than master, face does not need
         // turning.  Modify it to become internal
@@ -144,7 +144,7 @@ void Foam::attachDetach::attachInterface
     }
 
     // Renumber faces affected by point removal
-// Pout << "slaveMeshPoints: " << slaveMeshPoints << endl;
+// Pout<< "slaveMeshPoints: " << slaveMeshPoints << endl;
     // Make a map of faces that need to be renumbered
     labelHashSet facesToModifyMap
     (
@@ -155,11 +155,11 @@ void Foam::attachDetach::attachInterface
 
     // Grab all the faces off the points in the slave patch.  If the face has
     //  not been removed, add it to the map of faces to renumber
-    forAll (slaveMeshPoints, pointI)
+    forAll(slaveMeshPoints, pointI)
     {
         const labelList& curFaces = pf[slaveMeshPoints[pointI]];
 
-        forAll (curFaces, faceI)
+        forAll(curFaces, faceI)
         {
             if (!ref.faceRemoved(curFaces[faceI]))
             {
@@ -171,7 +171,7 @@ void Foam::attachDetach::attachInterface
     // Grab the faces to be renumbered
     const labelList ftm = facesToModifyMap.toc();
 
-    forAll (ftm, faceI)
+    forAll(ftm, faceI)
     {
         // For every face to modify, copy the face and re-map the vertices.
         // It is known all the faces will be changed since they hang off
@@ -180,7 +180,7 @@ void Foam::attachDetach::attachInterface
 
         face newFace(faces[curFaceID]);
 
-        forAll (newFace, pointI)
+        forAll(newFace, pointI)
         {
             Map<label>::const_iterator rpmIter =
                 removedPointMap.find(newFace[pointI]);
@@ -192,7 +192,10 @@ void Foam::attachDetach::attachInterface
             }
         }
 
-// Pout<< "face label: " << curFaceID << " old face: " << faces[curFaceID] << " new face: " << newFace << endl;
+        // Pout<< "face label: " << curFaceID
+        //     << " old face: " << faces[curFaceID]
+        //     << " new face: " << newFace
+        //     << endl;
 
         // Get face zone and its flip
         label modifiedFaceZone = mesh.faceZones().whichZone(curFaceID);
@@ -259,7 +262,7 @@ void Foam::attachDetach::modifyMotionPoints
 
     if (debug)
     {
-        Pout<< "void attachDetach::modifyMotionPoints(" 
+        Pout<< "void attachDetach::modifyMotionPoints("
             << "pointField& motionPoints) const "
             << " for object " << name() << " : "
             << "Adjusting motion points." << endl;
@@ -267,7 +270,7 @@ void Foam::attachDetach::modifyMotionPoints
         // Calculate the difference in motion point positions
         scalar pointDiff = 0;
 
-        forAll (removedPoints, pointI)
+        forAll(removedPoints, pointI)
         {
             pointDiff +=
                 mag
@@ -284,7 +287,7 @@ void Foam::attachDetach::modifyMotionPoints
     }
 
     // Put the slave point on top of the master point
-    forAll (removedPoints, pointI)
+    forAll(removedPoints, pointI)
     {
         motionPoints[removedPoints[pointI]] =
             motionPoints[removedPointMap.find(removedPoints[pointI])()];

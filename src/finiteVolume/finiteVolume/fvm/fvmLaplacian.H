@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,8 @@ SourceFiles
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "fvMatrix.H"
-#include "geometricOneField.H"
+#include "zero.H"
+#include "one.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,46 +55,46 @@ namespace fvm
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        const zeroField&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const zero&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        const zeroField&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const zero&,
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        const geometricOneField&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const one&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
     template<class Type>
     tmp<fvMatrix<Type> > laplacian
     (
-        const geometricOneField&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const one&,
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
@@ -101,7 +102,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const dimensioned<GType>&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
@@ -109,7 +110,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const dimensioned<GType>&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
@@ -117,7 +118,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const GeometricField<GType, fvPatchField, volMesh>&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
@@ -125,7 +126,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const GeometricField<GType, fvPatchField, volMesh>&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
@@ -133,7 +134,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const tmp<GeometricField<GType, fvPatchField, volMesh> >&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
@@ -141,7 +142,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const tmp<GeometricField<GType, fvPatchField, volMesh> >&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
 
@@ -149,7 +150,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const GeometricField<GType, fvsPatchField, surfaceMesh>&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
@@ -157,7 +158,7 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const tmp<GeometricField<GType, fvsPatchField, surfaceMesh> >&,
-        GeometricField<Type, fvPatchField, volMesh>&,
+        const GeometricField<Type, fvPatchField, volMesh>&,
         const word&
     );
 
@@ -165,14 +166,14 @@ namespace fvm
     tmp<fvMatrix<Type> > laplacian
     (
         const GeometricField<GType, fvsPatchField, surfaceMesh>&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 
     template<class Type, class GType>
     tmp<fvMatrix<Type> > laplacian
     (
         const tmp<GeometricField<GType, fvsPatchField, surfaceMesh> >&,
-        GeometricField<Type, fvPatchField, volMesh>&
+        const GeometricField<Type, fvPatchField, volMesh>&
     );
 }
 

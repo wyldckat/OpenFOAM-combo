@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,11 +27,11 @@ Class
 Description
     Determines the order in which a set of processors should communicate
     with one another.
- 
-    The communication order should 
+
+    The communication order should
       - have maximum overlap
       - allow blocking communication without deadlock
- 
+
     Does a very simple scheduling which assumes same time for all operations.
 
     After construction:

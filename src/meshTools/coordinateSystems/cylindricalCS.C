@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ License
 #include "cylindricalCS.H"
 
 #include "one.H"
-#include "Switch.H"
 #include "mathematicalConstants.H"
 #include "addToRunTimeSelectionTable.H"
 
@@ -106,7 +105,7 @@ Foam::cylindricalCS::cylindricalCS
 )
 :
     coordinateSystem(name, dict),
-    inDegrees_(dict.lookupOrDefault<Switch>("degrees", true))
+    inDegrees_(dict.lookupOrDefault("degrees", true))
 {}
 
 
@@ -132,7 +131,7 @@ Foam::vector Foam::cylindricalCS::localToGlobal
 {
     scalar theta
     (
-        local.y() * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )  
+        local.y()*(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
 
     return coordinateSystem::localToGlobal
@@ -149,10 +148,10 @@ Foam::tmp<Foam::vectorField> Foam::cylindricalCS::localToGlobal
     bool translate
 ) const
 {
-    scalarField theta =
+    scalarField theta
     (
         local.component(vector::Y)
-      * ( inDegrees_ ? mathematicalConstant::pi/180.0 : 1.0 )
+       *(inDegrees_ ? constant::mathematical::pi/180.0 : 1.0)
     );
 
 
@@ -171,7 +170,10 @@ Foam::vector Foam::cylindricalCS::globalToLocal
     bool translate
 ) const
 {
-    const vector lc = coordinateSystem::globalToLocal(global, translate);
+    const vector lc
+    (
+        coordinateSystem::globalToLocal(global, translate)
+    );
 
     return vector
     (
@@ -180,7 +182,7 @@ Foam::vector Foam::cylindricalCS::globalToLocal
         (
             lc.y(),
             lc.x()
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 ),
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0),
         lc.z()
     );
 }
@@ -192,8 +194,10 @@ Foam::tmp<Foam::vectorField> Foam::cylindricalCS::globalToLocal
     bool translate
 ) const
 {
-    const vectorField lc =
-        coordinateSystem::globalToLocal(global, translate);
+    const vectorField lc
+    (
+        coordinateSystem::globalToLocal(global, translate)
+    );
 
     tmp<vectorField> tresult(new vectorField(lc.size()));
     vectorField& result = tresult();
@@ -211,7 +215,7 @@ Foam::tmp<Foam::vectorField> Foam::cylindricalCS::globalToLocal
         (
             lc.component(vector::Y),
             lc.component(vector::X)
-        ) * ( inDegrees_ ? 180.0/mathematicalConstant::pi : 1.0 )
+        )*(inDegrees_ ? 180.0/constant::mathematical::pi : 1.0)
     );
 
     result.replace(vector::Z, lc.component(vector::Z));

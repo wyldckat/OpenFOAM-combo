@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -91,11 +91,11 @@ void Foam::GAMGSolver::agglomerateMatrix(const label fineLevelIndex)
         interfaceLevelsIntCoeffs_[fineLevelIndex];
 
     // Add the coarse level
-    forAll (fineInterfaces, inti)
+    forAll(fineInterfaces, inti)
     {
         if (fineInterfaces.set(inti))
         {
-            const GAMGInterface& coarseInterface = 
+            const GAMGInterface& coarseInterface =
                 refCast<const GAMGInterface>
                 (
                     agglomeration_.interfaceLevel(fineLevelIndex + 1)[inti]
@@ -141,9 +141,9 @@ void Foam::GAMGSolver::agglomerateMatrix(const label fineLevelIndex)
         const labelList& restrictAddr =
             agglomeration_.restrictAddressing(fineLevelIndex);
 
-        const unallocLabelList& l = fineMatrix.lduAddr().lowerAddr();
-        const unallocLabelList& cl = coarseMatrix.lduAddr().lowerAddr();
-        const unallocLabelList& cu = coarseMatrix.lduAddr().upperAddr();
+        const labelUList& l = fineMatrix.lduAddr().lowerAddr();
+        const labelUList& cl = coarseMatrix.lduAddr().lowerAddr();
+        const labelUList& cu = coarseMatrix.lduAddr().upperAddr();
 
         forAll(faceRestrictAddr, fineFacei)
         {
@@ -181,7 +181,7 @@ void Foam::GAMGSolver::agglomerateMatrix(const label fineLevelIndex)
             }
         }
     }
-    else // ... Otherwise it is symmetric so agglomerate just the upper 
+    else // ... Otherwise it is symmetric so agglomerate just the upper
     {
         // Get off-diagonal matrix coefficients
         const scalarField& fineUpper = fineMatrix.upper();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,48 +76,46 @@ class KinematicLookupTableInjection
         const scalar duration_;
 
         //- Number of parcels per injector - common to all injection sources
-        const label nParcelsPerSecond_;
+        const scalar parcelsPerSecond_;
 
         //- List of injectors
         kinematicParcelInjectionDataIOList injectors_;
 
-        //- List of injector cells per injector
-        List<label> injectorCells_;
+        //- List of cell labels corresponding to injector positions
+        labelList injectorCells_;
 
+        //- List of tetFace labels corresponding to injector positions
+        labelList injectorTetFaces_;
 
-protected:
-
-    // Protected member functions
-
-        //- Number of parcels to introduce over the time step relative to SOI
-        label parcelsToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
-
-        //- Volume of parcels to introduce over the time step relative to SOI
-        scalar volumeToInject
-        (
-            const scalar time0,
-            const scalar time1
-        ) const;
+        //- List of tetPt labels corresponding to injector positions
+        labelList injectorTetPts_;
 
 
 public:
 
     //- Runtime type information
-    TypeName("KinematicLookupTableInjection");
+    TypeName("kinematicLookupTableInjection");
 
 
     // Constructors
 
         //- Construct from dictionary
+        KinematicLookupTableInjection(const dictionary& dict, CloudType& owner);
+
+        //- Construct copy
         KinematicLookupTableInjection
         (
-            const dictionary& dict,
-            CloudType& owner
+            const KinematicLookupTableInjection<CloudType>& im
         );
+
+        //- Construct and return a clone
+        virtual autoPtr<InjectionModel<CloudType> > clone() const
+        {
+            return autoPtr<InjectionModel<CloudType> >
+            (
+                new KinematicLookupTableInjection<CloudType>(*this)
+            );
+        }
 
 
     //- Destructor
@@ -126,23 +124,28 @@ public:
 
     // Member Functions
 
-        //- Flag to indicate whether model activates injection model
-        bool active() const;
-
         //- Return the end-of-injection time
         scalar timeEnd() const;
+
+        //- Number of parcels to introduce relative to SOI
+        virtual label parcelsToInject(const scalar time0, const scalar time1);
+
+        //- Volume of parcels to introduce relative to SOI
+        virtual scalar volumeToInject(const scalar time0, const scalar time1);
 
 
         // Injection geometry
 
-            //- Set the injection position and owner cell
+            //- Set the injection position and owner cell, tetFace and tetPt
             virtual void setPositionAndCell
             (
                 const label parcelI,
                 const label nParcels,
                 const scalar time,
                 vector& position,
-                label& cellOwner
+                label& cellOwner,
+                label& tetFaceI,
+                label& tetPtI
             );
 
             //- Set the parcel properties

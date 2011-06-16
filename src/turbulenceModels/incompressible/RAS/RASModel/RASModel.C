@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,10 +58,11 @@ RASModel::RASModel
     const word& type,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& lamTransportModel
+    transportModel& transport,
+    const word& turbulenceModelName
 )
 :
-    turbulenceModel(U, phi, lamTransportModel),
+    turbulenceModel(U, phi, transport, turbulenceModelName),
 
     IOdictionary
     (
@@ -70,7 +71,7 @@ RASModel::RASModel
             "RASProperties",
             U.time().constant(),
             U.db(),
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE
         )
     ),
@@ -79,19 +80,15 @@ RASModel::RASModel
     printCoeffs_(lookupOrDefault<Switch>("printCoeffs", false)),
     coeffDict_(subOrEmptyDict(type + "Coeffs")),
 
-    k0_("k0", dimVelocity*dimVelocity, SMALL),
-    epsilon0_("epsilon0", k0_.dimensions()/dimTime, SMALL),
-    epsilonSmall_("epsilonSmall", epsilon0_.dimensions(), SMALL),
-    omega0_("omega0", dimless/dimTime, SMALL),
-    omegaSmall_("omegaSmall", omega0_.dimensions(), SMALL),
+    kMin_("kMin", sqr(dimVelocity), SMALL),
+    epsilonMin_("epsilonMin", kMin_.dimensions()/dimTime, SMALL),
+    omegaMin_("omegaMin", dimless/dimTime, SMALL),
 
     y_(mesh_)
 {
-    k0_.readIfPresent(*this);
-    epsilon0_.readIfPresent(*this);
-    epsilonSmall_.readIfPresent(*this);
-    omega0_.readIfPresent(*this);
-    omegaSmall_.readIfPresent(*this);
+    kMin_.readIfPresent(*this);
+    epsilonMin_.readIfPresent(*this);
+    omegaMin_.readIfPresent(*this);
 
     // Force the construction of the mesh deltaCoeffs which may be needed
     // for the construction of the derived models and BCs
@@ -105,49 +102,55 @@ autoPtr<RASModel> RASModel::New
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName
 )
 {
-    word modelName;
-
-    // Enclose the creation of the dictionary to ensure it is deleted
-    // before the turbulenceModel is created otherwise the dictionary is
-    // entered in the database twice
-    {
-        IOdictionary dict
+    // get model name, but do not register the dictionary
+    // otherwise it is registered in the database twice
+    const word modelType
+    (
+        IOdictionary
         (
             IOobject
             (
                 "RASProperties",
                 U.time().constant(),
                 U.db(),
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
             )
-        );
+        ).lookup("RASModel")
+    );
 
-        dict.lookup("RASModel") >> modelName;
-    }
-
-    Info<< "Selecting RAS turbulence model " << modelName << endl;
+    Info<< "Selecting RAS turbulence model " << modelType << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn
         (
-            "RASModel::New(const volVectorField&, "
-            "const surfaceScalarField&, transportModel&)"
-        )   << "Unknown RASModel type " << modelName
-            << endl << endl
-            << "Valid RASModel types are :" << endl
+            "RASModel::New"
+            "("
+                "const volVectorField&, "
+                "const surfaceScalarField&, "
+                "transportModel&, "
+                "const word&"
+            ")"
+        )   << "Unknown RASModel type "
+            << modelType << nl << nl
+            << "Valid RASModel types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
-    return autoPtr<RASModel>(cstrIter()(U, phi, transport));
+    return autoPtr<RASModel>
+    (
+        cstrIter()(U, phi, transport, turbulenceModelName)
+    );
 }
 
 
@@ -176,10 +179,10 @@ tmp<scalarField> RASModel::yPlus(const label patchNo, const scalar Cmu) const
 
     if (isA<wallFvPatch>(curPatch))
     {
-        Yp = pow(Cmu, 0.25)
+        Yp = pow025(Cmu)
             *y_[patchNo]
             *sqrt(k()().boundaryField()[patchNo].patchInternalField())
-            /nu().boundaryField()[patchNo];
+            /nu()().boundaryField()[patchNo];
     }
     else
     {
@@ -209,7 +212,22 @@ void RASModel::correct()
 
 bool RASModel::read()
 {
-    if (regIOobject::read())
+    //if (regIOobject::read())
+
+    // Bit of trickery : we are both IOdictionary ('RASProperties') and
+    // an regIOobject from the turbulenceModel level. Problem is to distinguish
+    // between the two - we only want to reread the IOdictionary.
+    
+    bool ok = IOdictionary::readData
+    (
+        IOdictionary::readStream
+        (
+            IOdictionary::type()
+        )
+    );
+    IOdictionary::close();
+
+    if (ok)
     {
         lookup("turbulence") >> turbulence_;
 
@@ -218,11 +236,9 @@ bool RASModel::read()
             coeffDict_ <<= *dictPtr;
         }
 
-        k0_.readIfPresent(*this);
-        epsilon0_.readIfPresent(*this);
-        epsilonSmall_.readIfPresent(*this);
-        omega0_.readIfPresent(*this);
-        omegaSmall_.readIfPresent(*this);
+        kMin_.readIfPresent(*this);
+        epsilonMin_.readIfPresent(*this);
+        omegaMin_.readIfPresent(*this);
 
         return true;
     }

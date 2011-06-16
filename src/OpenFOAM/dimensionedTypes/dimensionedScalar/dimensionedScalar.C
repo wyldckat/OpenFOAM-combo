@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,30 +37,36 @@ dimensionedScalar operator+(const dimensionedScalar& ds1, const scalar s2)
     return ds1 + dimensionedScalar(s2);
 }
 
+
 dimensionedScalar operator+(const scalar s1, const dimensionedScalar& ds2)
 {
     return dimensionedScalar(s1) + ds2;
 }
+
 
 dimensionedScalar operator-(const dimensionedScalar& ds1, const scalar s2)
 {
     return ds1 - dimensionedScalar(s2);
 }
 
+
 dimensionedScalar operator-(const scalar s1, const dimensionedScalar& ds2)
 {
     return dimensionedScalar(s1) - ds2;
 }
+
 
 dimensionedScalar operator*(const dimensionedScalar& ds1, const scalar s2)
 {
     return ds1 * dimensionedScalar(s2);
 }
 
+
 dimensionedScalar operator/(const scalar s1, const dimensionedScalar& ds2)
 {
     return dimensionedScalar(s1)/ds2;
 }
+
 
 
 dimensionedScalar pow
@@ -77,6 +83,7 @@ dimensionedScalar pow
     );
 }
 
+
 dimensionedScalar pow3(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -86,6 +93,7 @@ dimensionedScalar pow3(const dimensionedScalar& ds)
         pow3(ds.value())
     );
 }
+
 
 dimensionedScalar pow4(const dimensionedScalar& ds)
 {
@@ -97,6 +105,7 @@ dimensionedScalar pow4(const dimensionedScalar& ds)
     );
 }
 
+
 dimensionedScalar pow5(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -106,6 +115,7 @@ dimensionedScalar pow5(const dimensionedScalar& ds)
         pow5(ds.value())
     );
 }
+
 
 dimensionedScalar pow6(const dimensionedScalar& ds)
 {
@@ -117,6 +127,18 @@ dimensionedScalar pow6(const dimensionedScalar& ds)
     );
 }
 
+
+dimensionedScalar pow025(const dimensionedScalar& ds)
+{
+    return dimensionedScalar
+    (
+        "pow025(" + ds.name() + ')',
+        pow025(ds.dimensions()),
+        pow025(ds.value())
+    );
+}
+
+
 dimensionedScalar sqrt(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -127,6 +149,7 @@ dimensionedScalar sqrt(const dimensionedScalar& ds)
     );
 }
 
+
 dimensionedScalar cbrt(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -136,6 +159,7 @@ dimensionedScalar cbrt(const dimensionedScalar& ds)
         ::cbrt(ds.value())
     );
 }
+
 
 dimensionedScalar hypot
 (
@@ -151,6 +175,7 @@ dimensionedScalar hypot
     );
 }
 
+
 dimensionedScalar sign(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -161,6 +186,7 @@ dimensionedScalar sign(const dimensionedScalar& ds)
     );
 }
 
+
 dimensionedScalar pos(const dimensionedScalar& ds)
 {
     return dimensionedScalar
@@ -170,6 +196,7 @@ dimensionedScalar pos(const dimensionedScalar& ds)
         ::Foam::pos(ds.value())
     );
 }
+
 
 dimensionedScalar neg(const dimensionedScalar& ds)
 {

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,10 +17,17 @@ FoamFile
 
 solvers
 {
-    "(rho|G)"
+    rho
     {
         solver          PCG;
         preconditioner  DIC;
+        tolerance       1e-05;
+        relTol          0.1;
+    }
+
+    rhoFinal
+    {
+        $rho;
         tolerance       1e-05;
         relTol          0;
     }
@@ -29,7 +36,14 @@ solvers
     {
         solver          PBiCG;
         preconditioner  DILU;
-        tolerance       1e-05;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+
+    "(U|hs|k|epsilon)Final"
+    {
+        $U;
+        tolerance       1e-06;
         relTol          0;
     }
 
@@ -56,14 +70,11 @@ solvers
 
     "(Yi|O2|N2|H2O)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-06;
-        relTol          0;
+        $hsFinal;
     }
 }
 
-PISO
+PIMPLE
 {
     transonic       no;
     nOuterCorrectors 1;
@@ -74,13 +85,13 @@ PISO
 
 additional
 {
-    dpdt            true;
-    hWork           true;
-    eWork           true;
+    pressureWork    true;
+    pressureWorkTimeDerivative true;
 }
 
 relaxationFactors
 {
+    ".*Final"       1;
 }
 
 

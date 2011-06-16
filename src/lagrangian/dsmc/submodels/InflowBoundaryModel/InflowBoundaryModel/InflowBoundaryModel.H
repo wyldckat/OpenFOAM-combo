@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,7 @@ Description
 
 SourceFiles
     InflowBoundaryModel.C
-    NewInflowBoundaryModel.C
+    InflowBoundaryModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -85,6 +85,9 @@ public:
 
 
     // Constructors
+
+        //- Construct null from owner
+        InflowBoundaryModel(CloudType& owner);
 
         //- Construct from dictionary
         InflowBoundaryModel
@@ -143,13 +146,13 @@ public:
     );
 
 
-#define makeInflowBoundaryModelType(SS, CloudType, ParcelType)                \
+#define makeInflowBoundaryModelType(SS, CloudType)                            \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(SS<CloudType<ParcelType> >, 0);       \
+    defineNamedTemplateTypeNameAndDebug(SS<CloudType>, 0);                    \
                                                                               \
-    InflowBoundaryModel<CloudType<ParcelType> >::                             \
-        adddictionaryConstructorToTable<SS<CloudType<ParcelType> > >          \
-            add##SS##CloudType##ParcelType##ConstructorToTable_;
+    InflowBoundaryModel<CloudType>::                                          \
+        adddictionaryConstructorToTable<SS<CloudType> >                       \
+            add##SS##CloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

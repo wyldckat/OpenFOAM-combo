@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -93,7 +93,7 @@ class triSurface
         mutable labelList* edgeOwnerPtr_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Calculate sorted edgeFaces
         void calcSortedEdgeFaces() const;
@@ -112,7 +112,6 @@ class triSurface
         //  Returns true if any points merged
         bool stitchTriangles
         (
-            const pointField& rawPoints,
             const scalar tol = SMALL,
             const bool verbose = false
         );
@@ -280,9 +279,8 @@ public:
 
 
 
-    // Destructor
-
-        ~triSurface();
+    //- Destructor
+    ~triSurface();
 
         void clearOut();
 
@@ -323,7 +321,7 @@ public:
             virtual void movePoints(const pointField&);
 
             //- Scale points. A non-positive factor is ignored
-            virtual void scalePoints(const scalar&);
+            virtual void scalePoints(const scalar);
 
             //- Check/remove duplicate/degenerate triangles
             void checkTriangles(const bool verbose);

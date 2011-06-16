@@ -6,32 +6,7 @@
 #include "faceSet.H"
 #include "pointSet.H"
 #include "IOmanip.H"
-
-bool Foam::checkSync(const wordList& names)
-{
-    List<wordList> allNames(Pstream::nProcs());
-    allNames[Pstream::myProcNo()] = names;
-    Pstream::gatherList(allNames);
-    Pstream::scatterList(allNames);
-
-    bool hasError = false;
-
-    for (label procI = 1; procI < allNames.size(); procI++)
-    {
-        if (allNames[procI] != allNames[0])
-        {
-            hasError = true;
-
-            Info<< " ***Inconsistent zones across processors, "
-                   "processor 0 has zones:" << allNames[0]
-                << ", processor " << procI << " has zones:"
-                << allNames[procI]
-                << endl;
-        }
-    }
-    return hasError;
-}
-
+#include "emptyPolyPatch.H"
 
 Foam::label Foam::checkTopology
 (
@@ -47,38 +22,50 @@ Foam::label Foam::checkTopology
     // Check if the boundary definition is unique
     mesh.boundaryMesh().checkDefinition(true);
 
+    // Check that empty patches cover all sides of the mesh
+    {
+        label nEmpty = 0;
+        forAll(mesh.boundaryMesh(), patchI)
+        {
+            if (isA<emptyPolyPatch>(mesh.boundaryMesh()[patchI]))
+            {
+                nEmpty += mesh.boundaryMesh()[patchI].size();
+            }
+        }
+        reduce(nEmpty, sumOp<label>());
+        label nTotCells = returnReduce(mesh.cells().size(), sumOp<label>());
+
+        // These are actually warnings, not errors.
+        if (nEmpty % nTotCells)
+        {
+            Info<< " ***Total number of faces on empty patches"
+                << " is not divisible by the number of cells in the mesh."
+                << " Hence this mesh is not 1D or 2D."
+                << endl;
+        }
+    }
+
     // Check if the boundary processor patches are correct
     mesh.boundaryMesh().checkParallelSync(true);
 
     // Check names of zones are equal
-    if (checkSync(mesh.cellZones().names()))
+    mesh.cellZones().checkDefinition(true);
+    if (mesh.cellZones().checkParallelSync(true))
     {
         noFailedChecks++;
     }
-    if (checkSync(mesh.faceZones().names()))
+    mesh.faceZones().checkDefinition(true);
+    if (mesh.faceZones().checkParallelSync(true))
     {
         noFailedChecks++;
     }
-    if (checkSync(mesh.pointZones().names()))
+    mesh.pointZones().checkDefinition(true);
+    if (mesh.pointZones().checkParallelSync(true))
     {
         noFailedChecks++;
     }
 
-    // Check contents of faceZones consistent
-    {
-        forAll(mesh.faceZones(), zoneI)
-        {
-            if (mesh.faceZones()[zoneI].checkParallelSync(false))
-            {
-                Info<< " ***FaceZone " << mesh.faceZones()[zoneI].name()
-                    << " is not correctly synchronised"
-                    << " across coupled boundaries."
-                    << " (coupled faces are either not both "
-                    << " present in set or have same flipmap)" << endl;
-                noFailedChecks++;
-            }
-        }
-    }
+
 
     {
         pointSet points(mesh, "unusedPoints", mesh.nPoints()/100);
@@ -90,6 +77,7 @@ Foam::label Foam::checkTopology
 
             Info<< "  <<Writing " << nPoints
                 << " unused points to set " << points.name() << endl;
+            points.instance() = mesh.pointsInstance();
             points.write();
         }
     }
@@ -107,6 +95,23 @@ Foam::label Foam::checkTopology
         {
             Info<< "  <<Writing " << nFaces
                 << " unordered faces to set " << faces.name() << endl;
+            faces.instance() = mesh.pointsInstance();
+            faces.write();
+        }
+    }
+
+    {
+        faceSet faces(mesh, "outOfRangeFaces", mesh.nFaces()/100);
+        if (mesh.checkFaceVertices(true, &faces))
+        {
+            noFailedChecks++;
+
+            label nFaces = returnReduce(faces.size(), sumOp<label>());
+
+            Info<< "  <<Writing " << nFaces
+                << " faces with out-of-range or duplicate vertices to set "
+                << faces.name() << endl;
+            faces.instance() = mesh.pointsInstance();
             faces.write();
         }
     }
@@ -123,22 +128,8 @@ Foam::label Foam::checkTopology
             Info<< "  <<Writing " << nCells
                 << " cells with over used edges to set " << cells.name()
                 << endl;
+            cells.instance() = mesh.pointsInstance();
             cells.write();
-        }
-    }
-
-    {
-        faceSet faces(mesh, "outOfRangeFaces", mesh.nFaces()/100);
-        if (mesh.checkFaceVertices(true, &faces))
-        {
-            noFailedChecks++;
-
-            label nFaces = returnReduce(faces.size(), sumOp<label>());
-
-            Info<< "  <<Writing " << nFaces
-                << " faces with out-of-range or duplicate vertices to set "
-                << faces.name() << endl;
-            faces.write();
         }
     }
 
@@ -154,6 +145,7 @@ Foam::label Foam::checkTopology
             Info<< "  <<Writing " << nFaces
                 << " faces with incorrect edges to set " << faces.name()
                 << endl;
+            faces.instance() = mesh.pointsInstance();
             faces.write();
         }
     }
@@ -172,7 +164,7 @@ Foam::label Foam::checkTopology
         {
             if (patches[patchI].coupled())
             {
-                const unallocLabelList& owners = patches[patchI].faceCells();
+                const labelUList& owners = patches[patchI].faceCells();
 
                 forAll(owners, i)
                 {
@@ -204,6 +196,7 @@ Foam::label Foam::checkTopology
                 << " cells with with single non-boundary face to set "
                 << oneCells.name()
                 << endl;
+            oneCells.instance() = mesh.pointsInstance();
             oneCells.write();
         }
 
@@ -212,9 +205,10 @@ Foam::label Foam::checkTopology
         if (nTwoCells > 0)
         {
             Info<< "  <<Writing " << nTwoCells
-                << " cells with with single non-boundary face to set "
+                << " cells with with two non-boundary faces to set "
                 << twoCells.name()
                 << endl;
+            twoCells.instance() = mesh.pointsInstance();
             twoCells.write();
         }
     }
@@ -334,7 +328,7 @@ Foam::label Foam::checkTopology
                 if (returnReduce(mp.size(), sumOp<label>()) > 0)
                 {
                     boundBox bb(point::max, point::min);
-                    forAll(mp, i)
+                    forAll (mp, i)
                     {
                         bb.min() = min(bb.min(), pts[mp[i]]);
                         bb.max() = max(bb.max(), pts[mp[i]]);
@@ -353,6 +347,7 @@ Foam::label Foam::checkTopology
                 << " conflicting points to set "
                 << points.name() << endl;
 
+            points.instance() = mesh.pointsInstance();
             points.write();
         }
 

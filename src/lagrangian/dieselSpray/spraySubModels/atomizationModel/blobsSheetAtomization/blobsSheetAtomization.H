@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     Primary Breakup Model for pressure swirl atomizers.
 
     Accurate description in
-    @verbatim
+    \verbatim
     Z. Han, S. Parrish, P.V. Farrell, R.D. Reitz
     "Modeling Atomization Processes Of Pressure Swirl Hollow-Cone Fuel Sprays"
     Atomization and Sprays, vol. 7, pp. 663-684, 1997
@@ -38,7 +38,7 @@ Description
     L. Allocca, G. Bella, A. De Vita, L. Di Angelo
     "Experimental Validation of a GDI Spray Model"
     SAE Technical Paper Series, 2002-01-1137
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -53,7 +53,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class blobsSheetAtomization Declaration
+                    Class blobsSheetAtomization Declaration
 \*---------------------------------------------------------------------------*/
 
 class blobsSheetAtomization
@@ -67,7 +67,7 @@ private:
         dictionary coeffsDict_;
         scalar B_;
         scalar angle_;
-        Random& rndGen_;
+
 
 public:
 
@@ -78,16 +78,11 @@ public:
     // Constructors
 
         //- Construct from components
-        blobsSheetAtomization
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        blobsSheetAtomization(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        ~blobsSheetAtomization();
+    //- Destructor
+    virtual ~blobsSheetAtomization();
 
 
     // Member Operators
@@ -97,10 +92,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const;
-
-
 };
 
 

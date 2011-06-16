@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -105,6 +105,20 @@ void Foam::functionObjectList::clear()
 }
 
 
+Foam::label Foam::functionObjectList::findObjectID(const word& name) const
+{
+    forAll(*this, objectI)
+    {
+        if (operator[](objectI).name() == name)
+        {
+            return objectI;
+        }
+    }
+
+    return -1;
+}
+
+
 void Foam::functionObjectList::on()
 {
     execution_ = true;
@@ -130,7 +144,7 @@ bool Foam::functionObjectList::start()
 }
 
 
-bool Foam::functionObjectList::execute()
+bool Foam::functionObjectList::execute(const bool forceWrite)
 {
     bool ok = true;
 
@@ -141,14 +155,9 @@ bool Foam::functionObjectList::execute()
             read();
         }
 
-        forAllIter
-        (
-            PtrList<functionObject>,
-            static_cast<PtrList<functionObject>&>(*this),
-            iter
-        )
+        forAll(*this, objectI)
         {
-            ok = iter().execute() && ok;
+            ok = operator[](objectI).execute(forceWrite) && ok;
         }
     }
 
@@ -167,14 +176,9 @@ bool Foam::functionObjectList::end()
             read();
         }
 
-        forAllIter
-        (
-            PtrList<functionObject>,
-            static_cast<PtrList<functionObject>&>(*this),
-            iter
-        )
+        forAll(*this, objectI)
         {
-            ok = iter().end() && ok;
+            ok = operator[](objectI).end() && ok;
         }
     }
 
@@ -194,7 +198,13 @@ bool Foam::functionObjectList::read()
     }
 
     // Update existing and add new functionObjects
-    const entry* entryPtr = parentDict_.lookupEntryPtr("functions",false,false);
+    const entry* entryPtr = parentDict_.lookupEntryPtr
+    (
+        "functions",
+        false,
+        false
+    );
+
     if (entryPtr)
     {
         PtrList<functionObject> newPtrs;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
     Eddy viscosity SGS model using a modeled balance equation to simulate the
     behaviour of k, hence,
-    @verbatim
+    \verbatim
         d/dt(rho*k) + div(rho*U*k) - div(muEff*grad(k))
         =
         -rho*D:B - ce*rho*k^3/2/delta
@@ -42,7 +42,7 @@ Description
 
         D = symm(grad(U));
         muSgs = ck*rho*sqrt(k)*delta
-    @endverbatim
+    \endverbatim
 
 
 SourceFiles
@@ -74,6 +74,8 @@ class oneEqEddy
 {
     // Private data
 
+        volScalarField k_;
+
         dimensionedScalar ck_;
 
 
@@ -101,16 +103,24 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel
+            const basicThermo& thermoPhysicalModel,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
-    // Destructor
+    //- Destructor
     virtual ~oneEqEddy()
     {}
 
 
     // Member Functions
+
+        //- Return SGS kinetic energy
+        virtual tmp<volScalarField> k() const
+        {
+            return k_;
+        }
 
         //- Return the effective diffusivity for k
         tmp<volScalarField> DkEff() const

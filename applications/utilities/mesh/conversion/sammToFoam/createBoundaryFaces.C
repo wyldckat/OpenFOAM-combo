@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,11 +44,11 @@ bool sammMesh::sammEqualFace
     // considered equal if three of the vertices are the same.
     label nEqual = 0;
 
-    forAll (cellFace, cellFaceLabelI)
+    forAll(cellFace, cellFaceLabelI)
     {
         const label curCellFaceLabel = cellFace[cellFaceLabelI];
 
-        forAll (boundaryFace, bouFaceLabelI)
+        forAll(boundaryFace, bouFaceLabelI)
         {
             if (boundaryFace[bouFaceLabelI] == curCellFaceLabel)
             {

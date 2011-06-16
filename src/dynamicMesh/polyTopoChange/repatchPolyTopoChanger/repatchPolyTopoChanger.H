@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ Class
 Description
     A mesh which allows changes in the patch distribution of the
     boundary faces.  The change in patching is set using changePatchID. For a
-    boundary face, a new patch ID is given. 
+    boundary face, a new patch ID is given.
 
 SourceFiles
     repatchPolyTopoChanger.C
@@ -80,10 +80,9 @@ public:
         explicit repatchPolyTopoChanger(polyMesh& mesh);
 
 
-    // Destructor
-
-        virtual ~repatchPolyTopoChanger()
-        {}
+    //- Destructor
+    virtual ~repatchPolyTopoChanger()
+    {}
 
 
     // Member Functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,6 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-// Construct from components
 inline specie::specie
 (
     const word& name,
@@ -46,14 +45,12 @@ inline specie::specie
 {}
 
 
-// Construct from components without name
 inline specie::specie
 (
     const scalar nMoles,
     const scalar molWeight
 )
 :
-    //name_(),
     nMoles_(nMoles),
     molWeight_(molWeight)
 {}
@@ -61,7 +58,6 @@ inline specie::specie
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct as copy
 inline specie::specie(const specie& st)
 :
     name_(st.name_),
@@ -70,7 +66,6 @@ inline specie::specie(const specie& st)
 {}
 
 
-// Construct as named copy
 inline specie::specie(const word& name, const specie& st)
 :
     name_(name),
@@ -81,19 +76,24 @@ inline specie::specie(const word& name, const specie& st)
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-//- Molecular weight [kg/kmol]
+inline const word& specie::name() const
+{
+    return name_;
+}
+
+
 inline scalar specie::W() const
 {
     return molWeight_;
 }
 
-//- No of moles of this species in mixture
+
 inline scalar specie::nMoles() const
 {
     return nMoles_;
 }
 
-//- Gas constant [J/(kg K)]
+
 inline scalar specie::R() const
 {
     return RR/molWeight_;
@@ -104,7 +104,7 @@ inline scalar specie::R() const
 
 inline void specie::operator=(const specie& st)
 {
-  //name_ = st.name_;
+    //name_ = st.name_;
     nMoles_ = st.nMoles_;
     molWeight_ = st.molWeight_;
 }
@@ -112,29 +112,29 @@ inline void specie::operator=(const specie& st)
 
 inline void specie::operator+=(const specie& st)
 {
-    scalar sumNmoles_ = max(nMoles_ + st.nMoles_, SMALL);
+    scalar sumNmoles = max(nMoles_ + st.nMoles_, SMALL);
 
     molWeight_ =
-        nMoles_/sumNmoles_*molWeight_
-      + st.nMoles_/sumNmoles_*st.molWeight_;
+        nMoles_/sumNmoles*molWeight_
+      + st.nMoles_/sumNmoles*st.molWeight_;
 
-    nMoles_ = sumNmoles_;
+    nMoles_ = sumNmoles;
 }
 
 
 inline void specie::operator-=(const specie& st)
 {
-    scalar diffnMoles_ = nMoles_ - st.nMoles_;
-    if (mag(diffnMoles_) < SMALL)
+    scalar diffnMoles = nMoles_ - st.nMoles_;
+    if (mag(diffnMoles) < SMALL)
     {
-        diffnMoles_ = SMALL;
+        diffnMoles = SMALL;
     }
 
     molWeight_ =
-        nMoles_/diffnMoles_*molWeight_
-      - st.nMoles_/diffnMoles_*st.molWeight_;
+        nMoles_/diffnMoles*molWeight_
+      - st.nMoles_/diffnMoles*st.molWeight_;
 
-    nMoles_ = diffnMoles_;
+    nMoles_ = diffnMoles;
 }
 
 
@@ -148,30 +148,30 @@ inline void specie::operator*=(const scalar s)
 
 inline specie operator+(const specie& st1, const specie& st2)
 {
-    scalar sumNmoles_ = max(st1.nMoles_ + st2.nMoles_, SMALL);
+    scalar sumNmoles = max(st1.nMoles_ + st2.nMoles_, SMALL);
 
     return specie
     (
-        sumNmoles_,
-        st1.nMoles_/sumNmoles_*st1.molWeight_
-      + st2.nMoles_/sumNmoles_*st2.molWeight_
+        sumNmoles,
+        st1.nMoles_/sumNmoles*st1.molWeight_
+      + st2.nMoles_/sumNmoles*st2.molWeight_
     );
 }
 
 
 inline specie operator-(const specie& st1, const specie& st2)
 {
-    scalar diffNmoles_ = st1.nMoles_ - st2.nMoles_;
-    if (mag(diffNmoles_) < SMALL)
+    scalar diffNmoles = st1.nMoles_ - st2.nMoles_;
+    if (mag(diffNmoles) < SMALL)
     {
-        diffNmoles_ = SMALL;
+        diffNmoles = SMALL;
     }
 
     return specie
     (
-        diffNmoles_,
-        st1.nMoles_/diffNmoles_*st1.molWeight_
-      - st2.nMoles_/diffNmoles_*st2.molWeight_
+        diffNmoles,
+        st1.nMoles_/diffNmoles*st1.molWeight_
+      - st2.nMoles_/diffNmoles*st2.molWeight_
     );
 }
 

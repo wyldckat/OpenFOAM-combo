@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,8 +29,6 @@ License
 #include "volPointInterpolation.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvMesh.H"
-#include "isoSurface.H"
-// #include "isoSurfaceCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -94,20 +92,29 @@ void Foam::distanceSurface::createGeometry()
 
         if (signed_)
         {
-            vectorField normal;
-            surfPtr_().getNormal(nearest, normal);
+            List<searchableSurface::volumeType> volType;
 
-            forAll(nearest, i)
+            surfPtr_().getVolumeType(cc, volType);
+
+            forAll(volType, i)
             {
-                vector d(cc[i]-nearest[i].hitPoint());
+                searchableSurface::volumeType vT = volType[i];
 
-                if ((d&normal[i]) > 0)
+                if (vT == searchableSurface::OUTSIDE)
                 {
-                    fld[i] = Foam::mag(d);
+                    fld[i] = Foam::mag(cc[i] - nearest[i].hitPoint());
+                }
+                else if (vT == searchableSurface::INSIDE)
+                {
+                    fld[i] = -Foam::mag(cc[i] - nearest[i].hitPoint());
                 }
                 else
                 {
-                    fld[i] = -Foam::mag(d);
+                    FatalErrorIn
+                    (
+                        "void Foam::distanceSurface::createGeometry()"
+                    )   << "getVolumeType failure, neither INSIDE or OUTSIDE"
+                        << exit(FatalError);
                 }
             }
         }
@@ -137,20 +144,30 @@ void Foam::distanceSurface::createGeometry()
 
             if (signed_)
             {
-                vectorField normal;
-                surfPtr_().getNormal(nearest, normal);
+                List<searchableSurface::volumeType> volType;
 
-                forAll(nearest, i)
+                surfPtr_().getVolumeType(cc, volType);
+
+                forAll(volType, i)
                 {
-                    vector d(cc[i]-nearest[i].hitPoint());
+                    searchableSurface::volumeType vT = volType[i];
 
-                    if ((d&normal[i]) > 0)
+                    if (vT == searchableSurface::OUTSIDE)
                     {
-                        fld[i] = Foam::mag(d);
+                        fld[i] = Foam::mag(cc[i] - nearest[i].hitPoint());
+                    }
+                    else if (vT == searchableSurface::INSIDE)
+                    {
+                        fld[i] = -Foam::mag(cc[i] - nearest[i].hitPoint());
                     }
                     else
                     {
-                        fld[i] = -Foam::mag(d);
+                        FatalErrorIn
+                        (
+                            "void Foam::distanceSurface::createGeometry()"
+                        )   << "getVolumeType failure, "
+                            << "neither INSIDE or OUTSIDE"
+                            << exit(FatalError);
                     }
                 }
             }
@@ -184,20 +201,31 @@ void Foam::distanceSurface::createGeometry()
 
         if (signed_)
         {
-            vectorField normal;
-            surfPtr_().getNormal(nearest, normal);
+            List<searchableSurface::volumeType> volType;
 
-            forAll(nearest, i)
+            surfPtr_().getVolumeType(pts, volType);
+
+            forAll(volType, i)
             {
-                vector d(pts[i]-nearest[i].hitPoint());
+                searchableSurface::volumeType vT = volType[i];
 
-                if ((d&normal[i]) > 0)
+                if (vT == searchableSurface::OUTSIDE)
                 {
-                    pointDistance_[i] = Foam::mag(d);
+                    pointDistance_[i] =
+                        Foam::mag(pts[i] - nearest[i].hitPoint());
+                }
+                else if (vT == searchableSurface::INSIDE)
+                {
+                    pointDistance_[i] =
+                        -Foam::mag(pts[i] - nearest[i].hitPoint());
                 }
                 else
                 {
-                    pointDistance_[i] = -Foam::mag(d);
+                    FatalErrorIn
+                    (
+                        "void Foam::distanceSurface::createGeometry()"
+                    )   << "getVolumeType failure, neither INSIDE or OUTSIDE"
+                        << exit(FatalError);
                 }
             }
         }
@@ -246,6 +274,14 @@ void Foam::distanceSurface::createGeometry()
             distance_,
             regularise_
         )
+        //new isoSurfaceCell
+        //(
+        //    fvm,
+        //    cellDistance,
+        //    pointDistance_,
+        //    distance_,
+        //    regularise_
+        //)
     );
 
     if (debug)
@@ -286,20 +322,18 @@ Foam::distanceSurface::distanceSurface
     distance_(readScalar(dict.lookup("distance"))),
     signed_(readBool(dict.lookup("signed"))),
     regularise_(dict.lookupOrDefault("regularise", true)),
-    zoneName_(word::null),
+    average_(dict.lookupOrDefault("average", false)),
+    zoneKey_(keyType::null),
     needsUpdate_(true),
     isoSurfPtr_(NULL),
     facesPtr_(NULL)
 {
-//    dict.readIfPresent("zone", zoneName_);
+//    dict.readIfPresent("zone", zoneKey_);
 //
-//    if (debug && zoneName_.size())
+//    if (debug && zoneKey_.size() && mesh.cellZones().findZoneID(zoneKey_) < 0)
 //    {
-//        if (mesh.cellZones().findZoneID(zoneName_) < 0)
-//        {
-//            Info<< "cellZone \"" << zoneName_
-//                << "\" not found - using entire mesh" << endl;
-//        }
+//        Info<< "cellZone " << zoneKey_
+//            << " not found - using entire mesh" << endl;
 //    }
 }
 
@@ -365,8 +399,7 @@ bool Foam::distanceSurface::update()
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::distanceSurface::sample
+Foam::tmp<Foam::scalarField> Foam::distanceSurface::sample
 (
     const volScalarField& vField
 ) const
@@ -375,8 +408,7 @@ Foam::distanceSurface::sample
 }
 
 
-Foam::tmp<Foam::vectorField>
-Foam::distanceSurface::sample
+Foam::tmp<Foam::vectorField> Foam::distanceSurface::sample
 (
     const volVectorField& vField
 ) const
@@ -385,8 +417,7 @@ Foam::distanceSurface::sample
 }
 
 
-Foam::tmp<Foam::sphericalTensorField>
-Foam::distanceSurface::sample
+Foam::tmp<Foam::sphericalTensorField> Foam::distanceSurface::sample
 (
     const volSphericalTensorField& vField
 ) const
@@ -395,8 +426,7 @@ Foam::distanceSurface::sample
 }
 
 
-Foam::tmp<Foam::symmTensorField>
-Foam::distanceSurface::sample
+Foam::tmp<Foam::symmTensorField> Foam::distanceSurface::sample
 (
     const volSymmTensorField& vField
 ) const
@@ -405,8 +435,7 @@ Foam::distanceSurface::sample
 }
 
 
-Foam::tmp<Foam::tensorField>
-Foam::distanceSurface::sample
+Foam::tmp<Foam::tensorField> Foam::distanceSurface::sample
 (
     const volTensorField& vField
 ) const
@@ -415,8 +444,7 @@ Foam::distanceSurface::sample
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::distanceSurface::interpolate
+Foam::tmp<Foam::scalarField> Foam::distanceSurface::interpolate
 (
     const interpolation<scalar>& interpolator
 ) const
@@ -425,8 +453,7 @@ Foam::distanceSurface::interpolate
 }
 
 
-Foam::tmp<Foam::vectorField>
-Foam::distanceSurface::interpolate
+Foam::tmp<Foam::vectorField> Foam::distanceSurface::interpolate
 (
     const interpolation<vector>& interpolator
 ) const
@@ -434,8 +461,7 @@ Foam::distanceSurface::interpolate
     return interpolateField(interpolator);
 }
 
-Foam::tmp<Foam::sphericalTensorField>
-Foam::distanceSurface::interpolate
+Foam::tmp<Foam::sphericalTensorField> Foam::distanceSurface::interpolate
 (
     const interpolation<sphericalTensor>& interpolator
 ) const
@@ -444,8 +470,7 @@ Foam::distanceSurface::interpolate
 }
 
 
-Foam::tmp<Foam::symmTensorField>
-Foam::distanceSurface::interpolate
+Foam::tmp<Foam::symmTensorField> Foam::distanceSurface::interpolate
 (
     const interpolation<symmTensor>& interpolator
 ) const
@@ -454,8 +479,7 @@ Foam::distanceSurface::interpolate
 }
 
 
-Foam::tmp<Foam::tensorField>
-Foam::distanceSurface::interpolate
+Foam::tmp<Foam::tensorField> Foam::distanceSurface::interpolate
 (
     const interpolation<tensor>& interpolator
 ) const

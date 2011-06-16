@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,8 +32,8 @@ License
 #include "polyAddPoint.H"
 #include "polyModifyFace.H"
 #include "syncTools.H"
-#include "wallPoint.H"  // only to use 'greatPoint'
 #include "faceSet.H"
+#include "dummyTransform.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -41,6 +41,55 @@ namespace Foam
 {
 
 defineTypeNameAndDebug(removePoints, 0);
+
+//- Combine-reduce operator to combine data on faces. Takes care
+//  of reverse orientation on coupled face.
+template <class T, template<class> class CombineOp>
+class faceEqOp
+{
+
+public:
+
+    void operator()(List<T>& x, const List<T>& y) const
+    {
+        if (y.size() > 0)
+        {
+            if (x.size() == 0)
+            {
+                x = y;
+            }
+            else
+            {
+                label j = 0;
+                forAll(x, i)
+                {
+                    CombineOp<T>()(x[i], y[j]);
+                    j = y.rcIndex(j);
+                }
+            }
+        }
+    }
+};
+
+
+//// Dummy transform for List. Used in synchronisation.
+//template <class T>
+//class dummyTransformList
+//{
+//public:
+//    void operator()(const coupledPolyPatch&, Field<List<T> >&) const
+//    {}
+//};
+//// Dummy template specialisation. Used in synchronisation.
+//template<>
+//class pTraits<boolList>
+//{
+//public:
+//
+//    //- Component type
+//    typedef label cmptType;
+//};
+
 
 }
 
@@ -248,8 +297,7 @@ Foam::label Foam::removePoints::countPointUsage
         mesh_,
         pointCanBeDeleted,
         andEqOp<bool>(),
-        true,               // null value
-        false               // no separation
+        true                // null value
     );
 
     return returnReduce(nDeleted, sumOp<label>());
@@ -286,7 +334,7 @@ void Foam::removePoints::setRefinement
         savedPoints_.setSize(nDeleted);
         pointToSaved.resize(2*nDeleted);
     }
-    
+
 
     // Remove points
     // ~~~~~~~~~~~~~
@@ -602,7 +650,7 @@ void Foam::removePoints::getUnrefimentSet
                     {
                         label savedPointI = -savedFace[fp]-1;
 
-                        if (savedPoints_[savedPointI] == wallPoint::greatPoint)
+                        if (savedPoints_[savedPointI] == vector::max)
                         {
                             FatalErrorIn
                             (
@@ -663,7 +711,7 @@ void Foam::removePoints::getUnrefimentSet
             mesh_,
             faceVertexRestore,
             faceEqOp<bool, orEqOp>(),   // special operator to handle faces
-            false                       // no separation
+            Foam::dummyTransform()      // no transformation
         );
 
         // So now if any of the points-to-restore is used by any coupled face
@@ -719,7 +767,7 @@ void Foam::removePoints::getUnrefimentSet
     localPoints = localPointsSet.toc();
 
 
-    // Collect all saved faces using any localPointsSet 
+    // Collect all saved faces using any localPointsSet
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     labelHashSet localFacesSet(2*undoFaces.size());
@@ -777,7 +825,7 @@ void Foam::removePoints::setUnrefinement
     {
         label localI = localPoints[i];
 
-        if (savedPoints_[localI] == wallPoint::greatPoint)
+        if (savedPoints_[localI] == vector::max)
         {
             FatalErrorIn
             (
@@ -799,7 +847,7 @@ void Foam::removePoints::setUnrefinement
         );
 
         // Mark the restored points so they are not restored again.
-        savedPoints_[localI] = wallPoint::greatPoint;
+        savedPoints_[localI] = vector::max;
     }
 
     forAll(localFaces, i)

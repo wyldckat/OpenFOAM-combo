@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,7 @@ License
 #include "cellSet.H"
 #include "Time.H"
 #include "IFstream.H"
+#include "fieldDictionary.H"
 
 #include "addToRunTimeSelectionTable.H"
 
@@ -189,7 +190,8 @@ void Foam::fieldToCell::applyToSet
         mesh().time().timeName(),
         mesh(),
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::AUTO_WRITE,
+        false
     );
 
     if (!fieldObject.headerOk())
@@ -206,7 +208,7 @@ void Foam::fieldToCell::applyToSet
         IFstream str(fieldObject.filePath());
 
         // Read dictionary
-        dictionary fieldDict(str);
+        fieldDictionary fieldDict(fieldObject, fieldObject.headerClassName());
 
         scalarField internalVals("internalField", fieldDict, mesh().nCells());
 
@@ -217,7 +219,7 @@ void Foam::fieldToCell::applyToSet
         IFstream str(fieldObject.filePath());
 
         // Read dictionary
-        dictionary fieldDict(str);
+        fieldDictionary fieldDict(fieldObject, fieldObject.headerClassName());
 
         vectorField internalVals("internalField", fieldDict, mesh().nCells());
 

@@ -12,9 +12,7 @@
     );
 
     TEqn.relax();
-
-    eqnResidual = TEqn.solve().initialResidual();
-    maxResidual = max(eqnResidual, maxResidual);
+    TEqn.solve();
 
     rhok = 1.0 - beta*(T - TRef);
 }

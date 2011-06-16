@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,30 +25,32 @@ Application
     surfaceMeshConvert
 
 Description
-
     Convert between surface formats with optional scaling or
     transformations (rotate/translate) on a coordinateSystem.
 
 Usage
     - surfaceMeshConvert inputFile outputFile [OPTION]
 
-    @param -clean \n
+    \param -clean \n
     Perform some surface checking/cleanup on the input surface.
 
-    @param -scaleIn \<scale\> \n
+    \param -scaleIn \<scale\> \n
     Specify a scaling factor when reading files.
 
-    @param -scaleOut \<scale\> \n
+    \param -scaleOut \<scale\> \n
     Specify a scaling factor when writing files.
 
-    @param -dict \<dictionary\> \n
+    \param -dict \<dictionary\> \n
     Specify an alternative dictionary for constant/coordinateSystems.
 
-    @param -from \<coordinateSystem\> \n
+    \param -from \<coordinateSystem\> \n
     Specify a coordinate System when reading files.
 
-    @param -to \<coordinateSystem\> \n
+    \param -to \<coordinateSystem\> \n
     Specify a coordinate System when writing files.
+
+    \param -tri \n
+    Triangulate surface.
 
 Note
     The filename extensions are used to determine the file format type.
@@ -69,22 +71,62 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "convert between surface formats"
+    );
+
     argList::noParallel();
     argList::validArgs.append("inputFile");
     argList::validArgs.append("outputFile");
-    argList::validOptions.insert("clean", "");
-    argList::validOptions.insert("scaleIn",  "scale");
-    argList::validOptions.insert("scaleOut", "scale");
-    argList::validOptions.insert("dict", "coordinateSystemsDict");
-    argList::validOptions.insert("from", "sourceCoordinateSystem");
-    argList::validOptions.insert("to",   "targetCoordinateSystem");
+
+    argList::addBoolOption
+    (
+        "clean",
+        "perform some surface checking/cleanup on the input surface"
+    );
+    argList::addOption
+    (
+        "scaleIn",
+        "factor",
+        "geometry scaling factor on input"
+    );
+    argList::addOption
+    (
+        "scaleOut",
+        "factor",
+        "geometry scaling factor on output"
+    );
+    argList::addOption
+    (
+        "dict",
+        "file",
+        "specify alternative dictionary for the coordinateSystems descriptions"
+    );
+    argList::addOption
+    (
+        "from",
+        "system",
+        "specify the source coordinate system, applied after '-scaleIn'"
+    );
+    argList::addOption
+    (
+        "to",
+        "system",
+        "specify the target coordinate system, applied before '-scaleOut'"
+    );
+    argList::addBoolOption
+    (
+        "tri",
+        "triangulate surface"
+    );
+
 
     argList args(argc, argv);
     Time runTime(args.rootPath(), args.caseName());
-    const stringList& params = args.additionalArgs();
 
-    fileName importName(params[0]);
-    fileName exportName(params[1]);
+    const fileName importName = args[1];
+    const fileName exportName = args[2];
 
     // disable inplace editing
     if (importName == exportName)
@@ -115,7 +157,7 @@ int main(int argc, char *argv[])
 
         if (args.optionFound("dict"))
         {
-            fileName dictPath(args.option("dict"));
+            const fileName dictPath = args["dict"];
 
             csDictIoPtr.set
             (
@@ -162,10 +204,10 @@ int main(int argc, char *argv[])
 
         if (args.optionFound("from"))
         {
-            const word csName(args.option("from"));
+            const word csName = args["from"];
 
-            label csId = csLst.find(csName);
-            if (csId < 0)
+            const label csIndex = csLst.findIndex(csName);
+            if (csIndex < 0)
             {
                 FatalErrorIn(args.executable())
                     << "Cannot find -from " << csName << nl
@@ -173,15 +215,15 @@ int main(int argc, char *argv[])
                     << exit(FatalError);
             }
 
-            fromCsys.reset(new coordinateSystem(csLst[csId]));
+            fromCsys.reset(new coordinateSystem(csLst[csIndex]));
         }
 
         if (args.optionFound("to"))
         {
-            const word csName(args.option("to"));
+            const word csName = args["to"];
 
-            label csId = csLst.find(csName);
-            if (csId < 0)
+            const label csIndex = csLst.findIndex(csName);
+            if (csIndex < 0)
             {
                 FatalErrorIn(args.executable())
                     << "Cannot find -to " << csName << nl
@@ -189,7 +231,7 @@ int main(int argc, char *argv[])
                     << exit(FatalError);
             }
 
-            toCsys.reset(new coordinateSystem(csLst[csId]));
+            toCsys.reset(new coordinateSystem(csLst[csIndex]));
         }
 
 
@@ -238,6 +280,12 @@ int main(int argc, char *argv[])
         {
             Info<< " -scaleOut " << scaleOut << endl;
             surf.scalePoints(scaleOut);
+        }
+
+        if (args.optionFound("tri"))
+        {
+            Info<< "triangulate" << endl;
+            surf.triangulate();
         }
 
         Info<< "writing " << exportName;

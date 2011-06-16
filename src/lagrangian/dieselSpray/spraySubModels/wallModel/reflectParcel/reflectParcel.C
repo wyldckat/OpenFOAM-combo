@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,27 +27,24 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "wallPolyPatch.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
+    defineTypeNameAndDebug(reflectParcel, 0);
 
-// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
-defineTypeNameAndDebug(reflectParcel, 0);
-
-addToRunTimeSelectionTable
-(
-    wallModel,
-    reflectParcel,
-    dictionary
-);
+    addToRunTimeSelectionTable
+    (
+        wallModel,
+        reflectParcel,
+        dictionary
+    );
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-reflectParcel::reflectParcel
+Foam::reflectParcel::reflectParcel
 (
     const dictionary& dict,
     const volVectorField& U,
@@ -63,55 +60,54 @@ reflectParcel::reflectParcel
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-reflectParcel::~reflectParcel()
+Foam::reflectParcel::~reflectParcel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 // Return 'keepParcel'
-bool reflectParcel::wallTreatment
+bool Foam::reflectParcel::wallTreatment
 (
     parcel& p,
-    const label globalFacei
+    const label globalFaceI
 ) const
 {
-    label patchi = p.patch(globalFacei);
-    label facei = p.patchFace(patchi, globalFacei);
+    label patchI = p.patch(globalFaceI);
+    label faceI = p.patchFace(patchI, globalFaceI);
 
     const polyMesh& mesh = spray_.mesh();
 
-    if (isA<wallPolyPatch>(mesh_.boundaryMesh()[patchi]))
+    if (isA<wallPolyPatch>(mesh_.boundaryMesh()[patchI]))
     {
         // wallNormal defined to point outwards of domain
-        vector Sf = mesh_.Sf().boundaryField()[patchi][facei];
+        vector Sf = mesh_.Sf().boundaryField()[patchI][faceI];
         Sf /= mag(Sf);
 
         if (!mesh.moving())
         {
             // static mesh
             scalar Un = p.U() & Sf;
-            
+
             if (Un > 0)
             {
                 p.U() -= (1.0 + elasticity_)*Un*Sf;
             }
-
         }
         else
         {
             // moving mesh
-            vector Ub1 = U_.boundaryField()[patchi][facei];
-            vector Ub0 = U_.oldTime().boundaryField()[patchi][facei];
+            vector Ub1 = U_.boundaryField()[patchI][faceI];
+            vector Ub0 = U_.oldTime().boundaryField()[patchI][faceI];
 
-            scalar dt = spray_.runTime().deltaT().value();
+            scalar dt = spray_.runTime().deltaTValue();
             const vectorField& oldPoints = mesh.oldPoints();
 
-            const vector& Cf1 = mesh.faceCentres()[globalFacei];
+            const vector& Cf1 = mesh.faceCentres()[globalFaceI];
 
-            vector Cf0 = mesh.faces()[globalFacei].centre(oldPoints);
+            vector Cf0 = mesh.faces()[globalFaceI].centre(oldPoints);
             vector Cf = Cf0 + p.stepFraction()*(Cf1 - Cf0);
-            vector Sf0 = mesh.faces()[globalFacei].normal(oldPoints);
+            vector Sf0 = mesh.faces()[globalFaceI].normal(oldPoints);
 
             // for layer addition Sf0 = vector::zero and we use Sf
             if (mag(Sf0) > SMALL)
@@ -126,7 +122,7 @@ bool reflectParcel::wallTreatment
             scalar magSfDiff = mag(Sf - Sf0);
 
             vector Ub = Ub0 + p.stepFraction()*(Ub1 - Ub0);
-                
+
             if (magSfDiff > SMALL)
             {
                 // rotation + translation
@@ -135,17 +131,17 @@ bool reflectParcel::wallTreatment
                 vector omega = Sf0 ^ Sf;
                 scalar magOmega = mag(omega);
                 omega /= magOmega+SMALL;
-                    
+
                 scalar phiVel = ::asin(magOmega)/dt;
-                    
+
                 scalar dist = (p.position() - Cf) & Sfp;
                 vector pos = p.position() - dist*Sfp;
                 vector vrot = phiVel*(omega ^ (pos - Cf));
 
                 vector v = Ub + vrot;
-                
+
                 scalar Un = ((p.U() - v) & Sfp);
-                
+
                 if (Un > 0.0)
                 {
                     p.U() -= (1.0 + elasticity_)*Un*Sfp;
@@ -156,18 +152,18 @@ bool reflectParcel::wallTreatment
                 // translation
                 vector Ur = p.U() - Ub;
                 scalar Urn = Ur & Sf;
-                /*
+            /*
                 if (mag(Ub-v) > SMALL)
                 {
-                    Info << "reflectParcel:: v = " << v
+                    Info<< "reflectParcel:: v = " << v
                         << ", Ub = " << Ub
-                        << ", facei = " << facei
-                        << ", patchi = " << patchi
-                        << ", globalFacei = " << globalFacei
-                        << ", name = " << mesh_.boundaryMesh()[patchi].name()
+                        << ", faceI = " << faceI
+                        << ", patchI = " << patchI
+                        << ", globalFaceI = " << globalFaceI
+                        << ", name = " << mesh_.boundaryMesh()[patchI].name()
                         << endl;
                 }
-                    */
+            */
                 if (Urn > 0.0)
                 {
                     p.U() -= (1.0 + elasticity_)*Urn*Sf;
@@ -178,18 +174,13 @@ bool reflectParcel::wallTreatment
     }
     else
     {
-        FatalError
-            << "bool reflectParcel::wallTreatment(parcel& parcel) const "
-                << " parcel has hit a boundary " 
-                << mesh_.boundary()[patchi].type()
-                << " which not yet has been implemented."
+        FatalErrorIn("bool reflectParcel::wallTreatment(parcel& parcel) const")
+            << " parcel has hit a boundary " << mesh_.boundary()[patchI].type()
+            << " which not yet has been implemented." << nl
             << abort(FatalError);
     }
     return true;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

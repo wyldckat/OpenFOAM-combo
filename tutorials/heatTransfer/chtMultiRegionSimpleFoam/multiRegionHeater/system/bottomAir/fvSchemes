@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -28,24 +28,24 @@ divSchemes
 {
     default         none;
     div(phi,U)      Gauss upwind;
+    div(U,p)        Gauss linear;
     div(phi,h)      Gauss upwind;
     div(phi,k)      Gauss upwind;
     div(phi,epsilon) Gauss upwind;
     div(phi,R)      Gauss upwind;
     div(R)          Gauss linear;
-    div((muEff*dev2(grad(U).T()))) Gauss linear;
-    div(U,p)        Gauss upwind;
+    div((muEff*dev2(T(grad(U))))) Gauss linear;
 }
 
 laplacianSchemes
 {
     default         none;
-    laplacian(muEff,U) Gauss linear limited 0.333;
-    laplacian((rho*(1|A(U))),p_rgh) Gauss linear limited 0.333;
-    laplacian(alphaEff,h) Gauss linear limited 0.333;
-    laplacian(DkEff,k) Gauss linear limited 0.333;
-    laplacian(DepsilonEff,epsilon) Gauss linear limited 0.333;
-    laplacian(DREff,R) Gauss linear limited 0.333;
+    laplacian(muEff,U) Gauss linear uncorrected;
+    laplacian((rho*(1|A(U))),p_rgh) Gauss linear uncorrected;
+    laplacian(alphaEff,h) Gauss linear uncorrected;
+    laplacian(DkEff,k) Gauss linear uncorrected;
+    laplacian(DepsilonEff,epsilon) Gauss linear uncorrected;
+    laplacian(DREff,R) Gauss linear uncorrected;
 }
 
 interpolationSchemes
@@ -55,7 +55,7 @@ interpolationSchemes
 
 snGradSchemes
 {
-    default         limited 0.333;
+    default         uncorrected;
 }
 
 fluxRequired

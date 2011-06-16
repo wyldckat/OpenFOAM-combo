@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,8 @@ Foam::autoPtr<Foam::coordinateSystem> Foam::coordinateSystem::New
         (
             "coordinateSystem::New(const word&, const dictionary&)",
             dict
-        )   << "Unknown coordinateSystem type " << coordType << nl << nl
+        )   << "Unknown coordinateSystem type "
+            << coordType << nl << nl
             << "Valid coordinateSystem types are :" << nl
             << "[default: " << typeName_() << "]"
             << dictionaryConstructorTablePtr_->sortedToc()
@@ -99,7 +100,8 @@ Foam::autoPtr<Foam::coordinateSystem> Foam::coordinateSystem::New
             "coordinateSystem::New(const word&, const word&, "
             "const point&, const coordinateRotation&) : "
             "constructing coordinateSystem"
-        )   << "Unknown coordinateSystem type " << coordType << nl << nl
+        )   << "Unknown coordinateSystem type "
+            << coordType << nl << nl
             << "Valid coordinateSystem types are :" << nl
             << origRotationConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -114,10 +116,11 @@ Foam::autoPtr<Foam::coordinateSystem> Foam::coordinateSystem::New
     Istream& is
 )
 {
-    word name(is);
-    dictionary dict(is);
+    const word name(is);
+    const dictionary dict(is);
 
     return New(name, dict);
 }
+
 
 // ************************************************************************* //

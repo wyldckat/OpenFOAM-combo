@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,7 +45,7 @@ template<class Type, class MeshMapper, class GeoMesh>
 class MapInternalField
 {
 public:
-    
+
     MapInternalField()
     {}
 
@@ -74,14 +74,14 @@ void MapGeometricFields
 {
     HashTable<const GeometricField<Type, PatchField, GeoMesh>*> fields
     (
-        mapper.thisDb().objectRegistry::lookupClass
-            <GeometricField<Type, PatchField, GeoMesh> >()
+        mapper.thisDb().objectRegistry::template
+            lookupClass<GeometricField<Type, PatchField, GeoMesh> >()
     );
 
     // It is necessary to enforce that all old-time fields are stored
     // before the mapping is performed.  Otherwise, if the
     // old-time-level field is mapped before the field itself, sizes
-    // will not match.  
+    // will not match.
 
     for
     (
@@ -91,7 +91,7 @@ void MapGeometricFields
         ++fieldIter
     )
     {
-        GeometricField<Type, PatchField, GeoMesh>& field = 
+        GeometricField<Type, PatchField, GeoMesh>& field =
             const_cast<GeometricField<Type, PatchField, GeoMesh>&>
             (*fieldIter());
 
@@ -111,7 +111,7 @@ void MapGeometricFields
         ++fieldIter
     )
     {
-        GeometricField<Type, PatchField, GeoMesh>& field = 
+        GeometricField<Type, PatchField, GeoMesh>& field =
             const_cast<GeometricField<Type, PatchField, GeoMesh>&>
             (*fieldIter());
 
@@ -136,7 +136,7 @@ void MapGeometricFields
                 // Cannot check sizes for patch fields because of
                 // empty fields in FV and because point fields get their size
                 // from the patch which has already been resized
-                // 
+                //
 
                 field.boundaryField()[patchi].autoMap
                 (

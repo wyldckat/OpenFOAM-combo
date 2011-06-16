@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,12 +30,10 @@ License
 
 template<class ParcelType>
 template<class TrackData>
-bool Foam::DsmcParcel<ParcelType>::move
-(
-    TrackData& td
-)
+bool Foam::DsmcParcel<ParcelType>::move(TrackData& td, const scalar trackTime)
 {
-    ParcelType& p = static_cast<ParcelType&>(*this);
+    typename TrackData::cloudType::parcelType& p =
+        static_cast<typename TrackData::cloudType::parcelType&>(*this);
 
     td.switchProcessor = false;
     td.keepParticle = true;
@@ -43,8 +41,7 @@ bool Foam::DsmcParcel<ParcelType>::move
     const polyMesh& mesh = td.cloud().pMesh();
     const polyBoundaryMesh& pbMesh = mesh.boundaryMesh();
 
-    const scalar deltaT = mesh.time().deltaTValue();
-    scalar tEnd = (1.0 - p.stepFraction())*deltaT;
+    scalar tEnd = (1.0 - p.stepFraction())*trackTime;
     const scalar dtMax = tEnd;
 
     // For reduced-D cases, the velocity used to track needs to be
@@ -71,7 +68,7 @@ bool Foam::DsmcParcel<ParcelType>::move
 
         tEnd -= dt;
 
-        p.stepFraction() = 1.0 - tEnd/deltaT;
+        p.stepFraction() = 1.0 - tEnd/trackTime;
 
         if (p.onBoundary() && td.keepParticle)
         {
@@ -92,7 +89,9 @@ bool Foam::DsmcParcel<ParcelType>::hitPatch
 (
     const polyPatch&,
     TrackData& td,
-    const label patchI
+    const label,
+    const scalar,
+    const tetIndices&
 )
 {
     return false;
@@ -112,20 +111,12 @@ void Foam::DsmcParcel<ParcelType>::hitProcessorPatch
 
 
 template<class ParcelType>
-void Foam::DsmcParcel<ParcelType>::hitProcessorPatch
-(
-    const processorPolyPatch&,
-    int&
-)
-{}
-
-
-template<class ParcelType>
 template<class TrackData>
 void Foam::DsmcParcel<ParcelType>::hitWallPatch
 (
     const wallPolyPatch& wpp,
-    TrackData& td
+    TrackData& td,
+    const tetIndices& tetIs
 )
 {
     label wppIndex = wpp.index();
@@ -171,11 +162,8 @@ void Foam::DsmcParcel<ParcelType>::hitWallPatch
 
     td.cloud().wallInteraction().correct
     (
-        wpp,
-        this->face(),
-        U_,
-        Ei_,
-        typeId_
+        static_cast<DsmcParcel<ParcelType> &>(*this),
+        wpp
     );
 
     U_dot_nw = U_ & nw;
@@ -216,42 +204,17 @@ void Foam::DsmcParcel<ParcelType>::hitWallPatch
 
 
 template<class ParcelType>
-void Foam::DsmcParcel<ParcelType>::hitWallPatch
-(
-    const wallPolyPatch&,
-    int&
-)
-{}
-
-
-template<class ParcelType>
 template<class TrackData>
-void Foam::DsmcParcel<ParcelType>::hitPatch
-(
-    const polyPatch&,
-    TrackData& td
-)
+void Foam::DsmcParcel<ParcelType>::hitPatch(const polyPatch&, TrackData& td)
 {
     td.keepParticle = false;
 }
 
 
 template<class ParcelType>
-void Foam::DsmcParcel<ParcelType>::hitPatch
-(
-    const polyPatch&,
-    int&
-)
-{}
-
-
-template<class ParcelType>
-void Foam::DsmcParcel<ParcelType>::transformProperties
-(
-    const tensor& T
-)
+void Foam::DsmcParcel<ParcelType>::transformProperties(const tensor& T)
 {
-    Particle<ParcelType>::transformProperties(T);
+    ParcelType::transformProperties(T);
     U_ = transform(T, U_);
 }
 
@@ -262,7 +225,7 @@ void Foam::DsmcParcel<ParcelType>::transformProperties
     const vector& separation
 )
 {
-    Particle<ParcelType>::transformProperties(separation);
+    ParcelType::transformProperties(separation);
 }
 
 

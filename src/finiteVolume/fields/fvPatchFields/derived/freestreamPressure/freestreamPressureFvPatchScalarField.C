@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,12 +32,10 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
+Foam::freestreamPressureFvPatchScalarField::
+freestreamPressureFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
@@ -47,7 +45,8 @@ freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
 {}
 
 
-freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
+Foam::freestreamPressureFvPatchScalarField::
+freestreamPressureFvPatchScalarField
 (
     const freestreamPressureFvPatchScalarField& ptf,
     const fvPatch& p,
@@ -59,7 +58,8 @@ freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
 {}
 
 
-freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
+Foam::freestreamPressureFvPatchScalarField::
+freestreamPressureFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -70,7 +70,8 @@ freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
 {}
 
 
-freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
+Foam::freestreamPressureFvPatchScalarField::
+freestreamPressureFvPatchScalarField
 (
     const freestreamPressureFvPatchScalarField& wbppsf
 )
@@ -79,7 +80,8 @@ freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
 {}
 
 
-freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
+Foam::freestreamPressureFvPatchScalarField::
+freestreamPressureFvPatchScalarField
 (
     const freestreamPressureFvPatchScalarField& wbppsf,
     const DimensionedField<scalar, volMesh>& iF
@@ -91,20 +93,20 @@ freestreamPressureFvPatchScalarField::freestreamPressureFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void freestreamPressureFvPatchScalarField::updateCoeffs()
+void Foam::freestreamPressureFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
         return;
     }
 
-    const freestreamFvPatchVectorField& Up = 
+    const freestreamFvPatchVectorField& Up =
         refCast<const freestreamFvPatchVectorField>
         (
             patch().lookupPatchField<volVectorField, vector>("U")
         );
 
-    const surfaceScalarField& phi = 
+    const surfaceScalarField& phi =
         db().lookupObject<surfaceScalarField>("phi");
 
     fvsPatchField<scalar>& phip =
@@ -140,10 +142,13 @@ void freestreamPressureFvPatchScalarField::updateCoeffs()
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, freestreamPressureFvPatchScalarField);
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchScalarField,
+        freestreamPressureFvPatchScalarField
+    );
+}
 
 // ************************************************************************* //

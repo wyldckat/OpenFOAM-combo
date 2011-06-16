@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,21 +45,36 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "add two surfaces via a geometric merge on points."
+    );
+
     argList::noParallel();
-    argList::validArgs.clear();
-    argList::validArgs.append("Foam surface file");
-    argList::validArgs.append("Foam surface file");
-    argList::validArgs.append("Foam output file");
-    argList::validOptions.insert("points", "pointsFile");
-    argList::validOptions.insert("mergeRegions", "");
+    argList::validArgs.append("surfaceFile");
+    argList::validArgs.append("surfaceFile");
+    argList::validArgs.append("output surfaceFile");
+
+    argList::addOption
+    (
+        "points",
+        "file",
+        "provide additional points"
+    );
+    argList::addBoolOption
+    (
+        "mergeRegions",
+        "combine regions from both surfaces"
+    );
+
     argList args(argc, argv);
 
-    fileName inFileName1(args.additionalArgs()[0]);
-    fileName inFileName2(args.additionalArgs()[1]);
-    fileName outFileName(args.additionalArgs()[2]);
+    const fileName inFileName1 = args[1];
+    const fileName inFileName2 = args[2];
+    const fileName outFileName = args[3];
 
-    bool addPoint     = args.optionFound("points");
-    bool mergeRegions = args.optionFound("mergeRegions");
+    const bool addPoint     = args.optionFound("points");
+    const bool mergeRegions = args.optionFound("mergeRegions");
 
     if (addPoint)
     {
@@ -68,7 +83,7 @@ int main(int argc, char *argv[])
             << nl << endl;
 
         Info<< "Surface  : " << inFileName1<< nl
-            << "Points   : " << args.option("points") << nl
+            << "Points   : " << args["points"] << nl
             << "Writing  : " << outFileName << nl << endl;
     }
     else
@@ -110,7 +125,7 @@ int main(int argc, char *argv[])
 
     if (addPoint)
     {
-        IFstream pointsFile(args.option("points"));
+        IFstream pointsFile(args["points"]);
         pointField extraPoints(pointsFile);
 
         Info<< "Additional Points:" << extraPoints.size() << endl;
@@ -262,12 +277,12 @@ int main(int argc, char *argv[])
 
     Info<< endl;
 
-    Info << "Writing : " << outFileName << endl;
+    Info<< "Writing : " << outFileName << endl;
 
     // No need to 'group' while writing since all in correct order anyway.
     combinedSurf.write(outFileName);
 
-    Info << "End\n" << endl;
+    Info<< "End\n" << endl;
 
     return 0;
 }

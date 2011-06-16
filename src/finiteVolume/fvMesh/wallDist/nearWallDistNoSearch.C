@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,6 @@ License
 
 #include "nearWallDistNoSearch.H"
 #include "fvMesh.H"
-#include "wallPoint.H"
 #include "wallFvPatch.H"
 #include "surfaceFields.H"
 
@@ -42,7 +41,7 @@ void Foam::nearWallDistNoSearch::doAll()
 
         if (isA<wallFvPatch>(patches[patchI]))
         {
-            const unallocLabelList& faceCells = patches[patchI].faceCells();
+            const labelUList& faceCells = patches[patchI].faceCells();
 
             const fvPatchVectorField& patchCentres
                 = cellCentres.boundaryField()[patchI];

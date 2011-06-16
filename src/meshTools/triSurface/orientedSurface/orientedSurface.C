@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "orientedSurface.H"
@@ -36,38 +34,15 @@ defineTypeNameAndDebug(Foam::orientedSurface, 0);
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-// Return true if face uses edge from start to end.
-bool Foam::orientedSurface::edgeOrder
-(
-    const labelledTri& f,
-    const edge& e
-)
-{
-    if
-    (
-        (f[0] == e[0] && f[1] == e[1])
-     || (f[1] == e[0] && f[2] == e[1])
-     || (f[2] == e[0] && f[0] == e[1])
-    )
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
 // Return true if edge is used in opposite order in faces
 bool Foam::orientedSurface::consistentEdge
 (
     const edge& e,
-    const labelledTri& f0,
-    const labelledTri& f1
+    const triSurface::FaceType& f0,
+    const triSurface::FaceType& f1
 )
 {
-    return edgeOrder(f0, e) ^ edgeOrder(f1, e);
+    return (f0.edgeDirection(e) > 0) ^ (f1.edgeDirection(e) > 0);
 }
 
 
@@ -120,8 +95,8 @@ Foam::labelList Foam::orientedSurface::edgeToFace
             label face0 = eFaces[0];
             label face1 = eFaces[1];
 
-            const labelledTri& f0 = s.localFaces()[face0];
-            const labelledTri& f1 = s.localFaces()[face1];
+            const triSurface::FaceType& f0 = s.localFaces()[face0];
+            const triSurface::FaceType& f1 = s.localFaces()[face1];
 
             if (flip[face0] == UNVISITED)
             {
@@ -186,7 +161,7 @@ void Foam::orientedSurface::walkSurface
     // List of edges that were changed in the last iteration.
     labelList changedEdges;
 
-    while(true)
+    while (true)
     {
         changedEdges = faceToEdge(s, changedFaces);
 
@@ -236,9 +211,7 @@ void Foam::orientedSurface::propagateOrientation
     (
         s,
         samplePoint,
-        nearestFaceI,
-        nearestPt,
-        10*SMALL
+        nearestFaceI
     );
 
     if (side == triSurfaceTools::UNKNOWN)
@@ -405,15 +378,8 @@ bool Foam::orientedSurface::orient
         {
             if (flipState[faceI] == UNVISITED)
             {
-                const labelledTri& f = s[faceI];
-
                 pointHit curHit =
-                    triPointRef
-                    (
-                        s.points()[f[0]],
-                        s.points()[f[1]],
-                        s.points()[f[2]]
-                    ).nearestPoint(samplePoint);
+                    s[faceI].nearestPoint(samplePoint, s.points());
 
                 if (curHit.distance() < minDist)
                 {

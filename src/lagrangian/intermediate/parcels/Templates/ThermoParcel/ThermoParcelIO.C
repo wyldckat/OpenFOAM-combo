@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,11 +28,11 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 Foam::string Foam::ThermoParcel<ParcelType>::propHeader =
-    KinematicParcel<ParcelType>::propHeader
+    ParcelType::propHeader
   + " T"
-  + " cp";
+  + " Cp";
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -40,23 +40,23 @@ Foam::string Foam::ThermoParcel<ParcelType>::propHeader =
 template<class ParcelType>
 Foam::ThermoParcel<ParcelType>::ThermoParcel
 (
-    const Cloud<ParcelType>& cloud,
+    const polyMesh& mesh,
     Istream& is,
     bool readFields
 )
 :
-    KinematicParcel<ParcelType>(cloud, is, readFields),
+    ParcelType(mesh, is, readFields),
     T_(0.0),
-    cp_(0.0),
+    Cp_(0.0),
     Tc_(0.0),
-    cpc_(0.0)
+    Cpc_(0.0)
 {
     if (readFields)
     {
         if (is.format() == IOstream::ASCII)
         {
             T_ = readScalar(is);
-            cp_ = readScalar(is);
+            Cp_ = readScalar(is);
         }
         else
         {
@@ -64,7 +64,7 @@ Foam::ThermoParcel<ParcelType>::ThermoParcel
             (
                 reinterpret_cast<char*>(&T_),
               + sizeof(T_)
-              + sizeof(cp_)
+              + sizeof(Cp_)
             );
         }
     }
@@ -72,62 +72,64 @@ Foam::ThermoParcel<ParcelType>::ThermoParcel
     // Check state of Istream
     is.check
     (
-        "ThermoParcel::ThermoParcel(const Cloud<ParcelType>&, Istream&, bool)"
+        "ThermoParcel::ThermoParcel(const polyMesh&, Istream&, bool)"
     );
 }
 
 
 template<class ParcelType>
-void Foam::ThermoParcel<ParcelType>::readFields(Cloud<ParcelType>& c)
+template<class CloudType>
+void Foam::ThermoParcel<ParcelType>::readFields(CloudType& c)
 {
     if (!c.size())
     {
         return;
     }
 
-    KinematicParcel<ParcelType>::readFields(c);
+    ParcelType::readFields(c);
 
     IOField<scalar> T(c.fieldIOobject("T", IOobject::MUST_READ));
     c.checkFieldIOobject(c, T);
 
-    IOField<scalar> cp(c.fieldIOobject("cp", IOobject::MUST_READ));
-    c.checkFieldIOobject(c, cp);
+    IOField<scalar> Cp(c.fieldIOobject("Cp", IOobject::MUST_READ));
+    c.checkFieldIOobject(c, Cp);
 
 
     label i = 0;
-    forAllIter(typename Cloud<ParcelType>, c, iter)
+    forAllIter(typename Cloud<ThermoParcel<ParcelType> >, c, iter)
     {
         ThermoParcel<ParcelType>& p = iter();
 
         p.T_ = T[i];
-        p.cp_ = cp[i];
+        p.Cp_ = Cp[i];
         i++;
     }
 }
 
 
 template<class ParcelType>
-void Foam::ThermoParcel<ParcelType>::writeFields(const Cloud<ParcelType>& c)
+template<class CloudType>
+void Foam::ThermoParcel<ParcelType>::writeFields(const CloudType& c)
 {
-    KinematicParcel<ParcelType>::writeFields(c);
+    ParcelType::writeFields(c);
 
     label np =  c.size();
 
     IOField<scalar> T(c.fieldIOobject("T", IOobject::NO_READ), np);
-    IOField<scalar> cp(c.fieldIOobject("cp", IOobject::NO_READ), np);
+    IOField<scalar> Cp(c.fieldIOobject("Cp", IOobject::NO_READ), np);
 
     label i = 0;
-    forAllConstIter(typename Cloud<ParcelType>, c, iter)
+    forAllConstIter(typename Cloud<ThermoParcel<ParcelType> >, c, iter)
     {
         const ThermoParcel<ParcelType>& p = iter();
 
         T[i] = p.T_;
-        cp[i] = p.cp_;
+        Cp[i] = p.Cp_;
         i++;
     }
 
     T.write();
-    cp.write();
+    Cp.write();
 }
 
 
@@ -142,17 +144,17 @@ Foam::Ostream& Foam::operator<<
 {
     if (os.format() == IOstream::ASCII)
     {
-        os  << static_cast<const KinematicParcel<ParcelType>&>(p)
+        os  << static_cast<const ParcelType&>(p)
             << token::SPACE << p.T()
-            << token::SPACE << p.cp();
+            << token::SPACE << p.Cp();
     }
     else
     {
-        os  << static_cast<const KinematicParcel<ParcelType>&>(p);
+        os  << static_cast<const ParcelType&>(p);
         os.write
         (
             reinterpret_cast<const char*>(&p.T_),
-            sizeof(p.T()) + sizeof(p.cp())
+            sizeof(p.T()) + sizeof(p.Cp())
         );
     }
 

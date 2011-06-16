@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,29 +24,26 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "error.H"
-
 #include "LESfilter.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(LESfilter, 0);
-defineRunTimeSelectionTable(LESfilter, dictionary);
+namespace Foam
+{
+    defineTypeNameAndDebug(LESfilter, 0);
+    defineRunTimeSelectionTable(LESfilter, dictionary);
+}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
-autoPtr<LESfilter> LESfilter::New
+Foam::autoPtr<Foam::LESfilter> Foam::LESfilter::New
 (
     const fvMesh& mesh,
     const dictionary& dict
 )
 {
-    word filterType(dict.lookup("filter"));
+    const word filterType(dict.lookup("filter"));
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(filterType);
@@ -56,7 +53,8 @@ autoPtr<LESfilter> LESfilter::New
         FatalErrorIn
         (
             "LESfilter::New(const fvMesh&, const dictionary&)"
-        )   << "Unknown LESfilter type " << filterType << endl << endl
+        )   << "Unknown LESfilter type "
+            << filterType << nl << nl
             << "Valid LESfilter types are :" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -65,9 +63,5 @@ autoPtr<LESfilter> LESfilter::New
     return autoPtr<LESfilter>(cstrIter()(mesh, dict));
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-
-} // End namespace Foam
 
 // ************************************************************************* //

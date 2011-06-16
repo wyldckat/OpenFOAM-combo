@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -221,19 +221,35 @@ labelList findBaffles(const polyMesh& mesh, const labelList& boundaryFaces)
 
 int main(int argc, char *argv[])
 {
-#   include "addRegionOption.H"
-    argList::validOptions.insert("split", "");
-    argList::validOptions.insert("overwrite", "");
-    argList::validOptions.insert("detectOnly", "");
-#   include "setRootCase.H"
-#   include "createTime.H"
+    argList::addNote
+    (
+        "Detect faces that share points (baffles).\n"
+        "Merge them or duplicate the points."
+    );
+
+    #include "addOverwriteOption.H"
+    #include "addRegionOption.H"
+    argList::addBoolOption
+    (
+        "detectOnly",
+        "find baffles only, but do not merge or split them"
+    );
+    argList::addBoolOption
+    (
+        "split",
+        "topologically split duplicate surfaces"
+    );
+
+    #include "setRootCase.H"
+    #include "createTime.H"
     runTime.functionObjects().off();
-#   include "createNamedMesh.H"
+    #include "createNamedMesh.H"
+
     const word oldInstance = mesh.pointsInstance();
 
-    bool split      = args.optionFound("split");
-    bool overwrite  = args.optionFound("overwrite");
-    bool detectOnly = args.optionFound("detectOnly");
+    const bool split      = args.optionFound("split");
+    const bool overwrite  = args.optionFound("overwrite");
+    const bool detectOnly = args.optionFound("detectOnly");
 
     // Collect all boundary faces
     labelList boundaryFaces(mesh.nFaces() - mesh.nInternalFaces());
@@ -247,10 +263,8 @@ int main(int argc, char *argv[])
     if (detectOnly)
     {
         findBaffles(mesh, boundaryFaces);
-
         return 0;
     }
-
 
 
     // Read objects in time directory

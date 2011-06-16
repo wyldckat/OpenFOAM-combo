@@ -1,27 +1,17 @@
 #!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
 
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 
 # Set application name
-application="interDyMFoam"
-
-makeMeshByCellSet()
-{
-    while [ $# -ge 1 ]
-    do
-        echo "Running cellSet operation $1"
-        cp system/cellSetDict.$1 system/cellSetDict
-        cellSet > log.cellSet.$1 2>&1
-        shift
-    done
-}
+application=`getApplication`
 
 runApplication blockMesh
-makeMeshByCellSet 1 2
+runApplication topoSet
 runApplication subsetMesh -overwrite c0 -patch floatingObject
 cp -r 0.org 0 > /dev/null 2>&1
 runApplication setFields
 runApplication $application
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------- end-of-file

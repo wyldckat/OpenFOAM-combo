@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,22 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(faceToCell, 0);
+    addToRunTimeSelectionTable(topoSetSource, faceToCell, word);
+    addToRunTimeSelectionTable(topoSetSource, faceToCell, istream);
 
-defineTypeNameAndDebug(faceToCell, 0);
-
-addToRunTimeSelectionTable(topoSetSource, faceToCell, word);
-
-addToRunTimeSelectionTable(topoSetSource, faceToCell, istream);
-
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::faceToCell::faceAction,
+        4
+    >::names[] =
+    {
+        "neighbour",
+        "owner",
+        "any",
+        "all"
+    };
 }
 
 
@@ -50,15 +59,6 @@ Foam::topoSetSource::addToUsageTable Foam::faceToCell::usage_
     "    Select cells that are the owner|neighbour|any"
     " of the faces in the faceSet or where all faces are in the faceSet\n\n"
 );
-
-template<>
-const char* Foam::NamedEnum<Foam::faceToCell::faceAction, 4>::names[] =
-{
-    "neighbour",
-    "owner",
-    "any",
-    "all"
-};
 
 const Foam::NamedEnum<Foam::faceToCell::faceAction, 4>
     Foam::faceToCell::faceActionNames_;
@@ -73,18 +73,13 @@ void Foam::faceToCell::combine(topoSet& set, const bool add) const
 
 
     // Handle owner/neighbour/any selection
-    for
-    (
-        faceSet::const_iterator iter = loadedSet.begin();
-        iter != loadedSet.end();
-        ++iter
-    )
+    forAllConstIter(faceSet, loadedSet, iter)
     {
-        label faceI = iter.key();
+        const label faceI = iter.key();
 
         if ((option_ == OWNER) || (option_ == ANY))
         {
-            label cellI = mesh_.faceOwner()[faceI];
+            const label cellI = mesh_.faceOwner()[faceI];
 
             addOrDelete(set, cellI, add);
         }
@@ -93,7 +88,7 @@ void Foam::faceToCell::combine(topoSet& set, const bool add) const
         {
             if ((option_ == NEIGHBOUR) || (option_ == ANY))
             {
-                label cellI = mesh_.faceNeighbour()[faceI];
+                const label cellI = mesh_.faceNeighbour()[faceI];
 
                 addOrDelete(set, cellI, add);
             }
@@ -107,16 +102,10 @@ void Foam::faceToCell::combine(topoSet& set, const bool add) const
 
         Map<label> facesPerCell(loadedSet.size());
 
-        for
-        (
-            faceSet::const_iterator iter = loadedSet.begin();
-            iter != loadedSet.end();
-            ++iter
-        )
+        forAllConstIter(faceSet, loadedSet, iter)
         {
-            label faceI = iter.key();
-
-            label own = mesh_.faceOwner()[faceI];
+            const label faceI = iter.key();
+            const label own = mesh_.faceOwner()[faceI];
 
             Map<label>::iterator fndOwn = facesPerCell.find(own);
 
@@ -148,14 +137,9 @@ void Foam::faceToCell::combine(topoSet& set, const bool add) const
 
         // Include cells that are referenced as many times as they have faces
         // -> all faces in set.
-        for
-        (
-            Map<label>::const_iterator iter = facesPerCell.begin();
-            iter != facesPerCell.end();
-            ++iter
-        )
+        forAllConstIter(Map<label>, facesPerCell, iter)
         {
-            label cellI = iter.key();
+            const label cellI = iter.key();
 
             if (iter() == mesh_.cells()[cellI].size())
             {

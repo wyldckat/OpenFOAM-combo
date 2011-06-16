@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Class
 
 Description
     Utility class to do iterating meshCutter until all requests satisfied.
- 
+
     Needed since cell cutting can only cut cell once in one go so if
     refinement pattern is not compatible on a cell by cell basis it will
     refuse to cut.
@@ -101,9 +101,8 @@ public:
         );
 
 
-    // Destructor
-
-        ~refinementIterator();
+    //- Destructor
+    ~refinementIterator();
 
 
     // Member Functions

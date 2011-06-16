@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,14 +36,14 @@ Description
 
     - the rotation angles are in degrees, unless otherwise explictly specified:
 
-    @verbatim
+    \verbatim
         coordinateRotation
         {
             type        EulerRotation
             degrees     false;
             rotation    (0 0 3.141592654);
         }
-    @endverbatim
+    \endverbatim
 
 \*---------------------------------------------------------------------------*/
 
@@ -65,7 +65,7 @@ class EulerCoordinateRotation
 :
     public coordinateRotation
 {
-    // Private member functions
+    // Private Member Functions
 
         //- Calculate transformation tensor
         void calcTransform

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -70,7 +70,15 @@ Foam::sampledIsoSurface::interpolateField
             volPointInterpolation::New(volSubFld.mesh()).interpolate(volSubFld);
 
         // Sample.
-        return surface().interpolate(volSubFld, tpointSubFld());
+        return surface().interpolate
+        (
+            (
+                average_
+              ? pointAverage(tpointSubFld())()
+              : volSubFld
+            ),
+            tpointSubFld()
+        );
     }
     else
     {
@@ -78,7 +86,15 @@ Foam::sampledIsoSurface::interpolateField
             volPointInterpolation::New(volFld.mesh()).interpolate(volFld);
 
         // Sample.
-        return surface().interpolate(volFld, tpointFld());
+        return surface().interpolate
+        (
+            (
+                average_
+              ? pointAverage(tpointFld())()
+              : volFld
+            ),
+            tpointFld()
+        );
     }
 }
 

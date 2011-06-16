@@ -12,7 +12,7 @@ tmp<fv::convectionScheme<scalar> > mvConvection
 
 {
     label inertIndex = -1;
-    volScalarField Yt = 0.0*Y[0];
+    volScalarField Yt(0.0*Y[0]);
 
     forAll(Y, i)
     {
@@ -25,7 +25,7 @@ tmp<fv::convectionScheme<scalar> > mvConvection
               + mvConvection->fvmDiv(phi, Yi)
               - fvm::laplacian(turbulence->muEff(), Yi)
               ==
-                coalParcels.Srho(i)
+                coalParcels.SYi(i, Yi)
               + kappa*chemistry.RR(i)().dimensionedInternalField()
             );
 

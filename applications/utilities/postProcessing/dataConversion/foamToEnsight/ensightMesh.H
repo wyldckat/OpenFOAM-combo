@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,8 +38,12 @@ SourceFiles
 #include "faceSets.H"
 #include "HashTable.H"
 #include "HashSet.H"
-#include "fvMesh.H"
-#include "OFstream.H"
+#include "PackedBoolList.H"
+#include "wordReList.H"
+#include "scalarField.H"
+#include "cellShapeList.H"
+#include "cellList.H"
+
 #include <fstream>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -49,6 +53,8 @@ namespace Foam
 
 class fvMesh;
 class argList;
+class globalIndex;
+class ensightStream;
 
 /*---------------------------------------------------------------------------*\
                            Class ensightMesh Declaration
@@ -61,14 +67,12 @@ public:
         {
         public:
 
-            label nPoints;
             label nTris;
             label nQuads;
             label nPolys;
 
             nFacePrimitives()
             :
-                nPoints(0),
                 nTris(0),
                 nQuads(0),
                 nPolys(0)
@@ -82,8 +86,19 @@ private:
         //- Reference to the OpenFOAM mesh
         const fvMesh& mesh_;
 
+        //- Suppress patches
+        const bool noPatches_;
+
+        //- Output selected patches only
+        const bool patches_;
+        const wordReList patchPatterns_;
+
+        //- Output selected faceZones
+        const bool faceZones_;
+        const wordReList faceZonePatterns_;
+
         //- Set binary file output
-        bool binary_;
+        const bool binary_;
 
         //- The ensight part id for the first patch
         label patchPartOffset_;
@@ -94,11 +109,32 @@ private:
 
         wordList allPatchNames_;
 
-        List<labelList> allPatchProcs_;
-
         wordHashSet patchNames_;
 
         HashTable<nFacePrimitives> nPatchPrims_;
+
+        // faceZone - related variables
+        List<faceSets> faceZoneFaceSets_;
+
+        wordHashSet faceZoneNames_;
+
+        HashTable<nFacePrimitives> nFaceZonePrims_;
+
+        //- Per boundary face whether to include or not
+        PackedBoolList boundaryFaceToBeIncluded_;
+
+
+        // Parallel merged points
+
+            //- Global numbering for merged points
+            autoPtr<globalIndex> globalPointsPtr_;
+
+            //- From mesh point to global merged point
+            labelList pointToGlobal_;
+
+            //- Local points that are unique
+            labelList uniquePointMap_;
+
 
 
     // Private Member Functions
@@ -112,34 +148,35 @@ private:
         void writePoints
         (
             const scalarField& pointsComponent,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         cellShapeList map
         (
             const cellShapeList& cellShapes,
-            const labelList& prims
+            const labelList& prims,
+            const labelList& pointToGlobal
         ) const;
 
         cellShapeList map
         (
             const cellShapeList& cellShapes,
             const labelList& hexes,
-            const labelList& wedges
+            const labelList& wedges,
+            const labelList& pointToGlobal
         ) const;
 
         void writePrims
         (
             const cellShapeList& cellShapes,
-            const label pointOffset,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writePolysNFaces
         (
             const labelList& polys,
             const cellList& cellFaces,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writePolysNPointsPerFace
@@ -147,7 +184,7 @@ private:
             const labelList& polys,
             const cellList& cellFaces,
             const faceList& faces,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writePolysPoints
@@ -155,14 +192,13 @@ private:
             const labelList& polys,
             const cellList& cellFaces,
             const faceList& faces,
-            const label pointOffset,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeAllPolys
         (
-            const labelList& pointOffsets,
-            OFstream& ensightGeometryFile
+            const labelList& pointToGlobal,
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeAllPrims
@@ -170,21 +206,13 @@ private:
             const char* key,
             const label nPrims,
             const cellShapeList& cellShapes,
-            const labelList& pointOffsets,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeFacePrims
         (
             const faceList& patchFaces,
-            const label pointOffset,
-            OFstream& ensightGeometryFile
-        ) const;
-
-        faceList map
-        (
-            const faceList& patchFaces,
-            const labelList& prims
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeAllFacePrims
@@ -193,22 +221,19 @@ private:
             const labelList& prims,
             const label nPrims,
             const faceList& patchFaces,
-            const labelList& pointOffsets,
-            const labelList& patchProcessors,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeNSidedNPointsPerFace
         (
             const faceList& patchFaces,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeNSidedPoints
         (
             const faceList& patchFaces,
-            const label pointOffset,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
         void writeAllNSided
@@ -216,112 +241,23 @@ private:
             const labelList& prims,
             const label nPrims,
             const faceList& patchFaces,
-            const labelList& pointOffsets,
-            const labelList& patchProcessors,
-            OFstream& ensightGeometryFile
+            ensightStream& ensightGeometryFile
         ) const;
 
-        void writeAscii
+        void writeAllInternalPoints
         (
-            const fileName& postProcPath,
-            const word& prepend,
-            const label timeIndex,
-            Ostream& ensightCaseFile
+            const pointField& uniquePoints,
+            const label nPoints,
+            ensightStream& ensightGeometryFile
         ) const;
 
-        void writeBinary
+        void writeAllPatchPoints
         (
-            const fileName& postProcPath,
-            const word& prepend,
-            const label timeIndex,
-            Ostream& ensightCaseFile
-        ) const;
-
-        void writePrimsBinary
-        (
-            const cellShapeList& cellShapes,
-            const label pointOffset,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeAllPrimsBinary
-        (
-            const char* key,
-            const label nPrims,
-            const cellShapeList& cellShapes,
-            const labelList& pointOffsets,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writePolysNFacesBinary
-        (
-            const labelList& polys,
-            const cellList& cellFaces,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writePolysNPointsPerFaceBinary
-        (
-            const labelList& polys,
-            const cellList& cellFaces,
-            const faceList& faces,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writePolysPointsBinary
-        (
-            const labelList& polys,
-            const cellList& cellFaces,
-            const faceList& faces,
-            const label pointOffset,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeAllPolysBinary
-        (
-            const labelList& pointOffsets,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeAllFacePrimsBinary
-        (
-            const char* key,
-            const labelList& prims,
-            const label nPrims,
-            const faceList& patchFaces,
-            const labelList& pointOffsets,
-            const labelList& patchProcessors,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeFacePrimsBinary
-        (
-            const faceList& patchFaces,
-            const label pointOffset,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeNSidedPointsBinary
-        (
-            const faceList& patchFaces,
-            const label pointOffset,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeNSidedNPointsPerFaceBinary
-        (
-            const faceList& patchFaces,
-            std::ofstream& ensightGeometryFile
-        ) const;
-
-        void writeAllNSidedBinary
-        (
-            const labelList& prims,
-            const label nPrims,
-            const faceList& patchFaces,
-            const labelList& pointOffsets,
-            const labelList& patchProcessors,
-            std::ofstream& ensightGeometryFile
+            label ensightPatchI,
+            const word& patchName,
+            const pointField& uniquePoints,
+            const label nPoints,
+            ensightStream& ensightGeometryFile
         ) const;
 
 public:
@@ -329,7 +265,16 @@ public:
     // Constructors
 
         //- Construct from fvMesh
-        ensightMesh(const fvMesh&, const argList& args, const bool binary);
+        ensightMesh
+        (
+            const fvMesh& mesh,
+            const bool noPatches,
+            const bool patches,
+            const wordReList& patchPatterns,
+            const bool faceZones,
+            const wordReList& faceZonePatterns,
+            const bool binary
+        );
 
 
     //- Destructor
@@ -360,11 +305,6 @@ public:
                 return allPatchNames_;
             }
 
-            const List<labelList>& allPatchProcs() const
-            {
-                return allPatchProcs_;
-            }
-
             const wordHashSet& patchNames() const
             {
                 return patchNames_;
@@ -375,11 +315,62 @@ public:
                 return nPatchPrims_;
             }
 
+            const List<faceSets>& faceZoneFaceSets() const
+            {
+                return faceZoneFaceSets_;
+            }
+
+            const wordHashSet& faceZoneNames() const
+            {
+                return faceZoneNames_;
+            }
+
+            const HashTable<nFacePrimitives>& nFaceZonePrims() const
+            {
+                return nFaceZonePrims_;
+            }
+
             //- The ensight part id for the first patch
             label patchPartOffset() const
             {
                 return patchPartOffset_;
             }
+
+
+        // Parallel point merging
+
+            //- Global numbering for merged points
+            const globalIndex& globalPoints() const
+            {
+                return globalPointsPtr_();
+            }
+
+            //- From mesh point to global merged point
+            const labelList& pointToGlobal() const
+            {
+                return pointToGlobal_;
+            }
+
+            //- Local points that are unique
+            const labelList& uniquePointMap() const
+            {
+                return uniquePointMap_;
+            }
+
+
+
+
+    // Other
+
+        //- Update for new mesh
+        void correct();
+
+        //- When exporting faceZones, check if a given face has to be included
+        //  or not (i.e. faces on processor boundaries)
+        bool faceToBeIncluded(const label faceI) const;
+
+        //- Helper to cause barrier. Necessary on Quadrics.
+        static void barrier();
 
 
     // I-O
@@ -391,6 +382,7 @@ public:
             const label timeIndex,
             Ostream& ensightCaseFile
         ) const;
+
 };
 
 

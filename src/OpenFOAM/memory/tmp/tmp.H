@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,7 +62,7 @@ class tmp
         //- Pointer to temporary object
         mutable T* ptr_;
 
-        // Const reference to constant object
+        //- Const reference to constant object
         const T& ref_;
 
 
@@ -80,10 +80,8 @@ public:
         inline tmp(const tmp<T>&);
 
 
-    // Destructor
-
-        //- Delete object when reference count == 0
-        inline ~tmp();
+    //- Destructor, delete object when reference count == 0
+    inline ~tmp();
 
 
     // Member Functions

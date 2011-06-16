@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,18 +25,12 @@ License
 
 #include "pointFieldDecomposer.H"
 #include "processorPointPatchFields.H"
-#include "globalPointPatchFields.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Type>
-tmp<GeometricField<Type, pointPatchField, pointMesh> >
-pointFieldDecomposer::decomposeField
+Foam::tmp<Foam::GeometricField<Type, Foam::pointPatchField, Foam::pointMesh> >
+Foam::pointFieldDecomposer::decomposeField
 (
     const GeometricField<Type, pointPatchField, pointMesh>& field
 ) const
@@ -44,15 +38,11 @@ pointFieldDecomposer::decomposeField
     // Create and map the internal field values
     Field<Type> internalField(field.internalField(), pointAddressing_);
 
-    // Create a list of pointers for the patchFields including one extra
-    // for the global patch
-    PtrList<pointPatchField<Type> > patchFields
-    (
-        boundaryAddressing_.size() + 1
-    );
+    // Create a list of pointers for the patchFields
+    PtrList<pointPatchField<Type> > patchFields(boundaryAddressing_.size());
 
     // Create and map the patch field values
-    forAll (boundaryAddressing_, patchi)
+    forAll(boundaryAddressing_, patchi)
     {
         if (patchFieldDecomposerPtrs_[patchi])
         {
@@ -82,17 +72,6 @@ pointFieldDecomposer::decomposeField
         }
     }
 
-    // Add the global patch
-    patchFields.set
-    (
-        boundaryAddressing_.size(),
-        new globalPointPatchField<Type>
-        (
-            procMesh_.boundary().globalPatch(),
-            DimensionedField<Type, pointMesh>::null()
-        )
-    );
-
     // Create the field for the processor
     return tmp<GeometricField<Type, pointPatchField, pointMesh> >
     (
@@ -116,12 +95,12 @@ pointFieldDecomposer::decomposeField
 
 
 template<class GeoField>
-void pointFieldDecomposer::decomposeFields
+void Foam::pointFieldDecomposer::decomposeFields
 (
     const PtrList<GeoField>& fields
 ) const
 {
-    forAll (fields, fieldI)
+    forAll(fields, fieldI)
     {
         decomposeField(fields[fieldI])().write();
     }
@@ -129,7 +108,5 @@ void pointFieldDecomposer::decomposeFields
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

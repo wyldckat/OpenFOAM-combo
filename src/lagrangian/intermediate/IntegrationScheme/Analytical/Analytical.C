@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "Analytical.H"
-#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -36,6 +35,13 @@ Foam::Analytical<Type>::Analytical
 )
 :
     IntegrationScheme<Type>(phiName, dict)
+{}
+
+
+template<class Type>
+Foam::Analytical<Type>::Analytical(const Analytical& is)
+:
+    IntegrationScheme<Type>(is)
 {}
 
 
@@ -52,15 +58,28 @@ template<class Type>
 typename Foam::IntegrationScheme<Type>::integrationResult
 Foam::Analytical<Type>::integrate
 (
-    const Type phi,
+    const Type& phi,
     const scalar dt,
-    const Type alpha,
+    const Type& alphaBeta,
     const scalar beta
 ) const
 {
     typename IntegrationScheme<Type>::integrationResult retValue;
-    retValue.average() = alpha + (phi - alpha)*(1 - exp(-beta*dt))/(beta*dt);
-    retValue.value() =  alpha + (phi - alpha)*exp(-beta*dt);
+
+    const scalar expTerm = exp(min(50, -beta*dt));
+
+    if (beta > ROOTVSMALL)
+    {
+        const Type alpha = alphaBeta/beta;
+        retValue.average() = alpha + (phi - alpha)*(1 - expTerm)/(beta*dt);
+        retValue.value() =  alpha + (phi - alpha)*expTerm;
+    }
+    else
+    {
+        retValue.average() = phi;
+        retValue.value() =  phi;
+    }
+
 
     return retValue;
 }

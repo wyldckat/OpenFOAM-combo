@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -64,21 +64,6 @@ class OSstream
 
         //- Disallow default bitwise assignment
         void operator=(const OSstream&);
-
-
-protected:
-
-        //- Return the stream reference
-        ostream& stream()
-        {
-            return os_;
-        }
-
-        //- Return the const stream reference
-        const ostream& stream() const
-        {
-            return os_;
-        }
 
 
 public:
@@ -184,6 +169,21 @@ public:
 
             //- Set precision of output field (and return old precision)
             virtual int precision(const int);
+
+
+        // STL stream
+
+            //- Access to underlying std::ostream
+            virtual ostream& stdStream()
+            {
+                return os_;
+            }
+
+            //- Const access to underlying std::ostream
+            virtual const ostream& stdStream() const
+            {
+                return os_;
+            }
 
 
         // Print

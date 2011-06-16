@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,6 +57,11 @@ class IOdictionary
     public dictionary
 {
 
+    // Private Member Functions
+
+        //- read dictionary from file
+        void readFile(const bool);
+
 public:
 
     TypeName("dictionary");
@@ -70,10 +75,12 @@ public:
         //- Construct given an IOobject and dictionary
         IOdictionary(const IOobject&, const dictionary&);
 
+        //- Construct given an IOobject and Istream
+        IOdictionary(const IOobject&, Istream&);
 
-    // Destructor
 
-        virtual ~IOdictionary();
+    //- Destructor
+    virtual ~IOdictionary();
 
 
     // Member functions
@@ -87,9 +94,6 @@ public:
 
         //- WriteData function required for regIOobject write operation
         bool writeData(Ostream&) const;
-
-        //- Write using setting from DB
-        virtual bool write() const;
 
 
     // Member operators

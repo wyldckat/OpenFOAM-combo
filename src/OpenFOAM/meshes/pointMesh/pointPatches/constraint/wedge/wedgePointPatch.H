@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,6 +72,12 @@ public:
 
 
     // Member Functions
+
+        //- Return the constraint type this pointPatch implements.
+        virtual const word& constraintType() const
+        {
+            return type();
+        }
 
         //- Accumulate the effect of constraint direction of this patch
         virtual void applyConstraint

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,11 @@ License
 #include "volPointInterpolation.H"
 #include "volFields.H"
 #include "pointFields.H"
-#include "globalPointPatch.H"
+#include "emptyFvPatch.H"
+#include "mapDistribute.H"
+#include "coupledPointPatchField.H"
+#include "valuePointPatchField.H"
+#include "transform.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -34,6 +38,146 @@ namespace Foam
 {
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+template<class Type, class CombineOp>
+void volPointInterpolation::syncUntransformedData
+(
+    List<Type>& pointData,
+    const CombineOp& cop
+) const
+{
+    // Transfer onto coupled patch
+    const globalMeshData& gmd = mesh().globalData();
+    const indirectPrimitivePatch& cpp = gmd.coupledPatch();
+    const labelList& meshPoints = cpp.meshPoints();
+
+    const mapDistribute& slavesMap = gmd.globalPointSlavesMap();
+    const labelListList& slaves = gmd.globalPointSlaves();
+
+    List<Type> elems(slavesMap.constructSize());
+    forAll(meshPoints, i)
+    {
+        elems[i] = pointData[meshPoints[i]];
+    }
+
+    // Pull slave data onto master. No need to update transformed slots.
+    slavesMap.distribute(elems, false);
+
+    // Combine master data with slave data
+    forAll(slaves, i)
+    {
+        Type& elem = elems[i];
+
+        const labelList& slavePoints = slaves[i];
+
+        // Combine master with untransformed slave data
+        forAll(slavePoints, j)
+        {
+            cop(elem, elems[slavePoints[j]]);
+        }
+
+        // Copy result back to slave slots
+        forAll(slavePoints, j)
+        {
+            elems[slavePoints[j]] = elem;
+        }
+    }
+
+    // Push slave-slot data back to slaves
+    slavesMap.reverseDistribute(elems.size(), elems, false);
+
+    // Extract back onto mesh
+    forAll(meshPoints, i)
+    {
+        pointData[meshPoints[i]] = elems[i];
+    }
+}
+
+
+template<class Type>
+void volPointInterpolation::pushUntransformedData
+(
+    List<Type>& pointData
+) const
+{
+    // Transfer onto coupled patch
+    const globalMeshData& gmd = mesh().globalData();
+    const indirectPrimitivePatch& cpp = gmd.coupledPatch();
+    const labelList& meshPoints = cpp.meshPoints();
+
+    const mapDistribute& slavesMap = gmd.globalPointSlavesMap();
+    const labelListList& slaves = gmd.globalPointSlaves();
+
+    List<Type> elems(slavesMap.constructSize());
+    forAll(meshPoints, i)
+    {
+        elems[i] = pointData[meshPoints[i]];
+    }
+
+    // Combine master data with slave data
+    forAll(slaves, i)
+    {
+        const labelList& slavePoints = slaves[i];
+
+        // Copy master data to slave slots
+        forAll(slavePoints, j)
+        {
+            elems[slavePoints[j]] = elems[i];
+        }
+    }
+
+    // Push slave-slot data back to slaves
+    slavesMap.reverseDistribute(elems.size(), elems, false);
+
+    // Extract back onto mesh
+    forAll(meshPoints, i)
+    {
+        pointData[meshPoints[i]] = elems[i];
+    }
+}
+
+
+template<class Type>
+void volPointInterpolation::addSeparated
+(
+    GeometricField<Type, pointPatchField, pointMesh>& pf
+) const
+{
+    if (debug)
+    {
+        Pout<< "volPointInterpolation::addSeparated" << endl;
+    }
+
+    forAll(pf.boundaryField(), patchI)
+    {
+        if (pf.boundaryField()[patchI].coupled())
+        {
+            refCast<coupledPointPatchField<Type> >
+                (pf.boundaryField()[patchI]).initSwapAddSeparated
+                (
+                    Pstream::blocking,  //Pstream::nonBlocking,
+                    pf.internalField()
+                );
+        }
+    }
+
+    // Block for any outstanding requests
+    //Pstream::waitRequests();
+
+    forAll(pf.boundaryField(), patchI)
+    {
+        if (pf.boundaryField()[patchI].coupled())
+        {
+            refCast<coupledPointPatchField<Type> >
+                (pf.boundaryField()[patchI]).swapAddSeparated
+                (
+                    Pstream::blocking,  //Pstream::nonBlocking,
+                    pf.internalField()
+                );
+        }
+    }
+}
+
 
 template<class Type>
 void volPointInterpolation::interpolateInternalField
@@ -44,7 +188,7 @@ void volPointInterpolation::interpolateInternalField
 {
     if (debug)
     {
-        Info<< "volPointInterpolation::interpolateInternalField("
+        Pout<< "volPointInterpolation::interpolateInternalField("
             << "const GeometricField<Type, fvPatchField, volMesh>&, "
             << "GeometricField<Type, pointPatchField, pointMesh>&) : "
             << "interpolating field from cells to points"
@@ -56,15 +200,165 @@ void volPointInterpolation::interpolateInternalField
     // Multiply volField by weighting factor matrix to create pointField
     forAll(pointCells, pointi)
     {
-        const scalarList& pw = pointWeights_[pointi];
-        const labelList& ppc = pointCells[pointi];
-
-        pf[pointi] = pTraits<Type>::zero;
-
-        forAll(ppc, pointCelli)
+        if (!isPatchPoint_[pointi])
         {
-            pf[pointi] += pw[pointCelli]*vf[ppc[pointCelli]];
+            const scalarList& pw = pointWeights_[pointi];
+            const labelList& ppc = pointCells[pointi];
+
+            pf[pointi] = pTraits<Type>::zero;
+
+            forAll(ppc, pointCelli)
+            {
+                pf[pointi] += pw[pointCelli]*vf[ppc[pointCelli]];
+            }
         }
+    }
+}
+
+
+template<class Type>
+tmp<Field<Type> > volPointInterpolation::flatBoundaryField
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vf
+) const
+{
+    const fvMesh& mesh = vf.mesh();
+    const fvBoundaryMesh& bm = mesh.boundary();
+
+    tmp<Field<Type> > tboundaryVals
+    (
+        new Field<Type>(mesh.nFaces()-mesh.nInternalFaces())
+    );
+    Field<Type>& boundaryVals = tboundaryVals();
+
+    forAll(vf.boundaryField(), patchI)
+    {
+        label bFaceI = bm[patchI].patch().start() - mesh.nInternalFaces();
+
+        if (!isA<emptyFvPatch>(bm[patchI]) && !bm[patchI].coupled())
+        {
+            SubList<Type>
+            (
+                boundaryVals,
+                vf.boundaryField()[patchI].size(),
+                bFaceI
+            ).assign(vf.boundaryField()[patchI]);
+        }
+        else
+        {
+            const polyPatch& pp = bm[patchI].patch();
+
+            forAll(pp, i)
+            {
+                boundaryVals[bFaceI++] = pTraits<Type>::zero;
+            }
+        }
+    }
+
+    return tboundaryVals;
+}
+
+
+template<class Type>
+void volPointInterpolation::interpolateBoundaryField
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    GeometricField<Type, pointPatchField, pointMesh>& pf,
+    const bool overrideFixedValue
+) const
+{
+    const primitivePatch& boundary = boundaryPtr_();
+
+    Field<Type>& pfi = pf.internalField();
+
+    // Get face data in flat list
+    tmp<Field<Type> > tboundaryVals(flatBoundaryField(vf));
+    const Field<Type>& boundaryVals = tboundaryVals();
+
+
+    // Do points on 'normal' patches from the surrounding patch faces
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    forAll(boundary.meshPoints(), i)
+    {
+        label pointI = boundary.meshPoints()[i];
+
+        if (isPatchPoint_[pointI])
+        {
+            const labelList& pFaces = boundary.pointFaces()[i];
+            const scalarList& pWeights = boundaryPointWeights_[i];
+
+            Type& val = pfi[pointI];
+
+            val = pTraits<Type>::zero;
+            forAll(pFaces, j)
+            {
+                if (boundaryIsPatchFace_[pFaces[j]])
+                {
+                    val += pWeights[j]*boundaryVals[pFaces[j]];
+                }
+            }
+        }
+    }
+
+    // Sum collocated contributions
+    //mesh().globalData().syncPointData(pfi, plusEqOp<Type>());
+    syncUntransformedData(pfi, plusEqOp<Type>());
+
+    // And add separated contributions
+    addSeparated(pf);
+
+    // Push master data to slaves. It is possible (not sure how often) for
+    // a coupled point to have its master on a different patch so
+    // to make sure just push master data to slaves. Reuse the syncPointData
+    // structure.
+    //mesh().globalData().syncPointData(pfi, nopEqOp<Type>());
+    pushUntransformedData(pfi);
+
+
+
+    if (overrideFixedValue)
+    {
+        forAll(pf.boundaryField(), patchI)
+        {
+            pointPatchField<Type>& ppf = pf.boundaryField()[patchI];
+
+            if (isA<valuePointPatchField<Type> >(ppf))
+            {
+                refCast<valuePointPatchField<Type> >(ppf) =
+                    ppf.patchInternalField();
+            }
+        }
+    }
+
+
+    // Override constrained pointPatchField types with the constraint value.
+    // This relys on only constrained pointPatchField implementing the evaluate
+    // function
+    pf.correctBoundaryConditions();
+
+    // Sync any dangling points
+    //mesh().globalData().syncPointData(pfi, nopEqOp<Type>());
+    pushUntransformedData(pfi);
+
+    // Apply multiple constraints on edge/corner points
+    applyCornerConstraints(pf);
+}
+
+
+template<class Type>
+void volPointInterpolation::applyCornerConstraints
+(
+    GeometricField<Type, pointPatchField, pointMesh>& pf
+) const
+{
+    forAll(patchPatchPointConstraintPoints_, pointi)
+    {
+        pf[patchPatchPointConstraintPoints_[pointi]] = transform
+        (
+            patchPatchPointConstraintTensors_[pointi],
+            pf[patchPatchPointConstraintPoints_[pointi]]
+        );
     }
 }
 
@@ -78,7 +372,7 @@ void volPointInterpolation::interpolate
 {
     if (debug)
     {
-        Info<< "volPointInterpolation::interpolate("
+        Pout<< "volPointInterpolation::interpolate("
             << "const GeometricField<Type, fvPatchField, volMesh>&, "
             << "GeometricField<Type, pointPatchField, pointMesh>&) : "
             << "interpolating field from cells to points"
@@ -88,7 +382,7 @@ void volPointInterpolation::interpolate
     interpolateInternalField(vf, pf);
 
     // Interpolate to the patches preserving fixed value BCs
-    boundaryInterpolator_.interpolate(vf, pf, false);
+    interpolateBoundaryField(vf, pf, false);
 }
 
 
@@ -100,23 +394,7 @@ volPointInterpolation::interpolate
     const wordList& patchFieldTypes
 ) const
 {
-    wordList types(patchFieldTypes);
-
-    const pointMesh& pMesh = pointMesh::New(vf.mesh());
-
-    // If the last patch of the pointBoundaryMesh is the global patch
-    // it must be added to the list of patchField types
-    if
-    (
-        isType<globalPointPatch>
-        (
-            pMesh.boundary()[pMesh.boundary().size() - 1]
-        )
-    )
-    {
-        types.setSize(types.size() + 1);
-        types[types.size()-1] = pMesh.boundary()[types.size()-1].type();
-    }
+    const pointMesh& pm = pointMesh::New(vf.mesh());
 
     // Construct tmp<pointField>
     tmp<GeometricField<Type, pointPatchField, pointMesh> > tpf
@@ -127,18 +405,18 @@ volPointInterpolation::interpolate
             (
                 "volPointInterpolate(" + vf.name() + ')',
                 vf.instance(),
-                pMesh.thisDb()
+                pm.thisDb()
             ),
-            pMesh,
+            pm,
             vf.dimensions(),
-            types
+            patchFieldTypes
         )
     );
 
     interpolateInternalField(vf, tpf());
 
     // Interpolate to the patches overriding fixed value BCs
-    boundaryInterpolator_.interpolate(vf, tpf(), true);
+    interpolateBoundaryField(vf, tpf(), true);
 
     return tpf;
 }
@@ -185,7 +463,7 @@ volPointInterpolation::interpolate
     );
 
     interpolateInternalField(vf, tpf());
-    boundaryInterpolator_.interpolate(vf, tpf(), false);
+    interpolateBoundaryField(vf, tpf(), false);
 
     return tpf;
 }

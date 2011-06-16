@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,7 +69,7 @@ void hexBlock::setHandedness()
                     }
                     else
                     {
-                        Info << "Left-handed block." << endl;
+                        Info<< "Left-handed block." << endl;
                         blockHandedness_ = left;
                     }
                     return;
@@ -128,13 +128,13 @@ void hexBlock::readPoints
     Info<< "Reading " << nPoints << " x coordinates..." << endl;
     for (label i=0; i < nPoints; i++)
     {
-        is >> points_[i].x();
+        is  >> points_[i].x();
     }
 
     Info<< "Reading " << nPoints << " y coordinates..." << endl;
     for (label i=0; i < nPoints; i++)
     {
-        is >> points_[i].y();
+        is  >> points_[i].y();
     }
 
     if (twoDThicknes > 0)
@@ -156,7 +156,7 @@ void hexBlock::readPoints
         Info<< "Reading " << nPoints << " z coordinates..." << endl;
         for (label i=0; i < nPoints; i++)
         {
-            is >> points_[i].z();
+            is  >> points_[i].z();
         }
     }
 
@@ -166,7 +166,7 @@ void hexBlock::readPoints
         Info<< "Reading " << nPoints << " blanks..." << endl;
         for (label i=0; i < nPoints; i++)
         {
-            is >> iBlank;
+            is  >> iBlank;
         }
     }
 
@@ -470,9 +470,9 @@ faceList hexBlock::patchFaces(const label direc, const labelList& range) const
     else if (blockHandedness_ == left)
     {
         // turn all faces inside out
-        forAll (result, faceI)
+        forAll(result, faceI)
         {
-            result[faceI] = result[faceI].reverseFace();
+            result[faceI].flip();
         }
     }
 

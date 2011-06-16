@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,13 +30,15 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(searchableSurface, 0);
+    defineRunTimeSelectionTable(searchableSurface, dict);
+}
 
-defineTypeNameAndDebug(searchableSurface, 0);
-defineRunTimeSelectionTable(searchableSurface, dict);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-// Construct named object from dictionary
-autoPtr<searchableSurface> searchableSurface::New
+Foam::autoPtr<Foam::searchableSurface> Foam::searchableSurface::New
 (
     const word& searchableSurfaceType,
     const IOobject& io,
@@ -44,15 +46,14 @@ autoPtr<searchableSurface> searchableSurface::New
 )
 {
     dictConstructorTable::iterator cstrIter =
-        dictConstructorTablePtr_
-            ->find(searchableSurfaceType);
+        dictConstructorTablePtr_->find(searchableSurfaceType);
 
     if (cstrIter == dictConstructorTablePtr_->end())
     {
         FatalErrorIn
         (
-            "searchableSurface::New(const word&, const word&"
-            ", const IOobject&, const dictionary&)"
+            "searchableSurface::New(const word&,"
+            " const IOobject&, const dictionary&)"
         )   << "Unknown searchableSurface type " << searchableSurfaceType
             << endl << endl
             << "Valid searchableSurface types : " << endl
@@ -76,9 +77,6 @@ Foam::searchableSurface::searchableSurface(const IOobject& io)
 
 Foam::searchableSurface::~searchableSurface()
 {}
-
-
-} // End namespace Foam
 
 
 // ************************************************************************* //

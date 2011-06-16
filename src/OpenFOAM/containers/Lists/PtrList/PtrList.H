@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,8 +28,8 @@ Description
     A templated 1D list of pointers to objects of type \<T\>, where the
     size of the array is known and used for subscript bounds checking, etc.
 
-    The element operator [] returns a reference to the object
-    rather than to the pointer.
+    The element operator [] returns a reference to the object rather than a
+    pointer.
 
 SourceFiles
     PtrList.C
@@ -104,7 +104,7 @@ class PtrList
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Read from Istream using given Istream constructor class
         template<class INew>
@@ -118,7 +118,7 @@ public:
         //- Null Constructor.
         PtrList();
 
-        //- Construct with length specified.
+        //- Construct with size specified.
         explicit PtrList(const label);
 
         //- Copy constructor.
@@ -135,7 +135,7 @@ public:
         PtrList(PtrList<T>&, bool reUse);
 
         //- Construct as copy of SLPtrList<T>
-        PtrList(const SLPtrList<T>&);
+        explicit PtrList(const SLPtrList<T>&);
 
         //- Construct from Istream using given Istream constructor class
         template<class INew>
@@ -145,9 +145,8 @@ public:
         PtrList(Istream&);
 
 
-    // Destructor
-
-        ~PtrList();
+    //- Destructor
+    ~PtrList();
 
 
     // Member functions
@@ -160,6 +159,17 @@ public:
             //- Return true if the PtrList is empty (ie, size() is zero).
             inline bool empty() const;
 
+            //- Return reference to the first element of the list.
+            inline T& first();
+
+            //- Return reference to first element of the list.
+            inline const T& first() const;
+
+            //- Return reference to the last element of the list.
+            inline T& last();
+
+            //- Return reference to the last element of the list.
+            inline const T& last() const;
 
         // Edit
 
@@ -180,7 +190,7 @@ public:
             void clear();
 
             //- Transfer the contents of the argument PtrList into this PtrList
-            //  and annull the argument list.
+            //  and annul the argument list.
             void transfer(PtrList<T>&);
 
             //- Transfer contents to the Xfer container
@@ -198,7 +208,7 @@ public:
             //- Reorders elements. Ordering does not have to be done in
             //  ascending or descending order. Reordering has to be unique.
             //  (is shuffle)
-            void reorder(const UList<label>&);
+            void reorder(const labelUList&);
 
 
     // Member operators

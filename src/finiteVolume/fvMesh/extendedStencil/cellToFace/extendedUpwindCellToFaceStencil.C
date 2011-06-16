@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ License
 #include "cellToFaceStencil.H"
 #include "syncTools.H"
 #include "SortableList.H"
+#include "dummyTransform.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -309,13 +310,21 @@ void Foam::extendedUpwindCellToFaceStencil::transportStencils
 
     // Swap coupled boundary stencil
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
+
     labelListList neiBndStencil(nBnd);
     for (label faceI = mesh_.nInternalFaces(); faceI < mesh_.nFaces(); faceI++)
     {
         neiBndStencil[faceI-mesh_.nInternalFaces()] = ownStencil[faceI];
     }
-    syncTools::swapBoundaryFaceList(mesh_, neiBndStencil, false);
+    //syncTools::swapBoundaryFaceList(mesh_, neiBndStencil);
+    syncTools::syncBoundaryFaceList
+    (
+        mesh_,
+        neiBndStencil,
+        eqOp<labelList>(),
+        dummyTransform()
+    );
+
 
 
     // Do the neighbour side
@@ -418,19 +427,32 @@ Foam::extendedUpwindCellToFaceStencil::extendedUpwindCellToFaceStencil
         neiStencil_
     );
 
-    ownMapPtr_ = calcDistributeMap
-    (
-        stencil.mesh(),
-        stencil.globalNumbering(),
-        ownStencil_
-    );
+    {
+        List<Map<label> > compactMap(Pstream::nProcs());
+        ownMapPtr_.reset
+        (
+            new mapDistribute
+            (
+                stencil.globalNumbering(),
+                ownStencil_,
+                compactMap
+            )
+        );
+    }
 
-    neiMapPtr_ = calcDistributeMap
-    (
-        stencil.mesh(),
-        stencil.globalNumbering(),
-        neiStencil_
-    );
+    {
+
+        List<Map<label> > compactMap(Pstream::nProcs());
+        neiMapPtr_.reset
+        (
+            new mapDistribute
+            (
+                stencil.globalNumbering(),
+                neiStencil_,
+                compactMap
+            )
+        );
+    }
 
     // stencil now in compact form
     if (pureUpwind_)
@@ -514,12 +536,18 @@ Foam::extendedUpwindCellToFaceStencil::extendedUpwindCellToFaceStencil
 
     ownStencil_ = stencil;
 
-    ownMapPtr_ = calcDistributeMap
-    (
-        stencil.mesh(),
-        stencil.globalNumbering(),
-        ownStencil_
-    );
+    {
+        List<Map<label> > compactMap(Pstream::nProcs());
+        ownMapPtr_.reset
+        (
+            new mapDistribute
+            (
+                stencil.globalNumbering(),
+                ownStencil_,
+                compactMap
+            )
+        );
+    }
 
     const fvMesh& mesh = dynamic_cast<const fvMesh&>(stencil.mesh());
 

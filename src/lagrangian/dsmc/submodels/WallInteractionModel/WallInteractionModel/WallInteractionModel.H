@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
 
 SourceFiles
     WallInteractionModel.C
-    NewWallInteractionModel.C
+    WallInteractionModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -85,6 +85,9 @@ public:
 
     // Constructors
 
+        //- Construct null from owner
+        WallInteractionModel(CloudType& owner);
+
         //- Construct from components
         WallInteractionModel
         (
@@ -94,7 +97,7 @@ public:
         );
 
 
-    // Destructor
+    //- Destructor
     virtual ~WallInteractionModel();
 
 
@@ -126,11 +129,8 @@ public:
         //- Apply wall correction
         virtual void correct
         (
-            const wallPolyPatch& wpp,
-            const label faceId,
-            vector& U,
-            scalar& Ei,
-            label typeId
+            typename CloudType::parcelType& p,
+            const wallPolyPatch& wpp
         ) = 0;
 };
 
@@ -152,13 +152,13 @@ public:
     );
 
 
-#define makeWallInteractionModelType(SS, CloudType, ParcelType)               \
+#define makeWallInteractionModelType(SS, CloudType)                           \
                                                                               \
-    defineNamedTemplateTypeNameAndDebug(SS<CloudType<ParcelType> >, 0);       \
+    defineNamedTemplateTypeNameAndDebug(SS<CloudType>, 0);                    \
                                                                               \
-    WallInteractionModel<CloudType<ParcelType> >::                            \
-        adddictionaryConstructorToTable<SS<CloudType<ParcelType> > >          \
-            add##SS##CloudType##ParcelType##ConstructorToTable_;
+    WallInteractionModel<CloudType>::                                         \
+        adddictionaryConstructorToTable<SS<CloudType> >                       \
+            add##SS##CloudType##ConstructorToTable_;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

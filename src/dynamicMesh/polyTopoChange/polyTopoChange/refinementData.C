@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,43 @@ Foam::Ostream& Foam::operator<<
     const Foam::refinementData& wDist
 )
 {
-    return os << wDist.refinementCount_ << token::SPACE << wDist.count_;
+    if (os.format() == IOstream::ASCII)
+    {
+        os << wDist.refinementCount_ << token::SPACE << wDist.count_;
+    }
+    else
+    {
+        os.write
+        (
+            reinterpret_cast<const char*>(&wDist.refinementCount_),
+            sizeof(refinementData)
+        );
+    }
+
+    // Check state of Ostream
+    os.check("Ostream& operator<<(Ostream&, const refinementData&)");
+    return os;
 }
 
 
 Foam::Istream& Foam::operator>>(Foam::Istream& is, Foam::refinementData& wDist)
 {
-    return is >> wDist.refinementCount_ >> wDist.count_;
+    if (is.format() == IOstream::ASCII)
+    {
+        is >> wDist.refinementCount_ >> wDist.count_;
+    }
+    else
+    {
+        is.read
+        (
+            reinterpret_cast<char*>(&wDist.refinementCount_),
+            sizeof(refinementData)
+        );
+    }
+
+    // Check state of Istream
+    is.check("Istream& operator>>(Istream&, refinementData&)");
+    return is;
 }
 
 

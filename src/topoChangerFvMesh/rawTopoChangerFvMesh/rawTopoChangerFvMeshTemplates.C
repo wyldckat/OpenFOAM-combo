@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,7 @@ template<class Type, template<class> class PatchField, class GeoMesh>
 void Foam::rawTopoChangerFvMesh::setUnmappedValues
 (
     GeometricField<Type, PatchField, GeoMesh>& fld,
-    const PackedList<1>& mappedFace,
+    const PackedBoolList& mappedFace,
     const GeometricField<Type, PatchField, GeoMesh>& baseFld
 )
 {
@@ -45,7 +45,7 @@ void Foam::rawTopoChangerFvMesh::setUnmappedValues
             fld.boundaryField()[patchI]
         );
 
-        label start = fvp.patch().patch().start();
+        const label start = fvp.patch().start();
         forAll(fvp, i)
         {
             if (!mappedFace[start+i])
@@ -64,7 +64,7 @@ void Foam::rawTopoChangerFvMesh::setUnmappedValues
 template<class Type, template<class> class PatchField, class GeoMesh>
 void Foam::rawTopoChangerFvMesh::zeroUnmappedValues
 (
-    const PackedList<1>& mappedFace
+    const PackedBoolList& mappedFace
 ) const
 {
     typedef GeometricField<Type, PatchField, GeoMesh> FieldType;

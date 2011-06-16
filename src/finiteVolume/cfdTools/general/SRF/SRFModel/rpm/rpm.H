@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,7 +60,7 @@ class rpm
         scalar rpm_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Disallow default bitwise copy construct
         rpm(const rpm&);
@@ -81,9 +81,8 @@ public:
         rpm(const volVectorField& U);
 
 
-    // Destructor
-
-        ~rpm();
+    //- Destructor
+    ~rpm();
 
     // Member functions
 

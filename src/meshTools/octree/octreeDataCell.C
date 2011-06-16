@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,8 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Description
 
 \*---------------------------------------------------------------------------*/
 
@@ -81,7 +79,7 @@ Foam::octreeDataCell::octreeDataCell
             forAll(pointsi, pointi)
             {
                 const point& p = points[pointsi[pointi]];
-                
+
                 bbs_[celli].min() = min(bbs_[celli].min(), p);
                 bbs_[celli].max() = max(bbs_[celli].max(), p);
             }
@@ -170,7 +168,7 @@ bool Foam::octreeDataCell::findTightest
     else
     {
         // Construct bb around sample and myFar
-        const point dist2(fabs(dist.x()), fabs(dist.y()), fabs(dist.z())); 
+        const point dist2(fabs(dist.x()), fabs(dist.y()), fabs(dist.z()));
 
         tightest.min() = sample - dist2;
         tightest.max() = sample + dist2;
@@ -224,7 +222,7 @@ Foam::scalar Foam::octreeDataCell::calcNearest
     );
     return GREAT;
 }
-    
+
 
 void Foam::octreeDataCell::write
 (

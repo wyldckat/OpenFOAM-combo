@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,13 +48,13 @@ Foam::labelList Foam::bandCompression(const labelListList& cellCellAddressing)
     label cellInOrder = 0;
 
     // reset the visited cells list
-    forAll (visited, cellI)
+    forAll(visited, cellI)
     {
         visited[cellI] = 0;
     }
 
     // loop over the cells
-    forAll (visited, cellI)
+    forAll(visited, cellI)
     {
         // find the first cell that has not been visited yet
         if (visited[cellI] == 0)
@@ -85,7 +85,7 @@ Foam::labelList Foam::bandCompression(const labelListList& cellCellAddressing)
                     const labelList& neighbours =
                         cellCellAddressing[currentCell];
 
-                    forAll (neighbours, nI)
+                    forAll(neighbours, nI)
                     {
                         if (visited[neighbours[nI]] == 0)
                         {

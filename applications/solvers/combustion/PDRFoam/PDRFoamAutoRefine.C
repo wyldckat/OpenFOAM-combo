@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,6 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Application
     PDRFoam
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
     #include "createFields.H"
     #include "initContinuityErrs.H"
     #include "readTimeControls.H"
-    #include "CourantNo.H"
+    #include "compressibleCourantNo.H"
     #include "setInitialDeltaT.H"
 
     scalar StCoNum = 0.0;
@@ -90,11 +89,13 @@ int main(int argc, char *argv[])
 
     Info<< "\nStarting time loop\n" << endl;
 
+    bool hasChanged = false;
+
     while (runTime.run())
     {
         #include "readTimeControls.H"
         #include "readPISOControls.H"
-        #include "CourantNo.H"
+        #include "compressibleCourantNo.H"
         #include "setDeltaT.H"
 
         // Indicators for refinement. Note: before runTime++
@@ -112,8 +113,6 @@ int main(int argc, char *argv[])
 
         Info<< "\n\nTime = " << runTime.timeName() << endl;
 
-
-        bool meshChanged = false;
         {
             // Make the fluxes absolute
             fvc::makeAbsolute(phi, rho, U);
@@ -136,29 +135,27 @@ int main(int argc, char *argv[])
                 }
             }
 
-            //volScalarField pIndicator("pIndicator",
-            //    p*(fvc::laplacian(p))
-            //  / (
-            //        magSqr(fvc::grad(p))
-            //      + dimensionedScalar
-            //        (
-            //            "smallish",
-            //            sqr(p.dimensions()/dimLength),
-            //            1E-6
-            //        )
-            //    ));
-            //pIndicator.writeOpt() = IOobject::AUTO_WRITE;
-
             // Flux estimate for introduced faces.
             volVectorField rhoU("rhoU", rho*U);
 
             // Do any mesh changes
-            meshChanged = mesh.update();
+            bool meshChanged = mesh.update();
 
-//        if (mesh.moving() || meshChanged)
-//        {
-//            #include "correctPhi.H"
-//        }
+
+            if (meshChanged)
+            {
+                hasChanged = true;
+            }
+
+            if (runTime.write() && hasChanged)
+            {
+                betav.write();
+                Lobs.write();
+                CT.write();
+                drag->writeFields();
+                flameWrinkling->writeFields();
+                hasChanged = false;
+            }
 
             // Make the fluxes relative to the mesh motion
             fvc::makeRelative(phi, rho, U);

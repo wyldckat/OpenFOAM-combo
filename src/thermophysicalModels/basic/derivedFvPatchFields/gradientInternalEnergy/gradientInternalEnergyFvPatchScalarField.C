@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,14 +29,10 @@ License
 #include "volFields.H"
 #include "basicThermo.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarField
+Foam::gradientInternalEnergyFvPatchScalarField::
+gradientInternalEnergyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
@@ -46,7 +42,8 @@ gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarFie
 {}
 
 
-gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarField
+Foam::gradientInternalEnergyFvPatchScalarField::
+gradientInternalEnergyFvPatchScalarField
 (
     const gradientInternalEnergyFvPatchScalarField& ptf,
     const fvPatch& p,
@@ -58,7 +55,8 @@ gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarFie
 {}
 
 
-gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarField
+Foam::gradientInternalEnergyFvPatchScalarField::
+gradientInternalEnergyFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -69,7 +67,8 @@ gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarFie
 {}
 
 
-gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarField
+Foam::gradientInternalEnergyFvPatchScalarField::
+gradientInternalEnergyFvPatchScalarField
 (
     const gradientInternalEnergyFvPatchScalarField& tppsf
 )
@@ -78,7 +77,8 @@ gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarFie
 {}
 
 
-gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarField
+Foam::gradientInternalEnergyFvPatchScalarField::
+gradientInternalEnergyFvPatchScalarField
 (
     const gradientInternalEnergyFvPatchScalarField& tppsf,
     const DimensionedField<scalar, volMesh>& iF
@@ -90,7 +90,7 @@ gradientInternalEnergyFvPatchScalarField::gradientInternalEnergyFvPatchScalarFie
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void gradientInternalEnergyFvPatchScalarField::updateCoeffs()
+void Foam::gradientInternalEnergyFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -101,10 +101,10 @@ void gradientInternalEnergyFvPatchScalarField::updateCoeffs()
     (
         "thermophysicalProperties"
     );
-    
+
     const label patchi = patch().index();
 
-    fvPatchScalarField& Tw = 
+    fvPatchScalarField& Tw =
         const_cast<fvPatchScalarField&>(thermo.T().boundaryField()[patchi]);
 
     Tw.evaluate();
@@ -122,10 +122,13 @@ void gradientInternalEnergyFvPatchScalarField::updateCoeffs()
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchScalarField, gradientInternalEnergyFvPatchScalarField);
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
+namespace Foam
+{
+    makePatchTypeField
+    (
+        fvPatchScalarField,
+        gradientInternalEnergyFvPatchScalarField
+    );
+}
 
 // ************************************************************************* //

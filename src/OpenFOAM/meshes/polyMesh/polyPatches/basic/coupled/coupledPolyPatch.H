@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,6 +38,7 @@ SourceFiles
 #define coupledPolyPatch_H
 
 #include "polyPatch.H"
+#include "diagTensorField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,16 +57,23 @@ public:
 
     enum transformType
     {
-        UNKNOWN,
-        ROTATIONAL,
-        TRANSLATIONAL
+        UNKNOWN,            // unspecified; automatic ordering
+        ROTATIONAL,         // rotation along coordinate axis
+        TRANSLATIONAL,      // translation
+        NOORDERING          // unspecified, no automatic ordering
     };
-    static const NamedEnum<transformType, 3> transformTypeNames;
+    static const NamedEnum<transformType, 4> transformTypeNames;
 
 
 private:
 
     // Private data
+
+        //- default matching tolerance
+        static const scalar defaultMatchTol_;
+
+        //- local matching tolerance
+        const scalar matchTolerance_;
 
         //- offset (distance) vector from one side of the couple to the other
         mutable vectorField separation_;
@@ -76,13 +84,8 @@ private:
         //- Neighbour-cell transformation tensor
         mutable tensorField reverseT_;
 
-public:
-
-    // Static data members
-
-        //- Relative tolerance (for geometric matching).
-        static scalar matchTol;
-
+        //- Are faces collocated. Either size 0,1 or length of patch.
+        mutable boolList collocated_;
 
 protected:
 
@@ -100,27 +103,27 @@ protected:
             const vectorField& nf,
             const vectorField& nr,
             const scalarField& smallDist,
-            const scalar absTol = matchTol,
+            const scalar absTol,
             const transformType = UNKNOWN
         ) const;
 
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry() = 0;
+        virtual void initGeometry(PstreamBuffers&) = 0;
 
         //- Calculate the patch geometry
-        virtual void calcGeometry() = 0;
+        virtual void calcGeometry(PstreamBuffers&) = 0;
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&) = 0;
+        virtual void initMovePoints(PstreamBuffers&, const pointField&) = 0;
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField&) = 0;
+        virtual void movePoints(PstreamBuffers&, const pointField&) = 0;
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh() = 0;
+        virtual void initUpdateMesh(PstreamBuffers&) = 0;
 
         //- Update of the patch topology
-        virtual void updateMesh() = 0;
+        virtual void updateMesh(PstreamBuffers&) = 0;
 
 
         //- Write point in OBJ format
@@ -146,13 +149,6 @@ protected:
             label& vertI
         );
 
-        //- Calculate face centres
-        static pointField calcFaceCentres
-        (
-            const UList<face>&,
-            const pointField&
-        );
-
         //- Get f[0] for all faces
         static pointField getAnchorPoints
         (
@@ -160,25 +156,11 @@ protected:
             const pointField&
         );
 
-        //- Is face (in old face labels) in current patch?
-        bool inPatch
-        (
-            const labelList& oldToNew,
-            const label oldFaceI
-        ) const;
-
-        //- Given list of starts of patches and a face label determine
-        //  the patch.
-        static label whichPatch
-        (
-            const labelList& patchStarts,
-            const label faceI
-        );
-
         //- Calculate typical tolerance per face. Is currently max distance
         //  from face centre to any of the face vertices.
         static scalarField calcFaceTol
         (
+            const scalar matchTol,
             const UList<face>& faces,
             const pointField& points,
             const pointField& faceCentres
@@ -236,10 +218,19 @@ public:
             const label newStart
         );
 
+        //- Construct given the original patch and a map
+        coupledPolyPatch
+        (
+            const coupledPolyPatch& pp,
+            const polyBoundaryMesh& bm,
+            const label index,
+            const labelUList& mapAddressing,
+            const label newStart
+        );
 
-    // Destructor
 
-        virtual ~coupledPolyPatch();
+    //- Destructor
+    virtual ~coupledPolyPatch();
 
 
     // Member Functions
@@ -252,43 +243,82 @@ public:
                 return true;
             }
 
+            //- Does this side own the patch ?
+            virtual bool owner() const = 0;
 
-            //- Are the coupled planes separated
-            bool separated() const
+            //- Does the coupled side own the patch ?
+            virtual bool neighbour() const
+            {
+                return !owner();
+            }
+
+            //- Transform a patch-based position from other side to this side
+            virtual void transformPosition(pointField&) const = 0;
+
+            //- Transform a patch-based position from other side to this side
+            virtual void transformPosition(point&, const label facei) const = 0;
+
+            //- Are the planes separated.
+            virtual bool separated() const
             {
                 return separation_.size();
             }
 
-            //- Return the offset (distance) vector from one side of the couple
-            //  to the other
-            const vectorField& separation() const
+            //- If the planes are separated the separation vector.
+            virtual const vectorField& separation() const
             {
                 return separation_;
             }
 
-
-            //- Are the cyclic planes parallel
-            bool parallel() const
+            //- Are the cyclic planes parallel.
+            virtual bool parallel() const
             {
                 return forwardT_.empty();
             }
 
-            //- Return face transformation tensor
-            const tensorField& forwardT() const
+            //- Return face transformation tensor.
+            virtual const tensorField& forwardT() const
             {
                 return forwardT_;
             }
 
-            //- Return neighbour-cell transformation tensor
-            const tensorField& reverseT() const
+            //- Return neighbour-cell transformation tensor.
+            virtual const tensorField& reverseT() const
             {
                 return reverseT_;
             }
 
+            //- Are faces collocated. Either size 0,1 or length of patch
+            virtual const boolList& collocated() const
+            {
+                return collocated_;
+            }
+
+            scalar matchTolerance() const
+            {
+                return matchTolerance_;
+            }
+
+
+        //- Calculate the patch geometry
+        virtual void calcGeometry
+        (
+            const primitivePatch& referPatch,
+            const pointField& thisCtrs,
+            const vectorField& thisAreas,
+            const pointField& thisCc,
+            const pointField& nbrCtrs,
+            const vectorField& nbrAreas,
+            const pointField& nbrCc
+        ) = 0;
 
         //- Initialize ordering for primitivePatch. Does not
         //  refer to *this (except for name() and type() etc.)
-        virtual void initOrder(const primitivePatch&) const = 0;
+        virtual void initOrder
+        (
+            PstreamBuffers&,
+            const primitivePatch&
+        ) const = 0;
 
         //- Return new ordering for primitivePatch.
         //  Ordering is -faceMap: for every face
@@ -297,10 +327,14 @@ public:
         //  (faceMap is identity, rotation is 0), true otherwise.
         virtual bool order
         (
+            PstreamBuffers&,
             const primitivePatch&,
             labelList& faceMap,
             labelList& rotation
         ) const = 0;
+
+        //- Write the polyPatch data as a dictionary
+        virtual void write(Ostream&) const;
 };
 
 

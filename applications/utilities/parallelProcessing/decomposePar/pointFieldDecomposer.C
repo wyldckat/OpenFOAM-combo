@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,14 +25,9 @@ License
 
 #include "pointFieldDecomposer.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
-    
-pointFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
+
+Foam::pointFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
 (
     const pointPatch& completeMeshPatch,
     const pointPatch& procMeshPatch,
@@ -51,7 +46,7 @@ pointFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
 
     const labelList& completeMeshPatchPoints = completeMeshPatch.meshPoints();
 
-    forAll (completeMeshPatchPoints, pointi)
+    forAll(completeMeshPatchPoints, pointi)
     {
         pointMap[completeMeshPatchPoints[pointi]] = pointi;
     }
@@ -60,7 +55,7 @@ pointFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
     // patch
     const labelList& procMeshPatchPoints = procMeshPatch.meshPoints();
 
-    forAll (procMeshPatchPoints, pointi)
+    forAll(procMeshPatchPoints, pointi)
     {
         directAddressing_[pointi] =
             pointMap[directAddr[procMeshPatchPoints[pointi]]];
@@ -78,7 +73,7 @@ pointFieldDecomposer::patchFieldDecomposer::patchFieldDecomposer
 }
 
 
-pointFieldDecomposer::pointFieldDecomposer
+Foam::pointFieldDecomposer::pointFieldDecomposer
 (
     const pointMesh& completeMesh,
     const pointMesh& procMesh,
@@ -96,7 +91,7 @@ pointFieldDecomposer::pointFieldDecomposer
         static_cast<patchFieldDecomposer*>(NULL)
     )
 {
-    forAll (boundaryAddressing_, patchi)
+    forAll(boundaryAddressing_, patchi)
     {
         if (boundaryAddressing_[patchi] >= 0)
         {
@@ -113,9 +108,9 @@ pointFieldDecomposer::pointFieldDecomposer
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-pointFieldDecomposer::~pointFieldDecomposer()
+Foam::pointFieldDecomposer::~pointFieldDecomposer()
 {
-    forAll (patchFieldDecomposerPtrs_, patchi)
+    forAll(patchFieldDecomposerPtrs_, patchi)
     {
         if (patchFieldDecomposerPtrs_[patchi])
         {
@@ -126,7 +121,5 @@ pointFieldDecomposer::~pointFieldDecomposer()
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

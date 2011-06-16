@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -76,7 +76,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
         const faceList& oldFaces = mesh.faces();
         const labelListList& pFaces = mesh.pointFaces();
 
-        forAll (Cells, cellI)
+        forAll(Cells, cellI)
         {
             const labelList& curFaces = Cells[cellI];
             const edgeList cellEdges = Cells[cellI].edges(oldFaces);
@@ -86,15 +86,15 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 
             labelList edgeUsage(cellEdges.size(), 0);
 
-            forAll (curFaces, faceI)
+            forAll(curFaces, faceI)
             {
                 edgeList curFaceEdges = oldFaces[curFaces[faceI]].edges();
 
-                forAll (curFaceEdges, faceEdgeI)
+                forAll(curFaceEdges, faceEdgeI)
                 {
                     const edge& curEdge = curFaceEdges[faceEdgeI];
 
-                    forAll (cellEdges, cellEdgeI)
+                    forAll(cellEdges, cellEdgeI)
                     {
                         if (cellEdges[cellEdgeI] == curEdge)
                         {
@@ -108,7 +108,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
             edgeList singleEdges(cellEdges.size());
             label nSingleEdges = 0;
 
-            forAll (edgeUsage, edgeI)
+            forAll(edgeUsage, edgeI)
             {
                 if (edgeUsage[edgeI] == 1)
                 {
@@ -124,7 +124,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                         << "in mesh structure. " << endl;
 
 #                   ifdef DEBUG_ZIPUP
-                    forAll (curFaces, faceI)
+                    forAll(curFaces, faceI)
                     {
                         Info<< "face: " << oldFaces[curFaces[faceI]]
                             << endl;
@@ -134,7 +134,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                         << "Edge usage: " << edgeUsage << nl
                         << "Cell points: " << cellPoints << endl;
 
-                    forAll (cellPoints, cpI)
+                    forAll(cellPoints, cpI)
                     {
                         Info<< "vertex create \"" << cellPoints[cpI]
                             << "\" coordinates "
@@ -153,9 +153,9 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
             singleEdges.setSize(nSingleEdges);
 
 #           ifdef DEBUG_ZIPUP
-            Info << "Cell " << cellI << endl;
+            Info<< "Cell " << cellI << endl;
 
-            forAll (curFaces, faceI)
+            forAll(curFaces, faceI)
             {
                 Info<< "face: " << oldFaces[curFaces[faceI]] << endl;
             }
@@ -165,7 +165,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 << "Single edges: " << singleEdges << nl
                 << "Cell points: " << cellPoints << endl;
 
-            forAll (cellPoints, cpI)
+            forAll(cellPoints, cpI)
             {
                 Info<< "vertex create \"" << cellPoints[cpI]
                     << "\" coordinates "
@@ -179,11 +179,11 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 
             labelList pointUsage(cellPoints.size(), 0);
 
-            forAll (singleEdges, edgeI)
+            forAll(singleEdges, edgeI)
             {
                 const edge& curEdge = singleEdges[edgeI];
 
-                forAll (cellPoints, pointI)
+                forAll(cellPoints, pointI)
                 {
                     if
                     (
@@ -200,7 +200,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 
             // loop through all edges and eliminate the ones that are
             // blocked out
-            forAll (singleEdges, edgeI)
+            forAll(singleEdges, edgeI)
             {
                 bool blockedHead = false;
                 bool blockedTail = false;
@@ -209,7 +209,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 label newEdgeEnd = singleEdges[edgeI].end();
 
                 // check that the edge has not got all ends blocked
-                forAll (cellPoints, pointI)
+                forAll(cellPoints, pointI)
                 {
                     if (cellPoints[pointI] == newEdgeStart)
                     {
@@ -242,7 +242,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
             label nEdgesToInsert = 0;
 
             // Find a good edge
-            forAll (singleEdges, edgeI)
+            forAll(singleEdges, edgeI)
             {
                 SLList<label> pointChain;
 
@@ -266,25 +266,25 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 #                   endif
 
                     // Check if head or tail are blocked
-                    forAll (cellPoints, pointI)
+                    forAll(cellPoints, pointI)
                     {
                         if (cellPoints[pointI] == newEdgeStart)
                         {
                             if (pointUsage[pointI] > 2)
                             {
 #                               ifdef DEBUG_CHAIN
-                                Info << "start head blocked" << endl;
+                                Info<< "start head blocked" << endl;
 #                               endif
 
                                 blockHead = true;
                             }
                         }
-                        else if(cellPoints[pointI] == newEdgeEnd)
+                        else if (cellPoints[pointI] == newEdgeEnd)
                         {
                             if (pointUsage[pointI] > 2)
                             {
 #                               ifdef DEBUG_CHAIN
-                                Info << "start tail blocked" << endl;
+                                Info<< "start tail blocked" << endl;
 #                               endif
 
                                 blockTail = true;
@@ -299,7 +299,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                     {
                         stopSearching = false;
 
-                        forAll (singleEdges, addEdgeI)
+                        forAll(singleEdges, addEdgeI)
                         {
                             if (!singleEdgeUsage[addEdgeI])
                             {
@@ -361,25 +361,25 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                                     << " curEdgeEnd: " << curEdgeEnd << endl;
 #                               endif
 
-                                forAll (cellPoints, pointI)
+                                forAll(cellPoints, pointI)
                                 {
                                     if (cellPoints[pointI] == curEdgeStart)
                                     {
                                         if (pointUsage[pointI] > 2)
                                         {
 #                                           ifdef DEBUG_CHAIN
-                                            Info << "head blocked" << endl;
+                                            Info<< "head blocked" << endl;
 #                                           endif
 
                                             blockHead = true;
                                         }
                                     }
-                                    else if(cellPoints[pointI] == curEdgeEnd)
+                                    else if (cellPoints[pointI] == curEdgeEnd)
                                     {
                                         if (pointUsage[pointI] > 2)
                                         {
 #                                           ifdef DEBUG_CHAIN
-                                            Info << "tail blocked" << endl;
+                                            Info<< "tail blocked" << endl;
 #                                           endif
 
                                             blockTail = true;
@@ -391,7 +391,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                                 if (curEdgeStart == curEdgeEnd)
                                 {
 #                                   ifdef DEBUG_CHAIN
-                                    Info << "closed loop" << endl;
+                                    Info<< "closed loop" << endl;
 #                                   endif
 
                                     pointChain.removeHead();
@@ -414,7 +414,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 }
 
 #               ifdef DEBUG_CHAIN
-                Info << "completed patch chain: " << pointChain << endl;
+                Info<< "completed patch chain: " << pointChain << endl;
 #               endif
 
                 if (pointChain.size() > 2)
@@ -427,11 +427,11 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
             edgesToInsert.setSize(nEdgesToInsert);
 
 #           ifdef DEBUG_ZIPUP
-            Info << "edgesToInsert: " << edgesToInsert << endl;
+            Info<< "edgesToInsert: " << edgesToInsert << endl;
 #           endif
 
             // Insert the edges into a list of faces
-            forAll (edgesToInsert, edgeToInsertI)
+            forAll(edgesToInsert, edgeToInsertI)
             {
                 // Order the points of the edge
                 // Warning: the ordering must be parametric, because in
@@ -447,9 +447,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 point startPoint = Points[unorderedEdge[0]];
                 dist[0] = 0;
 
-                vector dir =
-                    Points[unorderedEdge[unorderedEdge.size() - 1]]
-                  - startPoint;
+                vector dir = Points[unorderedEdge.last()] - startPoint;
 
                 for (label i = 1; i < dist.size(); i++)
                 {
@@ -460,12 +458,12 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 labelList orderedEdge(unorderedEdge.size(), -1);
                 boolList used(unorderedEdge.size(), false);
 
-                forAll (orderedEdge, epI)
+                forAll(orderedEdge, epI)
                 {
                     label nextPoint = -1;
                     scalar minDist = GREAT;
 
-                    forAll (dist, i)
+                    forAll(dist, i)
                     {
                         if (!used[i] && dist[i] < minDist)
                         {
@@ -485,7 +483,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 #               endif
 
                 // check for duplicate points in the ordered edge
-                forAll (orderedEdge, checkI)
+                forAll(orderedEdge, checkI)
                 {
                     for
                     (
@@ -509,7 +507,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 edge testEdge
                 (
                     orderedEdge[0],
-                    orderedEdge[orderedEdge.size() - 1]
+                    orderedEdge.last()
                 );
 
                 // In order to avoid edge-to-edge comparison, get faces using
@@ -520,16 +518,16 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                 labelList facesSharingEdge(startPF.size() + endPF.size());
                 label nfse = 0;
 
-                forAll (startPF, pfI)
+                forAll(startPF, pfI)
                 {
                     facesSharingEdge[nfse++] = startPF[pfI];
                 }
-                forAll (endPF, pfI)
+                forAll(endPF, pfI)
                 {
                     facesSharingEdge[nfse++] = endPF[pfI];
                 }
 
-                forAll (facesSharingEdge, faceI)
+                forAll(facesSharingEdge, faceI)
                 {
                     bool faceChanges = false;
 
@@ -539,7 +537,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                     const edgeList curFaceEdges =
                         oldFaces[currentFaceIndex].edges();
 
-                    forAll (curFaceEdges, cfeI)
+                    forAll(curFaceEdges, cfeI)
                     {
                         if (curFaceEdges[cfeI] == testEdge)
                         {
@@ -567,11 +565,11 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 
                         bool allPointsPresent = true;
 
-                        forAll (orderedEdge, oeI)
+                        forAll(orderedEdge, oeI)
                         {
                             bool curPointFound = false;
 
-                            forAll (newFace, nfI)
+                            forAll(newFace, nfI)
                             {
                                 if (newFace[nfI] == orderedEdge[oeI])
                                 {
@@ -587,7 +585,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 #                       ifdef DEBUG_ZIPUP
                         if (allPointsPresent)
                         {
-                            Info << "All points present" << endl;
+                            Info<< "All points present" << endl;
                         }
 #                       endif
 
@@ -604,14 +602,14 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                             edgeList newFaceEdges = newFace.edges();
 
 #                           ifdef DEBUG_ZIPUP
-                            Info << "Not all points present." << endl;
+                            Info<< "Not all points present." << endl;
 #                           endif
 
                             label nNewFacePoints = 0;
 
                             bool edgeAdded = false;
 
-                            forAll (newFaceEdges, curFacEdgI)
+                            forAll(newFaceEdges, curFacEdgI)
                             {
                                 // Does the current edge change?
                                 if (newFaceEdges[curFacEdgI] == testEdge)
@@ -679,7 +677,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
 #                           endif
 
                             // Check for duplicate points in the new face
-                            forAll (newFace, checkI)
+                            forAll(newFace, checkI)
                             {
                                 for
                                 (
@@ -690,7 +688,13 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
                                 {
                                     if (newFace[checkI] == newFace[checkJ])
                                     {
-                                        WarningIn("void polyMeshZipUpCells(polyMesh& mesh)")
+                                        WarningIn
+                                        (
+                                            "void polyMeshZipUpCells"
+                                            "("
+                                                "polyMesh& mesh"
+                                            ")"
+                                        )
                                             << "Duplicate point found "
                                             << "in the new face. " << nl
                                             << "Point: "
@@ -745,7 +749,7 @@ bool Foam::polyMeshZipUpCells(polyMesh& mesh)
         labelList patchSizes(bMesh.size(), 0);
         labelList patchStarts(bMesh.size(), 0);
 
-        forAll (bMesh, patchI)
+        forAll(bMesh, patchI)
         {
             patchSizes[patchI] = bMesh[patchI].size();
             patchStarts[patchI] = bMesh[patchI].start();

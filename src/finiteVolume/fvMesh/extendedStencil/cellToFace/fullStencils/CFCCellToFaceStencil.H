@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,20 +43,19 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class CFCCellToFaceStencil Declaration
+                    Class CFCCellToFaceStencil Declaration
 \*---------------------------------------------------------------------------*/
 
 class CFCCellToFaceStencil
 :
     public cellToFaceStencil
 {
-
 public:
 
     // Constructors
 
         //- Construct from mesh
-        explicit CFCCellToFaceStencil(const polyMesh& mesh);
+        explicit CFCCellToFaceStencil(const polyMesh&);
 };
 
 

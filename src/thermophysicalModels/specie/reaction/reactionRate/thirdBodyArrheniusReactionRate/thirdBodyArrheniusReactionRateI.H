@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,15 +23,9 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-inline thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
+inline Foam::thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
 (
     const scalar A,
     const scalar beta,
@@ -44,8 +38,7 @@ inline thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
 {}
 
 
-//- Construct from Istream
-inline thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
+inline Foam::thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
 (
     const speciesTable& species,
     Istream& is
@@ -53,7 +46,7 @@ inline thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
 :
     ArrheniusReactionRate
     (
-        species, 
+        species,
         is.readBegin("thirdBodyArrheniusReactionRate(Istream&)")
     ),
     thirdBodyEfficiencies_(species, is)
@@ -62,22 +55,48 @@ inline thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
 }
 
 
+inline Foam::thirdBodyArrheniusReactionRate::thirdBodyArrheniusReactionRate
+(
+    const speciesTable& species,
+    const dictionary& dict
+)
+:
+    ArrheniusReactionRate
+    (
+        species,
+        dict
+    ),
+    thirdBodyEfficiencies_(species, dict)
+{}
+
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-inline scalar thirdBodyArrheniusReactionRate::operator()
+inline Foam::scalar Foam::thirdBodyArrheniusReactionRate::operator()
 (
     const scalar T,
     const scalar p,
     const scalarField& c
 ) const
 {
-    return 
+    return
         thirdBodyEfficiencies_.M(c)
        *ArrheniusReactionRate::operator()(T, p, c);
 }
 
 
-inline Ostream& operator<<(Ostream& os, const thirdBodyArrheniusReactionRate& arr)
+inline void Foam::thirdBodyArrheniusReactionRate::write(Ostream& os) const
+{
+    ArrheniusReactionRate::write(os);
+    thirdBodyEfficiencies_.write(os);
+}
+
+
+inline Foam::Ostream& Foam::operator<<
+(
+    Ostream& os,
+    const thirdBodyArrheniusReactionRate& arr
+)
 {
     os  << token::BEGIN_LIST
         << static_cast<const ArrheniusReactionRate&>(arr)
@@ -86,9 +105,5 @@ inline Ostream& operator<<(Ostream& os, const thirdBodyArrheniusReactionRate& ar
     return os;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

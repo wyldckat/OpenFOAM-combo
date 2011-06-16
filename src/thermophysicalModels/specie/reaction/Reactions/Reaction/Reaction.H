@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,6 +69,12 @@ class Reaction
 
 public:
 
+    // Static data
+
+        //- Number of un-named reactions
+        static label nUnNamedReactions;
+
+
     // Public data types
 
         //- Class to hold the specie index and its coefficients in the
@@ -112,6 +118,9 @@ private:
 
     // Private data
 
+        //- Name of reaction
+        const word name_;
+
         //- List of specie names present in reaction system
         const speciesTable& species_;
 
@@ -122,13 +131,22 @@ private:
         List<specieCoeffs> rhs_;
 
 
-    // Private member functions
+    // Private Member Functions
 
+        //- Return string representation of reaction
+        string reactionStr() const;
+
+        //- Construct the left- and right-hand-side reaction coefficients
         void setLRhs(Istream&);
+
+        //- Construct reaction thermo
         void setThermo(const HashPtrTable<ReactionThermo>& thermoDatabase);
 
         //- Disallow default bitwise assignment
         void operator=(const Reaction<ReactionThermo>&);
+
+        //- Return new reaction ID for un-named reactions
+        label getNewReactionID();
 
 
 public:
@@ -150,6 +168,19 @@ public:
                 Istream& is
             ),
             (species, thermoDatabase, is)
+        );
+
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            Reaction,
+            dictionary,
+            (
+                const speciesTable& species,
+                const HashPtrTable<ReactionThermo>& thermoDatabase,
+                const dictionary& dict
+            ),
+            (species, thermoDatabase, dict)
         );
 
 
@@ -205,6 +236,14 @@ public:
             Istream& is
         );
 
+        //- Construct from dictionary
+        Reaction
+        (
+            const speciesTable& species,
+            const HashPtrTable<ReactionThermo>& thermoDatabase,
+            const dictionary& dict
+        );
+
         //- Construct and return a clone
         virtual autoPtr<Reaction<ReactionThermo> > clone() const
         {
@@ -229,24 +268,34 @@ public:
 
     // Selectors
 
-        //- Return a pointer to a new patchField created on freestore from input
+        //- Return a pointer to new patchField created on freestore from input
         static autoPtr<Reaction<ReactionThermo> > New
         (
             const speciesTable& species,
             const HashPtrTable<ReactionThermo>& thermoDatabase,
-            Istream&
+            Istream& is
+        );
+
+        //- Return a pointer to new patchField created on freestore from dict
+        static autoPtr<Reaction<ReactionThermo> > New
+        (
+            const speciesTable& species,
+            const HashPtrTable<ReactionThermo>& thermoDatabase,
+            const dictionary& dict
         );
 
 
-    // Destructor
-
-        virtual ~Reaction()
-        {}
+    //- Destructor
+    virtual ~Reaction()
+    {}
 
 
     // Member Functions
 
         // Access
+
+            inline word& name();
+            inline const word& name() const;
 
             inline const List<specieCoeffs>& lhs() const;
             inline const List<specieCoeffs>& rhs() const;

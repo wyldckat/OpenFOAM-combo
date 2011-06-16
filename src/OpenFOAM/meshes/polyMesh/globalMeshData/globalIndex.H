@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ class globalIndex
 {
     // Private data
 
-        //- Start off procI+1. (so like CompactListList)
+        //- Start of procI. Size is nProcs()+1. (so like CompactListList)
         labelList offsets_;
 
 
@@ -79,10 +79,6 @@ public:
 
 
     // Member Functions
-
-        ////- Start of procI+1 data
-        //inline const labelList& offsets() const;
-
 
         // Queries relating to my processor
 

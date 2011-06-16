@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ Description
         - no item can be removed more than once.
     - removed cell: cell set to 0 faces.
     - removed face: face set to 0 vertices.
-    - removed point: coordinate set to greatPoint (GREAT,GREAT,GREAT).
+    - removed point: coordinate set to vector::max (VGREAT,VGREAT,VGREAT).
     Note that this might give problems if this value is used already.
     To see if point is equal to above value we don't use == (which might give
     problems with roundoff error) but instead compare the individual component
@@ -63,18 +63,12 @@ SourceFiles
 #ifndef polyTopoChange_H
 #define polyTopoChange_H
 
-#include "autoPtr.H"
 #include "DynamicList.H"
 #include "labelList.H"
-#include "IOobject.H"
-#include "typeInfo.H"
 #include "pointField.H"
-#include "PtrList.H"
-#include "cellList.H"
 #include "Map.H"
 #include "HashSet.H"
 #include "mapPolyMesh.H"
-#include "CompactListList.H"
 #include "PackedBoolList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -94,6 +88,8 @@ class polyPatch;
 class dictionary;
 class topoAction;
 class objectMap;
+class IOobject;
+template<class T, class Container> class CompactListList;
 
 /*---------------------------------------------------------------------------*\
                            Class polyTopoChange Declaration
@@ -101,12 +97,6 @@ class objectMap;
 
 class polyTopoChange
 {
-    // Static data members
-
-        //- Value of deleted point
-        static const point greatPoint;
-
-
     // Private data
 
         //- Whether to allow referencing illegal points/cells/faces
@@ -133,7 +123,7 @@ class polyTopoChange
             DynamicList<label> reversePointMap_;
 
             //- Zone of point
-            DynamicList<label> pointZone_;
+            Map<label> pointZone_;
 
             //- Retired points
             labelHashSet retiredPoints_;
@@ -173,7 +163,7 @@ class polyTopoChange
             PackedBoolList flipFaceFlux_;
 
             //- Zone of face
-            DynamicList<label> faceZone_;
+            Map<label> faceZone_;
 
             //- Orientation of face in zone
             PackedBoolList faceZoneFlip_;
@@ -249,6 +239,12 @@ class polyTopoChange
             List<objectMap>& cellsFromCells
         );
 
+        //- Are all face vertices valid
+        bool hasValidPoints(const face&) const;
+
+        //- Return face points
+        pointField facePoints(const face& f) const;
+
         //- Check inputs to modFace or addFace
         void checkFace
         (
@@ -272,11 +268,15 @@ class polyTopoChange
         void makeCellCells
         (
             const label nActiveFaces,
-            CompactListList<label>& cellCells
+            CompactListList<label, labelList>& cellCells
         ) const;
 
         //- Cell ordering (bandCompression). Returns number of remaining cells.
-        label getCellOrder(const CompactListList<label>&, labelList&) const;
+        label getCellOrder
+        (
+            const CompactListList<label, labelList>&,
+            labelList&
+        ) const;
 
         //- Do upper-triangular ordering and patch ordering.
         void getFaceOrder
@@ -564,7 +564,6 @@ public:
             //  used.
             inline void setNumPatches(const label nPatches);
 
-
         // Other
 
             //- Inplace changes mesh without change of patches.
@@ -594,7 +593,7 @@ public:
             (
                 autoPtr<fvMesh>& newMesh,
                 const IOobject& io,
-                const fvMesh& mesh,
+                const polyMesh& mesh,
                 const bool syncParallel = true,
                 const bool orderCells = false,
                 const bool orderPoints = false

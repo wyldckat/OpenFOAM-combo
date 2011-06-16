@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -84,7 +84,7 @@ projectPoints
     // Estimate face centre of target side
     Field<PointType> masterFaceCentres(targetPatch.size());
 
-    forAll (masterFaceCentres, faceI)
+    forAll(masterFaceCentres, faceI)
     {
         masterFaceCentres[faceI] =
             average(masterFaces[faceI].points(masterPoints));
@@ -101,7 +101,7 @@ projectPoints
     label curFace = 0;
     label nNSquaredSearches = 0;
 
-    forAll (slavePointOrder, pointI)
+    forAll(slavePointOrder, pointI)
     {
         // Pick up slave point and direction
         const label curLocalPointLabel = slavePointOrder[pointI];
@@ -179,7 +179,7 @@ projectPoints
                     sqrDistance =
                         magSqr(missPlanePoint - masterFaceCentres[curFace]);
 
-                    forAll (masterNbrs, nbrI)
+                    forAll(masterNbrs, nbrI)
                     {
                         if
                         (
@@ -224,7 +224,7 @@ projectPoints
             result[curLocalPointLabel] = objectHit(false, -1);
             scalar minDistance = GREAT;
 
-            forAll (masterFaces, faceI)
+            forAll(masterFaces, faceI)
             {
                 PointHit<PointType> curHit =
                     masterFaces[faceI].ray
@@ -261,7 +261,7 @@ projectPoints
 
             if (debug)
             {
-                Info << result[curLocalPointLabel] << nl;
+                Info<< result[curLocalPointLabel] << nl;
             }
         }
         else
@@ -325,7 +325,7 @@ projectFaceCentres
 
     const typename ToPatch::PointFieldType& masterPoints = targetPatch.points();
 
-    forAll (masterFaceCentres, faceI)
+    forAll(masterFaceCentres, faceI)
     {
         masterFaceCentres[faceI] =
             masterFaces[faceI].centre(masterPoints);
@@ -334,7 +334,9 @@ projectFaceCentres
     // Result
     List<objectHit> result(this->size());
 
-    const PrimitivePatch<Face, FaceList, PointField, PointType>& slaveFaces = *this;
+    const PrimitivePatch<Face, FaceList, PointField, PointType>& slaveFaces =
+        *this;
+
     const PointField& slaveGlobalPoints = points();
 
     // Algorithm:
@@ -348,7 +350,7 @@ projectFaceCentres
     label curFace = 0;
     label nNSquaredSearches = 0;
 
-    forAll (slaveFaceOrder, faceI)
+    forAll(slaveFaceOrder, faceI)
     {
         // pick up slave point and direction
         const label curLocalFaceLabel = slaveFaceOrder[faceI];
@@ -425,7 +427,7 @@ projectFaceCentres
 
                     const labelList& masterNbrs = masterFaceFaces[curFace];
 
-                    forAll (masterNbrs, nbrI)
+                    forAll(masterNbrs, nbrI)
                     {
                         if
                         (
@@ -467,7 +469,7 @@ projectFaceCentres
             result[curLocalFaceLabel] = objectHit(false, -1);
             scalar minDistance = GREAT;
 
-            forAll (masterFaces, faceI)
+            forAll(masterFaces, faceI)
             {
                 PointHit<PointType> curHit =
                     masterFaces[faceI].ray
@@ -504,7 +506,7 @@ projectFaceCentres
 
             if (debug)
             {
-                Info << result[curLocalFaceLabel] << nl;
+                Info<< result[curLocalFaceLabel] << nl;
             }
         }
         else

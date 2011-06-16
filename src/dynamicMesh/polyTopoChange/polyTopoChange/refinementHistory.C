@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -331,9 +331,21 @@ Foam::refinementHistory::refinementHistory(const IOobject& io)
 :
     regIOobject(io)
 {
+    // Temporary warning
+    if (io.readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+    {
+        WarningIn
+        (
+            "refinementHistory::refinementHistory(const IOobject&)"
+        )   << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+            << " does not support automatic rereading."
+            << endl;
+    }
+
     if
     (
         io.readOpt() == IOobject::MUST_READ
+     || io.readOpt() == IOobject::MUST_READ_IF_MODIFIED
      || (io.readOpt() == IOobject::READ_IF_PRESENT && headerOk())
     )
     {
@@ -365,9 +377,22 @@ Foam::refinementHistory::refinementHistory
     freeSplitCells_(0),
     visibleCells_(visibleCells)
 {
+    // Temporary warning
+    if (io.readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+    {
+        WarningIn
+        (
+            "refinementHistory::refinementHistory"
+            "(const IOobject&, const List<splitCell8>&, const labelList&)"
+        )   << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+            << " does not support automatic rereading."
+            << endl;
+    }
+
     if
     (
         io.readOpt() == IOobject::MUST_READ
+     || io.readOpt() == IOobject::MUST_READ_IF_MODIFIED
      || (io.readOpt() == IOobject::READ_IF_PRESENT && headerOk())
     )
     {
@@ -399,9 +424,22 @@ Foam::refinementHistory::refinementHistory
     regIOobject(io),
     freeSplitCells_(0)
 {
+    // Temporary warning
+    if (io.readOpt() == IOobject::MUST_READ_IF_MODIFIED)
+    {
+        WarningIn
+        (
+            "refinementHistory::refinementHistory"
+            "(const IOobject&, const label)"
+        )   << "Specified IOobject::MUST_READ_IF_MODIFIED but class"
+            << " does not support automatic rereading."
+            << endl;
+    }
+
     if
     (
         io.readOpt() == IOobject::MUST_READ
+     || io.readOpt() == IOobject::MUST_READ_IF_MODIFIED
      || (io.readOpt() == IOobject::READ_IF_PRESENT && headerOk())
     )
     {
@@ -652,9 +690,9 @@ void Foam::refinementHistory::distribute(const mapDistributePolyMesh& map)
     // Remove unreferenced history.
     compact();
 
-    Pout<< nl << "--BEFORE:" << endl;
-    writeDebug();
-    Pout<< "---------" << nl << endl;
+    //Pout<< nl << "--BEFORE:" << endl;
+    //writeDebug();
+    //Pout<< "---------" << nl << endl;
 
 
     // Distribution is only partially functional.
@@ -708,18 +746,18 @@ void Foam::refinementHistory::distribute(const mapDistributePolyMesh& map)
         }
     }
 
-Pout<< "refinementHistory::distribute :"
-    << " splitCellProc:" << splitCellProc << endl;
-
-Pout<< "refinementHistory::distribute :"
-    << " splitCellNum:" << splitCellNum << endl;
+    //Pout<< "refinementHistory::distribute :"
+    //    << " splitCellProc:" << splitCellProc << endl;
+    //
+    //Pout<< "refinementHistory::distribute :"
+    //    << " splitCellNum:" << splitCellNum << endl;
 
 
     // Create subsetted refinement tree consisting of all parents that
     // move in their whole to other processor.
     for (label procI = 0; procI < Pstream::nProcs(); procI++)
     {
-        Pout<< "-- Subetting for processor " << procI << endl;
+        //Pout<< "-- Subetting for processor " << procI << endl;
 
         // From uncompacted to compacted splitCells.
         labelList oldToNew(splitCells_.size(), -1);
@@ -743,10 +781,10 @@ Pout<< "refinementHistory::distribute :"
                 oldToNew[index] = newSplitCells.size();
                 newSplitCells.append(splitCells_[index]);
 
-                Pout<< "Added oldCell " << index
-                    << " info " << newSplitCells[newSplitCells.size()-1]
-                    << " at position " << newSplitCells.size()-1
-                    << endl;
+                //Pout<< "Added oldCell " << index
+                //    << " info " << newSplitCells.last()
+                //    << " at position " << newSplitCells.size()-1
+                //    << endl;
             }
         }
 
@@ -759,9 +797,9 @@ Pout<< "refinementHistory::distribute :"
             {
                 label parent = splitCells_[index].parent_;
 
-                Pout<< "Adding refined cell " << cellI
-                    << " since moves to "
-                    << procI << " old parent:" << parent << endl;
+                //Pout<< "Adding refined cell " << cellI
+                //    << " since moves to "
+                //    << procI << " old parent:" << parent << endl;
 
                 // Create new splitCell with parent
                 oldToNew[index] = newSplitCells.size();
@@ -853,8 +891,8 @@ Pout<< "refinementHistory::distribute :"
         // renumbering can be done here.
         label offset = splitCells_.size();
 
-        Pout<< "**Renumbering data from proc " << procI << " with offset "
-            << offset << endl;
+        //Pout<< "**Renumbering data from proc " << procI << " with offset "
+        //    << offset << endl;
 
         forAll(newSplitCells, index)
         {
@@ -891,9 +929,9 @@ Pout<< "refinementHistory::distribute :"
     }
     splitCells_.shrink();
 
-    Pout<< nl << "--AFTER:" << endl;
-    writeDebug();
-    Pout<< "---------" << nl << endl;
+    //Pout<< nl << "--AFTER:" << endl;
+    //writeDebug();
+    //Pout<< "---------" << nl << endl;
 }
 
 

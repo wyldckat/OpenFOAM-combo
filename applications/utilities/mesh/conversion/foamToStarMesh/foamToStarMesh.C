@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,26 +31,16 @@ Usage
     - foamToStarMesh [OPTION] \n
     Reads an OpenFOAM mesh and writes a pro-STAR (v4) bnd/cel/vrt format.
 
-    @param -noBnd \n
-    Suppress writing the @c .bnd file
+    \param -noBnd \n
+    Suppress writing the \c .bnd file
 
-    @param -scale \<factor\>\n
+    \param -scale \<factor\>\n
     Specify an alternative geometry scaling factor.
-    The default is @b 1000 (scale @em [m] to @em [mm]).
-
-    @param -surface \n
-    Extract the surface of the volume mesh only.
-    This can be useful, for example, for surface morphing in an external
-    package.
-
-    @param -tri \n
-    Extract a triangulated surface.
-    The @b -surface options is implicitly selected.
-
+    The default is \b 1000 (scale \em [m] to \em [mm]).
 
 Note
     The cellTable information available in the files
-    @c constant/cellTable and @c constant/polyMesh/cellTableId
+    \c constant/cellTable and \c constant/polyMesh/cellTableId
     will be used if available. Otherwise the cellZones are used when
     creating the cellTable information.
 
@@ -72,31 +62,31 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "read OpenFOAM mesh and write a pro-STAR (v4) bnd/cel/vrt format"
+    );
     argList::noParallel();
     timeSelector::addOptions();
 
-    argList::validOptions.insert("scale", "scale");
-    argList::validOptions.insert("noBnd", "");
-    argList::validOptions.insert("tri", "");
-    argList::validOptions.insert("surface", "");
+    argList::addOption
+    (
+        "scale",
+        "factor",
+        "geometry scaling factor - default is 1000 ([m] to [mm])"
+    );
+    argList::addBoolOption
+    (
+        "noBnd",
+        "suppress writing a boundary (.bnd) file"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
     instantList timeDirs = timeSelector::select0(runTime, args);
 
-    bool surfaceOnly = false;
-    if (args.optionFound("surface") || args.optionFound("tri"))
-    {
-        surfaceOnly = true;
-    }
-
     fileName exportName = meshWriter::defaultMeshName;
-    if (surfaceOnly)
-    {
-        exportName = meshWriter::defaultSurfaceName;
-    }
-
     if (args.optionFound("case"))
     {
         exportName += '-' + args.globalCaseName();
@@ -113,7 +103,6 @@ int main(int argc, char *argv[])
     }
 
 #   include "createPolyMesh.H"
-
 
     forAll(timeDirs, timeI)
     {
@@ -138,21 +127,7 @@ int main(int argc, char *argv[])
                 meshName += '_' + runTime.timeName();
             }
 
-            if (surfaceOnly)
-            {
-                if (args.optionFound("tri"))
-                {
-                    writer.writeSurface(meshName, true);
-                }
-                else
-                {
-                    writer.writeSurface(meshName);
-                }
-            }
-            else
-            {
-                writer.write(meshName);
-            }
+            writer.write(meshName);
         }
 
         Info<< nl << endl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,12 +67,19 @@ class GenEddyVisc
 
 protected:
 
+    // Model coefficients
+
         dimensionedScalar ce_;
+
+    // Fields
 
         volScalarField nuSgs_;
 
 
 public:
+
+    //- Partial Runtime type information
+    static const word typeName;
 
     // Constructors
 
@@ -81,7 +88,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 
@@ -91,9 +100,6 @@ public:
 
 
     // Member Functions
-
-        //- Return SGS kinetic energy
-        virtual tmp<volScalarField> k() const = 0;
 
         //- Return sub-grid disipation rate
         virtual tmp<volScalarField> epsilon() const

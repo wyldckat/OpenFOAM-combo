@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,10 @@ Foam::interpolationCellPoint<Type>::interpolationCellPoint
 :
     interpolation<Type>(psi),
     psip_(volPointInterpolation::New(psi.mesh()).interpolate(psi))
-{}
+{
+    // Uses cellPointWeight to do interpolation which needs tet decomposition
+    (void)psi.mesh().tetBasePtIs();
+}
 
 
 // ************************************************************************* //

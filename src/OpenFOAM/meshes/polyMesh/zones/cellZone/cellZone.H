@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,19 +34,15 @@ Description
 
 SourceFiles
     cellZone.C
-    newCellZone.C
+    cellZoneNew.C
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef cellZone_H
 #define cellZone_H
 
-#include "labelList.H"
-#include "typeInfo.H"
-#include "dictionary.H"
+#include "zone.H"
 #include "cellZoneMeshFwd.H"
-#include "pointFieldFwd.H"
-#include "Map.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -65,23 +61,15 @@ Ostream& operator<<(Ostream&, const cellZone&);
 
 class cellZone
 :
-    public labelList
+    public zone
 {
-    // Private data
 
-        //- Name of zone
-        word name_;
+protected:
 
-        //- Index of zone
-        label index_;
+    // Protected data
 
         //- Reference to zone list
         const cellZoneMesh& zoneMesh_;
-
-        // Demand-driven private data
-
-            //- Map of cell labels in zone for fast location lookup
-            mutable Map<label>* cellLookupMapPtr_;
 
 
     // Private Member Functions
@@ -89,14 +77,14 @@ class cellZone
         //- Disallow default bitwise copy construct
         cellZone(const cellZone&);
 
-        //- Return map of local cell indices
-        const Map<label>& cellLookupMap() const;
-
-        //- Build map of local cell indices
-        void calcCellLookupMap() const;
-
 
 public:
+
+    // Static data members
+
+        //- The name associated with the zone-labels dictionary entry
+        static const char * const labelsName;
+
 
     //- Runtime type information
     TypeName("cellZone");
@@ -125,7 +113,7 @@ public:
         cellZone
         (
             const word& name,
-            const labelList& addr,
+            const labelUList& addr,
             const label index,
             const cellZoneMesh&
         );
@@ -153,7 +141,7 @@ public:
         cellZone
         (
             const cellZone&,
-            const labelList& addr,
+            const labelUList& addr,
             const label index,
             const cellZoneMesh&
         );
@@ -181,7 +169,7 @@ public:
         //  and zone mesh
         virtual autoPtr<cellZone> clone
         (
-            const labelList& addr,
+            const labelUList& addr,
             const label index,
             const cellZoneMesh& zm
         ) const
@@ -207,45 +195,26 @@ public:
 
 
     //- Destructor
-
-        virtual ~cellZone();
+    virtual ~cellZone();
 
 
     // Member Functions
 
-        //- Return name
-        const word& name() const
-        {
-            return name_;
-        }
-
-        //- Map storing the local cell index for every global cell
-        //  index.  Used to find out the index of cell in the zone from
-        //  the known global cell index.  If the cell is not in the
-        //  zone, returns -1
+        //- Helper function to re-direct to zone::localID(...)
         label whichCell(const label globalCellID) const;
-
-        //- Return the index of this zone in zone list
-        label index() const
-        {
-            return index_;
-        }
 
         //- Return zoneMesh reference
         const cellZoneMesh& zoneMesh() const;
 
-        //- Clear addressing
-        void clearAddressing();
-
         //- Check zone definition. Return true if in error.
-        bool checkDefinition(const bool report = false) const;
+        virtual bool checkDefinition(const bool report = false) const;
 
-        //- Correct patch after moving points
-        virtual void movePoints(const pointField&)
-        {}
-
-        //- Write
-        virtual void write(Ostream&) const;
+        //- Check whether zone is synchronised across coupled boundaries. Return
+        //  true if in error.
+        virtual bool checkParallelSync(const bool report = false) const
+        {
+            return false;
+        }
 
         //- Write dictionary
         virtual void writeDict(Ostream&) const;
@@ -253,15 +222,19 @@ public:
 
     // Member Operators
 
-        //- Assign to zone clearing demand-driven data
+        //- Assign to zone, clearing demand-driven data
         void operator=(const cellZone&);
 
-        //- Assign addressing clearing demand-driven data
-        void operator=(const labelList&);
+        //- Assign addressing, clearing demand-driven data
+        void operator=(const labelUList&);
+
+        //- Assign addressing, clearing demand-driven data
+        void operator=(const Xfer<labelList>&);
 
 
-    // Ostream Operator
+    // I-O
 
+        //- Ostream Operator
         friend Ostream& operator<<(Ostream&, const cellZone&);
 };
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "edgeIntersections.H"
@@ -37,15 +35,14 @@ Description
 #include "meshTools.H"
 #include "plane.H"
 #include "Random.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "treeBoundBox.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 defineTypeNameAndDebug(Foam::edgeIntersections, 0);
 
-Foam::scalar Foam::edgeIntersections::alignedCos_ =
-    Foam::cos(89.0 * Foam::mathematicalConstant::pi/180.0);
+Foam::scalar Foam::edgeIntersections::alignedCos_ = Foam::cos(degToRad(89.0));
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -260,12 +257,12 @@ bool Foam::edgeIntersections::inlinePerturb
         bool perturbEnd = false;
 
         // Check first intersection.
-        if (edgeEnds[0] == 0)
+        if (edgeEnds.first() == 0)
         {
             perturbStart = true;
         }
 
-        if (edgeEnds[edgeEnds.size()-1] == 1)
+        if (edgeEnds.last() == 1)
         {
             perturbEnd = true;
         }
@@ -417,26 +414,14 @@ bool Foam::edgeIntersections::offsetPerturb
         // Classify point on face of surface2
         label surf2FaceI = pHit.index();
 
-        const labelledTri& f2 = surf2.localFaces()[surf2FaceI];
-
+        const triSurface::FaceType& f2 = surf2.localFaces()[surf2FaceI];
         const pointField& surf2Pts = surf2.localPoints();
 
-        label nearType;
-        label nearLabel;
+        const point ctr = f2.centre(surf2Pts);
 
-        triPointRef tri
-        (
-            surf2Pts[f2[0]],
-            surf2Pts[f2[1]],
-            surf2Pts[f2[2]]
-        );
+        label nearType, nearLabel;
 
-        point ctr = tri.centre();
-
-        // Get measure for tolerance.
-        scalar tolDim = 0.001*mag(tri.a() - ctr);
-
-        tri.classify(pHit.hitPoint(), tolDim, nearType, nearLabel);
+        f2.nearestPointClassify(pHit.hitPoint(), surf2Pts, nearType, nearLabel);
 
         if (nearType == triPointRef::POINT || nearType == triPointRef::EDGE)
         {
@@ -718,15 +703,6 @@ Foam::label Foam::edgeIntersections::removeDegenerates
 
     return iter;
 }
-
-
-// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Friend Functions  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,10 +44,12 @@ scaleSimilarity::scaleSimilarity
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
-    transportModel& transport
+    transportModel& transport,
+    const word& turbulenceModelName,
+    const word& modelName
 )
 :
-    LESModel(typeName, U, phi, transport),
+    LESModel(modelName, U, phi, transport, turbulenceModelName),
     filterPtr_(LESfilter::New(U.mesh(), coeffDict())),
     filter_(filterPtr_())
 {
@@ -65,7 +67,7 @@ tmp<volScalarField> scaleSimilarity::k() const
 
 tmp<volScalarField> scaleSimilarity::epsilon() const
 {
-    volSymmTensorField D = symm(fvc::grad(U()));
+    tmp<volSymmTensorField> D = symm(fvc::grad(U()));
 
     return((filter_(sqr(U())) - sqr(filter_(U()))) && D);
 }

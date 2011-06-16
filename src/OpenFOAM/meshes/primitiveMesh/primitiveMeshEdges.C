@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -467,7 +467,7 @@ Foam::label Foam::primitiveMesh::findFirstCommonElementFromSortedLists
 
     while (iter1 != list1.end() && iter2 != list2.end())
     {
-        if( *iter1 < *iter2)
+        if (*iter1 < *iter2)
         {
             ++iter1;
         }

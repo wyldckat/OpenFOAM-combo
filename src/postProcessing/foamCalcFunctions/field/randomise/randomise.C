@@ -78,9 +78,8 @@ void Foam::calcTypes::randomise::calc
     const fvMesh& mesh
 )
 {
-    const stringList& params = args.additionalArgs();
-    const scalar pertMag = readScalar(IStringStream(params[1])());
-    const word& fieldName = params[2];
+    const scalar pertMag = args.argRead<scalar>(2);
+    const word fieldName = args[3];
 
     Random rand(1234567);
 

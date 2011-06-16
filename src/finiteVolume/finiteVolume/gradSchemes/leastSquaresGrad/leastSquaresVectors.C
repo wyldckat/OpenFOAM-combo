@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,10 +29,7 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-    defineTypeNameAndDebug(leastSquaresVectors, 0);
-}
+defineTypeNameAndDebug(Foam::leastSquaresVectors, 0);
 
 
 // * * * * * * * * * * * * * * * * Constructors * * * * * * * * * * * * * * //
@@ -100,8 +97,8 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
     surfaceVectorField& lsN = *nVectorsPtr_;
 
     // Set local references to mesh data
-    const unallocLabelList& owner = mesh_.owner();
-    const unallocLabelList& neighbour = mesh_.neighbour();
+    const labelUList& owner = mesh_.owner();
+    const labelUList& neighbour = mesh_.neighbour();
 
     const volVectorField& C = mesh.C();
     const surfaceScalarField& w = mesh.weights();
@@ -130,15 +127,17 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         const fvsPatchScalarField& pMagSf = magSf.boundaryField()[patchi];
 
         const fvPatch& p = pw.patch();
-        const unallocLabelList& faceCells = p.patch().faceCells();
+        const labelUList& faceCells = p.patch().faceCells();
 
         // Build the d-vectors
-        vectorField pd =
+        vectorField pd
+        (
             mesh.Sf().boundaryField()[patchi]
-           /(
-               mesh.magSf().boundaryField()[patchi]
-              *mesh.deltaCoeffs().boundaryField()[patchi]
-           );
+          / (
+                mesh.magSf().boundaryField()[patchi]
+              * mesh.deltaCoeffs().boundaryField()[patchi]
+           )
+        );
 
         if (!mesh.orthogonal())
         {
@@ -170,7 +169,7 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
 
 
     // Invert the dd tensor
-    symmTensorField invDd = inv(dd);
+    const symmTensorField invDd(inv(dd));
 
 
     // Revisit all faces and calculate the lsP and lsN vectors
@@ -194,15 +193,17 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         const fvsPatchScalarField& pMagSf = magSf.boundaryField()[patchi];
 
         const fvPatch& p = pw.patch();
-        const unallocLabelList& faceCells = p.faceCells();
+        const labelUList& faceCells = p.faceCells();
 
         // Build the d-vectors
-        vectorField pd =
+        vectorField pd
+        (
             mesh.Sf().boundaryField()[patchi]
            /(
                mesh.magSf().boundaryField()[patchi]
               *mesh.deltaCoeffs().boundaryField()[patchi]
-           );
+            )
+        );
 
         if (!mesh.orthogonal())
         {
@@ -248,7 +249,7 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         const surfaceVectorField& Sf = mesh.Sf();
         const surfaceScalarField& w = mesh.weights();
 
-        forAll (dd, celli)
+        forAll(dd, celli)
         {
             if (det(dd[celli]) < 3)
             {

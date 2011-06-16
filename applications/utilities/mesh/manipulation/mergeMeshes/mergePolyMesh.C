@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ Foam::label Foam::mergePolyMesh::patchIndex(const polyPatch& p)
 
     bool nameFound = false;
 
-    forAll (patchNames_, patchI)
+    forAll(patchNames_, patchI)
     {
         if (patchNames_[patchI] == pName)
         {
@@ -80,7 +80,7 @@ Foam::label Foam::mergePolyMesh::patchIndex(const polyPatch& p)
             << pName << " in mesh " << caseName
             << " already exists, but patch types "
             << " do not match.\nCreating a composite name as "
-            << patchNames_[patchNames_.size() - 1] << endl;
+            << patchNames_.last() << endl;
     }
     else
     {
@@ -97,7 +97,7 @@ Foam::label Foam::mergePolyMesh::zoneIndex
     const word& curName
 )
 {
-    forAll (names, zoneI)
+    forAll(names, zoneI)
     {
         if (names[zoneI] == curName)
         {
@@ -128,7 +128,7 @@ Foam::mergePolyMesh::mergePolyMesh(const IOobject& io)
     wordList curPatchTypes = boundaryMesh().types();
     wordList curPatchNames = boundaryMesh().names();
 
-    forAll (curPatchTypes, patchI)
+    forAll(curPatchTypes, patchI)
     {
         patchTypes_.append(curPatchTypes[patchI]);
         patchNames_.append(curPatchNames[patchI]);
@@ -143,7 +143,7 @@ Foam::mergePolyMesh::mergePolyMesh(const IOobject& io)
         pointZoneNames_.setCapacity(2*curPointZoneNames.size());
     }
 
-    forAll (curPointZoneNames, zoneI)
+    forAll(curPointZoneNames, zoneI)
     {
         pointZoneNames_.append(curPointZoneNames[zoneI]);
     }
@@ -155,7 +155,7 @@ Foam::mergePolyMesh::mergePolyMesh(const IOobject& io)
     {
         faceZoneNames_.setCapacity(2*curFaceZoneNames.size());
     }
-    forAll (curFaceZoneNames, zoneI)
+    forAll(curFaceZoneNames, zoneI)
     {
         faceZoneNames_.append(curFaceZoneNames[zoneI]);
     }
@@ -167,7 +167,7 @@ Foam::mergePolyMesh::mergePolyMesh(const IOobject& io)
     {
         cellZoneNames_.setCapacity(2*curCellZoneNames.size());
     }
-    forAll (curCellZoneNames, zoneI)
+    forAll(curCellZoneNames, zoneI)
     {
         cellZoneNames_.append(curCellZoneNames[zoneI]);
     }
@@ -193,12 +193,12 @@ void Foam::mergePolyMesh::addMesh(const polyMesh& m)
     const pointZoneMesh& pz = m.pointZones();
     labelList pointZoneIndices(pz.size());
 
-    forAll (pz, zoneI)
+    forAll(pz, zoneI)
     {
         pointZoneIndices[zoneI] = zoneIndex(pointZoneNames_, pz[zoneI].name());
     }
 
-    forAll (p, pointI)
+    forAll(p, pointI)
     {
         // Grab zone ID.  If a point is not in a zone, it will return -1
         zoneID = pz.whichZone(pointI);
@@ -230,12 +230,12 @@ void Foam::mergePolyMesh::addMesh(const polyMesh& m)
     const cellZoneMesh& cz = m.cellZones();
     labelList cellZoneIndices(cz.size());
 
-    forAll (cz, zoneI)
+    forAll(cz, zoneI)
     {
         cellZoneIndices[zoneI] = zoneIndex(cellZoneNames_, cz[zoneI].name());
     }
 
-    forAll (c, cellI)
+    forAll(c, cellI)
     {
         // Grab zone ID.  If a cell is not in a zone, it will return -1
         zoneID = cz.whichZone(cellI);
@@ -266,7 +266,7 @@ void Foam::mergePolyMesh::addMesh(const polyMesh& m)
     // Gather the patch indices
     labelList patchIndices(bm.size());
 
-    forAll (patchIndices, patchI)
+    forAll(patchIndices, patchI)
     {
         patchIndices[patchI] = patchIndex(bm[patchI]);
     }
@@ -280,7 +280,7 @@ void Foam::mergePolyMesh::addMesh(const polyMesh& m)
     const faceZoneMesh& fz = m.faceZones();
     labelList faceZoneIndices(fz.size());
 
-    forAll (fz, zoneI)
+    forAll(fz, zoneI)
     {
         faceZoneIndices[zoneI] = zoneIndex(faceZoneNames_, fz[zoneI].name());
     }
@@ -294,13 +294,13 @@ void Foam::mergePolyMesh::addMesh(const polyMesh& m)
     label newOwn, newNei, newPatch, newZone;
     bool newZoneFlip;
 
-    forAll (f, faceI)
+    forAll(f, faceI)
     {
         const face& curFace = f[faceI];
 
         face newFace(curFace.size());
 
-        forAll (curFace, pointI)
+        forAll(curFace, pointI)
         {
             newFace[pointI] = renumberPoints[curFace[pointI]];
         }
@@ -384,7 +384,7 @@ void Foam::mergePolyMesh::merge()
     // Add the patches if necessary
     if (patchNames_.size() != boundaryMesh().size())
     {
-        Info << "Copying old patches" << endl;
+        Info<< "Copying old patches" << endl;
 
         List<polyPatch*> newPatches(patchNames_.size());
 
@@ -398,7 +398,7 @@ void Foam::mergePolyMesh::merge()
             newPatches[patchI] = oldPatches[patchI].clone(oldPatches).ptr();
         }
 
-        Info << "Adding new patches. " << endl;
+        Info<< "Adding new patches. " << endl;
 
         label endOfLastPatch =
             oldPatches[patchI - 1].start() + oldPatches[patchI - 1].size();

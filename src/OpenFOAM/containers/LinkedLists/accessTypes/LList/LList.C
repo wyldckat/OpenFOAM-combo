@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "error.H"
@@ -37,7 +35,7 @@ Foam::LList<LListBase, T>::LList(const LList<LListBase, T>& lst)
 {
     for (const_iterator iter = lst.begin(); iter != lst.end(); ++iter)
     {
-        append(iter());
+        this->append(iter());
     }
 }
 
@@ -55,9 +53,9 @@ template<class LListBase, class T>
 void Foam::LList<LListBase, T>::clear()
 {
     label oldSize = this->size();
-    for (label i=0; i<oldSize; i++)
+    for (label i=0; i<oldSize; ++i)
     {
-        removeHead();
+        this->removeHead();
     }
 
     LListBase::clear();
@@ -81,7 +79,7 @@ void Foam::LList<LListBase, T>::operator=(const LList<LListBase, T>& lst)
 
     for (const_iterator iter = lst.begin(); iter != lst.end(); ++iter)
     {
-        append(iter());
+        this->append(iter());
     }
 }
 

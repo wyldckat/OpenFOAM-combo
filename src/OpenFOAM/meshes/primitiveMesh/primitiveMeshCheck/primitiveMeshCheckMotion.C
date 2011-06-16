@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,10 +30,7 @@ Description
 #include "primitiveMesh.H"
 #include "pyramidPointFaceRef.H"
 #include "cell.H"
-#include "mathematicalConstants.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
+#include "unitConversion.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -71,7 +68,7 @@ bool Foam::primitiveMesh::checkMeshMotion
     scalar minVolume = GREAT;
     label nNegVols = 0;
 
-    forAll (cellVols, cellI)
+    forAll(cellVols, cellI)
     {
         if (cellVols[cellI] < VSMALL)
         {
@@ -111,7 +108,7 @@ bool Foam::primitiveMesh::checkMeshMotion
     label nPyrErrors = 0;
     label nDotProductErrors = 0;
 
-    forAll (f, faceI)
+    forAll(f, faceI)
     {
         const scalar a = Foam::mag(fAreas[faceI]);
 
@@ -199,7 +196,7 @@ bool Foam::primitiveMesh::checkMeshMotion
                 )   << "Severe non-orthogonality in mesh motion for face "
                     << faceI
                     << " between cells " << own[faceI] << " and " << nei[faceI]
-                    << ": Angle = " << ::acos(dDotS)/mathematicalConstant::pi*180.0
+                    << ": Angle = " << radToDeg(::acos(dDotS))
                     << " deg." << endl;
 
                 nDotProductErrors++;
@@ -259,7 +256,7 @@ bool Foam::primitiveMesh::checkMeshMotion
 
     if (!error && (debug || report))
     {
-        Pout << "Mesh motion check OK." << endl;
+        Pout<< "Mesh motion check OK." << endl;
     }
 
     return error;

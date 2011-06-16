@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -78,6 +78,7 @@ public:
         PUNCTUATION,
         WORD,
         STRING,
+        VERBATIMSTRING,
         LABEL,
         FLOAT_SCALAR,
         DOUBLE_SCALAR,
@@ -104,6 +105,7 @@ public:
         END_BLOCK      = '}',
         COLON          = ':',
         COMMA          = ',',
+        HASH           = '#',
 
         BEGIN_STRING   = '"',
         END_STRING     = BEGIN_STRING,
@@ -167,9 +169,8 @@ public:
             static autoPtr<compound> New(const word& type, Istream&);
 
 
-        // Destructor
-
-            virtual ~compound();
+        //- Destructor
+        virtual ~compound();
 
 
         // Member Functions
@@ -263,7 +264,7 @@ private:
         label lineNumber_;
 
 
-    // Private member functions
+    // Private Member Functions
 
         //- Clear any allocated storage (word or string)
         inline void clear();
@@ -309,9 +310,8 @@ public:
         token(Istream&);
 
 
-    // Destructor
-
-        inline ~token();
+    //- Destructor
+    inline ~token();
 
 
     // Member functions
@@ -319,6 +319,7 @@ public:
         // Access
 
             inline tokenType type() const;
+            inline tokenType& type();
 
             inline bool good() const;
             inline bool undefined() const;
@@ -434,11 +435,10 @@ Ostream& operator<<(Ostream&, const token::compound&);
 
 
 #define defineCompoundTypeName(Type, Name)                                    \
-    typedef token::Compound<Type > tokenCompound##Name##_;                    \
-    defineTemplateTypeNameAndDebugWithName(tokenCompound##Name##_, #Type, 0);
+    defineTemplateTypeNameAndDebugWithName(token::Compound<Type>, #Type, 0);
 
 #define addCompoundToRunTimeSelectionTable(Type, Name)                        \
-    token::compound::addIstreamConstructorToTable<token::Compound<Type > >    \
+    token::compound::addIstreamConstructorToTable<token::Compound<Type> >     \
         add##Name##IstreamConstructorToTable_;
 
 

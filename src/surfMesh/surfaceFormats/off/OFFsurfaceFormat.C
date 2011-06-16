@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -120,7 +120,7 @@ bool Foam::fileFormats::OFFsurfaceFormat<Face>::read
                 lineStream >> verts[vertI];
             }
 
-            UList<label>& f = static_cast<UList<label>&>(verts);
+            labelUList& f = static_cast<labelUList&>(verts);
 
             if (mustTriangulate && f.size() > 3)
             {
@@ -141,7 +141,7 @@ bool Foam::fileFormats::OFFsurfaceFormat<Face>::read
     }
 
     // transfer to normal lists, no zone information
-    reset(pointLst.xfer(), dynFaces.xfer(), Xfer<surfZoneList>());
+    this->reset(pointLst.xfer(), dynFaces.xfer(), Xfer<surfZoneList>());
 
     return true;
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -113,9 +113,8 @@ public:
         faceMapper(const mapPolyMesh& mpm);
 
 
-    // Destructor
-
-        virtual ~faceMapper();
+    //- Destructor
+    virtual ~faceMapper();
 
 
     // Member Functions
@@ -136,7 +135,7 @@ public:
         }
 
         //- Return direct addressing
-        virtual const unallocLabelList& directAddressing() const;
+        virtual const labelUList& directAddressing() const;
 
         //- Return interpolated addressing
         virtual const labelListList& addressing() const;
@@ -147,13 +146,13 @@ public:
         //- Return flux flip map
         virtual const labelHashSet& flipFaceFlux() const;
 
-	//- Return number of old internalFaces
+        //- Return number of old internalFaces
         virtual label nOldInternalFaces() const;
 
-	//- Return old patch starts
+        //- Return old patch starts
         virtual const labelList& oldPatchStarts() const;
 
-	//- Return old patch sizes
+        //- Return old patch sizes
         virtual const labelList& oldPatchSizes() const;
 
         //- Are there any inserted faces

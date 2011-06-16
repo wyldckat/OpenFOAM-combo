@@ -24,6 +24,9 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "VariableHardSphere.H"
+#include "constants.H"
+
+using namespace Foam::constant::mathematical;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -48,17 +51,24 @@ Foam::VariableHardSphere<CloudType>::~VariableHardSphere()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+template<class CloudType>
+bool Foam::VariableHardSphere<CloudType>::active() const
+{
+    return true;
+}
+
 
 template <class CloudType>
 Foam::scalar Foam::VariableHardSphere<CloudType>::sigmaTcR
 (
-    label typeIdP,
-    label typeIdQ,
-    const vector& UP,
-    const vector& UQ
+    const typename CloudType::parcelType& pP,
+    const typename CloudType::parcelType& pQ
 ) const
 {
     const CloudType& cloud(this->owner());
+
+    label typeIdP = pP.typeId();
+    label typeIdQ = pQ.typeId();
 
     scalar dPQ =
         0.5
@@ -74,7 +84,7 @@ Foam::scalar Foam::VariableHardSphere<CloudType>::sigmaTcR
           + cloud.constProps(typeIdQ).omega()
         );
 
-    scalar cR = mag(UP - UQ);
+    scalar cR = mag(pP.U() - pQ.U());
 
     if (cR < VSMALL)
     {
@@ -89,8 +99,8 @@ Foam::scalar Foam::VariableHardSphere<CloudType>::sigmaTcR
 
     // calculating cross section = pi*dPQ^2, where dPQ is from Bird, eq. 4.79
     scalar sigmaTPQ =
-        mathematicalConstant::pi*dPQ*dPQ
-       *pow(2.0*CloudType::kb*Tref_/(mR*cR*cR), omegaPQ - 0.5)
+        pi*dPQ*dPQ
+       *pow(2.0*physicoChemical::k.value()*Tref_/(mR*cR*cR), omegaPQ - 0.5)
        /exp(Foam::lgamma(2.5 - omegaPQ));
 
     return sigmaTPQ*cR;
@@ -100,15 +110,16 @@ Foam::scalar Foam::VariableHardSphere<CloudType>::sigmaTcR
 template <class CloudType>
 void Foam::VariableHardSphere<CloudType>::collide
 (
-    label typeIdP,
-    label typeIdQ,
-    vector& UP,
-    vector& UQ,
-    scalar& EiP,
-    scalar& EiQ
+    typename CloudType::parcelType& pP,
+    typename CloudType::parcelType& pQ
 )
 {
     CloudType& cloud(this->owner());
+
+    label typeIdP = pP.typeId();
+    label typeIdQ = pQ.typeId();
+    vector& UP = pP.U();
+    vector& UQ = pQ.U();
 
     Random& rndGen(cloud.rndGen());
 
@@ -124,7 +135,7 @@ void Foam::VariableHardSphere<CloudType>::collide
 
     scalar sinTheta = sqrt(1.0 - cosTheta*cosTheta);
 
-    scalar phi = 2.0*mathematicalConstant::pi*rndGen.scalar01();
+    scalar phi = twoPi*rndGen.scalar01();
 
     vector postCollisionRelU =
         cR

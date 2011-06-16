@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,17 +59,17 @@ public:
     (
         const scalar cdWeight,
         const scalar faceFlux,
-        const scalar& phiP,
-        const scalar& phiN,
+        const scalar phiP,
+        const scalar phiN,
         const vector&,
-        const scalar&
+        const scalar
     ) const
     {
         // Quadratic compression scheme
         //return min(max(4*min(phiP*(1 - phiP), phiN*(1 - phiN)), 0), 1);
 
         // Quartic compression scheme
-        return 
+        return
             min(max(
             1 - max(sqr(1 - 4*phiP*(1 - phiP)), sqr(1 - 4*phiN*(1 - phiN))),
             0), 1);

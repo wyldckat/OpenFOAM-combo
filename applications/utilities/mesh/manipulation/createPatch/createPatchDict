@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -12,7 +12,6 @@ FoamFile
     class       dictionary;
     object      createPatchDict;
 }
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // This application/dictionary controls:
@@ -26,77 +25,85 @@ FoamFile
 // - specify where the faces should come from
 // - specify the type of cyclic. If a rotational specify the rotationAxis
 //   and centre to make matching easier
-// - pointSync true to guarantee points to line up.
+// - always create both halves in one invocation with correct 'neighbourPatch'
+//   setting.
+// - optionally pointSync true to guarantee points to line up.
 
 // 2. Correct incorrect cyclic:
 // This will usually fail upon loading:
 //  "face 0 area does not match neighbour 2 by 0.0100005%"
 //  " -- possible face ordering problem."
-// - change patch type from 'cyclic' to 'patch' in the polyMesh/boundary file.
-// - loosen match tolerance to get case to load
-// - regenerate cyclic as above
-
-
-// Tolerance used in matching faces. Absolute tolerance is span of
-// face times this factor. To load incorrectly matches meshes set this
-// to a higher value.
-matchTolerance 1E-3;
+// - in polyMesh/boundary file:
+//      - loosen matchTolerance of all cyclics to get case to load
+//      - or change patch type from 'cyclic' to 'patch'
+//        and regenerate cyclic as above
 
 // Do a synchronisation of coupled points after creation of any patches.
 // Note: this does not work with points that are on multiple coupled patches
-//       with transformations.
-pointSync true;
+//       with transformations (i.e. cyclics).
+pointSync false;
 
 // Patches to create.
-patchInfo
+patches
 (
     {
         // Name of new patch
-        name sidePatches;
+        name cyc_half0;
 
-        // Type of new patch
-        dictionary
+        // Dictionary to construct new patch from
+        patchInfo
         {
             type cyclic;
+            neighbourPatch cyc_half1;
 
             // Optional: explicitly set transformation tensor.
             // Used when matching and synchronising points.
-            // In case of translational note that separationVector
-            // is the vector from master side to slave side so depends on
-            // the order in which faces get added.
-            //transform translational;
-            //separationVector (-2289 0 0);
             transform rotational;
             rotationAxis (1 0 0);
             rotationCentre (0 0 0);
+            // transform translational;
+            // separationVector (1 0 0);
+
+            // Optional non-default tolerance to be able to define cyclics
+            // on bad meshes
+            //matchTolerance 1E-2;
         }
 
         // How to construct: either from 'patches' or 'set'
         constructFrom patches;
 
         // If constructFrom = patches : names of patches. Wildcards allowed.
-        patches ("periodic.*");
+        patches (periodic1);
 
         // If constructFrom = set : name of faceSet
         set f0;
     }
-
     {
-        name bottom;
+        // Name of new patch
+        name cyc_half1;
 
-        // Type of new patch
-        dictionary
+        // Dictionary to construct new patch from
+        patchInfo
         {
-            type wall;
+            type cyclic;
+            neighbourPatch cyc_half0;
+
+            // Optional: explicitly set transformation tensor.
+            // Used when matching and synchronising points.
+            transform rotational;
+            rotationAxis    ( 0 0 1 );
+            rotationCentre  ( 0.3 0 0 );
         }
 
-        constructFrom set;
+        // How to construct: either from 'patches' or 'set'
+        constructFrom patches;
 
-        patches ();
+        // If constructFrom = patches : names of patches. Wildcards allowed.
+        patches (periodic2);
 
-        set bottomFaces;
+        // If constructFrom = set : name of faceSet
+        set f0;
     }
-
 );
 
 // ************************************************************************* //

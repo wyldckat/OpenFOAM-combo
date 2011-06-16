@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -50,6 +50,7 @@ dictionaryReplacement
             ".*"
             {
                 type            zeroGradient;
+                value           uniform 300;
             }
 
             minX
@@ -68,7 +69,8 @@ dictionaryReplacement
             {
                 type            compressible::turbulentTemperatureCoupledBaffleMixed;
                 neighbourFieldName T;
-                K               K;
+                K               basicThermo;
+                KName           none;
                 value           uniform 300;
             }
         }

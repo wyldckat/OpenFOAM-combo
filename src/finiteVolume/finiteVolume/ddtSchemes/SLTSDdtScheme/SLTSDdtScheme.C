@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "SLTSDdtScheme.H"
@@ -46,8 +46,8 @@ void SLTSDdtScheme<Type>::relaxedDiag
     const surfaceScalarField& phi
 ) const
 {
-    const unallocLabelList& owner = mesh().owner();
-    const unallocLabelList& neighbour = mesh().neighbour();
+    const labelUList& owner = mesh().owner();
+    const labelUList& neighbour = mesh().neighbour();
     scalarField diag(rD.size(), 0.0);
 
     forAll(owner, faceI)
@@ -67,7 +67,7 @@ void SLTSDdtScheme<Type>::relaxedDiag
     forAll(phi.boundaryField(), patchi)
     {
         const fvsPatchScalarField& pphi = phi.boundaryField()[patchi];
-        const unallocLabelList& faceCells = pphi.patch().patch().faceCells();
+        const labelUList& faceCells = pphi.patch().patch().faceCells();
 
         forAll(pphi, patchFacei)
         {
@@ -90,7 +90,8 @@ template<class Type>
 tmp<volScalarField> SLTSDdtScheme<Type>::SLrDeltaT() const
 {
     const surfaceScalarField& phi =
-        mesh().objectRegistry::lookupObject<surfaceScalarField>(phiName_);
+        mesh().objectRegistry::template
+            lookupObject<surfaceScalarField>(phiName_);
 
     const dimensionedScalar& deltaT = mesh().time().deltaT();
 
@@ -125,8 +126,10 @@ tmp<volScalarField> SLTSDdtScheme<Type>::SLrDeltaT() const
     else if (phi.dimensions() == dimensionSet(1, 0, -1, 0, 0))
     {
         const volScalarField& rho =
-            mesh().objectRegistry::lookupObject<volScalarField>(rhoName_)
-           .oldTime();
+            mesh().objectRegistry::template lookupObject<volScalarField>
+            (
+                rhoName_
+            ).oldTime();
 
         rDeltaT.internalField() = max
         (
@@ -154,7 +157,7 @@ SLTSDdtScheme<Type>::fvcDdt
     const dimensioned<Type>& dt
 )
 {
-    volScalarField rDeltaT = SLrDeltaT();
+    const volScalarField rDeltaT(SLrDeltaT());
 
     IOobject ddtIOobject
     (
@@ -213,7 +216,7 @@ SLTSDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = SLrDeltaT();
+    const volScalarField rDeltaT(SLrDeltaT());
 
     IOobject ddtIOobject
     (
@@ -265,7 +268,7 @@ SLTSDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = SLrDeltaT();
+    const volScalarField rDeltaT(SLrDeltaT());
 
     IOobject ddtIOobject
     (
@@ -317,7 +320,7 @@ SLTSDdtScheme<Type>::fvcDdt
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
-    volScalarField rDeltaT = SLrDeltaT();
+    const volScalarField rDeltaT(SLrDeltaT());
 
     IOobject ddtIOobject
     (
@@ -368,7 +371,7 @@ template<class Type>
 tmp<fvMatrix<Type> >
 SLTSDdtScheme<Type>::fvmDdt
 (
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -382,12 +385,12 @@ SLTSDdtScheme<Type>::fvmDdt
 
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = SLrDeltaT()().internalField();
+    scalarField rDeltaT(SLrDeltaT()().internalField());
 
     Info<< "max/min rDeltaT " << max(rDeltaT) << " " << min(rDeltaT) << endl;
 
     fvm.diag() = rDeltaT*mesh().V();
-    
+
     if (mesh().moving())
     {
         fvm.source() = rDeltaT*vf.oldTime().internalField()*mesh().V0();
@@ -406,7 +409,7 @@ tmp<fvMatrix<Type> >
 SLTSDdtScheme<Type>::fvmDdt
 (
     const dimensionedScalar& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -419,10 +422,10 @@ SLTSDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = SLrDeltaT()().internalField();
+    scalarField rDeltaT(SLrDeltaT()().internalField());
 
     fvm.diag() = rDeltaT*rho.value()*mesh().V();
-    
+
     if (mesh().moving())
     {
         fvm.source() = rDeltaT
@@ -443,7 +446,7 @@ tmp<fvMatrix<Type> >
 SLTSDdtScheme<Type>::fvmDdt
 (
     const volScalarField& rho,
-    GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf
 )
 {
     tmp<fvMatrix<Type> > tfvm
@@ -456,7 +459,7 @@ SLTSDdtScheme<Type>::fvmDdt
     );
     fvMatrix<Type>& fvm = tfvm();
 
-    scalarField rDeltaT = SLrDeltaT()().internalField();
+    scalarField rDeltaT(SLrDeltaT()().internalField());
 
     fvm.diag() = rDeltaT*rho.internalField()*mesh().V();
 
@@ -512,14 +515,14 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
     }
     else
     {
-        volScalarField rDeltaT = SLrDeltaT();
+        const volScalarField rDeltaT(SLrDeltaT());
 
         return tmp<fluxFieldType>
         (
             new fluxFieldType
             (
                 ddtIOobject,
-                fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())*
+                this->fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())*
                 (
                     fvc::interpolate(rDeltaT*rA)*phi.oldTime()
                   - (fvc::interpolate(rDeltaT*rA*U.oldTime()) & mesh().Sf())
@@ -567,7 +570,7 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
     }
     else
     {
-        volScalarField rDeltaT = SLrDeltaT();
+        const volScalarField rDeltaT(SLrDeltaT());
 
         if
         (
@@ -580,7 +583,7 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
+                    this->fvcDdtPhiCoeff(U.oldTime(), phi.oldTime())
                    *(
                         fvc::interpolate(rDeltaT*rA*rho.oldTime())*phi.oldTime()
                       - (fvc::interpolate(rDeltaT*rA*rho.oldTime()*U.oldTime())
@@ -589,7 +592,7 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
                 )
             );
         }
-        else if 
+        else if
         (
             U.dimensions() == dimVelocity
          && phi.dimensions() == dimDensity*dimVelocity*dimArea
@@ -600,7 +603,7 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff
+                    this->fvcDdtPhiCoeff
                     (
                         U.oldTime(),
                         phi.oldTime()/fvc::interpolate(rho.oldTime())
@@ -618,7 +621,7 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
                 )
             );
         }
-        else if 
+        else if
         (
             U.dimensions() == dimDensity*dimVelocity
          && phi.dimensions() == dimDensity*dimVelocity*dimArea
@@ -629,8 +632,9 @@ SLTSDdtScheme<Type>::fvcDdtPhiCorr
                 new fluxFieldType
                 (
                     ddtIOobject,
-                    fvcDdtPhiCoeff(rho.oldTime(), U.oldTime(), phi.oldTime())
-                   *(
+                    this->fvcDdtPhiCoeff
+                    (rho.oldTime(), U.oldTime(), phi.oldTime())
+                  * (
                         fvc::interpolate(rDeltaT*rA)*phi.oldTime()
                       - (
                             fvc::interpolate(rDeltaT*rA*U.oldTime())&mesh().Sf()

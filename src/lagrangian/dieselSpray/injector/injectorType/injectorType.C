@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,22 +29,20 @@ License
 
 namespace Foam
 {
-
-defineTypeNameAndDebug(injectorType, 0);
-defineRunTimeSelectionTable(injectorType, dictionary);
-
+    defineTypeNameAndDebug(injectorType, 0);
+    defineRunTimeSelectionTable(injectorType, dictionary);
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 Foam::injectorType::injectorType
 (
     const Foam::Time&,
     const Foam::dictionary&
 )
 {}
+
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
@@ -54,30 +52,24 @@ Foam::autoPtr<Foam::injectorType> Foam::injectorType::New
     const dictionary& dict
 )
 {
-    word injectorTypeName
-    (
-        dict.lookup("injectorType")
-    );
+    const word modelType(dict.lookup("injectorType"));
 
-    Info<< "Selecting injectorType "
-         << injectorTypeName << endl;
+    Info<< "Selecting injectorType " << modelType << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(injectorTypeName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalError
-            << "injectorType::New(const dictionary&) : " << endl
-            << "    unknown injectorType type "
-            << injectorTypeName
-            << ", constructor not in hash table" << endl << endl
-            << "    Valid injector types are :" << endl;
-        Info<< dictionaryConstructorTablePtr_->sortedToc() << abort(FatalError);
+        FatalErrorIn("injectorType::New(const dictionary&)")
+            << "Unknown injectorType type "
+            << modelType << nl << nl
+            << "Valid injectorTypes are:" << nl
+            << dictionaryConstructorTablePtr_->sortedToc()
+            << abort(FatalError);
     }
 
     return autoPtr<injectorType>(cstrIter()(t, dict));
-
 }
 
 
@@ -85,6 +77,7 @@ Foam::autoPtr<Foam::injectorType> Foam::injectorType::New
 
 Foam::injectorType::~injectorType()
 {}
+
 
 Foam::scalar Foam::injectorType::getTableValue
 (
@@ -119,11 +112,12 @@ Foam::scalar Foam::injectorType::getTableValue
             i++;
         }
         // value sits bewteen table[i][0] and table[i+1][0]
-        return table[i][1] 
+        return table[i][1]
                + (value-table[i][0])/(table[i+1][0]-table[i][0])
                * (table[i+1][1]-table[i][1]);
     }
 }
+
 
 Foam::scalar Foam::injectorType::integrateTable
 (
@@ -161,6 +155,7 @@ Foam::scalar Foam::injectorType::integrateTable
     return sum;
 }
 
+
 Foam::scalar Foam::injectorType::integrateTable
 (
     const List<pair>& table
@@ -176,5 +171,6 @@ Foam::scalar Foam::injectorType::integrateTable
 
     return integratedTable;
 }
+
 
 // ************************************************************************* //

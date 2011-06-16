@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,20 +27,15 @@ License
 #include "processorFvPatch.H"
 #include "demandDrivenData.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(meshToMesh, 0);
-
-const scalar meshToMesh::directHitTol = 1e-5;
+defineTypeNameAndDebug(Foam::meshToMesh, 0);
+const Foam::scalar Foam::meshToMesh::directHitTol = 1e-5;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-meshToMesh::meshToMesh
+Foam::meshToMesh::meshToMesh
 (
     const fvMesh& meshFrom,
     const fvMesh& meshTo,
@@ -55,7 +50,7 @@ meshToMesh::meshToMesh
     boundaryAddressing_(toMesh_.boundaryMesh().size()),
     inverseDistanceWeightsPtr_(NULL)
 {
-    forAll (fromMesh_.boundaryMesh(), patchi)
+    forAll(fromMesh_.boundaryMesh(), patchi)
     {
         fromMeshPatches_.insert
         (
@@ -64,7 +59,7 @@ meshToMesh::meshToMesh
         );
     }
 
-    forAll (toMesh_.boundaryMesh(), patchi)
+    forAll(toMesh_.boundaryMesh(), patchi)
     {
         toMeshPatches_.insert
         (
@@ -73,7 +68,7 @@ meshToMesh::meshToMesh
         );
     }
 
-    forAll (cuttingPatchNames, i)
+    forAll(cuttingPatchNames, i)
     {
         if (toMeshPatches_.found(cuttingPatchNames[i]))
         {
@@ -96,7 +91,7 @@ meshToMesh::meshToMesh
         }
     }
 
-    forAll (toMesh_.boundaryMesh(), patchi)
+    forAll(toMesh_.boundaryMesh(), patchi)
     {
         // Add the processor patches in the toMesh to the cuttingPatches list
         if (isA<processorPolyPatch>(toMesh_.boundaryMesh()[patchi]))
@@ -113,7 +108,7 @@ meshToMesh::meshToMesh
 }
 
 
-meshToMesh::meshToMesh
+Foam::meshToMesh::meshToMesh
 (
     const fvMesh& meshFrom,
     const fvMesh& meshTo
@@ -139,7 +134,7 @@ meshToMesh::meshToMesh
             << exit(FatalError);
     }
 
-    forAll (fromMesh_.boundaryMesh(), patchi)
+    forAll(fromMesh_.boundaryMesh(), patchi)
     {
         if
         (
@@ -158,7 +153,7 @@ meshToMesh::meshToMesh
                 << exit(FatalError);
         }
 
-        if 
+        if
         (
             fromMesh_.boundaryMesh()[patchi].type()
          != toMesh_.boundaryMesh()[patchi].type()
@@ -200,14 +195,10 @@ meshToMesh::meshToMesh
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-meshToMesh::~meshToMesh()
+Foam::meshToMesh::~meshToMesh()
 {
     deleteDemandDrivenData(inverseDistanceWeightsPtr_);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

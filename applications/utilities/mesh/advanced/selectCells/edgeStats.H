@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,7 +66,7 @@ class edgeStats
 
         //- If 2d get component of normal dir.
         direction getNormalDir(const twoDPointCorrector*) const;
-        
+
 
         //- Disallow default bitwise copy construct
         edgeStats(const edgeStats&);

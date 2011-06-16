@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,6 @@ License
 
 #include "cloud.H"
 #include "Time.H"
-#include "polyMesh.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -50,26 +49,21 @@ Foam::cloud::cloud(const objectRegistry& obr, const word& cloudName)
             IOobject::AUTO_WRITE
         )
     )
-{
-    if (isA<polyMesh>(obr))
-    {
-        if (debug)
-        {
-            Pout<< "cloud: Initialising polyMesh nGeometricD" << endl;
-        }
-
-        // initialise mesh dimensions - needed for parallel runs
-        // due to lazy evaluation of valid mesh dimensions
-        const polyMesh& mesh = dynamic_cast<const polyMesh&>(obr);
-        const_cast<polyMesh&>(mesh).nGeometricD();
-    }
-}
+{}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::cloud::~cloud()
 {}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::cloud::autoMap(const mapPolyMesh&)
+{
+    notImplemented("cloud::autoMap(const mapPolyMesh&)");
+}
 
 
 // ************************************************************************* //

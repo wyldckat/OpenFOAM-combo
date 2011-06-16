@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,14 +27,9 @@ License
 #include "Time.H"
 #include "volFields.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void ignitionSite::findIgnitionCells(const fvMesh& mesh)
+void Foam::ignitionSite::findIgnitionCells(const fvMesh& mesh)
 {
     // Bit tricky: generate C and V before shortcutting if cannot find
     // cell locally. mesh.C generation uses parallel communication.
@@ -56,7 +51,6 @@ void ignitionSite::findIgnitionCells(const fvMesh& mesh)
     cellVolumes_[0] = vols[ignCell];
 
     scalar minDist = GREAT;
-    label nearestCell = 0;
     label nIgnCells = 1;
 
     forAll(centres, celli)
@@ -65,7 +59,6 @@ void ignitionSite::findIgnitionCells(const fvMesh& mesh)
 
         if (dist < minDist)
         {
-            nearestCell = celli;
             minDist = dist;
         }
 
@@ -90,7 +83,7 @@ void ignitionSite::findIgnitionCells(const fvMesh& mesh)
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const labelList& ignitionSite::cells() const
+const Foam::labelList& Foam::ignitionSite::cells() const
 {
     if (mesh_.changing() && timeIndex_ != db_.timeIndex())
     {
@@ -102,10 +95,10 @@ const labelList& ignitionSite::cells() const
 }
 
 
-bool ignitionSite::igniting() const
+bool Foam::ignitionSite::igniting() const
 {
     scalar curTime = db_.value();
-    scalar deltaT = db_.deltaT().value();
+    scalar deltaT = db_.deltaTValue();
 
     return
     (
@@ -116,10 +109,10 @@ bool ignitionSite::igniting() const
 }
 
 
-bool ignitionSite::ignited() const
+bool Foam::ignitionSite::ignited() const
 {
     scalar curTime = db_.value();
-    scalar deltaT = db_.deltaT().value();
+    scalar deltaT = db_.deltaTValue();
 
     return(curTime - deltaT >= time_);
 }
@@ -127,7 +120,7 @@ bool ignitionSite::ignited() const
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
-void ignitionSite::operator=(const ignitionSite& is)
+void Foam::ignitionSite::operator=(const ignitionSite& is)
 {
     location_ = is.location_;
     diameter_ = is.diameter_;
@@ -138,9 +131,5 @@ void ignitionSite::operator=(const ignitionSite& is)
     cellVolumes_ = is.cellVolumes_;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

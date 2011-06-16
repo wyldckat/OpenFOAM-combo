@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,17 +21,13 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    Class applies a two-dimensional correction to mesh motion point field.
-    The correction guarantees that the mesh does not get twisted during motion
-    and thus introduce a third dimension into a 2-D problem.
-
 \*---------------------------------------------------------------------------*/
 
 #include "twoDPointCorrector.H"
 #include "polyMesh.H"
 #include "wedgePolyPatch.H"
 #include "emptyPolyPatch.H"
+#include "SubField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,7 +57,7 @@ void twoDPointCorrector::calcAddressing() const
     // Try and find a wedge patch
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
-    forAll (patches, patchI)
+    forAll(patches, patchI)
     {
         if (isA<wedgePolyPatch>(patches[patchI]))
         {
@@ -71,7 +67,7 @@ void twoDPointCorrector::calcAddressing() const
 
             if (polyMesh::debug)
             {
-                Pout << "Found normal from wedge patch " << patchI;
+                Pout<< "Found normal from wedge patch " << patchI;
             }
 
             break;
@@ -81,7 +77,7 @@ void twoDPointCorrector::calcAddressing() const
     // Try to find an empty patch with faces
     if (!isWedge)
     {
-        forAll (patches, patchI)
+        forAll(patches, patchI)
         {
             if (isA<emptyPolyPatch>(patches[patchI]) && patches[patchI].size())
             {
@@ -89,7 +85,7 @@ void twoDPointCorrector::calcAddressing() const
 
                 if (polyMesh::debug)
                 {
-                    Pout << "Found normal from empty patch " << patchI;
+                    Pout<< "Found normal from empty patch " << patchI;
                 }
 
                 break;
@@ -114,7 +110,7 @@ void twoDPointCorrector::calcAddressing() const
 
     if (polyMesh::debug)
     {
-        Pout << " twoDPointCorrector normal: " << pn << endl;
+        Pout<< " twoDPointCorrector normal: " << pn << endl;
     }
 
     // Select edges to be included in check.
@@ -127,7 +123,7 @@ void twoDPointCorrector::calcAddressing() const
 
     label nNormalEdges = 0;
 
-    forAll (meshEdges, edgeI)
+    forAll(meshEdges, edgeI)
     {
         vector edgeVector =
             meshEdges[edgeI].vec(meshPoints)/
@@ -274,7 +270,7 @@ void twoDPointCorrector::correctPoints(pointField& p) const
     const labelList& neIndices = normalEdgeIndices();
     const vector& pn = planeNormal();
 
-    forAll (neIndices, edgeI)
+    forAll(neIndices, edgeI)
     {
         point& pStart = p[meshEdges[neIndices[edgeI]].start()];
 

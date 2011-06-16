@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,7 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 \*---------------------------------------------------------------------------*/
 
 #include "faceLimitedGrad.H"
@@ -35,49 +35,26 @@ License
 
 namespace Foam
 {
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 namespace fv
 {
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-makeFvGradScheme(faceLimitedGrad)
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-template<class Type>
-inline void faceLimitedGrad<Type>::limitFace
-(
-    scalar& limiter,
-    const scalar maxDelta,
-    const scalar minDelta,
-    const scalar extrapolate
-) const
-{
-    if (extrapolate > maxDelta + VSMALL)
-    {
-        limiter = min(limiter, maxDelta/extrapolate);
-    }
-    else if (extrapolate < minDelta - VSMALL)
-    {
-        limiter = min(limiter, minDelta/extrapolate);
-    }
+    makeFvGradScheme(faceLimitedGrad)
+}
 }
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<>
-tmp<volVectorField> faceLimitedGrad<scalar>::grad
+Foam::tmp<Foam::volVectorField>
+Foam::fv::faceLimitedGrad<Foam::scalar>::calcGrad
 (
-    const volScalarField& vsf
+    const volScalarField& vsf,
+    const word& name
 ) const
 {
     const fvMesh& mesh = vsf.mesh();
 
-    tmp<volVectorField> tGrad = basicGradScheme_().grad(vsf);
+    tmp<volVectorField> tGrad = basicGradScheme_().calcGrad(vsf, name);
 
     if (k_ < SMALL)
     {
@@ -86,8 +63,8 @@ tmp<volVectorField> faceLimitedGrad<scalar>::grad
 
     volVectorField& g = tGrad();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     const volVectorField& C = mesh.C();
     const surfaceVectorField& Cf = mesh.Cf();
@@ -134,12 +111,12 @@ tmp<volVectorField> faceLimitedGrad<scalar>::grad
     {
         const fvPatchScalarField& psf = bsf[patchi];
 
-        const unallocLabelList& pOwner = mesh.boundary()[patchi].faceCells();
+        const labelUList& pOwner = mesh.boundary()[patchi].faceCells();
         const vectorField& pCf = Cf.boundaryField()[patchi];
 
         if (psf.coupled())
         {
-            scalarField psfNei = psf.patchNeighbourField();
+            const scalarField psfNei(psf.patchNeighbourField());
 
             forAll(pOwner, pFacei)
             {
@@ -204,14 +181,16 @@ tmp<volVectorField> faceLimitedGrad<scalar>::grad
 
 
 template<>
-tmp<volTensorField> faceLimitedGrad<vector>::grad
+Foam::tmp<Foam::volTensorField>
+Foam::fv::faceLimitedGrad<Foam::vector>::calcGrad
 (
-    const volVectorField& vvf
+    const volVectorField& vvf,
+    const word& name
 ) const
 {
     const fvMesh& mesh = vvf.mesh();
 
-    tmp<volTensorField> tGrad = basicGradScheme_().grad(vvf);
+    tmp<volTensorField> tGrad = basicGradScheme_().calcGrad(vvf, name);
 
     if (k_ < SMALL)
     {
@@ -220,8 +199,8 @@ tmp<volTensorField> faceLimitedGrad<vector>::grad
 
     volTensorField& g = tGrad();
 
-    const unallocLabelList& owner = mesh.owner();
-    const unallocLabelList& neighbour = mesh.neighbour();
+    const labelUList& owner = mesh.owner();
+    const labelUList& neighbour = mesh.neighbour();
 
     const volVectorField& C = mesh.C();
     const surfaceVectorField& Cf = mesh.Cf();
@@ -283,12 +262,12 @@ tmp<volTensorField> faceLimitedGrad<vector>::grad
     {
         const fvPatchVectorField& psf = bvf[patchi];
 
-        const unallocLabelList& pOwner = mesh.boundary()[patchi].faceCells();
+        const labelUList& pOwner = mesh.boundary()[patchi].faceCells();
         const vectorField& pCf = Cf.boundaryField()[patchi];
 
         if (psf.coupled())
         {
-            vectorField psfNei = psf.patchNeighbourField();
+            const vectorField psfNei(psf.patchNeighbourField());
 
             forAll(pOwner, pFacei)
             {
@@ -361,13 +340,5 @@ tmp<volTensorField> faceLimitedGrad<vector>::grad
     return tGrad;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace fv
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

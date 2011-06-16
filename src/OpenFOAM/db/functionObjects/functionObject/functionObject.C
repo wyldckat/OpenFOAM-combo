@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,7 @@ License
 #include "functionObject.H"
 #include "dictionary.H"
 #include "dlLibraryTable.H"
+#include "Time.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -50,14 +51,14 @@ Foam::autoPtr<Foam::functionObject> Foam::functionObject::New
     const dictionary& functionDict
 )
 {
-    word functionType(functionDict.lookup("type"));
+    const word functionType(functionDict.lookup("type"));
 
     if (debug)
     {
         Info<< "Selecting function " << functionType << endl;
     }
 
-    dlLibraryTable::open
+    const_cast<Time&>(t).libs().open
     (
         functionDict,
         "functionObjectLibs",
@@ -112,7 +113,7 @@ const Foam::word& Foam::functionObject::name() const
 
 bool Foam::functionObject::end()
 {
-    return execute();
+    return execute(false);
 }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class noEvaporation Declaration
+                       Class noEvaporation Declaration
 \*---------------------------------------------------------------------------*/
 
 class noEvaporation
@@ -58,15 +58,11 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        noEvaporation
-        (
-            const dictionary& dict
-        );
+        noEvaporation(const dictionary& dict);
 
 
-    // Destructor
-
-        ~noEvaporation();
+    //- Destructor
+    virtual ~noEvaporation();
 
 
     // Member Functions
@@ -114,7 +110,11 @@ public:
             const scalar kLiq
         ) const;
 
-        inline label nEvapIter() const;
+        inline label nEvapIter() const
+        {
+            return 0;
+        }
+
 };
 
 

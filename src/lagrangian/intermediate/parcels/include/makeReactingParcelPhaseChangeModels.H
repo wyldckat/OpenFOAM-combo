@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,53 +28,16 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "thermoPhysicsTypes.H"
-#include "ReactingCloud.H"
-
 #include "NoPhaseChange.H"
 #include "LiquidEvaporation.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeReactingPhaseChangeModels(ParcelType)                             \
+#define makeReactingParcelPhaseChangeModels(CloudType)                        \
                                                                               \
-    makeReactingPhaseChangeModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        constGasThermoPhysics                                                 \
-    );                                                                        \
-                                                                              \
-    makeReactingPhaseChangeModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        gasThermoPhysics                                                      \
-    );                                                                        \
-                                                                              \
-    makeReactingPhaseChangeModelThermoType                                    \
-    (                                                                         \
-        ParcelType,                                                           \
-        icoPoly8ThermoPhysics                                                 \
-    );
-
-
-#define makeReactingPhaseChangeModelThermoType(ParcelType, ThermoType)        \
-                                                                              \
-    makePhaseChangeModel(ReactingCloud<ParcelType<ThermoType> >);             \
-                                                                              \
-    makePhaseChangeModelThermoType                                            \
-    (                                                                         \
-        NoPhaseChange,                                                        \
-        ReactingCloud,                                                        \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );                                                                        \
-    makePhaseChangeModelThermoType                                            \
-    (                                                                         \
-        LiquidEvaporation,                                                    \
-        ReactingCloud,                                                        \
-        ParcelType,                                                           \
-        ThermoType                                                            \
-    );
+    makePhaseChangeModel(CloudType);                                          \
+    makePhaseChangeModelType(NoPhaseChange, CloudType);                       \
+    makePhaseChangeModelType(LiquidEvaporation, CloudType);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -82,3 +45,4 @@ License
 #endif
 
 // ************************************************************************* //
+

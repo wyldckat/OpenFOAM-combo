@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2007 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,7 +63,7 @@ void surfaceDisplacementPointPatchVectorField::calcProjection
     const pointField& localPoints = patch().localPoints();
     const labelList& meshPoints = patch().meshPoints();
 
-    //const scalar deltaT = mesh.time().deltaT().value();
+    //const scalar deltaT = mesh.time().deltaTValue();
 
     // Construct large enough vector in direction of projectDir so
     // we're guaranteed to hit something.
@@ -87,7 +87,7 @@ void surfaceDisplacementPointPatchVectorField::calcProjection
     {
         const pointZoneMesh& pZones = mesh.pointZones();
 
-        zonePtr = &pZones[pZones.findZoneID(frozenPointsZone_)];
+        zonePtr = &pZones[frozenPointsZone_];
 
         Pout<< "surfaceDisplacementPointPatchVectorField : Fixing all "
             << zonePtr->size() << " points in pointZone " << zonePtr->name()
@@ -197,7 +197,7 @@ void surfaceDisplacementPointPatchVectorField::calcProjection
                 rightHit
             );
         }
-        
+
         List<pointIndexHit> leftHit;
         {
             labelList leftSurf;
@@ -439,18 +439,18 @@ void surfaceDisplacementPointPatchVectorField::updateCoeffs()
 
     const polyMesh& mesh = patch().boundaryMesh().mesh()();
 
-    vectorField currentDisplacement = this->patchInternalField();
+    vectorField currentDisplacement(this->patchInternalField());
 
     // Calculate intersections with surface w.r.t points0.
     vectorField displacement(currentDisplacement);
     calcProjection(displacement);
 
     // offset wrt current displacement
-    vectorField offset = displacement-currentDisplacement;
+    vectorField offset(displacement-currentDisplacement);
 
     // Clip offset to maximum displacement possible: velocity*timestep
 
-    const scalar deltaT = mesh.time().deltaT().value();
+    const scalar deltaT = mesh.time().deltaTValue();
     const vector clipVelocity = velocity_*deltaT;
 
     forAll(displacement, i)

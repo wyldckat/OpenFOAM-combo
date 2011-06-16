@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,6 +34,7 @@ Description
 #include "fvCFD.H"
 #include "twoPhaseMixture.H"
 #include "turbulenceModel.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -43,12 +44,13 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
-    #include "readPIMPLEControls.H"
     #include "initContinuityErrs.H"
     #include "createFields.H"
     #include "readTimeControls.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
+
+    pimpleControl pimple(mesh);
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,7 +58,6 @@ int main(int argc, char *argv[])
 
     while (runTime.run())
     {
-        #include "readPIMPLEControls.H"
         #include "readTimeControls.H"
         #include "CourantNo.H"
         #include "setDeltaT.H"
@@ -66,10 +67,8 @@ int main(int argc, char *argv[])
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
         // --- Pressure-velocity PIMPLE corrector loop
-        for (int oCorr=0; oCorr<nOuterCorr; oCorr++)
+        for (pimple.start(); pimple.loop(); pimple++)
         {
-            bool finalIter = oCorr == nOuterCorr-1;
-
             twoPhaseProperties.correct();
 
             #include "alphaEqn.H"
@@ -77,12 +76,15 @@ int main(int argc, char *argv[])
             #include "UEqn.H"
 
             // --- PISO loop
-            for (int corr=0; corr<nCorr; corr++)
+            for (int corr=0; corr<pimple.nCorr(); corr++)
             {
                 #include "pEqn.H"
             }
 
-            turbulence->correct();
+            if (pimple.turbCorr())
+            {
+                turbulence->correct();
+            }
         }
 
         runTime.write();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -363,11 +363,11 @@ Foam::SVD::SVD(const scalarRectangularMatrix& A, const scalar minCondition)
 
     // zero singular values that are less than minCondition*maxS
     const scalar minS = minCondition*S_[findMax(S_)];
-    for (label i = 0; i < S_.size(); i++)
+    forAll(S_, i)
     {
         if (S_[i] <= minS)
         {
-            //Info << "Removing " << S_[i] << " < " << minS << endl;
+            //Info<< "Removing " << S_[i] << " < " << minS << endl;
             S_[i] = 0;
             nZeros_++;
         }
@@ -381,19 +381,19 @@ Foam::SVD::SVD(const scalarRectangularMatrix& A, const scalar minCondition)
     multiply(SVDA, U_, S_, transpose(V_));
     scalar maxDiff = 0;
     scalar diff = 0;
-    for(label i = 0; i < A.n(); i++)
+    for (label i = 0; i < A.n(); i++)
     {
-        for(label j = 0; j < A.m(); j++)
+        for (label j = 0; j < A.m(); j++)
         {
             diff = mag(A[i][j] - SVDA[i][j]);
             if (diff > maxDiff) maxDiff = diff;
         }
     }
-    Info << "Maximum discrepancy between A and svd(A) = " << maxDiff << endl;
+    Info<< "Maximum discrepancy between A and svd(A) = " << maxDiff << endl;
 
     if (maxDiff > 4)
     {
-        Info << "singular values " << S_ << endl;
+        Info<< "singular values " << S_ << endl;
     }
     */
 }

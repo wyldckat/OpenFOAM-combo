@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::LESmodels::SpalartAllmarasDDES
+    Foam::incompressible::LESModels::SpalartAllmarasDDES
 
 Description
     SpalartAllmaras DDES LES turbulence model for incompressible flows
@@ -59,7 +59,7 @@ class SpalartAllmarasDDES
 :
     public SpalartAllmaras
 {
-    // Private member functions
+    // Private Member Functions
 
         tmp<volScalarField> fd(const volScalarField& S) const;
 
@@ -76,7 +76,7 @@ class SpalartAllmarasDDES
 
 protected:
 
-    // Protected member functions
+    // Protected Member Functions
 
         //- Length scale
         virtual tmp<volScalarField> dTilda(const volScalarField& S) const;
@@ -97,7 +97,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

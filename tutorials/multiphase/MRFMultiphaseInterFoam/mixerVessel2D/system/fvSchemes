@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  1.7.1                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -27,7 +27,7 @@ gradSchemes
 
 divSchemes
 {
-    div(rho*phi,U)  Gauss linear;
+    div(rho*phi,U)  Gauss limitedLinearV 1;
     div(phi,alpha)  Gauss vanLeer;
     div(phirb,alpha) Gauss interfaceCompression;
 }

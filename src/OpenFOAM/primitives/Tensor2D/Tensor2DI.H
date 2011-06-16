@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -84,13 +84,13 @@ inline Tensor2D<Cmpt>::Tensor2D(Istream& is)
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template <class Cmpt>
-inline const Vector2D<Cmpt> Tensor2D<Cmpt>::x() const
+inline Vector2D<Cmpt> Tensor2D<Cmpt>::x() const
 {
     return Vector2D<Cmpt>(this->v_[XX], this->v_[XY]);
 }
 
 template <class Cmpt>
-inline const Vector2D<Cmpt> Tensor2D<Cmpt>::y() const
+inline Vector2D<Cmpt> Tensor2D<Cmpt>::y() const
 {
     return Vector2D<Cmpt>(this->v_[YX], this->v_[YY]);
 }

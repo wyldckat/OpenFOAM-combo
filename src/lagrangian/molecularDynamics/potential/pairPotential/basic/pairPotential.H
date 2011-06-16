@@ -28,7 +28,7 @@ Description
 
 SourceFiles
     pairPotential.C
-    newPairPotential.C
+    pairPotentialNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -42,7 +42,6 @@ SourceFiles
 #include "List.H"
 #include "Pair.H"
 #include "Switch.H"
-#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -53,7 +52,7 @@ namespace Foam
 class energyScalingFunction;
 
 /*---------------------------------------------------------------------------*\
-                     Class pairPotential Declaration
+                        Class pairPotential Declaration
 \*---------------------------------------------------------------------------*/
 
 class pairPotential
@@ -132,10 +131,9 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~pairPotential()
-        {}
+    //- Destructor
+    virtual ~pairPotential()
+    {}
 
 
     // Member Functions

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,22 +21,14 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-    
 \*---------------------------------------------------------------------------*/
 
 #include "ReversibleReaction.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
 template<class ReactionThermo, class ReactionRate>
-ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
+Foam::ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 (
     const Reaction<ReactionThermo>& reaction,
     const ReactionRate& k
@@ -47,9 +39,8 @@ ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 {}
 
 
-// Construct from components
 template<class ReactionThermo, class ReactionRate>
-ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
+Foam::ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 (
     const speciesTable& species,
     const HashPtrTable<ReactionThermo>& thermoDatabase,
@@ -61,9 +52,21 @@ ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 {}
 
 
-// Construct as copy given new speciesTable
 template<class ReactionThermo, class ReactionRate>
-ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
+Foam::ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
+(
+    const speciesTable& species,
+    const HashPtrTable<ReactionThermo>& thermoDatabase,
+    const dictionary& dict
+)
+:
+    Reaction<ReactionThermo>(species, thermoDatabase, dict),
+    k_(species, dict)
+{}
+
+
+template<class ReactionThermo, class ReactionRate>
+Foam::ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 (
     const ReversibleReaction<ReactionThermo, ReactionRate>& rr,
     const speciesTable& species
@@ -77,7 +80,7 @@ ReversibleReaction<ReactionThermo, ReactionRate>::ReversibleReaction
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class ReactionThermo, class ReactionRate>
-scalar ReversibleReaction<ReactionThermo, ReactionRate>::kf
+Foam::scalar Foam::ReversibleReaction<ReactionThermo, ReactionRate>::kf
 (
     const scalar T,
     const scalar p,
@@ -89,7 +92,7 @@ scalar ReversibleReaction<ReactionThermo, ReactionRate>::kf
 
 
 template<class ReactionThermo, class ReactionRate>
-scalar ReversibleReaction<ReactionThermo, ReactionRate>::kr
+Foam::scalar Foam::ReversibleReaction<ReactionThermo, ReactionRate>::kr
 (
     const scalar kfwd,
     const scalar T,
@@ -102,7 +105,7 @@ scalar ReversibleReaction<ReactionThermo, ReactionRate>::kr
 
 
 template<class ReactionThermo, class ReactionRate>
-scalar ReversibleReaction<ReactionThermo, ReactionRate>::kr
+Foam::scalar Foam::ReversibleReaction<ReactionThermo, ReactionRate>::kr
 (
     const scalar T,
     const scalar p,
@@ -114,18 +117,14 @@ scalar ReversibleReaction<ReactionThermo, ReactionRate>::kr
 
 
 template<class ReactionThermo, class ReactionRate>
-void ReversibleReaction<ReactionThermo, ReactionRate>::write
+void Foam::ReversibleReaction<ReactionThermo, ReactionRate>::write
 (
     Ostream& os
 ) const
 {
     Reaction<ReactionThermo>::write(os);
-    os  << token::SPACE << k_;
+    k_.write(os);
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace Foam
 
 // ************************************************************************* //

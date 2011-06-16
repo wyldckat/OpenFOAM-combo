@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,11 @@ inletOutletTotalTemperatureFvPatchScalarField
     psiName_("psi"),
     gamma_(0.0),
     T0_(p.size(), 0.0)
-{}
+{
+    this->refValue() = pTraits<scalar>::zero;
+    this->refGrad() = pTraits<scalar>::zero;
+    this->valueFraction() = 0.0;
+}
 
 
 Foam::inletOutletTotalTemperatureFvPatchScalarField::
@@ -186,18 +190,9 @@ void Foam::inletOutletTotalTemperatureFvPatchScalarField::write(Ostream& os)
 const
 {
     fvPatchScalarField::write(os);
-    if (UName_ != "U")
-    {
-        os.writeKeyword("U") << UName_ << token::END_STATEMENT << nl;
-    }
-    if (phiName_ != "phi")
-    {
-        os.writeKeyword("phi") << phiName_ << token::END_STATEMENT << nl;
-    }
-    if (phiName_ != "psi")
-    {
-        os.writeKeyword("psi") << psiName_ << token::END_STATEMENT << nl;
-    }
+    writeEntryIfDifferent<word>(os, "U", "U", UName_);
+    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
+    writeEntryIfDifferent<word>(os, "psi", "psi", psiName_);
     os.writeKeyword("gamma") << gamma_ << token::END_STATEMENT << nl;
     T0_.writeEntry("T0", os);
     writeEntry("value", os);

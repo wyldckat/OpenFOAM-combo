@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,17 +31,13 @@ License
 #include "cellCuts.H"
 #include "splitCell.H"
 #include "mapPolyMesh.H"
-#include "mathematicalConstants.H"
+#include "unitConversion.H"
 #include "meshTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
+defineTypeNameAndDebug(Foam::undoableMeshCutter, 0);
 
-defineTypeNameAndDebug(undoableMeshCutter, 0);
-
-}
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -69,12 +65,7 @@ void Foam::undoableMeshCutter::printCellRefTree
 // For debugging
 void Foam::undoableMeshCutter::printRefTree(Ostream& os) const
 {
-    for
-    (
-        Map<splitCell*>::const_iterator iter = liveSplitCells_.begin();
-        iter != liveSplitCells_.end();
-        ++iter
-    )
+    forAllConstIter(Map<splitCell*>, liveSplitCells_, iter)
     {
         const splitCell* splitPtr = iter();
 
@@ -115,7 +106,7 @@ void Foam::undoableMeshCutter::updateLabels
 
     bool changed = false;
 
-    forAllConstIter(Map<splitCell*>,liveSplitCells, iter)
+    forAllConstIter(Map<splitCell*>, liveSplitCells, iter)
     {
         const splitCell* splitPtr = iter();
 
@@ -192,8 +183,8 @@ Foam::undoableMeshCutter::undoableMeshCutter
     liveSplitCells_(mesh.nCells()/100 + 100),
     faceRemover_
     (
-        mesh,   
-        Foam::cos(30./180. * mathematicalConstant::pi)
+        mesh,
+        Foam::cos(degToRad(30.0))
     )
 {}
 

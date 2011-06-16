@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class standardEvaporationModel Declaration
+                  Class standardEvaporationModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class standardEvaporationModel
@@ -57,7 +57,7 @@ private:
         scalar preReScFactor_;
         scalar ReExponent_;
         scalar ScExponent_;
-    
+
         word evaporationScheme_;
         label nEvapIter_;
 
@@ -65,21 +65,17 @@ private:
 public:
 
     //- Runtime type information
-        TypeName("standardEvaporationModel");
+    TypeName("standardEvaporationModel");
 
 
     // Constructors
 
         //- Construct from dictionary
-        standardEvaporationModel
-        (
-            const dictionary& dict
-        );
+        standardEvaporationModel(const dictionary& dict);
 
 
-    // Destructor
-
-        ~standardEvaporationModel();
+    //- Destructor
+    virtual ~standardEvaporationModel();
 
 
     // Member Functions
@@ -118,18 +114,22 @@ public:
             const scalar Nusselt,
             const scalar deltaTemp,
             const scalar diameter,
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar, 
-            const scalar 
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar,
+            const scalar
         ) const;
 
-        inline label nEvapIter() const;
+        inline label nEvapIter() const
+        {
+            return nEvapIter_;
+        }
+
 };
 
 

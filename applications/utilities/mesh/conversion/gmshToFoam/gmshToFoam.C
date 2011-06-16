@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -236,7 +236,9 @@ void storeCellInZone
 // Reads mesh format
 scalar readMeshFormat(IFstream& inFile)
 {
-    Info<< "Starting to read mesh format at line " << inFile.lineNumber() << endl;
+    Info<< "Starting to read mesh format at line "
+        << inFile.lineNumber()
+        << endl;
 
     string line;
     inFile.getLine(line);
@@ -351,14 +353,14 @@ void readPhysNames(IFstream& inFile, Map<word>& physicalNames)
         IStringStream lineStr(line);
         label nSpaces = lineStr.str().count(' ');
 
-        if(nSpaces == 1)
+        if (nSpaces == 1)
         {
             lineStr >> regionI >> regionName;
 
             Info<< "    " << regionI << '\t'
                 << string::validate<word>(regionName) << endl;
         }
-        else if(nSpaces == 2)
+        else if (nSpaces == 2)
         {
             // >= Gmsh2.4 physical types has tag in front.
             label physType;
@@ -749,14 +751,17 @@ int main(int argc, char *argv[])
 {
     argList::noParallel();
     argList::validArgs.append(".msh file");
-    argList::validOptions.insert("keepOrientation", "");
+    argList::addBoolOption
+    (
+        "keepOrientation",
+        "retain raw orientation for prisms/hexs"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
 
-    fileName mshName(args.additionalArgs()[0]);
-
-    bool keepOrientation = args.optionFound("keepOrientation");
+    const bool keepOrientation = args.optionFound("keepOrientation");
+    IFstream inFile(args[1]);
 
     // Storage for points
     pointField points;
@@ -782,8 +787,6 @@ int main(int argc, char *argv[])
     scalar versionFormat = 1;
 
 
-    IFstream inFile(mshName);
-
     while (inFile.good())
     {
         string line;
@@ -794,8 +797,6 @@ int main(int argc, char *argv[])
 
         if (tag == "$MeshFormat")
         {
-            Info<< "Found $MeshFormat tag; assuming version 2 file format."
-                << endl;
             versionFormat = readMeshFormat(inFile);
         }
         else if (tag == "$PhysicalNames")
@@ -912,7 +913,7 @@ int main(int argc, char *argv[])
     // Now use the patchFaces to patch up the outside faces of the mesh.
 
     // Get the patch for all the outside faces (= default patch added as last)
-    const polyPatch& pp = mesh.boundaryMesh()[mesh.boundaryMesh().size()-1];
+    const polyPatch& pp = mesh.boundaryMesh().last();
 
     // Storage for faceZones.
     List<DynamicList<label> > zoneFaces(patchFaces.size());
@@ -1087,4 +1088,3 @@ int main(int argc, char *argv[])
 
 
 // ************************************************************************* //
-

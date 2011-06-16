@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
+#include "face.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -31,9 +32,9 @@ inline bool Foam::polyTopoChange::pointRemoved(const label pointI) const
     const point& pt = points_[pointI];
 
     return
-        pt.x() > 0.5*greatPoint.x()
-     && pt.y() > 0.5*greatPoint.y()
-     && pt.z() > 0.5*greatPoint.z();
+        pt.x() > 0.5*vector::max.x()
+     && pt.y() > 0.5*vector::max.y()
+     && pt.z() > 0.5*vector::max.z();
 }
 
 

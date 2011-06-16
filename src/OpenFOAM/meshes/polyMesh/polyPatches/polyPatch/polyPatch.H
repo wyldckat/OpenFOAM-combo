@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,7 +32,7 @@ Description
 
 SourceFiles
     polyPatch.C
-    newPolyPatch.C
+    polyPatchNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -55,6 +55,7 @@ namespace Foam
 
 class polyBoundaryMesh;
 class polyPatch;
+class PstreamBuffers;
 
 Ostream& operator<<(Ostream&, const polyPatch&);
 
@@ -86,12 +87,6 @@ class polyPatch
             mutable labelList* mePtr_;
 
 
-    // Private Member Functions
-
-        //- Calculate labels of mesh edges
-        void calcMeshEdges() const;
-
-
 protected:
 
     // Protected Member Functions
@@ -100,26 +95,26 @@ protected:
         friend class polyBoundaryMesh;
 
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry()
+        virtual void initGeometry(PstreamBuffers&)
         {}
 
         //- Calculate the patch geometry
-        virtual void calcGeometry()
+        virtual void calcGeometry(PstreamBuffers&)
         {}
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&)
+        virtual void initMovePoints(PstreamBuffers&, const pointField&)
         {}
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField& p);
+        virtual void movePoints(PstreamBuffers&, const pointField& p);
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh()
+        virtual void initUpdateMesh(PstreamBuffers&)
         {}
 
         //- Update of the patch topology
-        virtual void updateMesh();
+        virtual void updateMesh(PstreamBuffers&);
 
 
 public:
@@ -198,6 +193,16 @@ public:
             const label newStart
         );
 
+        //- Construct given the original patch and a map
+        polyPatch
+        (
+            const polyPatch& pp,
+            const polyBoundaryMesh& bm,
+            const label index,
+            const labelUList& mapAddressing,
+            const label newStart
+        );
+
         //- Construct as copy
         polyPatch(const polyPatch&);
 
@@ -220,6 +225,22 @@ public:
             return autoPtr<polyPatch>
             (
                 new polyPatch(*this, bm, index, newSize, newStart)
+            );
+        }
+
+        //- Construct and return a clone, resetting the face list
+        //  and boundary mesh
+        virtual autoPtr<polyPatch> clone
+        (
+            const polyBoundaryMesh& bm,
+            const label index,
+            const labelUList& mapAddressing,
+            const label newStart
+        ) const
+        {
+            return autoPtr<polyPatch>
+            (
+                new polyPatch(*this, bm, index, mapAddressing, newStart)
             );
         }
 
@@ -249,9 +270,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~polyPatch();
+    //- Destructor
+    virtual ~polyPatch();
 
 
     // Member Functions
@@ -311,7 +331,7 @@ public:
         // Addressing into mesh
 
             //- Return face-cell addressing
-            const unallocLabelList& faceCells() const;
+            const labelUList& faceCells() const;
 
             //- Return global edge index for local edges
             const labelList& meshEdges() const;
@@ -331,7 +351,7 @@ public:
 
         //- Initialize ordering for primitivePatch. Does not
         //  refer to *this (except for name() and type() etc.)
-        virtual void initOrder(const primitivePatch&) const;
+        virtual void initOrder(PstreamBuffers&, const primitivePatch&) const;
 
         //- Return new ordering for primitivePatch.
         //  Ordering is -faceMap: for every face
@@ -340,6 +360,7 @@ public:
         //  (faceMap is identity, rotation is 0), true otherwise.
         virtual bool order
         (
+            PstreamBuffers&,
             const primitivePatch&,
             labelList& faceMap,
             labelList& rotation

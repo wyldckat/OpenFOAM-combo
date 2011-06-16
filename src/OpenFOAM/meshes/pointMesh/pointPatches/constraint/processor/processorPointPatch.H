@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,34 +63,28 @@ class processorPointPatch
 
         const processorPolyPatch& procPolyPatch_;
 
+        mutable labelList reverseMeshPoints_;
+
 
     // Private Member Functions
 
         //- Initialise the calculation of the patch geometry
-        virtual void initGeometry();
+        virtual void initGeometry(PstreamBuffers&);
 
         //- Calculate the patch geometry
-        virtual void calcGeometry();
-
-        //- Initialise the points on this patch which are should also be 
-        //  on a neighbouring patch but are not part of faces of that patch
-        void initPatchPatchPoints();
-
-        //- Calculate the points on this patch which are should also be 
-        //  on a neighbouring patch but are not part of faces of that patch
-        void calcPatchPatchPoints();
+        virtual void calcGeometry(PstreamBuffers&);
 
         //- Initialise the patches for moving points
-        virtual void initMovePoints(const pointField&);
+        virtual void initMovePoints(PstreamBuffers&, const pointField&);
 
         //- Correct patches after moving points
-        virtual void movePoints(const pointField&);
+        virtual void movePoints(PstreamBuffers&, const pointField&);
 
         //- Initialise the update of the patch topology
-        virtual void initUpdateMesh();
+        virtual void initUpdateMesh(PstreamBuffers&);
 
         //- Update of the patch topology
-        virtual void updateMesh();
+        virtual void updateMesh(PstreamBuffers&);
 
 
         //- Disallow default construct as copy
@@ -115,9 +109,8 @@ public:
         );
 
 
-    // Destructor
-
-        virtual ~processorPointPatch();
+    //- Destructor
+    virtual ~processorPointPatch();
 
 
     // Member functions
@@ -133,6 +126,18 @@ public:
             {
                 return false;
             }
+        }
+
+        //- Return message tag to use for communication
+        virtual int tag() const
+        {
+            return procPolyPatch_.tag();
+        }
+
+        //- Return the constraint type this pointPatch implements.
+        virtual const word& constraintType() const
+        {
+            return type();
         }
 
         //- Return processor number
@@ -164,6 +169,10 @@ public:
         {
             return procPolyPatch_;
         }
+
+        //- Return mesh points in the correct order for the receiving side
+        const labelList& reverseMeshPoints() const;
+
 };
 
 

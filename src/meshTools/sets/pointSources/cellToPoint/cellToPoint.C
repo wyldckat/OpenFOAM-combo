@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,19 @@ License
 
 namespace Foam
 {
+    defineTypeNameAndDebug(cellToPoint, 0);
+    addToRunTimeSelectionTable(topoSetSource, cellToPoint, word);
+    addToRunTimeSelectionTable(topoSetSource, cellToPoint, istream);
 
-defineTypeNameAndDebug(cellToPoint, 0);
-
-addToRunTimeSelectionTable(topoSetSource, cellToPoint, word);
-
-addToRunTimeSelectionTable(topoSetSource, cellToPoint, istream);
-
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::cellToPoint::cellAction,
+        1
+    >::names[] =
+    {
+        "all"
+    };
 }
 
 
@@ -49,12 +55,6 @@ Foam::topoSetSource::addToUsageTable Foam::cellToPoint::usage_
     "\n    Usage: cellToPoint <cellSet> all\n\n"
     "    Select all points of cells in the cellSet\n\n"
 );
-
-template<>
-const char* Foam::NamedEnum<Foam::cellToPoint::cellAction, 1>::names[] =
-{
-    "all"
-};
 
 const Foam::NamedEnum<Foam::cellToPoint::cellAction, 1>
     Foam::cellToPoint::cellActionNames_;
@@ -68,15 +68,9 @@ void Foam::cellToPoint::combine(topoSet& set, const bool add) const
     cellSet loadedSet(mesh_, setName_);
 
     // Add all point from cells in loadedSet
-    for
-    (
-        cellSet::const_iterator iter = loadedSet.begin();
-        iter != loadedSet.end();
-        ++iter
-    )
+    forAllConstIter(cellSet, loadedSet, iter)
     {
-        label cellI = iter.key();
-
+        const label cellI = iter.key();
         const labelList& cFaces = mesh_.cells()[cellI];
 
         forAll(cFaces, cFaceI)

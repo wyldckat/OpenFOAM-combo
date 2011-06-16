@@ -7,7 +7,7 @@
             List<faceZone*> fz(3*mergePatchPairs.size());
             List<cellZone*> cz(0);
 
-            forAll (mergePatchPairs, pairI)
+            forAll(mergePatchPairs, pairI)
             {
                 const word mergeName
                 (
@@ -27,14 +27,11 @@
                 // Master patch
                 const word masterPatchName(mergePatchPairs[pairI].first());
                 const polyPatch& masterPatch =
-                    mesh.boundaryMesh()
-                    [
-                        mesh.boundaryMesh().findPatchID(masterPatchName)
-                    ];
+                    mesh.boundaryMesh()[masterPatchName];
 
                 labelList isf(masterPatch.size());
 
-                forAll (isf, i)
+                forAll(isf, i)
                 {
                     isf[i] = masterPatch.start() + i;
                 }
@@ -51,14 +48,11 @@
                 // Slave patch
                 const word slavePatchName(mergePatchPairs[pairI].second());
                 const polyPatch& slavePatch =
-                    mesh.boundaryMesh()
-                    [
-                        mesh.boundaryMesh().findPatchID(slavePatchName)
-                    ];
+                    mesh.boundaryMesh()[slavePatchName];
 
                 labelList osf(slavePatch.size());
 
-                forAll (osf, i)
+                forAll(osf, i)
                 {
                     osf[i] = slavePatch.start() + i;
                 }
@@ -83,15 +77,15 @@
                 );
             }  // end of all merge pairs
 
-            Info << "Adding point and face zones" << endl;
+            Info<< "Adding point and face zones" << endl;
             mesh.addZones(pz, fz, cz);
 
 
-            Info << "Creating attachPolyTopoChanger" << endl;
+            Info<< "Creating attachPolyTopoChanger" << endl;
             attachPolyTopoChanger polyMeshAttacher(mesh);
             polyMeshAttacher.setSize(mergePatchPairs.size());
 
-            forAll (mergePatchPairs, pairI)
+            forAll(mergePatchPairs, pairI)
             {
                 const word mergeName
                 (

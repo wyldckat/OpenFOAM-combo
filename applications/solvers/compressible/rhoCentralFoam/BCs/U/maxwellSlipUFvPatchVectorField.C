@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,8 +21,6 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-Description
-
 \*---------------------------------------------------------------------------*/
 
 #include "maxwellSlipUFvPatchVectorField.H"
@@ -30,8 +28,7 @@ Description
 #include "mathematicalConstants.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
-#include "surfaceFields.H"
-#include "fvCFD.H"
+#include "fvcGrad.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -86,8 +83,7 @@ maxwellSlipUFvPatchVectorField::maxwellSlipUFvPatchVectorField
     if
     (
         mag(accommodationCoeff_) < SMALL
-        ||
-        mag(accommodationCoeff_) > 2.0
+     || mag(accommodationCoeff_) > 2.0
     )
     {
         FatalIOErrorIn
@@ -107,12 +103,18 @@ maxwellSlipUFvPatchVectorField::maxwellSlipUFvPatchVectorField
         (
             vectorField("value", dict, p.size())
         );
-        refValue() = vectorField("refValue", dict, p.size());
-        valueFraction() = scalarField("valueFraction", dict, p.size());
-    }
-    else
-    {
-        mixedFixedValueSlipFvPatchVectorField::evaluate();
+
+        if (dict.found("refValue") && dict.found("valueFraction"))
+        {
+            this->refValue() = vectorField("refValue", dict, p.size());
+            this->valueFraction() = 
+                scalarField("valueFraction", dict, p.size());
+        }
+        else
+        {
+            this->refValue() = *this;
+            this->valueFraction() = scalar(1.0);
+        }
     }
 }
 
@@ -133,7 +135,6 @@ maxwellSlipUFvPatchVectorField::maxwellSlipUFvPatchVectorField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// Update the coefficients associated with the patch field
 void maxwellSlipUFvPatchVectorField::updateCoeffs()
 {
     if (updated())
@@ -148,31 +149,34 @@ void maxwellSlipUFvPatchVectorField::updateCoeffs()
     const fvPatchField<scalar>& ppsi =
         patch().lookupPatchField<volScalarField, scalar>("psi");
 
-    Field<scalar> C1 = sqrt(ppsi*mathematicalConstant::pi/2.0)
-        *(2.0 - accommodationCoeff_)/accommodationCoeff_;
+    Field<scalar> C1
+    (
+        sqrt(ppsi*constant::mathematical::piByTwo)
+      * (2.0 - accommodationCoeff_)/accommodationCoeff_
+    );
 
-    Field<scalar> pnu = pmu/prho;
+    Field<scalar> pnu(pmu/prho);
     valueFraction() = (1.0/(1.0 + patch().deltaCoeffs()*C1*pnu));
 
     refValue() = Uwall_;
 
-    if(thermalCreep_)
+    if (thermalCreep_)
     {
         const volScalarField& vsfT =
             this->db().objectRegistry::lookupObject<volScalarField>("T");
         label patchi = this->patch().index();
         const fvPatchScalarField& pT = vsfT.boundaryField()[patchi];
-        Field<vector> gradpT = fvc::grad(vsfT)().boundaryField()[patchi];
-        vectorField n = patch().nf();
+        Field<vector> gradpT(fvc::grad(vsfT)().boundaryField()[patchi]);
+        vectorField n(patch().nf());
 
         refValue() -= 3.0*pnu/(4.0*pT)*transform(I - n*n, gradpT);
     }
 
-    if(curvature_)
+    if (curvature_)
     {
         const fvPatchTensorField& ptauMC =
             patch().lookupPatchField<volTensorField, tensor>("tauMC");
-        vectorField n = patch().nf();
+        vectorField n(patch().nf());
 
         refValue() -= C1/prho*transform(I - n*n, (n & ptauMC));
     }
@@ -181,7 +185,6 @@ void maxwellSlipUFvPatchVectorField::updateCoeffs()
 }
 
 
-// Write
 void maxwellSlipUFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchVectorField::write(os);
@@ -192,8 +195,10 @@ void maxwellSlipUFvPatchVectorField::write(Ostream& os) const
         << thermalCreep_ << token::END_STATEMENT << nl;
     os.writeKeyword("curvature") << curvature_ << token::END_STATEMENT << nl;
 
-    refValue().writeEntry("refValue", os);
-    valueFraction().writeEntry("valueFraction", os);
+    os.writeKeyword("refValue")
+        << refValue() << token::END_STATEMENT << nl;
+    os.writeKeyword("valueFraction")
+        << valueFraction() << token::END_STATEMENT << nl;
 
     writeEntry("value", os);
 }
@@ -201,7 +206,11 @@ void maxwellSlipUFvPatchVectorField::write(Ostream& os) const
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makePatchTypeField(fvPatchVectorField, maxwellSlipUFvPatchVectorField);
+makePatchTypeField
+(
+    fvPatchVectorField,
+    maxwellSlipUFvPatchVectorField
+);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

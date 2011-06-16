@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class atomizationModel Declaration
+                      Class atomizationModel Declaration
 \*---------------------------------------------------------------------------*/
 
 class atomizationModel
@@ -55,12 +55,13 @@ protected:
 
         const dictionary& dict_;
         spray& spray_;
-        Random& rndGen_;
+        cachedRandom& rndGen_;
+
 
 public:
 
     //- Runtime type information
-        TypeName("atomizationModel");
+    TypeName("atomizationModel");
 
     // Declare runtime constructor selection table
 
@@ -80,16 +81,11 @@ public:
     // Constructors
 
         //- Construct from components
-        atomizationModel
-        (
-            const dictionary& dict,
-            spray& sm
-        );
+        atomizationModel(const dictionary& dict, spray& sm);
 
 
-    // Destructor
-
-        virtual ~atomizationModel();
+    //- Destructor
+    virtual ~atomizationModel();
 
 
     // Selector
@@ -108,9 +104,8 @@ public:
             parcel& parcel,
             const scalar deltaT,
             const vector& vel,
-            const liquidMixture& fuels
+            const liquidMixtureProperties& fuels
         ) const = 0;
-
 };
 
 

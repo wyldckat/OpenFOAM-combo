@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,72 +27,70 @@ License
 
 template<class ParcelType>
 inline Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
+constantProperties()
+:
+    ParcelType::constantProperties(),
+    LDevol_(0.0),
+    hRetentionCoeff_(0.0)
+{}
+
+
+template<class ParcelType>
+inline Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
 constantProperties
 (
-    const dictionary& parentDict
+    const constantProperties& cp
 )
 :
-    ReactingParcel<ParcelType>::constantProperties(parentDict),
-    LDevol_(dimensionedScalar(this->dict().lookup("LDevol")).value()),
-    hRetentionCoeff_
-    (
-        dimensionedScalar(this->dict().lookup("hRetentionCoeff")).value()
-    )
-{
-    if ((hRetentionCoeff_ < 0) || (hRetentionCoeff_ > 1))
-    {
-        FatalErrorIn
-        (
-            "ReactingMultiphaseParcel<ParcelType>::constantProperties::"
-            "constantProperties"
-        )   << "hRetentionCoeff must be in the range 0 to 1" << nl
-            << exit(FatalError) << endl;
-    }
+    ParcelType::constantProperties(cp),
+    LDevol_(cp.LDevol_),
+    hRetentionCoeff_(cp.hRetentionCoeff_)
+{}
 
-    hRetentionCoeff_ = max(1e-06, hRetentionCoeff_);
+
+template<class ParcelType>
+inline Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
+constantProperties
+(
+    const dictionary& parentDict,
+    const bool readFields
+)
+:
+    ParcelType::constantProperties(parentDict, readFields),
+    LDevol_(0.0),
+    hRetentionCoeff_(0.0)
+{
+    if (readFields)
+    {
+        this->dict().lookup("LDevol") >> LDevol_;
+        this->dict().lookup("hRetentionCoeff") >> hRetentionCoeff_;
+
+        if ((hRetentionCoeff_ < 0) || (hRetentionCoeff_ > 1))
+        {
+            FatalErrorIn
+            (
+                "ReactingMultiphaseParcel<ParcelType>::constantProperties::"
+                "constantProperties"
+            )   << "hRetentionCoeff must be in the range 0 to 1" << nl
+                << exit(FatalError) << endl;
+        }
+
+        hRetentionCoeff_ = max(1e-06, hRetentionCoeff_);
+    }
 }
 
 
 template<class ParcelType>
-inline Foam::ReactingMultiphaseParcel<ParcelType>::trackData::trackData
-(
-    ReactingMultiphaseCloud<ParcelType>& cloud,
-    const constantProperties& constProps,
-    const interpolation<scalar>& rhoInterp,
-    const interpolation<vector>& UInterp,
-    const interpolation<scalar>& muInterp,
-    const interpolation<scalar>& TInterp,
-    const interpolation<scalar>& CpInterp,
-    const interpolation<scalar>& pInterp,
-    const vector& g
-)
-:
-    ReactingParcel<ParcelType>::trackData
-    (
-        cloud,
-        constProps,
-        rhoInterp,
-        UInterp,
-        muInterp,
-        TInterp,
-        CpInterp,
-        pInterp,
-        g
-    ),
-    cloud_(cloud),
-    constProps_(constProps)
-{}
-
-
-template <class ParcelType>
 inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
 (
-    ReactingMultiphaseCloud<ParcelType>& owner,
+    const polyMesh& mesh,
     const vector& position,
-    const label cellI
+    const label cellI,
+    const label tetFaceI,
+    const label tetPtI
 )
 :
-    ReactingParcel<ParcelType>(owner, position, cellI),
+    ParcelType(mesh, position, cellI, tetFaceI, tetPtI),
     YGas_(0),
     YLiquid_(0),
     YSolid_(0),
@@ -103,13 +101,19 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
 template<class ParcelType>
 inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
 (
-    ReactingMultiphaseCloud<ParcelType>& owner,
+    const polyMesh& mesh,
     const vector& position,
     const label cellI,
+    const label tetFaceI,
+    const label tetPtI,
     const label typeId,
     const scalar nParticle0,
     const scalar d0,
+    const scalar dTarget0,
     const vector& U0,
+    const vector& f0,
+    const vector& angularMomentum0,
+    const vector& torque0,
     const scalarField& Y0,
     const scalarField& YGas0,
     const scalarField& YLiquid0,
@@ -117,15 +121,21 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
     const constantProperties& constProps
 )
 :
-    ReactingParcel<ParcelType>
+    ParcelType
     (
-        owner,
+        mesh,
         position,
         cellI,
+        tetFaceI,
+        tetPtI,
         typeId,
         nParticle0,
         d0,
+        dTarget0,
         U0,
+        f0,
+        angularMomentum0,
+        torque0,
         Y0,
         constProps
     ),
@@ -152,25 +162,6 @@ Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
 hRetentionCoeff() const
 {
     return hRetentionCoeff_;
-}
-
-
-// * * * * * * * * * * * trackData Member Functions  * * * * * * * * * * * * //
-
-template<class ParcelType>
-inline Foam::ReactingMultiphaseCloud<ParcelType>&
-Foam::ReactingMultiphaseParcel<ParcelType>::trackData::cloud()
-{
-    return cloud_;
-}
-
-
-template<class ParcelType>
-inline const typename Foam::ReactingMultiphaseParcel<ParcelType>::
-constantProperties&
-Foam::ReactingMultiphaseParcel<ParcelType>::trackData::constProps() const
-{
-    return constProps_;
 }
 
 
@@ -233,5 +224,6 @@ inline bool& Foam::ReactingMultiphaseParcel<ParcelType>::canCombust()
 {
     return canCombust_;
 }
+
 
 // ************************************************************************* //

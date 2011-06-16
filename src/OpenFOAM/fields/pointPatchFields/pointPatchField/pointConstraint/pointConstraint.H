@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,7 @@ Class
 Description
     Accumulates point constraints through successive applications of the
     applyConstraint function.
- 
+
     After all the constraints have been entered the resulting
     transformation tensor is returned by the constraintTransformation
     function.
@@ -73,8 +73,11 @@ public:
 
     // Member Functions
 
-        //- Apply and accumulate the effect of the given constraint direction 
+        //- Apply and accumulate the effect of the given constraint direction
         inline void applyConstraint(const vector& cd);
+
+        //- Combine constraints
+        inline void combine(const pointConstraint&);
 
         //- Return the accumulated constraint transformation tensor
         inline tensor constraintTransformation() const;

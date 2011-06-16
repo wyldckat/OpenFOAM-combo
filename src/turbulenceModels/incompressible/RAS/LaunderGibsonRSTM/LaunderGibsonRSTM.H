@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     Launder-Gibson Reynolds stress turbulence model for incompressible flows.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         LaunderGibsonRSTMCoeffs
         {
             Cmu         0.09;
@@ -45,7 +45,7 @@ Description
             sigmaR      0.81967;
             couplingFactor  0.0;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     LaunderGibsonRSTM.C
@@ -75,7 +75,10 @@ class LaunderGibsonRSTM
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -120,7 +123,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,31 +29,32 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::EulerImplicit<CompType, ThermoType>::EulerImplicit
+template<class ODEChemistryType>
+Foam::EulerImplicit<ODEChemistryType>::EulerImplicit
 (
-    ODEChemistryModel<CompType, ThermoType>& model,
-    const word& modelName
+    const fvMesh& mesh,
+    const word& ODEModelName,
+    const word& thermoType
 )
 :
-    chemistrySolver<CompType, ThermoType>(model, modelName),
-    coeffsDict_(model.subDict(modelName + "Coeffs")),
+    chemistrySolver<ODEChemistryType>(mesh, ODEModelName, thermoType),
+    coeffsDict_(this->subDict("EulerImplicitCoeffs")),
     cTauChem_(readScalar(coeffsDict_.lookup("cTauChem"))),
-    equil_(coeffsDict_.lookup("equilibriumRateLimiter"))
+    eqRateLimiter_(coeffsDict_.lookup("equilibriumRateLimiter"))
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::EulerImplicit<CompType, ThermoType>::~EulerImplicit()
+template<class ODEChemistryType>
+Foam::EulerImplicit<ODEChemistryType>::~EulerImplicit()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class CompType, class ThermoType>
-Foam::scalar Foam::EulerImplicit<CompType, ThermoType>::solve
+template<class ODEChemistryType>
+Foam::scalar Foam::EulerImplicit<ODEChemistryType>::solve
 (
     scalarField &c,
     const scalar T,
@@ -65,32 +66,27 @@ Foam::scalar Foam::EulerImplicit<CompType, ThermoType>::solve
     scalar pf, cf, pr, cr;
     label lRef, rRef;
 
-    label nSpecie = this->model_.nSpecie();
-    simpleMatrix<scalar> RR(nSpecie, 0.0, 0.0);
+    const label nSpecie = this->nSpecie();
+    simpleMatrix<scalar> RR(nSpecie, 0, 0);
 
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         c[i] = max(0.0, c[i]);
     }
 
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         RR.source()[i] = c[i]/dt;
     }
 
-    for (label i=0; i<this->model_.reactions().size(); i++)
+    forAll(this->reactions(), i)
     {
-        const Reaction<ThermoType>& R = this->model_.reactions()[i];
-
-        scalar omegai = this->model_.omega
-        (
-            R, c, T, p, pf, cf, lRef, pr, cr, rRef
-        );
+        scalar omegai = this->omegaI(i, c, T, p, pf, cf, lRef, pr, cr, rRef);
 
         scalar corr = 1.0;
-        if (equil_)
+        if (eqRateLimiter_)
         {
-            if (omegai<0.0)
+            if (omegai < 0.0)
             {
                 corr = 1.0/(1.0 + pr*dt);
             }
@@ -100,42 +96,27 @@ Foam::scalar Foam::EulerImplicit<CompType, ThermoType>::solve
             }
         }
 
-        for (label s=0; s<R.lhs().size(); s++)
-        {
-            label si = R.lhs()[s].index;
-            scalar sl = R.lhs()[s].stoichCoeff;
-            RR[si][rRef] -= sl*pr*corr;
-            RR[si][lRef] += sl*pf*corr;
-        }
-
-        for (label s=0; s<R.rhs().size(); s++)
-        {
-            label si = R.rhs()[s].index;
-            scalar sr = R.rhs()[s].stoichCoeff;
-            RR[si][lRef] -= sr*pf*corr;
-            RR[si][rRef] += sr*pr*corr;
-        }
-
-    } // end for(label i...
+        this->updateRRInReactionI(i, pr, pf, corr, lRef, rRef, RR);
+    }
 
 
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         RR[i][i] += 1.0/dt;
     }
 
     c = RR.LUsolve();
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         c[i] = max(0.0, c[i]);
     }
 
     // estimate the next time step
     scalar tMin = GREAT;
-    label nEqns = this->model_.nEqns();
+    const label nEqns = this->nEqns();
     scalarField c1(nEqns, 0.0);
 
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         c1[i] = c[i];
     }
@@ -143,11 +124,11 @@ Foam::scalar Foam::EulerImplicit<CompType, ThermoType>::solve
     c1[nSpecie+1] = p;
 
     scalarField dcdt(nEqns, 0.0);
-    this->model_.derivatives(0.0, c1, dcdt);
+    this->derivatives(0.0, c1, dcdt);
 
-    scalar sumC = sum(c);
+    const scalar sumC = sum(c);
 
-    for (label i=0; i<nSpecie; i++)
+    for (label i = 0; i < nSpecie; i++)
     {
         scalar d = dcdt[i];
         if (d < -SMALL)

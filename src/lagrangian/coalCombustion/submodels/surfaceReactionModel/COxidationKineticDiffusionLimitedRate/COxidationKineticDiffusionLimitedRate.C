@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2008-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,16 +36,11 @@ COxidationKineticDiffusionLimitedRate
     CloudType& owner
 )
 :
-    SurfaceReactionModel<CloudType>
-    (
-        dict,
-        owner,
-        typeName
-    ),
-    Sb_(dimensionedScalar(this->coeffDict().lookup("Sb")).value()),
-    C1_(dimensionedScalar(this->coeffDict().lookup("C1")).value()),
-    C2_(dimensionedScalar(this->coeffDict().lookup("C2")).value()),
-    E_(dimensionedScalar(this->coeffDict().lookup("E")).value()),
+    SurfaceReactionModel<CloudType>(dict, owner, typeName),
+    Sb_(readScalar(this->coeffDict().lookup("Sb"))),
+    C1_(readScalar(this->coeffDict().lookup("C1"))),
+    C2_(readScalar(this->coeffDict().lookup("C2"))),
+    E_(readScalar(this->coeffDict().lookup("E"))),
     CsLocalId_(-1),
     O2GlobalId_(owner.composition().globalCarrierId("O2")),
     CO2GlobalId_(owner.composition().globalCarrierId("CO2")),
@@ -58,24 +53,36 @@ COxidationKineticDiffusionLimitedRate
     CsLocalId_ = owner.composition().localId(idSolid, "C");
 
     // Set local copies of thermo properties
-    WO2_ = owner.mcCarrierThermo().speciesData()[O2GlobalId_].W();
-    scalar WCO2 = owner.mcCarrierThermo().speciesData()[CO2GlobalId_].W();
+    WO2_ = owner.thermo().carrier().W(O2GlobalId_);
+    const scalar WCO2 = owner.thermo().carrier().W(CO2GlobalId_);
     WC_ = WCO2 - WO2_;
-    HcCO2_ = owner.mcCarrierThermo().speciesData()[CO2GlobalId_].Hc();
 
-    if (Sb_ < 0)
-    {
-        FatalErrorIn
-        (
-            "COxidationKineticDiffusionLimitedRate"
-            "("
-                "const dictionary&, "
-                "CloudType&"
-            ")"
-        )   << "Stoichiometry of reaction, Sb, must be greater than zero" << nl
-            << exit(FatalError);
-    }
+    HcCO2_ = owner.thermo().carrier().Hc(CO2GlobalId_);
+
+    const scalar YCloc = owner.composition().Y0(idSolid)[CsLocalId_];
+    const scalar YSolidTot = owner.composition().YMixture0()[idSolid];
+    Info<< "    C(s): particle mass fraction = " << YCloc*YSolidTot << endl;
 }
+
+
+template<class CloudType>
+Foam::COxidationKineticDiffusionLimitedRate<CloudType>::
+COxidationKineticDiffusionLimitedRate
+(
+    const COxidationKineticDiffusionLimitedRate<CloudType>& srm
+)
+:
+    SurfaceReactionModel<CloudType>(srm),
+    Sb_(srm.Sb_),
+    C1_(srm.C1_),
+    C2_(srm.C2_),
+    E_(srm.E_),
+    CsLocalId_(srm.CsLocalId_),
+    O2GlobalId_(srm.O2GlobalId_),
+    CO2GlobalId_(srm.CO2GlobalId_),
+    WC_(srm.WC_),
+    WO2_(srm.WO2_)
+{}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -87,13 +94,6 @@ Foam::COxidationKineticDiffusionLimitedRate<CloudType>::
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-template<class CloudType>
-bool Foam::COxidationKineticDiffusionLimitedRate<CloudType>::active() const
-{
-    return true;
-}
-
 
 template<class CloudType>
 Foam::scalar Foam::COxidationKineticDiffusionLimitedRate<CloudType>::calculate
@@ -127,8 +127,10 @@ Foam::scalar Foam::COxidationKineticDiffusionLimitedRate<CloudType>::calculate
         return 0.0;
     }
 
+    const SLGThermo& thermo = this->owner().thermo();
+
     // Local mass fraction of O2 in the carrier phase
-    const scalar YO2 = this->owner().mcCarrierThermo().Y(O2GlobalId_)[cellI];
+    const scalar YO2 = thermo.carrier().Y(O2GlobalId_)[cellI];
 
     // Diffusion rate coefficient
     const scalar D0 = C1_/d*pow(0.5*(T + Tc), 0.75);
@@ -137,7 +139,7 @@ Foam::scalar Foam::COxidationKineticDiffusionLimitedRate<CloudType>::calculate
     const scalar Rk = C2_*exp(-E_/(specie::RR*Tc));
 
     // Particle surface area
-    const scalar Ap = mathematicalConstant::pi*sqr(d);
+    const scalar Ap = constant::mathematical::pi*sqr(d);
 
     // Change in C mass [kg]
     scalar dmC = Ap*rhoc*specie::RR*Tc*YO2/WO2_*D0*Rk/(D0 + Rk)*dt;
@@ -145,21 +147,28 @@ Foam::scalar Foam::COxidationKineticDiffusionLimitedRate<CloudType>::calculate
     // Limit mass transfer by availability of C
     dmC = min(mass*fComb, dmC);
 
+    // Molar consumption
+    const scalar dOmega = dmC/WC_;
+
     // Change in O2 mass [kg]
-    const scalar dmO2 = dmC/WC_*Sb_*WO2_;
+    const scalar dmO2 = dOmega*Sb_*WO2_;
 
     // Mass of newly created CO2 [kg]
-    const scalar dmCO2 = dmC + dmO2;
+    const scalar dmCO2 = dOmega*(WC_ + Sb_*WO2_);
 
     // Update local particle C mass
-    dMassSolid[CsLocalId_] += dmC;
+    dMassSolid[CsLocalId_] += dOmega*WC_;
 
     // Update carrier O2 and CO2 mass
     dMassSRCarrier[O2GlobalId_] -= dmO2;
     dMassSRCarrier[CO2GlobalId_] += dmCO2;
 
+    const scalar HsC = thermo.solids().properties()[CsLocalId_].Hs(T);
+
+    // carrier sensible enthalpy exchange handled via change in mass
+
     // Heat of reaction [J]
-    return -HcCO2_*dmCO2;
+    return dmC*HsC - dmCO2*HcCO2_;
 }
 
 

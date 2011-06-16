@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,13 +33,20 @@ License
 
 // * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * * * //
 
-template<>
-const char* Foam::NamedEnum<Foam::vector::components, 3>::names[] =
+namespace Foam
 {
-    "x",
-    "y",
-    "z"
-};
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::vector::components,
+        3
+    >::names[] =
+    {
+        "x",
+        "y",
+        "z"
+    };
+}
 
 const Foam::NamedEnum<Foam::vector::components, 3>
     Foam::channelIndex::vectorComponentsNames_;
@@ -79,9 +86,9 @@ void Foam::channelIndex::walkOppositeFaces
                 isFrontBndFace[faceI-mesh.nInternalFaces()] = true;
             }
         }
-        syncTools::swapBoundaryFaceList(mesh, isFrontBndFace, false);
+        syncTools::swapBoundaryFaceList(mesh, isFrontBndFace);
 
-        // Add 
+        // Add
         forAll(isFrontBndFace, i)
         {
             label faceI = mesh.nInternalFaces()+i;
@@ -236,7 +243,7 @@ Foam::channelIndex::channelIndex
 
     forAll(patchNames, i)
     {
-        label patchI = patches.findPatchID(patchNames[i]);
+        const label patchI = patches.findPatchID(patchNames[i]);
 
         if (patchI == -1)
         {
@@ -254,7 +261,7 @@ Foam::channelIndex::channelIndex
 
     forAll(patchNames, i)
     {
-        const polyPatch& pp = patches[patches.findPatchID(patchNames[i])];
+        const polyPatch& pp = patches[patchNames[i]];
 
         forAll(pp, j)
         {
@@ -281,12 +288,6 @@ Foam::channelIndex::channelIndex
     // Calculate regions.
     calcLayeredRegions(mesh, startFaces);
 }
-
-
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-
-// * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
 
 // ************************************************************************* //

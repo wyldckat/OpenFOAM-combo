@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,9 +44,10 @@ const cellModel* sammMesh::sammTrim2Ptr_ = cellModeller::lookup("sammTrim2");
 const cellModel* sammMesh::sammTrim3Ptr_ = cellModeller::lookup("sammTrim3");
 const cellModel* sammMesh::sammTrim4Ptr_ = cellModeller::lookup("sammTrim4");
 const cellModel* sammMesh::sammTrim5Ptr_ = cellModeller::lookup("sammTrim5");
-const cellModel* sammMesh::sammTrim8Ptr_ = cellModeller::lookup("hexagonalPrism");
+const cellModel* sammMesh::sammTrim8Ptr_ =
+    cellModeller::lookup("hexagonalPrism");
 
-// lookup table giving FOAM face number when looked up with shape index
+// lookup table giving OpenFOAM face number when looked up with shape index
 // (first index) and STAR face number
 // - first column is always -1
 // - last column is -1 for all but hexagonal prism
@@ -103,7 +104,7 @@ List<const label*> sammMesh::sammAddressingTable
 // Make polyhedral mesh data (packing)
 void sammMesh::createPolyMeshData()
 {
-    Info << "Creating a polyMesh" << endl;
+    Info<< "Creating a polyMesh" << endl;
 
     createPolyCells();
 
@@ -115,15 +116,15 @@ void sammMesh::createPolyMeshData()
     label nProblemCells = 0;
 
     // check that there is no zeros in the cellPolys_
-    forAll (cellPolys_, cellI)
+    forAll(cellPolys_, cellI)
     {
         const labelList& curFaceLabels = cellPolys_[cellI];
 
-        forAll (curFaceLabels, faceI)
+        forAll(curFaceLabels, faceI)
         {
             if (curFaceLabels[faceI] == -1)
             {
-                Info << "cell " << cellI
+                Info<< "cell " << cellI
                     << " has got an unmatched face. "
                     << "Index: " << cellShapes_[cellI].model().index() << endl
 //                     << "cell shape: " << cellShapes_[cellI] << endl
@@ -141,7 +142,7 @@ void sammMesh::createPolyMeshData()
 
     if (nProblemCells > 0)
     {
-        Info << "Number of problem cells: " << nProblemCells << endl;
+        Info<< "Number of problem cells: " << nProblemCells << endl;
     }
 }
 

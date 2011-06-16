@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,7 @@ Description
     Renormalisation group k-epsilon turbulence model for incompressible flows.
 
     The default model coefficients correspond to the following:
-    @verbatim
+    \verbatim
         RNGkEpsilonCoeffs
         {
             Cmu         0.0845;
@@ -39,7 +39,7 @@ Description
             eta0        4.38;
             beta        0.012;
         }
-    @endverbatim
+    \endverbatim
 
 SourceFiles
     RNGkEpsilon.C
@@ -68,7 +68,10 @@ class RNGkEpsilon
 :
     public RASModel
 {
-    // Private data
+
+protected:
+
+    // Protected data
 
         // Model coefficients
 
@@ -100,7 +103,9 @@ public:
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport
+            transportModel& transport,
+            const word& turbulenceModelName = turbulenceModel::typeName,
+            const word& modelName = typeName
         );
 
 

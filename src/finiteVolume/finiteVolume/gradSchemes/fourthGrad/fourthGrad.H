@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,13 +82,16 @@ public:
 
     // Member Functions
 
-        tmp
+        //- Return the gradient of the given field to the gradScheme::grad
+        //  for optional caching
+        virtual tmp
         <
             GeometricField
             <typename outerProduct<vector, Type>::type, fvPatchField, volMesh>
-        > grad
+        > calcGrad
         (
-            const GeometricField<Type, fvPatchField, volMesh>&
+            const GeometricField<Type, fvPatchField, volMesh>& vsf,
+            const word& name
         ) const;
 };
 

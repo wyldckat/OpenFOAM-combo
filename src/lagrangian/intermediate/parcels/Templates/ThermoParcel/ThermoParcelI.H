@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2008-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,100 +26,160 @@ License
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class ParcelType>
+inline Foam::ThermoParcel<ParcelType>::constantProperties::constantProperties()
+:
+    ParcelType::constantProperties(),
+    T0_(0.0),
+    TMin_(0.0),
+    Cp0_(0.0),
+    epsilon0_(0.0),
+    f0_(0.0),
+    Pr_(0.0)
+{}
+
+
+template<class ParcelType>
 inline Foam::ThermoParcel<ParcelType>::constantProperties::constantProperties
 (
-    const dictionary& parentDict
+    const constantProperties& cp
 )
 :
-    KinematicParcel<ParcelType>::constantProperties(parentDict),
-    T0_(dimensionedScalar(this->dict().lookup("T0")).value()),
-    TMin_(dimensionedScalar(this->dict().lookup("TMin")).value()),
-    cp0_(dimensionedScalar(this->dict().lookup("cp0")).value()),
-    epsilon0_(dimensionedScalar(this->dict().lookup("epsilon0")).value()),
-    f0_(dimensionedScalar(this->dict().lookup("f0")).value()),
-    Pr_(dimensionedScalar(this->dict().lookup("Pr")).value())
+    ParcelType::constantProperties(cp),
+    T0_(cp.T0_),
+    TMin_(cp.TMin_),
+    Cp0_(cp.Cp0_),
+    epsilon0_(cp.epsilon0_),
+    f0_(cp.f0_),
+    Pr_(cp.Pr_)
 {}
 
 
 template<class ParcelType>
-inline Foam::ThermoParcel<ParcelType>::trackData::trackData
+inline Foam::ThermoParcel<ParcelType>::constantProperties::constantProperties
 (
-    ThermoCloud<ParcelType>& cloud,
-    const constantProperties& constProps,
-    const interpolation<scalar>& rhoInterp,
-    const interpolation<vector>& UInterp,
-    const interpolation<scalar>& muInterp,
-    const interpolation<scalar>& TInterp,
-    const interpolation<scalar>& cpInterp,
-    const vector& g
+    const dictionary& parentDict,
+    const bool readFields
 )
 :
-    KinematicParcel<ParcelType>::trackData
+    ParcelType::constantProperties(parentDict, readFields),
+    T0_(0.0),
+    TMin_(0.0),
+    Cp0_(0.0),
+    epsilon0_(0.0),
+    f0_(0.0),
+    Pr_(0.0)
+{
+    if (readFields)
+    {
+        this->dict().lookup("T0") >> T0_;
+        this->dict().lookup("TMin") >> TMin_;
+        this->dict().lookup("Cp0") >> Cp0_;
+        this->dict().lookup("epsilon0") >> epsilon0_;
+        this->dict().lookup("f0") >> f0_;
+        this->dict().lookup("Pr") >> Pr_;
+    }
+}
+
+
+template<class ParcelType>
+inline Foam::ThermoParcel<ParcelType>::constantProperties::constantProperties
+(
+    const label parcelTypeId,
+    const scalar rhoMin,
+    const scalar rho0,
+    const scalar minParticleMass,
+    const scalar youngsModulus,
+    const scalar poissonsRatio,
+    const scalar T0,
+    const scalar TMin,
+    const scalar Cp0,
+    const scalar epsilon0,
+    const scalar f0,
+    const scalar Pr
+)
+:
+    ParcelType::constantProperties
     (
-        cloud,
-        constProps,
-        rhoInterp,
-        UInterp,
-        muInterp,
-        g
+        parcelTypeId,
+        rhoMin,
+        rho0,
+        minParticleMass,
+        youngsModulus,
+        poissonsRatio
     ),
-    cloud_(cloud),
-    constProps_(constProps),
-    TInterp_(TInterp),
-    cpInterp_(cpInterp)
+    T0_(T0),
+    TMin_(TMin),
+    Cp0_(Cp0),
+    epsilon0_(epsilon0),
+    f0_(f0),
+    Pr_(Pr)
 {}
 
 
 template<class ParcelType>
 inline Foam::ThermoParcel<ParcelType>::ThermoParcel
 (
-    ThermoCloud<ParcelType>& owner,
-    const vector& position,
-    const label cellI
-)
-:
-    KinematicParcel<ParcelType>(owner, position, cellI),
-    T_(0.0),
-    cp_(0.0),
-    Tc_(0.0),
-    cpc_(0.0)
-{}
-
-
-template<class ParcelType>
-inline Foam::ThermoParcel<ParcelType>::ThermoParcel
-(
-    ThermoCloud<ParcelType>& owner,
+    const polyMesh& mesh,
     const vector& position,
     const label cellI,
+    const label tetFaceI,
+    const label tetPtI
+)
+:
+    ParcelType(mesh, position, cellI, tetFaceI, tetPtI),
+    T_(0.0),
+    Cp_(0.0),
+    Tc_(0.0),
+    Cpc_(0.0)
+{}
+
+
+template<class ParcelType>
+inline Foam::ThermoParcel<ParcelType>::ThermoParcel
+(
+    const polyMesh& mesh,
+    const vector& position,
+    const label cellI,
+    const label tetFaceI,
+    const label tetPtI,
     const label typeId,
     const scalar nParticle0,
     const scalar d0,
+    const scalar dTarget0,
     const vector& U0,
+    const vector& f0,
+    const vector& angularMomentum0,
+    const vector& torque0,
     const constantProperties& constProps
 )
 :
-    KinematicParcel<ParcelType>
+    ParcelType
     (
-        owner,
+        mesh,
         position,
         cellI,
+        tetFaceI,
+        tetPtI,
         typeId,
         nParticle0,
         d0,
+        dTarget0,
         U0,
+        f0,
+        angularMomentum0,
+        torque0,
         constProps
     ),
     T_(constProps.T0()),
-    cp_(constProps.cp0()),
+    Cp_(constProps.Cp0()),
     Tc_(0.0),
-    cpc_(0.0)
+    Cpc_(0.0)
 {}
 
 
 // * * * * * * * * * constantProperties Member Functions * * * * * * * * * * //
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::ThermoParcel<ParcelType>::constantProperties::T0() const
 {
@@ -127,7 +187,7 @@ Foam::ThermoParcel<ParcelType>::constantProperties::T0() const
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::ThermoParcel<ParcelType>::constantProperties::TMin() const
 {
@@ -135,15 +195,15 @@ Foam::ThermoParcel<ParcelType>::constantProperties::TMin() const
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
-Foam::ThermoParcel<ParcelType>::constantProperties::cp0() const
+Foam::ThermoParcel<ParcelType>::constantProperties::Cp0() const
 {
-    return cp0_;
+    return Cp0_;
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::ThermoParcel<ParcelType>::constantProperties::epsilon0() const
 {
@@ -151,7 +211,7 @@ Foam::ThermoParcel<ParcelType>::constantProperties::epsilon0() const
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::ThermoParcel<ParcelType>::constantProperties::f0() const
 {
@@ -159,45 +219,11 @@ Foam::ThermoParcel<ParcelType>::constantProperties::f0() const
 }
 
 
-template <class ParcelType>
+template<class ParcelType>
 inline Foam::scalar
 Foam::ThermoParcel<ParcelType>::constantProperties::Pr() const
 {
     return Pr_;
-}
-
-
-// * * * * * * * * * * * trackData Member Functions  * * * * * * * * * * * * //
-
-template<class ParcelType>
-inline Foam::ThermoCloud<ParcelType>&
-Foam::ThermoParcel<ParcelType>::trackData::cloud()
-{
-    return cloud_;
-}
-
-
-template <class ParcelType>
-inline const typename Foam::ThermoParcel<ParcelType>::constantProperties&
-Foam::ThermoParcel<ParcelType>::trackData::constProps() const
-{
-    return constProps_;
-}
-
-
-template<class ParcelType>
-inline const Foam::interpolation<Foam::scalar>&
-Foam::ThermoParcel<ParcelType>::trackData::TInterp() const
-{
-    return TInterp_;
-}
-
-
-template<class ParcelType>
-inline const Foam::interpolation<Foam::scalar>&
-Foam::ThermoParcel<ParcelType>::trackData::cpInterp() const
-{
-    return cpInterp_;
 }
 
 
@@ -211,9 +237,30 @@ inline Foam::scalar Foam::ThermoParcel<ParcelType>::T() const
 
 
 template<class ParcelType>
-inline Foam::scalar Foam::ThermoParcel<ParcelType>::cp() const
+inline Foam::scalar Foam::ThermoParcel<ParcelType>::Cp() const
 {
-    return cp_;
+    return Cp_;
+}
+
+
+template<class ParcelType>
+inline Foam::scalar Foam::ThermoParcel<ParcelType>::hs() const
+{
+    return Cp_*(T_ - 298.15);
+}
+
+
+template<class ParcelType>
+inline Foam::scalar Foam::ThermoParcel<ParcelType>::Tc() const
+{
+    return Tc_;
+}
+
+
+template<class ParcelType>
+inline Foam::scalar Foam::ThermoParcel<ParcelType>::Cpc() const
+{
+    return Cpc_;
 }
 
 
@@ -225,9 +272,9 @@ inline Foam::scalar& Foam::ThermoParcel<ParcelType>::T()
 
 
 template<class ParcelType>
-inline Foam::scalar& Foam::ThermoParcel<ParcelType>::cp()
+inline Foam::scalar& Foam::ThermoParcel<ParcelType>::Cp()
 {
-    return cp_;
+    return Cp_;
 }
 
 

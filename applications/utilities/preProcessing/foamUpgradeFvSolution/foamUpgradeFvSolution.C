@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2011 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Usage
 
     - foamUpgradeFvSolution [OPTION]
 
-    @param -test \n
+    \param -test \n
     Suppress writing the updated fvSolution file
 
 \*---------------------------------------------------------------------------*/
@@ -48,8 +48,17 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    argList::addNote
+    (
+        "upgrade the syntax of system/fvSolution::solvers"
+    );
+
     argList::noParallel();
-    argList::validOptions.insert("test", "");
+    argList::addBoolOption
+    (
+        "test",
+        "suppress writing the updated system/fvSolution file"
+    );
 
 #   include "setRootCase.H"
 #   include "createTime.H"
@@ -61,7 +70,7 @@ int main(int argc, char *argv[])
             "fvSolution",
             runTime.system(),
             runTime,
-            IOobject::MUST_READ,
+            IOobject::MUST_READ_IF_MODIFIED,
             IOobject::NO_WRITE,
             false
         )
@@ -83,11 +92,11 @@ int main(int argc, char *argv[])
         }
         else
         {
-            mv
-            (
-                solutionDict.objectPath(),
-                solutionDict.objectPath() + ".old"
-            );
+            if (mvBak(solutionDict.objectPath(), "old"))
+            {
+                Info<< "Backup to    "
+                    << (solutionDict.objectPath() + ".old") << nl;
+            }
 
             solutionDict.writeObject
             (
@@ -96,8 +105,8 @@ int main(int argc, char *argv[])
                 IOstream::UNCOMPRESSED
             );
 
-            Info<< "Backup to    " << (solutionDict.objectPath() + ".old") << nl
-                << "Write  to    " << solutionDict.objectPath() << nl << endl;
+            Info<< "Write  to    "
+                << solutionDict.objectPath() << nl << endl;
         }
     }
 

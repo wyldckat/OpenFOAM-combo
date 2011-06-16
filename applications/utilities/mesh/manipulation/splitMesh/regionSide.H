@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 1991-2010 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2004-2010 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Class
     Foam::regionSide
 
 Description
-    Determines the 'side' for every face and connected to a 
+    Determines the 'side' for every face and connected to a
     singly-connected (through edges) region of faces. Gets set of faces and
     a list of mesh edges ('fenceEdges') which should not be crossed.
     Used in splitting a mesh region.
