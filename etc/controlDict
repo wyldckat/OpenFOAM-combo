@@ -58,6 +58,11 @@ OptimisationSwitches
     commsType       nonBlocking; //scheduled; //blocking;
     floatTransfer   0;
     nProcsSimpleSum 0;
+
+    // Force dumping (at next timestep) upon signal (-1 to disable)
+    writeNowSignal              -1; //10;
+    // Force dumping (at next timestep) upon signal (-1 to disable) and exit
+    stopAtWriteNowSignal        -1;
 }
 
 
@@ -302,11 +307,13 @@ DebugSwitches
     ash                 0;
     atomizationModel    0;
     attachDetach        0;
+    autoDensity         0;
     autoHexMeshDriver   0;
     autoLayerDriver     0;
     autoRefineDriver    0;
     autoSnapDriver      0;
     bC11H10             0;
+    backgroundMeshDecomposition 0;
     backward            0;
     basePatch           0;
     basicKinematicCloud 0;
@@ -345,6 +352,7 @@ DebugSwitches
     cellPointFace       0;
     cellPointWeight     0;
     cellSet             0;
+    cellSizeControlSurfaces 0;
     cellToCell          0;
     cellToFace          0;
     cellToPoint         0;
@@ -390,9 +398,9 @@ DebugSwitches
     diagonal            0;
     dictionary          0;
     dimensionSet        1;
-    directMappedBase    0;
-    directMappedPatch   0;
-    directMappedVelocityFlux 0;
+    mappedBase    0;
+    mappedPatch   0;
+    mappedVelocityFlux 0;
     directionMixed      0;
     directional         0;
     disallowGenericFvPatchField 0;
@@ -406,7 +414,7 @@ DebugSwitches
     displacementLaplacian 0;
     displacementSBRStress 0;
     distanceSurface     0;
-    distribution        0;
+    Distribution        0;
     downwind            0;
     dragModel           0;
     duplicatePoints     0;
@@ -648,11 +656,6 @@ DebugSwitches
     nutWallFunction     0;
     obj                 0;
     objectRegistry      0;
-    octree              0;
-    octreeDataEdges     0;
-    octreeDataFace      0;
-    octreeDataFaceList  0;
-    octreeDataTriSurface 0;
     off                 0;
     omegaWallFunction   0;
     oneEqEddy           0;

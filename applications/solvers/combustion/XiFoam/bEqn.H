@@ -63,6 +63,7 @@ if (ign.ignited())
 
     // Solve for b
     // ~~~~~~~~~~~
+    bEqn.relax();
     bEqn.solve();
 
     Info<< "min(b) = " << min(b).value() << endl;
@@ -201,8 +202,11 @@ if (ign.ignited())
         volScalarField XiEq
         (
             scalar(1.001)
-          + (scalar(1) + (2*XiShapeCoef)*(scalar(0.5) - b))
-            *(XiEqStar - scalar(1.001))
+          + (
+                scalar(1)
+              + (2*XiShapeCoef)
+               *(scalar(0.5) - min(max(b, scalar(0)), scalar(1)))
+            )*(XiEqStar - scalar(1.001))
         );
 
         volScalarField Gstar(0.28/tauEta);

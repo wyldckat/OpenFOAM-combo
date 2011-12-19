@@ -30,10 +30,8 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "hCombustionThermo.H"
 #include "turbulenceModel.H"
-#include "psiChemistryModel.H"
-#include "chemistrySolver.H"
+#include "psiChemistryCombustionModel.H"
 #include "multivariateScheme.H"
 #include "pimpleControl.H"
 
@@ -44,7 +42,6 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
-    #include "readChemistryProperties.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
     #include "initContinuityErrs.H"
@@ -67,17 +64,16 @@ int main(int argc, char *argv[])
         runTime++;
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        #include "chemistry.H"
         #include "rhoEqn.H"
 
-        for (pimple.start(); pimple.loop(); pimple++)
+        while (pimple.loop())
         {
             #include "UEqn.H"
             #include "YEqn.H"
             #include "hsEqn.H"
 
-            // --- PISO loop
-            for (int corr=0; corr<pimple.nCorr(); corr++)
+            // --- Pressure corrector loop
+            while (pimple.correct())
             {
                 #include "pEqn.H"
             }
@@ -86,11 +82,6 @@ int main(int argc, char *argv[])
             {
                 turbulence->correct();
             }
-        }
-
-        if (runTime.write())
-        {
-            chemistry.dQ()().write();
         }
 
         runTime.write();

@@ -33,7 +33,6 @@ Foam::label Foam::checkTopology
             }
         }
         reduce(nEmpty, sumOp<label>());
-
         label nTotCells = returnReduce(mesh.cells().size(), sumOp<label>());
 
         // These are actually warnings, not errors.
@@ -179,12 +178,14 @@ Foam::label Foam::checkTopology
         if (mesh.checkFaceFaces(true, &faces))
         {
             noFailedChecks++;
+        }
 
-            label nFaces = returnReduce(faces.size(), sumOp<label>());
-
+        label nFaces = returnReduce(faces.size(), sumOp<label>());
+        if (nFaces > 0)
+        {
             Info<< "  <<Writing " << nFaces
-                << " faces with incorrect edges to set " << faces.name()
-                << endl;
+                << " faces with non-standard edge connectivity to set "
+                << faces.name() << endl;
             faces.instance() = mesh.pointsInstance();
             faces.write();
         }
@@ -233,7 +234,7 @@ Foam::label Foam::checkTopology
         if (nOneCells > 0)
         {
             Info<< "  <<Writing " << nOneCells
-                << " cells with with single non-boundary face to set "
+                << " cells with with zero or one non-boundary face to set "
                 << oneCells.name()
                 << endl;
             oneCells.instance() = mesh.pointsInstance();

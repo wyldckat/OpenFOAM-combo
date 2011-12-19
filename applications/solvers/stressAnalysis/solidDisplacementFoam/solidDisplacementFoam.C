@@ -37,7 +37,6 @@ Description
 
 #include "fvCFD.H"
 #include "Switch.H"
-#include "zeroGradientFvPatchFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

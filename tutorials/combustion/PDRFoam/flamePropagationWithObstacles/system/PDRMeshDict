@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -18,15 +18,14 @@ FoamFile
 blockedFaces ((blockedFacesSet blockedFaces));
 
 //- Per faceSet the patch the faces should go into coupled baffles
-
 coupledFaces
 {
 
-//    coupledFacesSet
-//    {
-//        wallPatchName               baffleWall;
-//        cyclicMasterPatchName       baffleCyclic_half0;
-//    }
+    coupledFacesSet
+    {
+        wallPatchName               baffleWall;
+        cyclicMasterPatchName       baffleCyclic_half0;
+    }
 }
 
 //- Name of cellSet that holds the cells to fully remove

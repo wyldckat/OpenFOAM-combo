@@ -50,7 +50,7 @@ namespace Foam
     const char* Foam::NamedEnum
     <
         Foam::fieldValues::cellSource::operationType,
-        7
+        8
     >::names[] =
     {
         "none",
@@ -59,7 +59,8 @@ namespace Foam
         "volIntegrate",
         "weightedAverage",
         "min",
-        "max"
+        "max",
+        "CoV"
     };
 }
 
@@ -67,7 +68,7 @@ namespace Foam
 const Foam::NamedEnum<Foam::fieldValues::cellSource::sourceType, 2>
     Foam::fieldValues::cellSource::sourceTypeNames_;
 
-const Foam::NamedEnum<Foam::fieldValues::cellSource::operationType, 7>
+const Foam::NamedEnum<Foam::fieldValues::cellSource::operationType, 8>
     Foam::fieldValues::cellSource::operationTypeNames_;
 
 
@@ -145,22 +146,7 @@ void Foam::fieldValues::cellSource::initialise(const dictionary& dict)
     if (operation_ == opWeightedAverage)
     {
         dict.lookup("weightField") >> weightFieldName_;
-        if
-        (
-            obr().foundObject<volScalarField>(weightFieldName_)
-        )
-        {
-            Info<< "    weight field = " << weightFieldName_;
-        }
-        else
-        {
-            FatalErrorIn("cellSource::initialise()")
-                << type() << " " << name_ << ": "
-                << sourceTypeNames_[source_] << "(" << sourceName_ << "):"
-                << nl << "    Weight field " << weightFieldName_
-                << " must be a " << volScalarField::typeName
-                << nl << exit(FatalError);
-        }
+        Info<< "    weight field = " << weightFieldName_;
     }
 
     Info<< nl << endl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2009-2011 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Description
     faceObj1                        // Name also used to identify output folder
     {
         type            faceSource;
-        functionObjectLibs ("libfieldValueFunctionObjects.so");
+        functionObjectLibs ("libfieldFunctionObjects.so");
         enabled         true;
         outputControl   outputTime;
         log             true;       // log to screen?
@@ -62,6 +62,7 @@ Description
       - weightedAverage
       - min
       - max
+      - CoV (Coefficient of variation: standard deviation/mean)
 
     Notes:
     - faces on empty patches get ignored
@@ -132,11 +133,12 @@ public:
             opAreaIntegrate,
             opWeightedAverage,
             opMin,
-            opMax
+            opMax,
+            opCoV
         };
 
         //- Operation type names
-        static const NamedEnum<operationType, 7> operationTypeNames_;
+        static const NamedEnum<operationType, 8> operationTypeNames_;
 
 
 private:
@@ -200,7 +202,11 @@ protected:
 
         //- Return field values by looking up field name
         template<class Type>
-        tmp<Field<Type> > getFieldValues(const word& fieldName) const;
+        tmp<Field<Type> > getFieldValues
+        (
+            const word& fieldName,
+            const bool mustGet = false
+        ) const;
 
         //- Apply the 'operation' to the values
         template<class Type>

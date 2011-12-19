@@ -69,6 +69,9 @@ Foam::regIOobject::fileCheckTypes Foam::regIOobject::fileModificationChecking
 );
 
 
+bool Foam::regIOobject::masterOnlyReading = false;
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Construct from IOobject

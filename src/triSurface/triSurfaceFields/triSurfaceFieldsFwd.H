@@ -54,6 +54,21 @@ typedef Foam::DimensionedField<symmTensor, triSurfaceGeoMesh>
 typedef Foam::DimensionedField<tensor, triSurfaceGeoMesh>
     triSurfaceTensorField;
 
+class triSurfacePointGeoMesh;
+
+typedef Foam::DimensionedField<label, triSurfacePointGeoMesh>
+    triSurfacePointLabelField;
+typedef Foam::DimensionedField<scalar, triSurfacePointGeoMesh>
+    triSurfacePointScalarField;
+typedef Foam::DimensionedField<vector, triSurfacePointGeoMesh>
+    triSurfacePointVectorField;
+typedef Foam::DimensionedField<sphericalTensor, triSurfacePointGeoMesh>
+    triSurfacePointSphericalTensorField;
+typedef Foam::DimensionedField<symmTensor, triSurfacePointGeoMesh>
+    triSurfacePointSymmTensorField;
+typedef Foam::DimensionedField<tensor, triSurfacePointGeoMesh>
+    triSurfacePointTensorField;
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

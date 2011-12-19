@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -41,6 +41,22 @@ boundaryField
         kappa           0.41;
         E               9.8;
         value           nonuniform 0();
+    }
+    baffleWall
+    {
+        type            mutkWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           nonuniform 0();
+    }
+    baffleCyclic_half0
+    {
+        type            cyclic;
+    }
+    baffleCyclic_half1
+    {
+        type            cyclic;
     }
 }
 

@@ -49,6 +49,11 @@ SourceFiles
 namespace Foam
 {
 
+namespace functionEntries
+{
+    class codeStream;
+}
+
 /*---------------------------------------------------------------------------*\
                          Class regIOobject Declaration
 \*---------------------------------------------------------------------------*/
@@ -70,6 +75,12 @@ public:
     };
 
     static const NamedEnum<fileCheckTypes, 4> fileCheckTypesNames;
+
+
+protected:
+
+        //- To flag master-only reading of objects
+        static bool masterOnlyReading;
 
 
 private:
@@ -102,6 +113,11 @@ private:
 
 
 public:
+
+        //- Declare friendship with any classes that need access to
+        //  masterOnlyReading
+        friend class functionEntries::codeStream;
+
 
     // Static data
 

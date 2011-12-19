@@ -33,6 +33,7 @@ License
 #include "sampledSet.H"
 #include "globalIndex.H"
 #include "mapDistribute.H"
+#include "interpolationCellPoint.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -75,9 +76,9 @@ void Foam::streamLine::track()
 
     // Read or lookup fields
     PtrList<volScalarField> vsFlds;
-    PtrList<interpolationCellPoint<scalar> > vsInterp;
+    PtrList<interpolation<scalar> > vsInterp;
     PtrList<volVectorField> vvFlds;
-    PtrList<interpolationCellPoint<vector> > vvInterp;
+    PtrList<interpolation<vector> > vvInterp;
 
     label UIndex = -1;
 
@@ -95,13 +96,29 @@ void Foam::streamLine::track()
         vsInterp.setSize(vsFlds.size());
         forAll(vsFlds, i)
         {
-            vsInterp.set(i, new interpolationCellPoint<scalar>(vsFlds[i]));
+            vsInterp.set
+            (
+                i,
+                interpolation<scalar>::New
+                (
+                    interpolationScheme_,
+                    vsFlds[i]
+                )
+            );
         }
         ReadFields(mesh, objects, vvFlds);
         vvInterp.setSize(vvFlds.size());
         forAll(vvFlds, i)
         {
-            vvInterp.set(i, new interpolationCellPoint<vector>(vvFlds[i]));
+            vvInterp.set
+            (
+                i,
+                interpolation<vector>::New
+                (
+                    interpolationScheme_,
+                    vvFlds[i]
+                )
+            );
         }
     }
     else
@@ -146,7 +163,12 @@ void Foam::streamLine::track()
                 vsInterp.set
                 (
                     nScalar++,
-                    new interpolationCellPoint<scalar>(f)
+                    //new interpolationCellPoint<scalar>(f)
+                    interpolation<scalar>::New
+                    (
+                        interpolationScheme_,
+                        f
+                    )
                 );
             }
             else if (mesh.foundObject<volVectorField>(fields_[i]))
@@ -164,7 +186,12 @@ void Foam::streamLine::track()
                 vvInterp.set
                 (
                     nVector++,
-                    new interpolationCellPoint<vector>(f)
+                    //new interpolationCellPoint<vector>(f)
+                    interpolation<vector>::New
+                    (
+                        interpolationScheme_,
+                        f
+                    )
                 );
             }
         }
@@ -297,7 +324,15 @@ void Foam::streamLine::read(const dictionary& dict)
         }
         else
         {
-            UName_ = dict.lookupOrDefault<word>("U", "U");
+            UName_ = "U";
+            if (dict.found("U"))
+            {
+                IOWarningIn("streamLine::read(const dictionary&)", dict)
+                    << "Using deprecated entry \"U\"."
+                    << " Please use \"UName\" instead."
+                    << endl;
+                dict.lookup("U") >> UName_;
+            }
         }
         dict.lookup("trackForward") >> trackForward_;
         dict.lookup("lifeTime") >> lifeTime_;
@@ -314,12 +349,21 @@ void Foam::streamLine::read(const dictionary& dict)
             nSubCycle_ = 1;
         }
 
+        interpolationScheme_ = dict.lookupOrDefault
+        (
+            "interpolationScheme",
+            interpolationCellPoint<scalar>::typeName
+        );
+
+        //Info<< typeName << " using interpolation " << interpolationScheme_
+        //    << endl;
+
         cloudName_ = dict.lookupOrDefault<word>("cloudName", "streamLine");
         dict.lookup("seedSampleSet") >> seedSet_;
 
         const fvMesh& mesh = dynamic_cast<const fvMesh&>(obr_);
 
-        meshSearchPtr_.reset(new meshSearch(mesh, false));
+        meshSearchPtr_.reset(new meshSearch(mesh));
 
         const dictionary& coeffsDict = dict.subDict(seedSet_ + "Coeffs");
         sampledSetPtr_ = sampledSet::New

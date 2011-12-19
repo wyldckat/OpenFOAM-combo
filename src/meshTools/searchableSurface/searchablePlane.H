@@ -69,6 +69,8 @@ private:
             const point& end
         ) const;
 
+        //- Return the boundBox of the plane
+        boundBox calcBounds() const;
 
         //- Disallow default bitwise copy construct
         searchablePlane(const searchablePlane&);
@@ -126,6 +128,17 @@ public:
         {
             //notImplemented("searchablePlane::coordinates()")
             return pointField(1, refPoint());
+        }
+
+        //- Does any part of the surface overlap the supplied bound box?
+        virtual bool overlaps(const boundBox& bb) const
+        {
+            notImplemented
+            (
+                "searchablePlane::overlaps(const boundBox&) const"
+            );
+
+            return false;
         }
 
 

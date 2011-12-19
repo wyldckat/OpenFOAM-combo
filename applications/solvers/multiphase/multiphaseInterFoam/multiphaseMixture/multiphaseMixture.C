@@ -27,11 +27,13 @@ License
 #include "alphaContactAngleFvPatchScalarField.H"
 #include "Time.H"
 #include "subCycle.H"
-#include "fvCFD.H"
+#include "MULES.H"
+#include "fvcSnGrad.H"
+#include "fvcFlux.H"
 
 // * * * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * //
 
-const scalar Foam::multiphaseMixture::convertToRad =
+const Foam::scalar Foam::multiphaseMixture::convertToRad =
     Foam::constant::mathematical::pi/180.0;
 
 
@@ -62,7 +64,6 @@ Foam::multiphaseMixture::multiphaseMixture
 :
     transportModel(U, phi),
     phases_(lookup("phases"), phase::iNew(U, phi)),
-    refPhase_(*phases_.lookup(word(lookup("refPhase")))),
 
     mesh_(U.mesh()),
     U_(U),
@@ -249,10 +250,6 @@ void Foam::multiphaseMixture::solve()
 
     label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
 
-    label nAlphaCorr(readLabel(pimpleDict.lookup("nAlphaCorr")));
-
-    bool cycleAlpha(Switch(pimpleDict.lookup("cycleAlpha")));
-
     scalar cAlpha(readScalar(pimpleDict.lookup("cAlpha")));
 
 
@@ -269,7 +266,7 @@ void Foam::multiphaseMixture::solve()
             !(++alphaSubCycle).end();
         )
         {
-            solveAlphas(nAlphaCorr, cycleAlpha, cAlpha);
+            solveAlphas(cAlpha);
             rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi_;
         }
 
@@ -277,7 +274,7 @@ void Foam::multiphaseMixture::solve()
     }
     else
     {
-        solveAlphas(nAlphaCorr, cycleAlpha, cAlpha);
+        solveAlphas(cAlpha);
     }
 }
 
@@ -337,7 +334,7 @@ void Foam::multiphaseMixture::correctContactAngle
 ) const
 {
     const volScalarField::GeometricBoundaryField& gbf
-        = refPhase_.boundaryField();
+        = alpha1.boundaryField();
 
     const fvBoundaryMesh& boundary = mesh_.boundary();
 
@@ -481,8 +478,6 @@ Foam::multiphaseMixture::nearInterface() const
 
 void Foam::multiphaseMixture::solveAlphas
 (
-    const label nAlphaCorr,
-    const bool cycleAlpha,
     const scalar cAlpha
 )
 {
@@ -490,91 +485,119 @@ void Foam::multiphaseMixture::solveAlphas
     nSolves++;
 
     word alphaScheme("div(phi,alpha)");
-    word alphacScheme("div(phirb,alpha)");
-
-    tmp<fv::convectionScheme<scalar> > mvConvection
-    (
-        fv::convectionScheme<scalar>::New
-        (
-            mesh_,
-            alphaTable_,
-            phi_,
-            mesh_.divScheme(alphaScheme)
-        )
-    );
+    word alpharScheme("div(phirb,alpha)");
 
     surfaceScalarField phic(mag(phi_/mesh_.magSf()));
     phic = min(cAlpha*phic, max(phic));
 
-    for (int gCorr=0; gCorr<nAlphaCorr; gCorr++)
+    PtrList<surfaceScalarField> phiAlphaCorrs(phases_.size());
+    int phasei = 0;
+
+    forAllIter(PtrDictionary<phase>, phases_, iter)
     {
-        phase* refPhasePtr = &refPhase_;
+        phase& alpha = iter();
 
-        if (cycleAlpha)
-        {
-            PtrDictionary<phase>::iterator refPhaseIter = phases_.begin();
-            for (label i=0; i<nSolves%phases_.size(); i++)
-            {
-                ++refPhaseIter;
-            }
-            refPhasePtr = &refPhaseIter();
-        }
-
-        phase& refPhase = *refPhasePtr;
-
-        volScalarField refPhaseNew(refPhase);
-        refPhaseNew == 1.0;
-
-        rhoPhi_ = phi_*refPhase.rho();
-
-        forAllIter(PtrDictionary<phase>, phases_, iter)
-        {
-            phase& alpha = iter();
-
-            if (&alpha == &refPhase) continue;
-
-            fvScalarMatrix alphaEqn
+        phiAlphaCorrs.set
+        (
+            phasei,
+            new surfaceScalarField
             (
-                fvm::ddt(alpha)
-              + mvConvection->fvmDiv(phi_, alpha)
-            );
-
-            forAllIter(PtrDictionary<phase>, phases_, iter2)
-            {
-                phase& alpha2 = iter2();
-
-                if (&alpha2 == &alpha) continue;
-
-                surfaceScalarField phir(phic*nHatf(alpha, alpha2));
-                surfaceScalarField phirb12
+                fvc::flux
                 (
-                    -fvc::flux(-phir, alpha2, alphacScheme)
-                );
+                    phi_,
+                    alpha,
+                    alphaScheme
+                )
+            )
+        );
 
-                alphaEqn += fvm::div(phirb12, alpha, alphacScheme);
-            }
+        surfaceScalarField& phiAlphaCorr = phiAlphaCorrs[phasei];
 
-            alphaEqn.solve(mesh_.solver("alpha"));
+        forAllIter(PtrDictionary<phase>, phases_, iter2)
+        {
+            phase& alpha2 = iter2();
 
-            rhoPhi_ += alphaEqn.flux()*(alpha.rho() - refPhase.rho());
+            if (&alpha2 == &alpha) continue;
 
-            Info<< alpha.name() << " volume fraction, min, max = "
-                << alpha.weightedAverage(mesh_.V()).value()
-                << ' ' << min(alpha).value()
-                << ' ' << max(alpha).value()
-                << endl;
+            surfaceScalarField phir(phic*nHatf(alpha, alpha2));
 
-            refPhaseNew == refPhaseNew - alpha;
+            phiAlphaCorr += fvc::flux
+            (
+                -fvc::flux(-phir, alpha2, alpharScheme),
+                alpha,
+                alpharScheme
+            );
         }
 
-        refPhase == refPhaseNew;
+        MULES::limit
+        (
+            geometricOneField(),
+            alpha,
+            phi_,
+            phiAlphaCorr,
+            zeroField(),
+            zeroField(),
+            1,
+            0,
+            3,
+            true
+        );
 
-        Info<< refPhase.name() << " volume fraction, min, max = "
-            << refPhase.weightedAverage(mesh_.V()).value()
-            << ' ' << min(refPhase).value()
-            << ' ' << max(refPhase).value()
-            << endl;
+        phasei++;
     }
+
+    MULES::limitSum(phiAlphaCorrs);
+
+    rhoPhi_ = dimensionedScalar("0", dimensionSet(1, 0, -1, 0, 0), 0);
+
+    volScalarField sumAlpha
+    (
+        IOobject
+        (
+            "sumAlpha",
+            mesh_.time().timeName(),
+            mesh_
+        ),
+        mesh_,
+        dimensionedScalar("sumAlpha", dimless, 0)
+    );
+
+    phasei = 0;
+
+    forAllIter(PtrDictionary<phase>, phases_, iter)
+    {
+        phase& alpha = iter();
+
+        surfaceScalarField& phiAlpha = phiAlphaCorrs[phasei];
+        phiAlpha += upwind<scalar>(mesh_, phi_).flux(alpha);
+
+        MULES::explicitSolve
+        (
+            geometricOneField(),
+            alpha,
+            phiAlpha,
+            zeroField(),
+            zeroField()
+        );
+
+        rhoPhi_ += phiAlpha*alpha.rho();
+
+        Info<< alpha.name() << " volume fraction, min, max = "
+            << alpha.weightedAverage(mesh_.V()).value()
+            << ' ' << min(alpha).value()
+            << ' ' << max(alpha).value()
+            << endl;
+
+        sumAlpha += alpha;
+
+        phasei++;
+    }
+
+    Info<< "Phase-sum volume fraction, min, max = "
+        << sumAlpha.weightedAverage(mesh_.V()).value()
+        << ' ' << min(sumAlpha).value()
+        << ' ' << max(sumAlpha).value()
+        << endl;
 
     calcAlphas();
 }

@@ -31,6 +31,8 @@ License
 #include "coupledPointPatchFields.H"
 #include "pointConstraint.H"
 
+#include "surfaceFields.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -75,11 +77,19 @@ void volPointInterpolation::calcBoundaryAddressing()
 
     const polyBoundaryMesh& pbm = mesh().boundaryMesh();
 
+    // Get precalculated volField only so we can use coupled() tests for
+    // cyclicAMI
+    const surfaceScalarField& magSf = mesh().magSf();
+
     forAll(pbm, patchI)
     {
         const polyPatch& pp = pbm[patchI];
 
-        if (!isA<emptyPolyPatch>(pp) && !pp.coupled())
+        if
+        (
+            !isA<emptyPolyPatch>(pp)
+         && !magSf.boundaryField()[patchI].coupled()
+        )
         {
             label bFaceI = pp.start()-mesh().nInternalFaces();
 
@@ -243,7 +253,7 @@ void volPointInterpolation::makeWeights()
     // Update addressing over all boundary faces
     calcBoundaryAddressing();
 
-    
+
     // Running sum of weights
     pointScalarField sumWeights
     (
@@ -299,7 +309,7 @@ void volPointInterpolation::makeWeights()
     // Normalise internal weights
     forAll(pointWeights_, pointI)
     {
-        scalarList& pw = pointWeights_[pointI];    
+        scalarList& pw = pointWeights_[pointI];
         // Note:pw only sized for !isPatchPoint
         forAll(pw, i)
         {

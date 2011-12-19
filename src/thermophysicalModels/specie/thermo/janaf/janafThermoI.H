@@ -120,6 +120,43 @@ inline Foam::scalar Foam::janafThermo<EquationOfState>::limit
 
 
 template<class EquationOfState>
+inline Foam::scalar Foam::janafThermo<EquationOfState>::Tlow() const
+{
+    return Tlow_;
+}
+
+
+template<class EquationOfState>
+inline Foam::scalar Foam::janafThermo<EquationOfState>::Thigh() const
+{
+    return Thigh_;
+}
+
+
+template<class EquationOfState>
+inline Foam::scalar Foam::janafThermo<EquationOfState>::Tcommon() const
+{
+    return Tcommon_;
+}
+
+
+template<class EquationOfState>
+inline const typename Foam::janafThermo<EquationOfState>::coeffArray&
+Foam::janafThermo<EquationOfState>::highCpCoeffs() const
+{
+    return highCpCoeffs_;
+}
+
+
+template<class EquationOfState>
+inline const typename Foam::janafThermo<EquationOfState>::coeffArray&
+Foam::janafThermo<EquationOfState>::lowCpCoeffs() const
+{
+    return lowCpCoeffs_;
+}
+
+
+template<class EquationOfState>
 inline Foam::scalar Foam::janafThermo<EquationOfState>::cp
 (
     const scalar T
@@ -204,7 +241,7 @@ inline void Foam::janafThermo<EquationOfState>::operator+=
     Tlow_ = max(Tlow_, jt.Tlow_);
     Thigh_ = min(Thigh_, jt.Thigh_);
 
-    if (notEqual(Tcommon_, jt.Tcommon_))
+    if (janafThermo<EquationOfState>::debug && notEqual(Tcommon_, jt.Tcommon_))
     {
         FatalErrorIn
         (
@@ -251,7 +288,7 @@ inline void Foam::janafThermo<EquationOfState>::operator-=
     Tlow_ = max(Tlow_, jt.Tlow_);
     Thigh_ = min(Thigh_, jt.Thigh_);
 
-    if (notEqual(Tcommon_, jt.Tcommon_))
+    if (janafThermo<EquationOfState>::debug && notEqual(Tcommon_, jt.Tcommon_))
     {
         FatalErrorIn
         (
@@ -316,7 +353,11 @@ inline Foam::janafThermo<EquationOfState> Foam::operator+
           + molr2*jt2.lowCpCoeffs_[coefLabel];
     }
 
-    if (notEqual(jt1.Tcommon_, jt2.Tcommon_))
+    if
+    (
+        janafThermo<EquationOfState>::debug
+     && notEqual(jt1.Tcommon_, jt2.Tcommon_)
+    )
     {
         FatalErrorIn
         (
@@ -374,7 +415,11 @@ inline Foam::janafThermo<EquationOfState> Foam::operator-
           - molr2*jt2.lowCpCoeffs_[coefLabel];
     }
 
-    if (notEqual(jt1.Tcommon_, jt2.Tcommon_))
+    if
+    (
+        janafThermo<EquationOfState>::debug
+     && notEqual(jt1.Tcommon_, jt2.Tcommon_)
+    )
     {
         FatalErrorIn
         (

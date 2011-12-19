@@ -340,6 +340,8 @@ evaluate()
      || Pstream::defaultCommsType == Pstream::nonBlocking
     )
     {
+        label nReq = Pstream::nRequests();
+
         forAll(*this, patchi)
         {
             this->operator[](patchi).initEvaluate(Pstream::defaultCommsType);
@@ -352,7 +354,7 @@ evaluate()
          && Pstream::defaultCommsType == Pstream::nonBlocking
         )
         {
-            Pstream::waitRequests();
+            Pstream::waitRequests(nReq);
         }
 
         forAll(*this, patchi)

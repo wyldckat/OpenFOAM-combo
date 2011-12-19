@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -32,13 +32,13 @@ boundaryField
     inletCentral
     {
         type            flowRateInletVelocity;
-        flowRate        0.00379;
+        flowRate        constant 0.00379;
         value           uniform (0 14.68 0);
     }
     inletSides
     {
         type            flowRateInletVelocity;
-        flowRate        0.00832;
+        flowRate        constant 0.00832;
         value           uniform (0 17.79 0);
     }
     outlet

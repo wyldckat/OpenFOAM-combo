@@ -27,7 +27,7 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
-#include "directMappedPatchBase.H"
+#include "mappedPatchBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -53,10 +53,6 @@ externalWallHeatFluxTemperatureFvPatchScalarField::operationModeNames;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
-
-
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -118,7 +114,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
         oldMode_ = fixedHeatFlux;
         q_ = scalarField("q", dict, p.size());
     }
-    else if(dict.found("h") && dict.found("Ta") && !dict.found("q"))
+    else if (dict.found("h") && dict.found("Ta") && !dict.found("q"))
     {
         oldMode_ = fixedHeatTransferCoeff;
         h_ = scalarField("h", dict, p.size());
@@ -203,13 +199,13 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
     }
 
     scalarField q(size(), 0.0);
-    scalarField KDelta = K(*this)*patch().deltaCoeffs();
+    scalarField KDelta(K(*this)*patch().deltaCoeffs());
 
     if (oldMode_ == fixedHeatFlux)
     {
         q = q_;
     }
-    else if(oldMode_ == fixedHeatTransferCoeff)
+    else if (oldMode_ == fixedHeatTransferCoeff)
     {
         q = (Ta_ - *this)*h_;
     }
@@ -265,16 +261,10 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::write
 {
     mixedFvPatchScalarField::write(os);
     temperatureCoupledBase::write(os);
-    if (oldMode_ == fixedHeatFlux)
-    {
-        q_.writeEntry("q", os);
-    }
-    else if(oldMode_ == fixedHeatTransferCoeff)
-    {
-        h_.writeEntry("h", os);
-        Ta_.writeEntry("Ta", os);
-        this->writeEntry("value", os);
-    }
+    q_.writeEntry("q", os);
+    h_.writeEntry("h", os);
+    Ta_.writeEntry("Ta", os);
+    this->writeEntry("value", os);
 }
 
 

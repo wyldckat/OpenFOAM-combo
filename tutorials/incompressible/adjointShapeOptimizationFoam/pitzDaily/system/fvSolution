@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -50,10 +50,16 @@ SIMPLE
 
 relaxationFactors
 {
-    "(p|pa)"        0.3;
-    "(U|Ua)"        0.7;
-    "(k|epsilon)"   0.7;
-    alpha           0.1;
+    fields
+    {
+        "(p|pa)"        0.3;
+        alpha           0.1;
+    }
+    equations
+    {
+        "(U|Ua)"        0.7;
+        "(k|epsilon)"   0.7;
+    }
 }
 
 

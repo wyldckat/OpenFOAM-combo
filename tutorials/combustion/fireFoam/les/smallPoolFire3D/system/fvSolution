@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -71,6 +71,7 @@ solvers
         nCellsInCoarsestLevel   10;
         agglomerator    faceAreaPair;
         mergeLevels     1;
+        maxIter         20;
     }
 
     G
@@ -93,8 +94,14 @@ PIMPLE
 
 relaxationFactors
 {
-    "(U|k).*"                   1;
-    "(C3H8|O2|H2O|CO2|hs).*"    0.9;
+    fields
+    {
+    }
+    equations
+    {
+        "(U|k).*"                   1;
+        "(CH4|O2|H2O|CO2|hs).*"    0.9;
+    }
 }
 
 // ************************************************************************* //

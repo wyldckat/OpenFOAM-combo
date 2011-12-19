@@ -25,8 +25,6 @@ License
 
 #include "reactingOneDim.H"
 #include "addToRunTimeSelectionTable.H"
-#include "directMappedPatchBase.H"
-#include "mapDistribute.H"
 #include "zeroGradientFvPatchFields.H"
 #include "surfaceInterpolate.H"
 #include "fvm.H"
@@ -683,8 +681,8 @@ void reactingOneDim::preEvolveRegion()
 
 void reactingOneDim::evolveRegion()
 {
-
     Info<< "\nEvolving pyrolysis in region: " << regionMesh().name() << endl;
+
     const scalarField mass0 = rho_*regionMesh().V();
 
     solidChemistry_->solve

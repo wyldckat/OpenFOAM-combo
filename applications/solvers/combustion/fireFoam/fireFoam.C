@@ -38,9 +38,8 @@ Description
 #include "pyrolysisModelCollection.H"
 #include "radiationModel.H"
 #include "SLGThermo.H"
-#include "hsCombustionThermo.H"
 #include "solidChemistryModel.H"
-#include "combustionModel.H"
+#include "psiCombustionModel.H"
 #include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -51,7 +50,6 @@ int main(int argc, char *argv[])
 
     #include "createTime.H"
     #include "createMesh.H"
-    #include "readChemistryProperties.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
     #include "createClouds.H"
@@ -93,13 +91,13 @@ int main(int argc, char *argv[])
             #include "rhoEqn.H"
 
             // --- PIMPLE loop
-            for (pimple.start(); pimple.loop(); pimple++)
+            while (pimple.loop())
             {
                 #include "UEqn.H"
                 #include "YhsEqn.H"
 
-                // --- PISO loop
-                for (int corr=1; corr<=pimple.nCorr(); corr++)
+                // --- Pressure corrector loop
+                while (pimple.correct())
                 {
                     #include "pEqn.H"
                 }

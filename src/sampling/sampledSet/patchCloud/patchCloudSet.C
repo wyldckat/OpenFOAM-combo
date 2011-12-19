@@ -31,7 +31,7 @@ License
 #include "Time.H"
 #include "meshTools.H"
 // For 'nearInfo' helper class only
-#include "directMappedPatchBase.H"
+#include "mappedPatchBase.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -115,12 +115,10 @@ void Foam::patchCloudSet::calcSamples
         3.0             // duplicity
     );
 
-    // Force calculation of face-diagonal decomposition
-    (void)mesh().tetBasePtIs();
 
 
     // All the info for nearest. Construct to miss
-    List<directMappedPatchBase::nearInfo> nearest(sampleCoords_.size());
+    List<mappedPatchBase::nearInfo> nearest(sampleCoords_.size());
 
     forAll(sampleCoords_, sampleI)
     {
@@ -161,7 +159,7 @@ void Foam::patchCloudSet::calcSamples
 
 
     // Find nearest.
-    Pstream::listCombineGather(nearest, directMappedPatchBase::nearestEqOp());
+    Pstream::listCombineGather(nearest, mappedPatchBase::nearestEqOp());
     Pstream::listCombineScatter(nearest);
 
 

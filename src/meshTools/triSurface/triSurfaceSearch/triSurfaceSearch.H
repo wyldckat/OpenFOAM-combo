@@ -128,6 +128,15 @@ public:
         //  - hitPoint() : coordinate of nearest point
         //  - index()    : surface triangle label
         pointIndexHit nearest(const point&, const vector& span) const;
+
+        //- Calculate all intersections from start to end
+        void findLineAll
+        (
+            const point& start,
+            const point& end,
+            List<pointIndexHit>&
+        ) const;
+
 };
 
 

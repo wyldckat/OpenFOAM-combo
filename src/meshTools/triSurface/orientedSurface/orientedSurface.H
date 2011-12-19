@@ -44,6 +44,7 @@ namespace Foam
 {
 
 // Forward declaration of classes
+class triSurfaceSearch;
 
 /*---------------------------------------------------------------------------*\
                            Class orientedSurface Declaration
@@ -111,10 +112,25 @@ class orientedSurface
             labelList& flipState
         );
 
+        //- Find a face on zoneI and count number of intersections to determine
+        //  orientation
+        static void findZoneSide
+        (
+            const triSurfaceSearch& surfSearches,
+            const labelList& faceZone,
+            const label zoneI,
+            const point& visiblePoint,
+            label& zoneFaceI,
+            bool& isOutside
+        );
+
         //- Given flipState reverse triangles of *this. Return true if
         //  anything flipped.
         static bool flipSurface(triSurface& s, const labelList& flipState);
 
+        //- Make surface surface has consistent orientation across connected
+        //  triangles.
+        static bool orientConsistent(triSurface& s);
 public:
 
     ClassName("orientedSurface");
@@ -127,7 +143,7 @@ public:
 
         //- Construct from triSurface and sample point which is either
         //  outside (orientOutside = true) or inside (orientOutside = false).
-        //  Uses linear search to find nearest.
+        //  Uses orient.
         orientedSurface
         (
             const triSurface&,
@@ -145,8 +161,21 @@ public:
         //- Flip faces such that normals are consistent with point:
         //  orientOutside=true : point outside surface
         //  orientOutside=false : point inside surface
+        //  Bases orientation on normal on nearest point (linear search) and
+        //  walks to rest. Surface needs to be manifold.
         static bool orient(triSurface&, const point&, const bool orientOutside);
 
+        //- Flip faces such that normals are consistent with point:
+        //  orientOutside=true : point outside surface
+        //  orientOutside=false : point inside surface
+        //  Uses intersection count to orient. Handles open surfaces.
+        static bool orient
+        (
+            triSurface& s,
+            const triSurfaceSearch& querySurf,
+            const point& samplePoint,
+            const bool orientOutside
+        );
 };
 
 

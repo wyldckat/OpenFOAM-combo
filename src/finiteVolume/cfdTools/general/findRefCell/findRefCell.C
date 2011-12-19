@@ -76,7 +76,17 @@ void Foam::setRefCell
         else if (dict.found(refPointName))
         {
             point refPointi(dict.lookup(refPointName));
-            refCelli = field.mesh().findCell(refPointi);
+
+            // Note: find reference cell using facePlanes to avoid constructing
+            //       face decomposition structure. Most likely the reference
+            //       cell is an undistorted one so this should not be a
+            //       problem.
+
+            refCelli = field.mesh().findCell
+            (
+                refPointi,
+                polyMesh::FACEPLANES
+            );
             label hasRef = (refCelli >= 0 ? 1 : 0);
             label sumHasRef = returnReduce<label>(hasRef, sumOp<label>());
             if (sumHasRef != 1)

@@ -137,7 +137,6 @@ public:
             bool readFields = true
         );
 
-
         //- Construct from mesh, region type and name and dict
         regionModel1D
         (
@@ -147,6 +146,7 @@ public:
             const dictionary& dict,
             bool readFields = true
         );
+
 
 
     //- Destructor

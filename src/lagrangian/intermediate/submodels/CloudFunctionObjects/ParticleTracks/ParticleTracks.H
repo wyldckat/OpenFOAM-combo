@@ -140,7 +140,11 @@ public:
             virtual void preEvolve();
 
             //- Post-face hook
-            virtual void postFace(const parcelType& p, const label faceI);
+            virtual void postFace
+            (
+                const parcelType& p,
+                const label faceI
+            );
 };
 
 

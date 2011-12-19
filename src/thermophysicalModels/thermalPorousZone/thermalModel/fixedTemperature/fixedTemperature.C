@@ -94,7 +94,8 @@ void Foam::porousMedia::fixedTemperature::addEnthalpySource
         forAll(cells, i)
         {
             hDiag[cells[i]] += rate*V[cells[i]]*rho[cells[i]];
-            hSource[cells[i]] += rate*V[cells[i]]*rho[cells[i]]*Cp()[cells[i]]*T_;
+            hSource[cells[i]] +=
+                rate*V[cells[i]]*rho[cells[i]]*Cp()[cells[i]]*T_;
         }
     }
 }

@@ -206,9 +206,9 @@ case ThirdParty:
     case Gcc46:
     case Gcc46++0x:
         set gcc_version=gcc-4.6.1
-        set gmp_version=gmp-5.0.1
-        set mpfr_version=mpfr-2.4.2
-        set mpc_version=mpc-0.8.1
+        set gmp_version=gmp-5.0.2
+        set mpfr_version=mpfr-3.0.1
+        set mpc_version=mpc-0.9
         breaksw
     case Gcc45:
     case Gcc45++0x:
@@ -345,6 +345,12 @@ setenv BOOST_ARCH_PATH $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$boost
 setenv CGAL_ARCH_PATH  $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$cgal_version
 
 # enabled if CGAL is available
+if ($?FOAM_VERBOSE && $?prompt) then
+    echo "Checking for"
+    echo "    $cgal_version at $CGAL_ARCH_PATH"
+    echo "    $boost_version at $BOOST_ARCH_PATH"
+endif
+
 if ( -d "$CGAL_ARCH_PATH" ) then
     if ( -d "$BOOST_ARCH_PATH" ) then
         _foamAddLib $BOOST_ARCH_PATH/lib
@@ -504,6 +510,36 @@ case SGIMPI:
 
     _foamAddPath    $MPI_ARCH_PATH/bin
     _foamAddLib     $MPI_ARCH_PATH/lib
+    breaksw
+
+case INTELMPI:
+    if ( ! $?MPI_ROOT) setenv MPI_ROOT /dummy
+
+    if ( ! -d "$MPI_ROOT" ) then
+        echo "Warning in $WM_PROJECT_DIR/etc/config/settings.csh:"
+        echo "    MPI_ROOT not a valid mpt installation directory."
+        echo "    Please set MPI_ROOT to the mpt installation directory."
+        echo "    (usually done by loading the mpt module)"
+        echo "    MPI_ROOT currently set to '$MPI_ROOT'"
+    endif
+
+    if ( "${MPI_ROOT:h}/" == $MPI_ROOT ) then
+        setenv MPI_ROOT ${MPI_ROOT:h}
+    endif
+
+    setenv FOAM_MPI ${MPI_ROOT:t}
+    setenv MPI_ARCH_PATH $MPI_ROOT
+
+
+    if ($?FOAM_VERBOSE && $?prompt) then
+        echo "Using INTEL MPT:"
+        echo "    MPI_ROOT : $MPI_ROOT"
+        echo "    FOAM_MPI : $FOAM_MPI"
+    endif
+
+
+    _foamAddPath    $MPI_ARCH_PATH/bin64
+    _foamAddLib     $MPI_ARCH_PATH/lib64
     breaksw
 
 default:

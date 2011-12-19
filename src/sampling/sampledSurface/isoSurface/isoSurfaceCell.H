@@ -27,7 +27,7 @@ Class
 Description
     A surface formed by the iso value.
     After "Polygonising A Scalar Field Using Tetrahedrons", Paul Bourke
-    and
+    (http://paulbourke.net/geometry/polygonise) and
     "Regularised Marching Tetrahedra: improved iso-surface extraction",
     G.M. Treece, R.W. Prager and A.H. Gee.
 
@@ -116,7 +116,12 @@ class isoSurfaceCell
             const scalar s1
         ) const;
 
-        //List<triFace> triangulate(const face& f) const;
+        //- Does any edge of triangle cross iso value?
+        bool isTriCut
+        (
+            const triFace& tri,
+            const scalarField& pointValues
+        ) const;
 
         //- Determine whether cell is cut
         cellCutType calcCutType
@@ -142,11 +147,12 @@ class isoSurfaceCell
 
         static point calcCentre(const triSurface&);
 
-        static pointIndexHit collapseSurface
+        pointIndexHit collapseSurface
         (
+            const label cellI,
             pointField& localPoints,
             DynamicList<labelledTri, 64>& localTris
-        );
+        ) const;
 
         //- Determine per cc whether all near cuts can be snapped to single
         //  point.
@@ -165,7 +171,7 @@ class isoSurfaceCell
             const scalarField& cellValues,
             const scalarField& pointValues,
             const label pointI,
-            const face& f,
+            const label faceI,
             const label cellI,
             DynamicList<point, 64>& localTriPoints
         ) const;
@@ -175,6 +181,7 @@ class isoSurfaceCell
         (
             const scalarField& pointValues,
             const label pointI,
+            const label faceI,
             const label cellI,
             DynamicList<point, 64>& localTriPoints
         ) const;
@@ -183,7 +190,6 @@ class isoSurfaceCell
         //  point.
         void calcSnappedPoint
         (
-            const PackedBoolList& isBoundaryPoint,
             const PackedBoolList& isTet,
             const scalarField& cVals,
             const scalarField& pVals,
@@ -208,15 +214,19 @@ class isoSurfaceCell
         void generateTriPoints
         (
             const DynamicList<Type>& snapped,
+            const scalar isoVal0,
             const scalar s0,
             const Type& p0,
             const label p0Index,
+            const scalar isoVal1,
             const scalar s1,
             const Type& p1,
             const label p1Index,
+            const scalar isoVal2,
             const scalar s2,
             const Type& p2,
             const label p2Index,
+            const scalar isoVal3,
             const scalar s3,
             const Type& p3,
             const label p3Index,
@@ -261,26 +271,26 @@ class isoSurfaceCell
             Map<labelList>& edgeFacesRest
         ) const;
 
-        //- Determine orientation
-        static void walkOrientation
-        (
-            const triSurface& surf,
-            const List<FixedList<label, 3> >& faceEdges,
-            const labelList& edgeFace0,
-            const labelList& edgeFace1,
-            const label seedTriI,
-            labelList& flipState
-        );
+        ////- Determine orientation
+        //static void walkOrientation
+        //(
+        //    const triSurface& surf,
+        //    const List<FixedList<label, 3> >& faceEdges,
+        //    const labelList& edgeFace0,
+        //    const labelList& edgeFace1,
+        //    const label seedTriI,
+        //    labelList& flipState
+        //);
 
-        //- Orient surface
-        static void orientSurface
-        (
-            triSurface&,
-            const List<FixedList<label, 3> >& faceEdges,
-            const labelList& edgeFace0,
-            const labelList& edgeFace1,
-            const Map<labelList>& edgeFacesRest
-        );
+        ////- Orient surface
+        //static void orientSurface
+        //(
+        //    triSurface&,
+        //    const List<FixedList<label, 3> >& faceEdges,
+        //    const labelList& edgeFace0,
+        //    const labelList& edgeFace1,
+        //    const Map<labelList>& edgeFacesRest
+        //);
 
         //- Is triangle (given by 3 edges) not fully connected?
         static bool danglingTriangle

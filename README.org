@@ -1,8 +1,8 @@
 #                            -*- mode: org; -*-
 #
-#+TITLE:     OpenFOAM README for version 2.0.x
+#+TITLE:             OpenFOAM README for version 2.1.0
 #+AUTHOR:               The OpenFOAM Foundation
-#+DATE:                     15th August 2011
+#+DATE:                     19th December 2011
 #+LINK:                  http://www.openfoam.org
 #+OPTIONS: author:nil ^:{}
 # Copyright (c) 2011 OpenFOAM Foundation.
@@ -13,7 +13,7 @@
   most areas of engineering and science, from both commercial and academic
   organisations. OpenFOAM has an extensive range of features to solve anything
   from complex fluid flows involving chemical reactions, turbulence and heat
-  transfer, to solid dynamics and electromagnetics.
+  transfer, to solid dynamics and electro-magnetics.
 
 * Copyright
   OpenFOAM is free software: you can redistribute it and/or modify it under the
@@ -28,7 +28,7 @@
     [[http://www.OpenFOAM.org/git.php]]
 
 * Release notes
-  [[http://www.OpenFOAM.com/version2.0.0]]
+  [[http://www.OpenFOAM.com/version2.1.0]]
 
 * Documentation
   [[http://www.OpenFOAM.com/docs]]

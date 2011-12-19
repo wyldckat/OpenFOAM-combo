@@ -38,6 +38,7 @@ SourceFiles
 
 #include "pointIndexHit.H"
 #include "pointField.H"
+#include "polyMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,8 +46,7 @@ namespace Foam
 {
 
 // Forward declaration of classes
-class polyMesh;
-class treeDataPolyMeshCell;
+class treeDataCell;
 class treeDataFace;
 template<class Type> class indexedOctree;
 class treeBoundBox;
@@ -62,15 +62,15 @@ class meshSearch
         //- Reference to mesh
         const polyMesh& mesh_;
 
-        //- Whether to use face decomposition for all geometric tests
-        const bool faceDecomp_;
+        //- Whether to use cell decomposition for all geometric tests
+        const polyMesh::cellRepresentation cellDecompMode_;
 
         //- data bounding box
         mutable autoPtr<treeBoundBox> overallBbPtr_;
 
         //- demand driven octrees
         mutable autoPtr<indexedOctree<treeDataFace> > boundaryTreePtr_;
-        mutable autoPtr<indexedOctree<treeDataPolyMeshCell> > cellTreePtr_;
+        mutable autoPtr<indexedOctree<treeDataCell> > cellTreePtr_;
 
 
     // Private Member Functions
@@ -168,7 +168,11 @@ public:
 
         //- Construct from components. Constructs bb slightly bigger than
         //  mesh points bb.
-        meshSearch(const polyMesh& mesh, const bool faceDecomp = true);
+        meshSearch
+        (
+            const polyMesh& mesh,
+            const polyMesh::cellRepresentation = polyMesh::FACEDIAGTETS
+        );
 
         //- Construct with a custom bounding box. Any mesh element outside
         //  bb will not be found. Up to user to make sure bb
@@ -177,7 +181,7 @@ public:
         (
             const polyMesh& mesh,
             const treeBoundBox& bb,
-            const bool faceDecomp = true
+            const polyMesh::cellRepresentation = polyMesh::FACEDIAGTETS
         );
 
     //- Destructor
@@ -193,19 +197,20 @@ public:
                 return mesh_;
             }
 
+            polyMesh::cellRepresentation decompMode() const
+            {
+                return cellDecompMode_;
+            }
+
             //- Get (demand driven) reference to octree holding all
             //  boundary faces
             const indexedOctree<treeDataFace>& boundaryTree() const;
 
             //- Get (demand driven) reference to octree holding all cells
-            const indexedOctree<treeDataPolyMeshCell>& cellTree() const;
+            const indexedOctree<treeDataCell>& cellTree() const;
 
 
         // Queries
-
-            //- test for point in cell. Does not handle cells with center
-            //  outside cell.
-            bool pointInCell(const point& p, const label celli) const;
 
             //- Find nearest cell in terms of cell centre.
             //  Options:
@@ -227,7 +232,7 @@ public:
                 const bool useTreeSearch = true
             ) const;
 
-            //- Find cell containing (using pointInCell) location.
+            //- Find cell containing location.
             //  If seed provided walks and falls back to linear/tree search.
             //  (so handles holes correctly)s
             //  Returns -1 if not in domain.

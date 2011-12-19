@@ -26,7 +26,7 @@ License
 #include "SurfaceFilmModel.H"
 #include "surfaceFilmModel.H"
 #include "mathematicalConstants.H"
-#include "directMappedWallPolyPatch.H"
+#include "mappedPatchBase.H"
 
 using namespace Foam::constant;
 
@@ -114,8 +114,8 @@ bool Foam::SurfaceFilmModel<CloudType>::transferParcel
         "bool Foam::SurfaceFilmModel<CloudType>::transferParcel"
         "("
             "parcelType&, "
-            "const label, "
-            "const bool&"
+            "const polyPatch&, "
+            "bool&"
         ")"
     );
 
@@ -156,13 +156,9 @@ void Foam::SurfaceFilmModel<CloudType>::inject(TrackData& td)
         const label filmPatchI = filmPatches[i];
         const label primaryPatchI = primaryPatches[i];
 
-        const directMappedPatchBase& mapPatch =
-            filmModel.mappedPatches()[filmPatchI];
-        const mapDistribute& distMap = mapPatch.map();
-
         const labelList& injectorCellsPatch = pbm[primaryPatchI].faceCells();
 
-        cacheFilmFields(filmPatchI, primaryPatchI, distMap, filmModel);
+        cacheFilmFields(filmPatchI, primaryPatchI, filmModel);
 
         const vectorField& Cf = mesh.C().boundaryField()[primaryPatchI];
         const vectorField& Sf = mesh.Sf().boundaryField()[primaryPatchI];
@@ -174,13 +170,11 @@ void Foam::SurfaceFilmModel<CloudType>::inject(TrackData& td)
             {
                 const label cellI = injectorCellsPatch[j];
 
-                // The position is at the cell centre, which could be
-                // in any tet of the decomposed cell, so arbitrarily
-                // choose the first face of the cell as the tetFace
-                // and the first point on the face after the base
-                // point as the tetPt.  The tracking will
-                // pick the cell consistent with the motion in the
-                // first tracking step.
+                // The position could bein any tet of the decomposed cell,
+                // so arbitrarily choose the first face of the cell as the
+                // tetFace and the first point on the face after the base
+                // point as the tetPt.  The tracking will pick the cell
+                // consistent with the motion in the first tracking step.
                 const label tetFaceI = this->owner().mesh().cells()[cellI][0];
                 const label tetPtI = 1;
 
@@ -210,14 +204,22 @@ void Foam::SurfaceFilmModel<CloudType>::inject(TrackData& td)
 
                 setParcelProperties(*pPtr, j);
 
-                // Check new parcel properties
-//                td.cloud().checkParcelProperties(*pPtr, 0.0, true);
-                td.cloud().checkParcelProperties(*pPtr, 0.0, false);
+                if (pPtr->nParticle() > 0.001)
+                {
+                    // Check new parcel properties
+    //                td.cloud().checkParcelProperties(*pPtr, 0.0, true);
+                    td.cloud().checkParcelProperties(*pPtr, 0.0, false);
 
-                // Add the new parcel to the cloud
-                td.cloud().addParticle(pPtr);
+                    // Add the new parcel to the cloud
+                    td.cloud().addParticle(pPtr);
 
-                nParcelsInjected_++;
+                    nParcelsInjected_++;
+                }
+                else
+                {
+                    // TODO: cache mass and re-distribute?
+                    delete pPtr;
+                }
             }
         }
     }
@@ -229,26 +231,25 @@ void Foam::SurfaceFilmModel<CloudType>::cacheFilmFields
 (
     const label filmPatchI,
     const label primaryPatchI,
-    const mapDistribute& distMap,
     const regionModels::surfaceFilmModels::surfaceFilmModel& filmModel
 )
 {
     massParcelPatch_ = filmModel.cloudMassTrans().boundaryField()[filmPatchI];
-    distMap.distribute(massParcelPatch_);
+    filmModel.toPrimary(filmPatchI, massParcelPatch_);
 
     diameterParcelPatch_ =
         filmModel.cloudDiameterTrans().boundaryField()[filmPatchI];
-    distMap.distribute(diameterParcelPatch_);
+    filmModel.toPrimary(filmPatchI, diameterParcelPatch_, maxOp<scalar>());
 
     UFilmPatch_ = filmModel.Us().boundaryField()[filmPatchI];
-    distMap.distribute(UFilmPatch_);
+    filmModel.toPrimary(filmPatchI, UFilmPatch_);
 
     rhoFilmPatch_ = filmModel.rho().boundaryField()[filmPatchI];
-    distMap.distribute(rhoFilmPatch_);
+    filmModel.toPrimary(filmPatchI, rhoFilmPatch_);
 
     deltaFilmPatch_[primaryPatchI] =
         filmModel.delta().boundaryField()[filmPatchI];
-    distMap.distribute(deltaFilmPatch_[primaryPatchI]);
+    filmModel.toPrimary(filmPatchI, deltaFilmPatch_[primaryPatchI]);
 }
 
 

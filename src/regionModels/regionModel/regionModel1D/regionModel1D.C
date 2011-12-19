@@ -163,7 +163,7 @@ bool Foam::regionModels::regionModel1D::read(const dictionary& dict)
 {
     if (regionModel::read(dict))
     {
-        moveMesh_.readIfPresent("moveMesh", coeffs_);
+        moveMesh_.readIfPresent("moveMesh", dict);
 
         return true;
     }
@@ -344,7 +344,6 @@ Foam::regionModels::regionModel1D::regionModel1D
         }
     }
 }
-
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 

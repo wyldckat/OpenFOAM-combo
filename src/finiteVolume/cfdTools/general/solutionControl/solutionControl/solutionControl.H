@@ -40,7 +40,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                  Class solutionControl Declaration
+                       Class solutionControl Declaration
 \*---------------------------------------------------------------------------*/
 
 class solutionControl
@@ -78,20 +78,40 @@ protected:
             //- Flag to indicate to solve for momentum
             bool momentumPredictor_;
 
-            //- Flag to indictae to solve using transonic algorithm
+            //- Flag to indicate to solve using transonic algorithm
             bool transonic_;
+
+
+        // Evolution
+
+            //- Current corrector loop index
+            label corr_;
+
+            //- Current non-orthogonal corrector loop index
+            label corrNonOrtho_;
 
 
     // Protected Member Functions
 
-        //- Read constrols from fvSolution dictionary
+        //- Read controls from fvSolution dictionary
         virtual void read(const bool absTolOnly);
 
         //- Return index of field in residualControl_ if present
-        virtual label applyToField(const word& fieldName) const;
+        virtual label applyToField
+        (
+            const word& fieldName,
+            const bool useRegEx = true
+        ) const;
 
-        //- Return true if all convergence checks are satified
+        //- Return true if all convergence checks are satisfied
         virtual bool criteriaSatisfied() = 0;
+
+        //- Store previous iteration fields
+        virtual void storePrevIterFields() const;
+
+        //- Store previous iteration field for vol<Type>Fields
+        template<class Type>
+        void storePrevIter() const;
 
         //- Disallow default bitwise copy construct
         solutionControl(const solutionControl&);
@@ -126,23 +146,47 @@ public:
             //- Return the solution dictionary
             inline const dictionary& dict() const;
 
+            //- Current corrector loop index
+            inline label corr() const;
+
+            //- Current non-orthogonal corrector index
+            inline label corrNonOrtho() const;
+
 
         // Solution control
 
             //- Maximum number of non-orthogonal correctors
             inline label nNonOrthCorr() const;
 
+            //- Helper function to identify final non-orthogonal iteration
+            inline bool finalNonOrthogonalIter() const;
+
             //- Flag to indicate to solve for momentum
             inline bool momentumPredictor() const;
 
-            //- Flag to indictae to solve using transonic algorithm
+            //- Flag to indicate to solve using transonic algorithm
             inline bool transonic() const;
+
+
+        // Evolution
+
+            //- Main control loop
+            virtual bool loop() = 0;
+
+            //- Non-orthogonal corrector loop
+            inline bool correctNonOrthogonal();
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "solutionControlTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

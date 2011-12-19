@@ -24,6 +24,32 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "basicSourceList.H"
+#include "addToRunTimeSelectionTable.H"
+#include "fvMesh.H"
+#include "Time.H"
+
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+namespace Foam
+{
+    defineTypeNameAndDebug(basicSourceList, 0);
+}
+
+
+// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
+
+void Foam::basicSourceList::checkApplied() const
+{
+    if (mesh_.time().timeIndex() == checkTimeIndex_)
+    {
+        forAll(*this, i)
+        {
+            const basicSource& bs = this->operator[](i);
+            bs.checkApplied();
+        }
+    }
+}
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -34,7 +60,8 @@ Foam::basicSourceList::basicSourceList
 )
 :
     PtrList<basicSource>(),
-    mesh_(mesh)
+    mesh_(mesh),
+    checkTimeIndex_(mesh_.time().startTimeIndex() + 2)
 {
     label count = 0;
     forAllConstIter(dictionary, dict, iter)
@@ -50,65 +77,32 @@ Foam::basicSourceList::basicSourceList
     label i = 0;
     forAllConstIter(dictionary, dict, iter)
     {
-        const word& name = iter().keyword();
-        const dictionary& dict = iter().dict();
+        if (iter().isDict())
+        {
+            const word& name = iter().keyword();
+            const dictionary& sourceDict = iter().dict();
 
-        this->set
-        (
-            i++,
-            basicSource::New(name, dict, mesh)
-        );
+            this->set
+            (
+                i++,
+                basicSource::New(name, sourceDict, mesh)
+            );
+        }
     }
 }
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-
-void Foam::basicSourceList::addSu(fvMatrix<scalar>& Eqn)
-{
-    forAll(*this, i)
-    {
-        if (this->operator[](i).isActive())
-        {
-            this->operator[](i).addSu(Eqn);
-        }
-    }
-}
-
-
-void Foam::basicSourceList::addSu(fvMatrix<vector>& Eqn)
-{
-
-    forAll(*this, i)
-    {
-        if (this->operator[](i).isActive())
-        {
-            this->operator[](i).addSu(Eqn);
-        }
-    }
-}
-
-
-void Foam::basicSourceList::setValue(fvMatrix<scalar>& Eqn)
-{
-
-    forAll(*this, i)
-    {
-        if (this->operator[](i).isActive())
-        {
-            this->operator[](i).setValue(Eqn);
-        }
-    }
-}
-
-
 bool Foam::basicSourceList::read(const dictionary& dict)
 {
+    checkTimeIndex_ = mesh_.time().timeIndex() + 2;
+
     bool allOk = true;
     forAll(*this, i)
     {
-        bool ok = this->operator[](i).read(dict);
+        basicSource& bs = this->operator[](i);
+        bool ok = bs.read(dict.subDict(bs.name()));
         allOk = (allOk && ok);
     }
     return allOk;
@@ -117,21 +111,12 @@ bool Foam::basicSourceList::read(const dictionary& dict)
 
 bool Foam::basicSourceList::writeData(Ostream& os) const
 {
-    // Write size of list
-    os << nl << this->size();
-
-    // Write beginning of contents
-    os << nl << token::BEGIN_LIST;
-
     // Write list contents
     forAll(*this, i)
     {
-        os << nl;
+        os  << nl;
         this->operator[](i).writeData(os);
     }
-
-    // Write end of contents
-    os << token::END_LIST << token::END_STATEMENT << nl;
 
     // Check state of IOstream
     return os.good();

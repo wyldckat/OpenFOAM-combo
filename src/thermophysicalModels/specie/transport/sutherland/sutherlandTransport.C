@@ -71,7 +71,8 @@ void Foam::sutherlandTransport<Thermo>::write(Ostream& os) const
 template<class Thermo>
 Foam::Ostream& Foam::operator<<
 (
-    Ostream& os, const sutherlandTransport<Thermo>& st
+    Ostream& os,
+    const sutherlandTransport<Thermo>& st
 )
 {
     os << static_cast<const Thermo&>(st) << tab << st.As_ << tab << st.Ts_;

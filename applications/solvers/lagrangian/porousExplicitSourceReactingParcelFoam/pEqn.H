@@ -29,10 +29,11 @@
       + fvc::div(phi)
      ==
         parcels.Srho()
-      + massSource.SuTot()
+      + sources(psi, p, rho.name())
     );
 
-    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+
+    while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -40,12 +41,11 @@
           - fvm::laplacian(rho*rAU, p)
         );
 
-        pEqn.solve
-        (
-            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
-        );
+        sources.constrain(pDDtEqn, rho.name());
 
-        if (nonOrth == pimple.nNonOrthCorr())
+        pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
+
+        if (pimple.finalNonOrthogonalIter())
         {
             phi += pEqn.flux();
         }
@@ -59,4 +59,7 @@
 
     U -= rAU*fvc::grad(p);
     U.correctBoundaryConditions();
+    K = 0.5*magSqr(U);
+
+    dpdt = fvc::ddt(p);
 }

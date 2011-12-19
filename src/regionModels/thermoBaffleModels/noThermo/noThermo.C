@@ -40,7 +40,6 @@ namespace thermoBaffleModels
 
 defineTypeNameAndDebug(noThermo, 0);
 addToRunTimeSelectionTable(thermoBaffleModel, noThermo, mesh);
-addToRunTimeSelectionTable(thermoBaffleModel, noThermo, dictionary);
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
@@ -56,18 +55,6 @@ noThermo::noThermo(const word& modelType, const fvMesh& mesh)
 :
     thermoBaffleModel(mesh)
 {}
-
-
-noThermo::noThermo
-(
-    const word& modelType,
-    const fvMesh& mesh,
-    const dictionary& dict
-)
-:
-    thermoBaffleModel(mesh)
-{}
-
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 

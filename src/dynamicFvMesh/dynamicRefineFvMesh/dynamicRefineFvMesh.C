@@ -240,8 +240,10 @@ Foam::dynamicRefineFvMesh::refine
         }
     }
 
+
     // Update fields
     updateMesh(map);
+
     // Move mesh
     /*
     pointField newPoints;
@@ -331,7 +333,6 @@ Foam::dynamicRefineFvMesh::refine
             }
 
             surfaceScalarField& phi = const_cast<surfaceScalarField&>(*iter());
-
             const surfaceScalarField phiU
             (
                 fvc::interpolate
@@ -359,9 +360,11 @@ Foam::dynamicRefineFvMesh::refine
             }
 
             // Recalculate new boundary faces.
-            forAll(phi.boundaryField(), patchI)
+            surfaceScalarField::GeometricBoundaryField& bphi =
+                phi.boundaryField();
+            forAll(bphi, patchI)
             {
-                fvsPatchScalarField& patchPhi = phi.boundaryField()[patchI];
+                fvsPatchScalarField& patchPhi = bphi[patchI];
                 const fvsPatchScalarField& patchPhiU =
                     phiU.boundaryField()[patchI];
 
@@ -403,17 +406,15 @@ Foam::dynamicRefineFvMesh::refine
                     const fvsPatchScalarField& patchPhiU =
                         phiU.boundaryField()[patchI];
 
-                    fvsPatchScalarField& patchPhi =
-                        phi.boundaryField()[patchI];
+                    fvsPatchScalarField& patchPhi = bphi[patchI];
 
-                    if (patchPhi.size() > 0)
-                    {
-                        patchPhi[i] = patchPhiU[i];
-                    }
+                    patchPhi[i] = patchPhiU[i];
                 }
             }
         }
     }
+
+
 
     // Update numbering of cells/vertices.
     meshCutter_.updateMesh(map);
@@ -549,6 +550,9 @@ Foam::dynamicRefineFvMesh::unrefine
             }
 
             surfaceScalarField& phi = const_cast<surfaceScalarField&>(*iter());
+            surfaceScalarField::GeometricBoundaryField& bphi =
+                phi.boundaryField();
+
             const surfaceScalarField phiU
             (
                 fvc::interpolate
@@ -582,10 +586,7 @@ Foam::dynamicRefineFvMesh::unrefine
 
                             const fvsPatchScalarField& patchPhiU =
                                 phiU.boundaryField()[patchI];
-
-                            fvsPatchScalarField& patchPhi =
-                                phi.boundaryField()[patchI];
-
+                            fvsPatchScalarField& patchPhi = bphi[patchI];
                             patchPhi[i] = patchPhiU[i];
                         }
                     }

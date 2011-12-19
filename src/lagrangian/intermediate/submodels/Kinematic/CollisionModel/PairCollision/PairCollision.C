@@ -59,11 +59,13 @@ void Foam::PairCollision<CloudType>::parcelInteraction()
 {
     PstreamBuffers pBufs(Pstream::nonBlocking);
 
+    label startOfRequests = Pstream::nRequests();
+
     il_.sendReferredData(this->owner().cellOccupancy(), pBufs);
 
     realRealInteraction();
 
-    il_.receiveReferredData(pBufs);
+    il_.receiveReferredData(pBufs, startOfRequests);
 
     realReferredInteraction();
 }
@@ -126,7 +128,7 @@ void Foam::PairCollision<CloudType>::realReferredInteraction()
     const labelListList& ril = il_.ril();
 
     List<IDLList<typename CloudType::parcelType> >& referredParticles =
-    il_.referredParticles();
+        il_.referredParticles();
 
     List<DynamicList<typename CloudType::parcelType*> >& cellOccupancy =
         this->owner().cellOccupancy();
@@ -177,7 +179,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
 
     const labelListList& dil = il_.dil();
 
-    const labelListList directWallFaces = il_.dwfil();
+    const labelListList& directWallFaces = il_.dwfil();
 
     const labelList& patchID = mesh.boundaryMesh().patchID();
 
@@ -283,7 +285,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
                             );
 
                             flatSiteData.append(wSD);
-
+ 
                             particleHit = true;
                         }
                     }
@@ -307,7 +309,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
                             patchI,
                             patchFaceI
                         );
-                    }
+                     }
                 }
             }
 
@@ -315,8 +317,6 @@ void Foam::PairCollision<CloudType>::wallInteraction()
 
             // The labels of referred wall faces in range of this real cell
             const labelList& cellRefWallFaces = il_.rwfilInverse()[realCellI];
-
-            
 
             forAll(cellRefWallFaces, rWFI)
             {
@@ -375,7 +375,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
 
                             flatSiteData.append(wSD);
 
-                            particleHit = true;
+                            particleHit = false;
                         }
                     }
                     else
@@ -386,7 +386,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
 
                         otherSiteData.append(wSD);
 
-                        particleHit = true;
+                        particleHit = false;
                     }
 
                     if (particleHit)

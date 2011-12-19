@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
     const polyPatch& patch = patches[patchName];
 
-    // Data on all edges and faces    
+    // Data on all edges and faces
     List<patchEdgeFaceInfo> allEdgeInfo(patch.nEdges());
     List<patchEdgeFaceInfo> allFaceInfo(patch.size());
 

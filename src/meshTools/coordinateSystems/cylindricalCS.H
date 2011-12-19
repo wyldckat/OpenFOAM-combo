@@ -77,8 +77,6 @@ protected:
         //  with optional translation for the origin
         virtual vector globalToLocal(const vector&, bool translate) const;
 
-
-public:
         //- Convert from global Cartesian system to the local coordinate system
         //  with optional translation for the origin
         virtual tmp<vectorField> globalToLocal
@@ -87,6 +85,8 @@ public:
             bool translate
         ) const;
 
+
+public:
 
     //- Runtime type information
     TypeName("cylindrical");

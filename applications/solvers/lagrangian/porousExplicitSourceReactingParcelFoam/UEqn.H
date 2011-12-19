@@ -7,13 +7,18 @@
      ==
         rho.dimensionedInternalField()*g
       + parcels.SU(U)
-      + momentumSource.Su()
+      + sources(rho, U)
     );
+
+    UEqn.relax();
+
+    sources.constrain(UEqn);
 
     pZones.addResistance(UEqn);
 
     if (pimple.momentumPredictor())
     {
         solve(UEqn == -fvc::grad(p));
+        K = 0.5*magSqr(U);
     }
 

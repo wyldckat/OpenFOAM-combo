@@ -94,7 +94,7 @@ public:
 
     // Constructors
 
-        polynomial(const word& entryName, Istream& is);
+        polynomial(const word& entryName, const dictionary& dict);
 
         //- Copy constructor
         polynomial(const polynomial& poly);
@@ -119,8 +119,17 @@ public:
         scalar integrate(const scalar x1, const scalar x2) const;
 
 
-    //- Ostream Operator
-    friend Ostream& operator<<(Ostream&, const polynomial&);
+    // I/O
+
+        //- Ostream Operator
+        friend Ostream& operator<<
+        (
+            Ostream& os,
+            const polynomial& cnst
+        );
+
+        //- Write in dictionary format
+        virtual void writeData(Ostream& os) const;
 };
 
 

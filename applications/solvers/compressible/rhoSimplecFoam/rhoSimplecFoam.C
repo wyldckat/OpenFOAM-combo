@@ -44,10 +44,11 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
-    #include "createFields.H"
-    #include "initContinuityErrs.H"
 
     simpleControl simple(mesh);
+
+    #include "createFields.H"
+    #include "initContinuityErrs.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,14 +57,6 @@ int main(int argc, char *argv[])
     while (simple.loop())
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
-
-        p.storePrevIter();
-        rho.storePrevIter();
-
-        if (!simple.transonic())
-        {
-            rho.storePrevIter();
-        }
 
         // Velocity-pressure-enthalpy SIMPLEC corrector
         {

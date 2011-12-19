@@ -29,7 +29,7 @@ License
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "addToRunTimeSelectionTable.H"
-#include "directMappedWallPolyPatch.H"
+#include "mappedWallPolyPatch.H"
 #include "mapDistribute.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -158,11 +158,9 @@ void alphatFilmWallFunctionFvPatchScalarField::updateCoeffs()
 
     const label filmPatchI = filmModel.regionPatchID(patchI);
 
-    const mapDistribute& distMap = filmModel.mappedPatches()[filmPatchI].map();
-
     tmp<volScalarField> mDotFilm(filmModel.primaryMassTrans());
     scalarField mDotFilmp = mDotFilm().boundaryField()[filmPatchI];
-    distMap.distribute(mDotFilmp);
+    filmModel.toPrimary(filmPatchI, mDotFilmp);
 
     // Retrieve RAS turbulence model
     const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");

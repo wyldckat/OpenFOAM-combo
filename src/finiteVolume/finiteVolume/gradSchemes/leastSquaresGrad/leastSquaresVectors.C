@@ -121,7 +121,9 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
     }
 
 
-    forAll(lsP.boundaryField(), patchi)
+    surfaceVectorField::GeometricBoundaryField& blsP = lsP.boundaryField();
+
+    forAll(blsP, patchi)
     {
         const fvsPatchScalarField& pw = w.boundaryField()[patchi];
         const fvsPatchScalarField& pMagSf = magSf.boundaryField()[patchi];
@@ -130,22 +132,9 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         const labelUList& faceCells = p.patch().faceCells();
 
         // Build the d-vectors
-        vectorField pd
-        (
-            mesh.Sf().boundaryField()[patchi]
-          / (
-                mesh.magSf().boundaryField()[patchi]
-              * mesh.deltaCoeffs().boundaryField()[patchi]
-           )
-        );
+        vectorField pd = p.delta();
 
-        if (!mesh.orthogonal())
-        {
-            pd -= mesh.correctionVectors().boundaryField()[patchi]
-                /mesh.deltaCoeffs().boundaryField()[patchi];
-        }
-
-        if (p.coupled())
+        if (pw.coupled())
         {
             forAll(pd, patchFacei)
             {
@@ -185,9 +174,9 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         lsN[facei] = -w[facei]*magSfByMagSqrd*(invDd[nei] & d);
     }
 
-    forAll(lsP.boundaryField(), patchi)
+    forAll(blsP, patchi)
     {
-        fvsPatchVectorField& patchLsP = lsP.boundaryField()[patchi];
+        fvsPatchVectorField& patchLsP = blsP[patchi];
 
         const fvsPatchScalarField& pw = w.boundaryField()[patchi];
         const fvsPatchScalarField& pMagSf = magSf.boundaryField()[patchi];
@@ -196,23 +185,9 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
         const labelUList& faceCells = p.faceCells();
 
         // Build the d-vectors
-        vectorField pd
-        (
-            mesh.Sf().boundaryField()[patchi]
-           /(
-               mesh.magSf().boundaryField()[patchi]
-              *mesh.deltaCoeffs().boundaryField()[patchi]
-            )
-        );
+        vectorField pd = p.delta();
 
-        if (!mesh.orthogonal())
-        {
-            pd -= mesh.correctionVectors().boundaryField()[patchi]
-                /mesh.deltaCoeffs().boundaryField()[patchi];
-        }
-
-
-        if (p.coupled())
+        if (pw.coupled())
         {
             forAll(pd, patchFacei)
             {
@@ -283,7 +258,7 @@ void Foam::leastSquaresVectors::makeLeastSquaresVectors() const
                             label patchFacei =
                                 facei - mesh.boundaryMesh()[patchi].start();
 
-                            if (mesh.boundary()[patchi].coupled())
+                            if (w.boundaryField()[patchi].coupled())
                             {
                                 scalar wf = max
                                 (

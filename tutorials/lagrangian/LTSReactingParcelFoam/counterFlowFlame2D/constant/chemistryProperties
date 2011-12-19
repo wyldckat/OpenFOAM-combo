@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -24,9 +24,5 @@ chemistrySolver     noChemistrySolver;
 chemCalcFreq        1;
 
 initialChemicalTimeStep  1e-8; // NOT USED
-
-Cmix            Cmix [ 0 0 0 0 0 0 0 ] 0.1;
-
-turbulentReaction   on;
 
 // ************************************************************************* //

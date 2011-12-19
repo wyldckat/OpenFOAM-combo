@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -82,7 +82,14 @@ PIMPLE
 
 relaxationFactors
 {
-    ".*Final"       1;
+    fields
+    {
+        ".*Final"       1;
+    }
+    equations
+    {
+        ".*Final"       1;
+    }
 }
 
 

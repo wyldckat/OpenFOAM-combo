@@ -68,7 +68,7 @@ void Foam::extendedCentredCellToFaceStencil::compact()
         }
     }
 
-    mapPtr_().compact(isInStencil);
+    mapPtr_().compact(isInStencil, Pstream::msgType());
 }
 
 

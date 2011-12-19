@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -22,7 +22,7 @@ solvers
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-07;
-        relTol          0.1;
+        relTol          0.01;
     }
 
     p_rghFinal
@@ -71,9 +71,15 @@ PIMPLE
 
 relaxationFactors
 {
-    "U.*"           1;
-    "k.*"           1;
-    "epsilon.*"     1;
+    fields
+    {
+    }
+    equations
+    {
+        "U.*"           1;
+        "k.*"           1;
+        "epsilon.*"     1;
+    }
 }
 
 

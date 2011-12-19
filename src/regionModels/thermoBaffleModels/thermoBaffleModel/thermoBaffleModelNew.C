@@ -104,6 +104,7 @@ autoPtr<thermoBaffleModel> thermoBaffleModel::New
     return autoPtr<thermoBaffleModel>(cstrIter()(modelType, mesh, dict));
 }
 
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace thermoBaffleModels

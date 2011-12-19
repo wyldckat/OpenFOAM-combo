@@ -27,6 +27,9 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "volFields.H"
 #include "transformField.H"
+#include "cellZoneMesh.H"
+#include "boolList.H"
+#include "syncTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -67,10 +70,74 @@ Foam::solidBodyMotionFvMesh::solidBodyMotionFvMesh(const IOobject& io)
             meshSubDir,
             *this,
             IOobject::MUST_READ,
-            IOobject::NO_WRITE
+            IOobject::NO_WRITE,
+            false
         )
-    )
-{}
+    ),
+    zoneID_(-1),
+    pointIDs_()
+{
+    if (undisplacedPoints_.size() != nPoints())
+    {
+        FatalIOErrorIn
+        (
+            "solidBodyMotionFvMesh::solidBodyMotionFvMesh(const IOobject&)",
+            dynamicMeshCoeffs_
+        )   << "Read " << undisplacedPoints_.size()
+            << " undisplaced points from " << undisplacedPoints_.objectPath()
+            << " but the current mesh has " << nPoints()
+            << exit(FatalError);
+    }
+
+    word cellZoneName =
+        dynamicMeshCoeffs_.lookupOrDefault<word>("cellZone", "none");
+
+    if (cellZoneName != "none")
+    {
+        zoneID_ = cellZones().findZoneID(cellZoneName);
+        Info<< "Applying solid body motion to cellZone " << cellZoneName
+            << endl;
+
+        const cellZone& cz = cellZones()[zoneID_];
+
+
+        // collect point IDs of points in cell zone
+
+        boolList movePts(nPoints(), false);
+
+        forAll(cz, i)
+        {
+            label cellI = cz[i];
+            const cell& c = cells()[cellI];
+            forAll(c, j)
+            {
+                const face& f = faces()[c[j]];
+                forAll(f, k)
+                {
+                    label pointI = f[k];
+                    movePts[pointI] = true;
+                }
+            }
+        }
+
+        syncTools::syncPointList(*this, movePts, orEqOp<bool>(), false);
+
+        DynamicList<label> ptIDs(nPoints());
+        forAll(movePts, i)
+        {
+            if (movePts[i])
+            {
+                ptIDs.append(i);
+            }
+        }
+
+        pointIDs_.transfer(ptIDs);
+    }
+    else
+    {
+        Info<< "Applying solid body motion to entire mesh" << endl;
+    }
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -85,14 +152,31 @@ bool Foam::solidBodyMotionFvMesh::update()
 {
     static bool hasWarned = false;
 
-    fvMesh::movePoints
-    (
-        transform
+    if (zoneID_ != -1)
+    {
+        pointField transformedPts(undisplacedPoints_);
+
+        UIndirectList<point>(transformedPts, pointIDs_) =
+            transform
+            (
+                SBMFPtr_().transformation(),
+                pointField(transformedPts, pointIDs_)
+            );
+
+        fvMesh::movePoints(transformedPts);
+    }
+    else
+    {
+        fvMesh::movePoints
         (
-            SBMFPtr_().transformation(),
-            undisplacedPoints_
-        )
-    );
+            transform
+            (
+                SBMFPtr_().transformation(),
+                undisplacedPoints_
+            )
+        );
+    }
+
 
     if (foundObject<volVectorField>("U"))
     {

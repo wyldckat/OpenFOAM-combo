@@ -69,13 +69,13 @@ bool setEnv(const word& name, const std::string& value, const bool overwrite);
 
 //- Return the system's host name, as per hostname(1)
 //  Optionally with the full name (as per the '-f' option)
-word hostName(const bool full=false);
+string hostName(const bool full=false);
 
 //- Return the system's domain name, as per hostname(1) with the '-d' option
-word domainName();
+string domainName();
 
 //- Return the user's login name
-word userName();
+string userName();
 
 //- Is user administrator
 bool isAdministrator();
@@ -84,7 +84,7 @@ bool isAdministrator();
 fileName home();
 
 //- Return home directory path name for a particular user
-fileName home(const word& userName);
+fileName home(const string& userName);
 
 //- Return current working directory path name
 fileName cwd();
@@ -110,13 +110,19 @@ bool chDir(const fileName& dir);
 //
 //  \return The list of full paths of all the matching files or
 //  an empty list if the name cannot be found.
-//  Optionally abort if the file cannot be found
-fileNameList findEtcFiles(const fileName&, bool mandatory=false);
+//  Optionally abort if the file cannot be found.
+//  Optionally stop search after the first file has been found.
+fileNameList findEtcFiles
+(
+    const fileName&,
+    bool mandatory=false,
+    bool findFirst=false
+);
 
 //- Search for a file using findEtcFiles.
-//  \return The full path name of the first file found which in the
+//  \return The full path name of the first file found in the
 //  search hierarchy or an empty fileName if the name cannot be found.
-//  Optionally abort if the file cannot be found
+//  Optionally abort if the file cannot be found.
 fileName findEtcFile(const fileName&, bool mandatory=false);
 
 //- Make a directory and return an error if it could not be created
@@ -183,10 +189,10 @@ unsigned int sleep(const unsigned int);
 void fdClose(const int);
 
 //- Check if machine is up by pinging given port
-bool ping(const word&, const label port, const label timeOut);
+bool ping(const string&, const label port, const label timeOut);
 
 //- Check if machine is up by pinging port 22 (ssh) and 222 (rsh)
-bool ping(const word&, const label timeOut=10);
+bool ping(const string&, const label timeOut=10);
 
 //- Execute the specified command
 int system(const std::string& command);

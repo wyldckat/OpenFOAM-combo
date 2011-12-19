@@ -357,7 +357,6 @@ void Foam::porousZone::addResistance
     }
 }
 
-
 void Foam::porousZone::addResistance
 (
     const fvVectorMatrix& UEqn,

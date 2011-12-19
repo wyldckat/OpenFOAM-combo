@@ -48,13 +48,14 @@ void Foam::actuationDiskSource::addActuationDiskAxialInertialResistance
     E.xx() = uniDiskDir.x();
     E.yy() = uniDiskDir.y();
     E.zz() = uniDiskDir.z();
+
     forAll(cells, i)
     {
         T[i] = 2.0*rho[cells[i]]*diskArea_*mag(U[cells[i]])*a/(1.0 - a);
     }
     forAll(cells, i)
     {
-        Usource[cells[i]] += ((Vcells[cells[i]]/V())*T[i]*E) & U[cells[i]];
+        Usource[cells[i]] -= ((Vcells[cells[i]]/V())*T[i]*E) & U[cells[i]];
     }
 }
 

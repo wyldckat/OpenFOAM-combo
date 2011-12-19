@@ -37,6 +37,7 @@ SourceFiles
 
 #include "DimensionedField.H"
 #include "triSurfaceGeoMesh.H"
+#include "triSurfacePointGeoMesh.H"
 #include "triSurfaceFieldsFwd.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

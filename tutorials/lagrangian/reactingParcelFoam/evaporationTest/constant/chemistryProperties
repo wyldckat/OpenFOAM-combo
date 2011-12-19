@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -18,8 +18,6 @@ FoamFile
 psiChemistryModel ODEChemistryModel<gasThermoPhysics>;
 
 chemistry       off;
-
-turbulentReaction off;
 
 chemistrySolver ode;
 
@@ -42,8 +40,6 @@ odeCoeffs
     eps             0.05;
     scale           1;
 }
-
-Cmix            Cmix [ 0 0 0 0 0 0 0 ] 1;
 
 
 // ************************************************************************* //

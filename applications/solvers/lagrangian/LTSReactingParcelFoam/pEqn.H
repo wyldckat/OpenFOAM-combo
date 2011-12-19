@@ -29,10 +29,10 @@
       + fvc::div(phi)
      ==
         parcels.Srho()
-      + massSource.SuTot()
+      + sources(psi, p, rho.name())
     );
 
-    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+    while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -40,12 +40,11 @@
           - fvm::laplacian(rho*rAU, p)
         );
 
-        pEqn.solve
-        (
-            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
-        );
+        sources.constrain(pDDtEqn, rho.name());
 
-        if (nonOrth == pimple.nNonOrthCorr())
+        pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
+
+        if (pimple.finalNonOrthogonalIter())
         {
             phi += pEqn.flux();
         }
@@ -65,8 +64,6 @@
     rho = thermo.rho();
     rho = max(rho, rhoMin);
     rho = min(rho, rhoMax);
-
-    #include "setPressureWork.H"
 
     Info<< "p min/max = " << min(p).value() << ", " << max(p).value() << endl;
 }

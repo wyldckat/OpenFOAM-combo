@@ -14,9 +14,5 @@ volScalarField rAU(1.0/UEqn().A());
 if (pimple.momentumPredictor())
 {
     solve(UEqn() == -fvc::grad(p));
-}
-else
-{
-    U = rAU*(UEqn().H() - fvc::grad(p));
-    U.correctBoundaryConditions();
+    K = 0.5*magSqr(U);
 }

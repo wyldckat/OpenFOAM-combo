@@ -136,7 +136,7 @@ void Foam::directionalKSolidThermo::init()
 {
     KValues_ = Field<vector>(subDict(typeName + "Coeffs").lookup("KValues"));
 
-    const fvMesh& mesh = directionalK_.mesh();
+    const fvMesh& mesh = K().mesh();
 
     // Determine transforms for cell centres
     forAll(mesh.C(), cellI)

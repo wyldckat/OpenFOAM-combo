@@ -38,6 +38,7 @@ namespace thermoBaffleModels
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+
 inline tmp<scalarField> thermoBaffle2D::hs
 (
     const scalarField& T,

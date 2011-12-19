@@ -106,7 +106,7 @@ protected:
             dynamicCode&,
             const dynamicCodeContext &
         ) const = 0;
-      
+
         // Return a description (type + name) for the output
         virtual string description() const = 0;
 

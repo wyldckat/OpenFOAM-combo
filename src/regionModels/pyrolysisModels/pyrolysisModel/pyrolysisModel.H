@@ -111,30 +111,30 @@ public:
 
     // Declare runtime constructor selection table
 
-         declareRunTimeSelectionTable
-         (
-             autoPtr,
-             pyrolysisModel,
-             mesh,
-             (
-                const word& modelType,
-                const fvMesh& mesh
-             ),
-             (modelType, mesh)
-         );
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            pyrolysisModel,
+            mesh,
+            (
+            const word& modelType,
+            const fvMesh& mesh
+            ),
+            (modelType, mesh)
+        );
 
-         declareRunTimeSelectionTable
-         (
-             autoPtr,
-             pyrolysisModel,
-             dictionary,
-             (
-                const word& modelType,
-                const fvMesh& mesh,
-                const dictionary& dict
-             ),
-             (modelType, mesh, dict)
-         );
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            pyrolysisModel,
+            dictionary,
+            (
+            const word& modelType,
+            const fvMesh& mesh,
+            const dictionary& dict
+            ),
+            (modelType, mesh, dict)
+        );
 
 
     // Constructors
@@ -160,9 +160,10 @@ public:
             return autoPtr<pyrolysisModel>(NULL);
         }
 
+
     // Selectors
 
-        //- Return a reference to the selected pyrolysis model
+        //- Return a reference to the selected pyrolysis film model
         static autoPtr<pyrolysisModel> New(const fvMesh& mesh);
 
         //- Return a reference to a named selected pyrolysis model
@@ -172,8 +173,7 @@ public:
             const dictionary& dict
         );
 
-
-        //- Return pointer to new pyrolysis created on freestore from Istream
+         //- Return pointer to new pyrolysis created on freestore from Istream
         class iNew
         {
             const fvMesh& mesh_;

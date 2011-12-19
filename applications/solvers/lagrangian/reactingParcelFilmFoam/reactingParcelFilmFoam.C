@@ -31,12 +31,10 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "hCombustionThermo.H"
 #include "turbulenceModel.H"
 #include "basicReactingCloud.H"
 #include "surfaceFilmModel.H"
-#include "psiChemistryModel.H"
-#include "chemistrySolver.H"
+#include "psiChemistryCombustionModel.H"
 #include "radiationModel.H"
 #include "SLGThermo.H"
 #include "pimpleControl.H"
@@ -49,7 +47,6 @@ int main(int argc, char *argv[])
 
     #include "createTime.H"
     #include "createMesh.H"
-    #include "readChemistryProperties.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
     #include "createClouds.H"
@@ -83,18 +80,17 @@ int main(int argc, char *argv[])
 
         if (solvePrimaryRegion)
         {
-            #include "chemistry.H"
             #include "rhoEqn.H"
 
             // --- PIMPLE loop
-            for (pimple.start(); pimple.loop(); pimple++)
+            while (pimple.loop())
             {
                 #include "UEqn.H"
                 #include "YEqn.H"
                 #include "hsEqn.H"
 
-                // --- PISO loop
-                for (int corr=1; corr<=pimple.nCorr(); corr++)
+                // --- Pressure corrector loop
+                while (pimple.correct())
                 {
                     #include "pEqn.H"
                 }
@@ -107,10 +103,7 @@ int main(int argc, char *argv[])
 
             rho = thermo.rho();
 
-            if (runTime.write())
-            {
-                chemistry.dQ()().write();
-            }
+            runTime.write();
         }
         else
         {

@@ -15,7 +15,7 @@ if (pimple.transonic())
         )
     );
 
-    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+    while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -24,14 +24,14 @@ if (pimple.transonic())
           - fvm::laplacian(rho*rAU, p)
          ==
             coalParcels.Srho()
+          + sources(psi, p, rho.name())
         );
 
-        pEqn.solve
-        (
-            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
-        );
+        sources.constrain(pEqn, rho.name());
 
-        if (nonOrth == pimple.nNonOrthCorr())
+        pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
+
+        if (pimple.finalNonOrthogonalIter())
         {
             phi == pEqn.flux();
         }
@@ -40,13 +40,13 @@ if (pimple.transonic())
 else
 {
     phi =
-        fvc::interpolate(rho)*
-        (
+        fvc::interpolate(rho)
+       *(
             (fvc::interpolate(U) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
         );
 
-    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+    while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -55,14 +55,14 @@ else
           - fvm::laplacian(rho*rAU, p)
          ==
             coalParcels.Srho()
+          + sources(psi, p, rho.name())
         );
 
-        pEqn.solve
-        (
-            mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
-        );
+        sources.constrain(pEqn, rho.name());
 
-        if (nonOrth == pimple.nNonOrthCorr())
+        pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
+
+        if (pimple.finalNonOrthogonalIter())
         {
             phi += pEqn.flux();
         }
@@ -74,5 +74,6 @@ else
 
 U -= rAU*fvc::grad(p);
 U.correctBoundaryConditions();
+K = 0.5*magSqr(U);
 
-DpDt = fvc::DDt(surfaceScalarField("phiU", phi/fvc::interpolate(rho)), p);
+dpdt = fvc::ddt(p);

@@ -1134,7 +1134,6 @@ void Foam::autoLayerDriver::syncPatchDisplacement
         );
 
         // Reset if differs
-        // 1. take max
         forAll(syncPatchNLayers, i)
         {
             if (syncPatchNLayers[i] != patchNLayers[i])
@@ -1165,7 +1164,6 @@ void Foam::autoLayerDriver::syncPatchDisplacement
         );
 
         // Reset if differs
-        // 2. take min
         forAll(syncPatchNLayers, i)
         {
             if (syncPatchNLayers[i] != patchNLayers[i])
@@ -1257,7 +1255,7 @@ void Foam::autoLayerDriver::getPatchDisplacement
             meshPoints,
             nPointFaces,
             plusEqOp<label>(),
-            0                   // null value
+            label(0)            // null value
         );
 
         forAll(pointNormals, i)
@@ -1956,7 +1954,7 @@ void Foam::autoLayerDriver::setupLayerInfoTruncation
             pp.meshPoints(),
             nPatchPointLayers,
             maxEqOp<label>(),
-            0                   // null value
+            label(0)        // null value
         );
     }
 }
@@ -2080,17 +2078,15 @@ Foam::label Foam::autoLayerDriver::checkAndUnmark
 
     if (additionalReporting)
     {
-        // Limit the number of points to be printed so that 
+        // Limit the number of points to be printed so that
         // not too many points are reported when running in parallel
         // Not accurate, i.e. not always nReportMax points are written,
         // but this estimation avoid some communication here.
         // The important thing, however, is that when only a few faces
         // are disabled, their coordinates are printed, and this should be
         // the case
-        label nReportLocal = nChanged;
-        if (nChangedTotal > nReportMax)
-        {
-            nReportLocal = min
+        label nReportLocal =
+            min
             (
                 max(nChangedTotal / Pstream::nProcs(), 1),
                 min
@@ -2099,15 +2095,11 @@ Foam::label Foam::autoLayerDriver::checkAndUnmark
                     max(nReportMax / Pstream::nProcs(), 1)
                 )
             );
-        }
 
-        if (nReportLocal)
+        Pout<< "Checked mesh with layers. Disabled extrusion at " << endl;
+        for (label i=0; i < nReportLocal; i++)
         {
-            Pout<< "Checked mesh with layers. Disabled extrusion at " << endl;
-            for (label i=0; i < nReportLocal; i++)
-            {
-                Pout<< "    " << disabledFaceCentres[i] << endl;
-            }
+            Pout<< "    " << disabledFaceCentres[i] << endl;
         }
 
         label nReportTotal = returnReduce(nReportLocal, sumOp<label>());
@@ -2274,11 +2266,7 @@ void Foam::autoLayerDriver::addLayers
     {
         const_cast<Time&>(mesh.time())++;
         Info<< "Writing baffled mesh to " << meshRefiner_.timeName() << endl;
-        meshRefiner_.write
-        (
-            debug,
-            mesh.time().path()/meshRefiner_.timeName()
-        );
+        mesh.write();
     }
 
 
@@ -2754,13 +2742,9 @@ void Foam::autoLayerDriver::addLayers
             Info<< "Writing shrunk mesh to " << meshRefiner_.timeName() << endl;
 
             // See comment in autoSnapDriver why we should not remove meshPhi
-            // using mesh.clearOut().
+            // using mesh.clearPout().
 
-            meshRefiner_.write
-            (
-                debug,
-                mesh.time().path()/meshRefiner_.timeName()
-            );
+            mesh.write();
         }
 
 

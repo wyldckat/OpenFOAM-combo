@@ -146,8 +146,6 @@ void atmBoundaryLayerInletVelocityFvPatchVectorField::updateCoeffs()
 {
     const vectorField& c = patch().Cf();
     const scalarField coord(c & z_);
-
-
     scalarField Un(coord.size());
 
     forAll(coord, i)

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -18,6 +18,8 @@ region          wallFilmRegion;
 
 faceZones       (wallFilmFaces);
 
+sampleMode      nearestPatchFace;
+
 oneD            false;
 
 extrudeModel    linearNormal;
@@ -26,7 +28,7 @@ nLayers         1;
 
 expansionRatio  1;
 
-adaptMesh       yes; // apply directMapped to both regions
+adaptMesh       yes; // apply mapped to both regions
 
 linearNormalCoeffs
 {

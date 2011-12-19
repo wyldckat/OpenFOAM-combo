@@ -112,7 +112,7 @@ template<class CloudType>
 void Foam::ParticleTracks<CloudType>::postFace
 (
     const parcelType& p,
-    const label faceI
+    const label
 )
 {
     if
@@ -127,7 +127,7 @@ void Foam::ParticleTracks<CloudType>::postFace
             (
                 "Foam::ParticleTracks<CloudType>::postFace"
                 "("
-                    "const parcelType,& "
+                    "const parcelType&, "
                     "const label"
                 ")"
             )<< "Cloud storage not allocated" << abort(FatalError);

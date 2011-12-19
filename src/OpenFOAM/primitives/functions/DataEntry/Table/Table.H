@@ -70,14 +70,9 @@ Ostream& operator<<
 template<class Type>
 class Table
 :
-    public DataEntry<Type>
+    public DataEntry<Type>,
+    public TableBase<Type>
 {
-    // Private data
-
-        //- Table data
-        List<Tuple2<scalar, Type> > table_;
-
-
     // Private Member Functions
 
         //- Disallow default bitwise assignment
@@ -93,7 +88,7 @@ public:
     // Constructors
 
         //- Construct from entry name and Istream
-        Table(const word& entryName, Istream& is);
+        Table(const word& entryName, const dictionary& dict);
 
         //- Copy constructor
         Table(const Table<Type>& tbl);
@@ -112,18 +107,29 @@ public:
     // Member Functions
 
         //- Return Table value
-        Type value(const scalar x) const;
+        virtual Type value(const scalar x) const
+        {
+            return TableBase<Type>::value(x);
+        }
 
         //- Integrate between two (scalar) values
-        Type integrate(const scalar x1, const scalar x2) const;
+        virtual Type integrate(const scalar x1, const scalar x2) const
+        {
+            return TableBase<Type>::integrate(x1, x2);
+        }
 
 
-    //- Ostream Operator
-    friend Ostream& operator<< <Type>
-    (
-        Ostream&,
-        const Table<Type>&
-    );
+    // I/O
+
+        //- Ostream Operator
+        friend Ostream& operator<< <Type>
+        (
+            Ostream& os,
+            const Table<Type>& tbl
+        );
+
+        //- Write in dictionary format
+        virtual void writeData(Ostream& os) const;
 };
 
 

@@ -80,9 +80,7 @@ tmp<scalarField> nutkWallFunctionFvPatchScalarField::calcNut() const
     const scalarField& y = rasModel.y()[patchI];
     const tmp<volScalarField> tk = rasModel.k();
     const volScalarField& k = tk();
-    const tmp<volScalarField> tnu = rasModel.nu();
-    const volScalarField& nu = tnu();
-    const scalarField& nuw = nu.boundaryField()[patchI];
+    const scalarField& nuw = rasModel.nu()().boundaryField()[patchI];
 
     const scalar Cmu25 = pow025(Cmu_);
 
@@ -222,9 +220,7 @@ tmp<scalarField> nutkWallFunctionFvPatchScalarField::yPlus() const
     const tmp<volScalarField> tk = rasModel.k();
     const volScalarField& k = tk();
     tmp<scalarField> kwc = k.boundaryField()[patchI].patchInternalField();
-    const tmp<volScalarField> tnu = rasModel.nu();
-    const volScalarField& nu = tnu();
-    const scalarField& nuw = nu.boundaryField()[patchI];
+    const scalarField& nuw = rasModel.nu()().boundaryField()[patchI];
 
     return pow025(Cmu_)*y*sqrt(kwc)/nuw;
 }

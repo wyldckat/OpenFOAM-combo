@@ -39,15 +39,8 @@
 
     #include "compressibleCreatePhi.H"
 
-    dimensionedScalar rhoMax
-    (
-        mesh.solutionDict().subDict("PIMPLE").lookup("rhoMax")
-    );
-
-    dimensionedScalar rhoMin
-    (
-        mesh.solutionDict().subDict("PIMPLE").lookup("rhoMin")
-    );
+    dimensionedScalar rhoMax(pimple.dict().lookup("rhoMax"));
+    dimensionedScalar rhoMin(pimple.dict().lookup("rhoMin"));
 
     Info<< "Creating turbulence model\n" << endl;
     autoPtr<compressible::turbulenceModel> turbulence
@@ -61,8 +54,8 @@
         )
     );
 
-    Info<< "Creating field DpDt\n" << endl;
-    volScalarField DpDt
-    (
-        fvc::DDt(surfaceScalarField("phiU", phi/fvc::interpolate(rho)), p)
-    );
+    Info<< "Creating field dpdt\n" << endl;
+    volScalarField dpdt("dpdt", fvc::ddt(p));
+
+    Info<< "Creating field kinetic energy K\n" << endl;
+    volScalarField K("K", 0.5*magSqr(U));

@@ -156,6 +156,14 @@ public:
             return surface().coordinates();
         }
 
+        //- Does any part of the surface overlap the supplied bound box?
+        //  Note: use perturbed surface? Since uses boundbox of points and
+        //        not actual intersection chosen to use unperturbed surface.
+        virtual bool overlaps(const boundBox& bb) const
+        {
+            return surface().overlaps(bb);
+        }
+
 
         // Multiple point queries.
 

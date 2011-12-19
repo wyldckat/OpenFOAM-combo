@@ -36,13 +36,11 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "hCombustionThermo.H"
 #include "turbulenceModel.H"
 #include "basicThermoCloud.H"
 #include "coalCloud.H"
-#include "psiChemistryModel.H"
-#include "chemistrySolver.H"
-#include "timeActivatedExplicitSource.H"
+#include "psiChemistryCombustionModel.H"
+#include "IObasicSourceList.H"
 #include "radiationModel.H"
 #include "SLGThermo.H"
 #include "pimpleControl.H"
@@ -55,7 +53,6 @@ int main(int argc, char *argv[])
 
     #include "createTime.H"
     #include "createMesh.H"
-    #include "readChemistryProperties.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
     #include "createClouds.H"
@@ -88,18 +85,17 @@ int main(int argc, char *argv[])
 
         limestoneParcels.evolve();
 
-        #include "chemistry.H"
         #include "rhoEqn.H"
 
         // --- Pressure-velocity PIMPLE corrector loop
-        for (pimple.start(); pimple.loop(); pimple++)
+        while (pimple.loop())
         {
             #include "UEqn.H"
             #include "YEqn.H"
             #include "hsEqn.H"
 
-            // --- PISO loop
-            for (int corr=0; corr<pimple.nCorr(); corr++)
+            // --- Pressure corrector loop
+            while (pimple.correct())
             {
                 #include "pEqn.H"
             }
@@ -112,10 +108,7 @@ int main(int argc, char *argv[])
 
         rho = thermo.rho();
 
-        if (runTime.write())
-        {
-            chemistry.dQ()().write();
-        }
+        runTime.write();
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"

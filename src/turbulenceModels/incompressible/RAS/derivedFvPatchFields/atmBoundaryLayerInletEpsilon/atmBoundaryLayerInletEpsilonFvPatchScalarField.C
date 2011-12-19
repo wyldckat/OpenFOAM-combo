@@ -30,7 +30,6 @@ License
 #include "volFields.H"
 #include "surfaceFields.H"
 
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -87,7 +86,7 @@ atmBoundaryLayerInletEpsilonFvPatchScalarField
     z_(dict.lookup("z")),
     z0_(readScalar(dict.lookup("z0"))),
     kappa_(dict.lookupOrDefault<scalar>("kappa", 0.41)),
-    zGround_(p.size(), 0.0)
+    zGround_("zGround", dict, p.size())
 {
     if (mag(z_) < SMALL)
     {
@@ -131,8 +130,7 @@ atmBoundaryLayerInletEpsilonFvPatchScalarField
 void atmBoundaryLayerInletEpsilonFvPatchScalarField::updateCoeffs()
 {
     const vectorField& c = patch().Cf();
-    const scalarField coord(c & z_);
-
+    tmp<scalarField> coord = (c & z_);
     scalarField::operator=(pow3(Ustar_)/(kappa_*(coord - zGround_ + z0_)));
 }
 

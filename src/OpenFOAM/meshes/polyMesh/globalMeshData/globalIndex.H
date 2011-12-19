@@ -72,7 +72,7 @@ public:
     // Constructors
 
         //- Construct from local max size
-        globalIndex(const label localSize);
+        globalIndex(const label localSize, const int tag = Pstream::msgType());
 
         //- Construct from Istream
         globalIndex(Istream& is);

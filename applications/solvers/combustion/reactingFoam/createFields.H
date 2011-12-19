@@ -1,9 +1,14 @@
-Info<< nl << "Reading thermophysicalProperties" << endl;
-autoPtr<psiChemistryModel> pChemistry
+Info<< "Creating combustion model\n" << endl;
+
+autoPtr<combustionModels::psiChemistryCombustionModel> combustion
 (
-    psiChemistryModel::New(mesh)
+    combustionModels::psiChemistryCombustionModel::New
+    (
+        mesh
+    )
 );
-psiChemistryModel& chemistry = pChemistry();
+
+psiChemistryModel& chemistry = combustion->pChemistry();
 
 hsCombustionThermo& thermo = chemistry.thermo();
 
@@ -45,20 +50,6 @@ const volScalarField& T = thermo.T();
 
 #include "compressibleCreatePhi.H"
 
-volScalarField kappa
-(
-    IOobject
-    (
-        "kappa",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimless, 0.0)
-);
-
 Info << "Creating turbulence model.\n" << nl;
 autoPtr<compressible::turbulenceModel> turbulence
 (
@@ -71,11 +62,16 @@ autoPtr<compressible::turbulenceModel> turbulence
     )
 );
 
-Info<< "Creating field DpDt\n" << endl;
-volScalarField DpDt
-(
-    fvc::DDt(surfaceScalarField("phiU", phi/fvc::interpolate(rho)), p)
-);
+// Set the turbulence into the combustion model
+combustion->setTurbulence(turbulence());
+
+
+Info<< "Creating field dpdt\n" << endl;
+volScalarField dpdt("dpdt", fvc::ddt(p));
+
+Info<< "Creating field kinetic energy K\n" << endl;
+volScalarField K("K", 0.5*magSqr(U));
+
 
 multivariateSurfaceInterpolationScheme<scalar>::fieldTable fields;
 
@@ -85,16 +81,16 @@ forAll(Y, i)
 }
 fields.add(hs);
 
-DimensionedField<scalar, volMesh> chemistrySh
+volScalarField dQ
 (
     IOobject
     (
-        "chemistry::Sh",
+        "dQ",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("chemistrySh", dimEnergy/dimTime/dimVolume, 0.0)
+    dimensionedScalar("dQ", dimEnergy/dimTime, 0.0)
 );

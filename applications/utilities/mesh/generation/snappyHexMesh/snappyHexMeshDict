@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -212,7 +212,7 @@ snapControls
     //- Maximum relative distance for points to be attracted by surface.
     //  True distance is this factor times local maximum edge length.
     // Note: changed(corrected) w.r.t 17x! (17x used 2* tolerance)
-    tolerance 1.0;
+    tolerance 2.0;
 
     //- Number of mesh displacement relaxation iterations.
     nSolveIter 30;
@@ -396,7 +396,7 @@ meshQualityControls
 // Flags for optional output
 // 0 : only write final meshes
 // 1 : write intermediate meshes
-// 2 : write volScalarField with cellLevel for postprocessing
+// 2 : write volScalarFields with cellLevel and cell centres for postprocessing
 // 4 : write current intersections as .obj files
 debug 0;
 

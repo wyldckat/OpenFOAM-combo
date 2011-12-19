@@ -17,7 +17,7 @@ if (simple.transonic())
         fvc::interpolate(psi)*(fvc::interpolate(U) & mesh.Sf())
     );
 
-    for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
+    while (simple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -26,13 +26,13 @@ if (simple.transonic())
         );
 
         // Relax the pressure equation to ensure diagonal-dominance
-        pEqn.relax(mesh.relaxationFactor("pEqn"));
+        pEqn.relax(mesh.equationRelaxationFactor("pEqn"));
 
         pEqn.setReference(pRefCell, pRefValue);
 
         pEqn.solve();
 
-        if (nonOrth == simple.nNonOrthCorr())
+        if (simple.finalNonOrthogonalIter())
         {
             phi == pEqn.flux();
         }
@@ -43,7 +43,7 @@ else
     phi = fvc::interpolate(rho)*(fvc::interpolate(U) & mesh.Sf());
     closedVolume = adjustPhi(phi, U, p);
 
-    for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
+    while (simple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
@@ -54,7 +54,7 @@ else
 
         pEqn.solve();
 
-        if (nonOrth == simple.nNonOrthCorr())
+        if (simple.finalNonOrthogonalIter())
         {
             phi -= pEqn.flux();
         }

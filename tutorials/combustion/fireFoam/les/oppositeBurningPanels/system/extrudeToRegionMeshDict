@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -20,7 +20,9 @@ faceZones       (fRight_zone fLeft_zone);
 
 oneD            true;
 
-oneDPolyPatchType emptyPolyPatch; //wedgePolyPatch
+sampleMode      nearestPatchFace;
+
+oneDPolyPatchType empty; //wedge
 
 extrudeModel    linearNormal;
 
@@ -28,7 +30,7 @@ nLayers         5;
 
 expansionRatio  1;
 
-adaptMesh       true; // directMapped for both
+adaptMesh       true; // mapped for both
 
 linearNormalCoeffs
 {

@@ -83,7 +83,7 @@ public:
     // Constructors
 
         //- Construct from entry name and Istream
-        Constant(const word& entryName, Istream& is);
+        Constant(const word& entryName, const dictionary& dict);
 
         //- Copy constructor
         Constant(const Constant<Type>& cnst);
@@ -108,8 +108,17 @@ public:
         Type integrate(const scalar x1, const scalar x2) const;
 
 
-    //- Ostream Operator
-    friend Ostream& operator<< <Type>(Ostream&, const Constant<Type>&);
+    // I/O
+
+        //- Ostream Operator
+        friend Ostream& operator<< <Type>
+        (
+            Ostream& os,
+            const Constant<Type>& cnst
+        );
+
+        //- Write in dictionary format
+        virtual void writeData(Ostream& os) const;
 };
 
 

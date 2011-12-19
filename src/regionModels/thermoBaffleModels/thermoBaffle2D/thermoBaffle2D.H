@@ -132,6 +132,7 @@ public:
         );
 
 
+
     //- Destructor
     virtual ~thermoBaffle2D();
 
@@ -187,10 +188,10 @@ public:
 
         // Evolution
 
-            //- Pre-evolve thermal baffle
+            //- Pre-evolve  thermal baffle
             virtual void preEvolveRegion();
 
-            //- Evolve thermal baffle
+            //- Evolve the thermal baffle
             virtual void evolveRegion();
 
 

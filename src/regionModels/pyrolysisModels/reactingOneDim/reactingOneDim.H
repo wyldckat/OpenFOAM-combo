@@ -37,6 +37,7 @@ SourceFiles
 
 #include "pyrolysisModel.H"
 
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -153,7 +154,7 @@ protected:
 
     // Protected member functions
 
-        //- Read control parameters
+        //- Read control parameters from dictionary
         bool read();
 
         //- Read control parameters from dict
@@ -205,6 +206,8 @@ public:
             const fvMesh& mesh,
             const dictionary& dict
         );
+
+
 
 
     //- Destructor

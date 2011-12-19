@@ -25,7 +25,7 @@
       + fvc::div(phi)
     );
 
-    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+    while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix p_rghEqn
         (
@@ -33,12 +33,9 @@
           - fvm::laplacian(rhorAUf, p_rgh)
         );
 
-        p_rghEqn.solve
-        (
-            mesh.solver(p_rgh.select(pimple.finalInnerIter(corr, nonOrth)))
-        );
+        p_rghEqn.solve(mesh.solver(p_rgh.select(pimple.finalInnerIter())));
 
-        if (nonOrth == pimple.nNonOrthCorr())
+        if (pimple.finalNonOrthogonalIter())
         {
             // Calculate the conservative fluxes
             phi += p_rghEqn.flux();
@@ -50,6 +47,7 @@
             // calculated from the relaxed pressure
             U += rAU*fvc::reconstruct((buoyancyPhi + p_rghEqn.flux())/rhorAUf);
             U.correctBoundaryConditions();
+            K = 0.5*magSqr(U);
         }
     }
 
@@ -58,7 +56,7 @@
     // Second part of thermodynamic density update
     thermo.rho() += psi*p_rgh;
 
-    DpDt = fvc::DDt(surfaceScalarField("phiU", phi/fvc::interpolate(rho)), p);
+    dpdt = fvc::ddt(p);
 
     #include "rhoEqn.H"
     #include "compressibleContinuityErrs.H"

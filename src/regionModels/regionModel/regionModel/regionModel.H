@@ -40,7 +40,7 @@ SourceFiles
 #include "Switch.H"
 #include "labelList.H"
 #include "volFields.H"
-#include "directMappedPatchBase.H"
+#include "mappedPatchBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -117,9 +117,6 @@ protected:
             //- List of patch IDs internally coupled with the primary region
             labelList intCoupledPatchIDs_;
 
-            //- List of patch map info
-            PtrList<directMappedPatchBase> mappedPatches_;
-
 
     // Protected member functions
 
@@ -150,7 +147,6 @@ public:
             bool readFields = true
         );
 
-
         //- Construct from mesh and name and dict
         regionModel
         (
@@ -160,6 +156,7 @@ public:
             const dictionary& dict,
             bool readFields = true
         );
+
 
 
     //- Destructor
@@ -179,7 +176,7 @@ public:
             //- Return the active flag
             inline const Switch& active() const;
 
-             //- Return the information flag
+            //- Return the information flag
             inline const Switch& infoOutput() const;
 
             //- Return the model name
@@ -212,12 +209,45 @@ public:
                 //  primary region
                 inline const labelList& intCoupledPatchIDs() const;
 
-                //- Return the list of patch map info
-                inline const PtrList<directMappedPatchBase>&
-                    mappedPatches() const;
-
                 //- Return region ID corresponding to primaryPatchID
                 inline label regionPatchID(const label primaryPatchID) const;
+
+
+        // Helper
+
+            //- Convert a local region field to the primary region
+            template<class Type>
+            void toPrimary
+            (
+                const label regionPatchI,
+                List<Type>& regionField
+            ) const;
+
+            //- Convert a primary region field to the local region
+            template<class Type>
+            void toRegion
+            (
+                const label regionPatchI,
+                List<Type>& primaryFieldField
+            ) const;
+
+            //- Convert a local region field to the primary region with op
+            template<class Type, class BinaryOp>
+            void toPrimary
+            (
+                const label regionPatchI,
+                List<Type>& regionField,
+                const BinaryOp& bop
+            ) const;
+
+            //- Convert a primary region field to the local region with op
+            template<class Type, class BinaryOp>
+            void toRegion
+            (
+                const label regionPatchI,
+                List<Type>& primaryFieldField,
+                const BinaryOp& bop
+            ) const;
 
 
         // Evolution
@@ -247,6 +277,12 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "regionModelI.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "regionModelTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

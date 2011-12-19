@@ -36,7 +36,7 @@ Description
     Output is:
     - volScalarField with regions as different scalars (-detectOnly)
             or
-    - mesh with multiple regions and directMapped patches. These patches
+    - mesh with multiple regions and mapped patches. These patches
       either cover the whole interface between two region (default) or
       only part according to faceZones (-useFaceZones)
             or
@@ -59,12 +59,20 @@ Description
     - Should work in parallel.
     cellZones can differ on either side of processor boundaries in which case
     the faces get moved from processor patch to directMapped patch. Not
+    the faces get moved from processor patch to mapped patch. Not
     very well tested.
 
     - If a cell zone gets split into more than one region it can detect
     the largest matching region (-sloppyCellZones). This will accept any
     region that covers more than 50% of the zone. It has to be a subset
     so cannot have any cells in any other zone.
+
+    - If explicitly a single region has been selected (-largestOnly or
+      -insidePoint) its region name will be either
+        - name of a cellZone it matches to or
+        - "largestOnly" respectively "insidePoint" or
+        - polyMesh::defaultRegion if additionally -overwrite
+          (so it will overwrite the input mesh!)
 
     - writes maps like decomposePar back to original mesh:
         - pointRegionAddressing : for every point in this region the point in
@@ -90,7 +98,7 @@ Description
 #include "EdgeMap.H"
 #include "syncTools.H"
 #include "ReadFields.H"
-#include "directMappedWallPolyPatch.H"
+#include "mappedWallPolyPatch.H"
 #include "zeroGradientFvPatchFields.H"
 
 using namespace Foam;
@@ -683,7 +691,7 @@ void getInterfaceSizes
         }
     }
 
-    // Rework 
+    // Rework
 
     Pstream::scatter(regionsToSize);
 
@@ -1286,14 +1294,14 @@ labelList addRegionPatches
         //    << " trying to add patches " << names << endl;
 
 
-        directMappedWallPolyPatch patch1
+        mappedWallPolyPatch patch1
         (
             names[0],
             0,                  // overridden
             0,                  // overridden
             0,                  // overridden
             regionNames[e[1]],  // sampleRegion
-            directMappedPatchBase::NEARESTPATCHFACE,
+            mappedPatchBase::NEARESTPATCHFACE,
             names[1],           // samplePatch
             point::zero,        // offset
             mesh.boundaryMesh()
@@ -1301,14 +1309,14 @@ labelList addRegionPatches
 
         interfacePatches[interI] = addPatch(mesh, patch1);
 
-        directMappedWallPolyPatch patch2
+        mappedWallPolyPatch patch2
         (
             names[1],
             0,
             0,
             0,
             regionNames[e[0]],  // sampleRegion
-            directMappedPatchBase::NEARESTPATCHFACE,
+            mappedPatchBase::NEARESTPATCHFACE,
             names[0],
             point::zero,        // offset
             mesh.boundaryMesh()
@@ -1898,6 +1906,29 @@ int main(int argc, char *argv[])
             regionNames,
             zoneToRegion
         );
+
+        // Override any default region names if single region selected
+        if (largestOnly || insidePoint)
+        {
+            forAll(regionToZone, regionI)
+            {
+                if (regionToZone[regionI] == -1)
+                {
+                    if (overwrite)
+                    {
+                        regionNames[regionI] = polyMesh::defaultRegion;
+                    }
+                    else if (insidePoint)
+                    {
+                        regionNames[regionI] = "insidePoint";
+                    }
+                    else if (largestOnly)
+                    {
+                        regionNames[regionI] = "largestOnly";
+                    }
+                }
+            }
+        }
     }
 
     Info<< endl << "Number of regions:" << nCellRegions << nl << endl;
@@ -2205,7 +2236,8 @@ int main(int argc, char *argv[])
 
             Info<< nl
                 << "Subsetting region " << regionI
-                << " of size " << regionSizes[regionI] << endl;
+                << " of size " << regionSizes[regionI]
+                << " as named region " << regionNames[regionI] << endl;
 
             createAndWriteRegion
             (

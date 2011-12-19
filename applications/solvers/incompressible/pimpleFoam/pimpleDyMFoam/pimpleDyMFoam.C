@@ -37,6 +37,7 @@ Description
 #include "turbulenceModel.H"
 #include "dynamicFvMesh.H"
 #include "pimpleControl.H"
+#include "IObasicSourceList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -86,17 +87,12 @@ int main(int argc, char *argv[])
         }
 
         // --- Pressure-velocity PIMPLE corrector loop
-        for (pimple.start(); pimple.loop(); pimple++)
+        while (pimple.loop())
         {
-            if (pimple.nOuterCorr() != 1)
-            {
-                p.storePrevIter();
-            }
-
             #include "UEqn.H"
 
-            // --- PISO loop
-            for (int corr=0; corr<pimple.nCorr(); corr++)
+            // --- Pressure corrector loop
+            while (pimple.correct())
             {
                 #include "pEqn.H"
             }

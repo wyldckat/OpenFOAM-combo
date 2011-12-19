@@ -145,6 +145,14 @@ Foam::UIPstream::UIPstream(const int fromProcNo, PstreamBuffers& buffers)
     {
         // Message is already received into externalBuf
         messageSize_ = buffers.recvBuf_[fromProcNo].size();
+
+        if (debug)
+        {
+            Pout<< "UIPstream::UIPstream PstreamBuffers :"
+                << " fromProcNo:" << fromProcNo
+                << " tag:" << tag_ << " receive buffer size:" << messageSize_
+                << Foam::endl;
+        }
     }
     else
     {
@@ -251,7 +259,7 @@ Foam::label Foam::UIPstream::read
 
         // Check size of message read
 
-        label messageSize;
+        int messageSize;
         MPI_Get_count(&status, MPI_BYTE, &messageSize);
 
         if (debug)

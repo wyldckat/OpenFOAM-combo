@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.x                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,7 +17,7 @@ FoamFile
 
 dimensions      [ 0 -1 0 0 0 0 0 ];
 
-internalField   nonuniform List<symmTensor>
+internalField   nonuniform List<symmTensor> 
 8025
 (
 (98.997697 0 0 77.711245 0 30.754852)
@@ -8064,6 +8064,19 @@ boundaryField
     {
         type            zeroGradient;
         value           uniform ( 0 0 0 0 0 0 );
+    }
+    baffleWall
+    {
+        type            zeroGradient;
+        value           uniform ( 0 0 0 0 0 0 );
+    }
+    baffleCyclic_half0
+    {
+        type            cyclic;
+    }
+    baffleCyclic_half1
+    {
+        type            cyclic;
     }
 }
 

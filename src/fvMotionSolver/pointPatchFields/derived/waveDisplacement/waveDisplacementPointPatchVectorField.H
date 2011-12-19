@@ -36,7 +36,6 @@ SourceFiles
 #define waveDisplacementPointPatchVectorField_H
 
 #include "fixedValuePointPatchField.H"
-#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

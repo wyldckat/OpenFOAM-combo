@@ -371,6 +371,29 @@ Foam::label Foam::ptscotchDecomp::decompose
         Pout<< "ptscotchDecomp : entering with xadj:" << xadj.size() << endl;
     }
 
+
+if (debug)
+{
+    Pout<< "nProcessors_:" << nProcessors_ << endl;
+
+    globalIndex globalCells(xadj.size()-1);
+
+    Pout<< "Xadj:" << endl;
+    for (label cellI = 0; cellI < xadj.size()-1; cellI++)
+    {
+        Pout<< "cell:" << cellI
+            << "  global:" << globalCells.toGlobal(cellI)
+            << " connected to:" << endl;
+        label start = xadj[cellI];
+        label end = xadj[cellI+1];
+        for (label i = start; i < end; i++)
+        {
+            Pout<< "    cell:" << adjncy[i] << endl;
+        }
+    }
+    Pout<< endl;
+}
+
     // Dump graph
     if (decompositionDict_.found("ptscotchCoeffs"))
     {
@@ -460,8 +483,10 @@ Foam::label Foam::ptscotchDecomp::decompose
 
 
     // Check for externally provided cellweights and if so initialise weights
+
     scalar minWeights = gMin(cWeights);
-    if (cWeights.size() > 0)
+
+    if (!cWeights.empty())
     {
         if (minWeights <= 0)
         {
@@ -481,12 +506,39 @@ Foam::label Foam::ptscotchDecomp::decompose
                 << " does not equal number of cells " << xadj.size()-1
                 << exit(FatalError);
         }
+    }
 
+    scalar velotabSum = gSum(cWeights)/minWeights;
+
+    scalar rangeScale(1.0);
+
+    if (Pstream::master())
+    {
+        if (velotabSum > scalar(INT_MAX - 1))
+        {
+            // 0.9 factor of safety to avoid floating point round-off in
+            // rangeScale tipping the subsequent sum over the integer limit.
+            rangeScale = 0.9*scalar(INT_MAX - 1)/velotabSum;
+
+            WarningIn
+            (
+                "ptscotchDecomp::decompose(...)"
+            )   << "Sum of weights has overflowed integer: " << velotabSum
+                << ", compressing weight scale by a factor of " << rangeScale
+                << endl;
+        }
+    }
+
+    Pstream::scatter(rangeScale);
+
+    if (!cWeights.empty())
+    {
         // Convert to integers.
         velotab.setSize(cWeights.size());
+
         forAll(velotab, i)
         {
-            velotab[i] = int(cWeights[i]/minWeights);
+            velotab[i] = int((cWeights[i]/minWeights - 1)*rangeScale) + 1;
         }
     }
 

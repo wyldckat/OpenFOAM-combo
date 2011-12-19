@@ -35,6 +35,7 @@ Description
 #include "RASModel.H"
 #include "porousZones.H"
 #include "simpleControl.H"
+#include "IObasicSourceList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,8 +58,6 @@ int main(int argc, char *argv[])
     while (simple.loop())
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
-
-        p.storePrevIter();
 
         // Pressure-velocity SIMPLE corrector
         {

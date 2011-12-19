@@ -32,6 +32,7 @@ Foam::IPstream::IPstream
     const commsTypes commsType,
     const int fromProcNo,
     const label bufSize,
+    const int tag,
     streamFormat format,
     versionNumber version
 )
@@ -43,7 +44,7 @@ Foam::IPstream::IPstream
         fromProcNo,
         buf_,
         externalBufPosition_,
-        UPstream::msgType(),        // tag
+        tag,                        // tag
         false,                      // do not clear buf_ if at end
         format,
         version

@@ -7,8 +7,10 @@
      ==
         rho.dimensionedInternalField()*g
       + parcels.SU(U)
-      + momentumSource.Su()
+      + sources(rho, U)
     );
+
+    sources.constrain(UEqn);
 
     pZones.addResistance(UEqn);
 
@@ -16,4 +18,3 @@
     {
         solve(UEqn == -fvc::grad(p));
     }
-

@@ -179,6 +179,10 @@ void Foam::processorPolyPatch::calcGeometry(PstreamBuffers& pBufs)
         // Neighbour normals
         vectorField nbrFaceNormals(neighbFaceAreas_.size());
 
+        // Face match tolerances
+        scalarField tols =
+            calcFaceTol(*this, points(), faceCentres());
+
         // Calculate normals from areas and check
         forAll(faceNormals, facei)
         {
@@ -194,16 +198,40 @@ void Foam::processorPolyPatch::calcGeometry(PstreamBuffers& pBufs)
                 faceNormals[facei] = point(1, 0, 0);
                 nbrFaceNormals[facei] = faceNormals[facei];
             }
-            else if (mag(magSf - nbrMagSf)/avSf > matchTolerance())
+            else if (mag(magSf - nbrMagSf) > matchTolerance()*sqr(tols[facei]))
             {
                 fileName nm
                 (
                     boundaryMesh().mesh().time().path()
                    /name()+"_faces.obj"
                 );
-                Pout<< "processorPolyPatch::order : Writing my " << size()
+
+                Pout<< "processorPolyPatch::calcGeometry : Writing my "
+                    << size()
                     << " faces to OBJ file " << nm << endl;
+
                 writeOBJ(nm, *this, points());
+
+                OFstream ccStr
+                (
+                    boundaryMesh().mesh().time().path()
+                    /name() + "_faceCentresConnections.obj"
+                );
+
+                Pout<< "processorPolyPatch::calcGeometry :"
+                    << " Dumping cell centre lines between"
+                    << " corresponding face centres to OBJ file" << ccStr.name()
+                    << endl;
+
+                label vertI = 0;
+
+                forAll(faceCentres(), faceI)
+                {
+                    const point& c0 = neighbFaceCentres_[faceI];
+                    const point& c1 = faceCentres()[faceI];
+
+                    writeOBJ(ccStr, c0, c1, vertI);
+                }
 
                 FatalErrorIn
                 (
@@ -214,7 +242,8 @@ void Foam::processorPolyPatch::calcGeometry(PstreamBuffers& pBufs)
                     << "patch:" << name()
                     << " my area:" << magSf
                     << " neighbour area:" << nbrMagSf
-                    << " matching tolerance:" << matchTolerance()
+                    << " matching tolerance:"
+                    << matchTolerance()*sqr(tols[facei])
                     << endl
                     << "Mesh face:" << start()+facei
                     << " vertices:"
@@ -240,7 +269,7 @@ void Foam::processorPolyPatch::calcGeometry(PstreamBuffers& pBufs)
             neighbFaceCentres_,
             faceNormals,
             nbrFaceNormals,
-            calcFaceTol(matchTolerance(), *this, points(), faceCentres()),
+            matchTolerance()*tols,
             matchTolerance()
         );
     }
@@ -545,7 +574,7 @@ bool Foam::processorPolyPatch::order
         // Calculate typical distance from face centre
         scalarField tols
         (
-            calcFaceTol(matchTolerance(), pp, pp.points(), pp.faceCentres())
+            matchTolerance()*calcFaceTol(pp, pp.points(), pp.faceCentres())
         );
 
         if (debug || masterCtrs.size() != pp.size())

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                  |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -91,10 +91,10 @@ dictionaryReplacement
                 type   compressible::temperatureThermoBaffle1D<constSolidThermoPhysics>;
                 baffleActivated yes;
                 thickness       uniform 0.005;  // thickness [m]
-                Qs              uniform 100;    // heat flux [W/m2]
+                Qs              uniform 300;    // heat flux [W/m2]
                 transport
                 {
-                    K           1.0;
+                    K               1.0;
                 }
                 radiation
                 {

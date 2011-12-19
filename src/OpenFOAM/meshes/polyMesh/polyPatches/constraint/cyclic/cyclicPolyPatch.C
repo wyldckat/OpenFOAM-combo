@@ -251,6 +251,7 @@ void Foam::cyclicPolyPatch::calcTransforms
         if (debug)
         {
             Pout<< "cyclicPolyPatch::calcTransforms :"
+                << " patch:" << name()
                 << " Max area error:" << 100*maxAreaDiff << "% at face:"
                 << maxAreaFacei << " at:" << half0Ctrs[maxAreaFacei]
                 << " coupled face at:" << half1Ctrs[maxAreaFacei]
@@ -264,17 +265,15 @@ void Foam::cyclicPolyPatch::calcTransforms
         {
             // Calculate using the given rotation axis and centre. Do not
             // use calculated normals.
-            label face0 = getConsistentRotationFace(half0Ctrs);
-            label face1 = face0;
-
-            vector n0 = ((half0Ctrs[face0] - rotationCentre_) ^ rotationAxis_);
-            vector n1 = ((half1Ctrs[face1] - rotationCentre_) ^ -rotationAxis_);
+            vector n0 = findFaceMaxRadius(half0Ctrs);
+            vector n1 = findFaceMaxRadius(half1Ctrs);
             n0 /= mag(n0) + VSMALL;
             n1 /= mag(n1) + VSMALL;
 
             if (debug)
             {
                 Pout<< "cyclicPolyPatch::calcTransforms :"
+                    << " patch:" << name()
                     << " Specified rotation :"
                     << " n0:" << n0 << " n1:" << n1 << endl;
             }
@@ -304,9 +303,9 @@ void Foam::cyclicPolyPatch::calcTransforms
         {
             scalarField half0Tols
             (
-                calcFaceTol
+                matchTolerance()
+               *calcFaceTol
                 (
-                    matchTolerance(),
                     half0,
                     half0.points(),
                     static_cast<const pointField&>(half0Ctrs)
@@ -330,6 +329,7 @@ void Foam::cyclicPolyPatch::calcTransforms
                 if (debug)
                 {
                     Pout<< "cyclicPolyPatch::calcTransforms :"
+                        << " patch:" << name()
                         << " Specified separation vector : "
                         << separationVector_ << endl;
                 }
@@ -393,9 +393,6 @@ void Foam::cyclicPolyPatch::calcTransforms
 }
 
 
-// Given a split of faces into left and right half calculate the centres
-// and anchor points. Transform the left points so they align with the
-// right ones.
 void Foam::cyclicPolyPatch::getCentresAndAnchors
 (
     const primitivePatch& pp0,
@@ -426,17 +423,15 @@ void Foam::cyclicPolyPatch::getCentresAndAnchors
     {
         case ROTATIONAL:
         {
-            label face0 = getConsistentRotationFace(half0Ctrs);
-            label face1 = getConsistentRotationFace(half1Ctrs);
-
-            vector n0 = ((half0Ctrs[face0] - rotationCentre_) ^ rotationAxis_);
-            vector n1 = ((half1Ctrs[face1] - rotationCentre_) ^ -rotationAxis_);
+            vector n0 = findFaceMaxRadius(half0Ctrs);
+            vector n1 = findFaceMaxRadius(half1Ctrs);
             n0 /= mag(n0) + VSMALL;
             n1 /= mag(n1) + VSMALL;
 
             if (debug)
             {
                 Pout<< "cyclicPolyPatch::getCentresAndAnchors :"
+                    << " patch:" << name()
                     << " Specified rotation :"
                     << " n0:" << n0 << " n1:" << n1 << endl;
             }
@@ -485,6 +480,7 @@ void Foam::cyclicPolyPatch::getCentresAndAnchors
             if (debug)
             {
                 Pout<< "cyclicPolyPatch::getCentresAndAnchors :"
+                    << " patch:" << name()
                     << "Specified translation : " << separationVector_
                     << endl;
             }
@@ -516,6 +512,7 @@ void Foam::cyclicPolyPatch::getCentresAndAnchors
                 if (debug)
                 {
                     Pout<< "cyclicPolyPatch::getCentresAndAnchors :"
+                        << " patch:" << name()
                         << " Detected rotation :"
                         << " n0:" << n0 << " n1:" << n1 << endl;
                 }
@@ -548,6 +545,7 @@ void Foam::cyclicPolyPatch::getCentresAndAnchors
                 if (debug)
                 {
                     Pout<< "cyclicPolyPatch::getCentresAndAnchors :"
+                        << " patch:" << name()
                         << " Detected translation :"
                         << " n0:" << n0 << " n1:" << n1
                         << " ctr0:" << ctr0 << " ctr1:" << ctr1 << endl;
@@ -562,34 +560,33 @@ void Foam::cyclicPolyPatch::getCentresAndAnchors
 
 
     // Calculate typical distance per face
-    tols = calcFaceTol(matchTolerance(), pp1, pp1.points(), half1Ctrs);
+    tols = matchTolerance()*calcFaceTol(pp1, pp1.points(), half1Ctrs);
 }
 
 
-Foam::label Foam::cyclicPolyPatch::getConsistentRotationFace
+Foam::vector Foam::cyclicPolyPatch::findFaceMaxRadius
 (
     const pointField& faceCentres
 ) const
 {
     // Determine a face furthest away from the axis
 
-    const scalarField magRadSqr
-    (
-        magSqr((faceCentres - rotationCentre_) ^ rotationAxis_)
-    );
+    const vectorField n((faceCentres - rotationCentre_) ^ rotationAxis_);
 
-    label rotFace = findMax(magRadSqr);
+    const scalarField magRadSqr(magSqr(n));
+
+    label faceI = findMax(magRadSqr);
 
     if (debug)
     {
-        Info<< "getConsistentRotationFace(const pointField&)" << nl
-            << "    rotFace  = " << rotFace << nl
-            << "    point    =  " << faceCentres[rotFace] << nl
-            << "    distance = " << Foam::sqrt(magRadSqr[rotFace])
+        Info<< "findFaceMaxRadius(const pointField&) : patch: " << name() << nl
+            << "    rotFace  = " << faceI << nl
+            << "    point    = " << faceCentres[faceI] << nl
+            << "    distance = " << Foam::sqrt(magRadSqr[faceI])
             << endl;
     }
 
-    return rotFace;
+    return n[faceI];
 }
 
 
@@ -984,6 +981,7 @@ void Foam::cyclicPolyPatch::initMovePoints
     polyPatch::initMovePoints(pBufs, p);
 }
 
+
 void Foam::cyclicPolyPatch::movePoints
 (
     PstreamBuffers& pBufs,
@@ -994,10 +992,12 @@ void Foam::cyclicPolyPatch::movePoints
     calcTransforms();
 }
 
+
 void Foam::cyclicPolyPatch::initUpdateMesh(PstreamBuffers& pBufs)
 {
     polyPatch::initUpdateMesh(pBufs);
 }
+
 
 void Foam::cyclicPolyPatch::updateMesh(PstreamBuffers& pBufs)
 {
@@ -1249,10 +1249,6 @@ void Foam::cyclicPolyPatch::initOrder
 }
 
 
-//  Return new ordering. Ordering is -faceMap: for every face index
-//  the new face -rotation:for every new face the clockwise shift
-//  of the original face. Return false if nothing changes (faceMap
-//  is identity, rotation is 0)
 bool Foam::cyclicPolyPatch::order
 (
     PstreamBuffers& pBufs,

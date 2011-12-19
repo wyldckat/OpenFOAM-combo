@@ -6,7 +6,7 @@ cd ${0%/*} || exit 1    # run from this directory
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 
 runApplication blockMesh
-runApplication setSet -batch makeCellSets.setSet
+runApplication topoSet
 runApplication splitMeshRegions -cellZones -overwrite
 
 # remove fluid fields from solid regions (important for post-processing)
@@ -37,20 +37,21 @@ do
     viewFactorsGen -region $i > log.viewFactorsGen.$i 2>&1
 done
 
+
+
 #-- Run on single processor
 runApplication `getApplication`
 
+## Run in parallel
 ## Decompose
 #for i in bottomAir topAir heater leftSolid rightSolid
 #do
 #   decomposePar -region $i > log.decomposePar.$i 2>&1
 #done
-
 #
-## Run in parallel
 #for i in bottomAir topAir
 #do
-#    mpirun -np 4 faceAgglomerate -region $i -dict viewFactorsDict -parallel> log.faceAgglomerate.$i 2>&1
+#    mpirun -np 4 faceAgglomerate -region $i -dict viewFactorsDict -parallel>   log.faceAgglomerate.$i 2>&1
 #done
 
 #for i in bottomAir topAir
@@ -58,6 +59,7 @@ runApplication `getApplication`
 #    mpirun -np 4 viewFactorsGen -region $i -parallel > log.viewFactorsGen.$i 2>&1
 #done
 
+## Run
 #runParallel `getApplication` 4
 #
 ## Reconstruct
@@ -71,6 +73,5 @@ echo
 echo "creating files for paraview post-processing"
 echo
 paraFoam -touchAll
-
 
 # ----------------------------------------------------------------- end-of-file

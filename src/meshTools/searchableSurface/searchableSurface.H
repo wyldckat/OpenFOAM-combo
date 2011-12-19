@@ -42,6 +42,7 @@ SourceFiles
 #define searchableSurface_H
 
 #include "pointField.H"
+#include "boundBox.H"
 #include "typeInfo.H"
 #include "runTimeSelectionTables.H"
 #include "pointIndexHit.H"
@@ -70,7 +71,7 @@ public:
 
     // Data types
 
-        //- volume types
+        //- Volume types
         enum volumeType
         {
             UNKNOWN = 0,
@@ -80,12 +81,16 @@ public:
             OUTSIDE = 3
         };
 
+        static const NamedEnum<volumeType, 4> volumeTypeNames;
+
+
 private:
 
     // Private data
 
         const word name_;
 
+        boundBox bounds_;
 
     // Private Member Functions
 
@@ -172,17 +177,28 @@ public:
 
     // Member Functions
 
+        //- Return const reference to boundBox
+        const boundBox& bounds() const
+        {
+            return bounds_;
+        }
 
-        //- Names of regions.
+        //- Return non-const access to the boundBox to allow it to be set.
+        boundBox& bounds()
+        {
+            return bounds_;
+        }
+
+        //- Names of regions
         virtual const wordList& regions() const = 0;
 
-        //- Whether supports volume type below.
+        //- Whether supports volume type below
         virtual bool hasVolumeType() const = 0;
 
-        //- Range of local indices that can be returned.
+        //- Range of local indices that can be returned
         virtual label size() const = 0;
 
-        //- Range of global indices that can be returned.
+        //- Range of global indices that can be returned
         virtual label globalSize() const
         {
             return size();
@@ -192,6 +208,8 @@ public:
         //  Usually the element centres (should be of length size()).
         virtual pointField coordinates() const = 0;
 
+        //- Does any part of the surface overlap the supplied bound box?
+        virtual bool overlaps(const boundBox& bb) const = 0;
 
         // Single point queries.
 
@@ -333,7 +351,6 @@ public:
             {
                 values.clear();
             }
-
 };
 
 

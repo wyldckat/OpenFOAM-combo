@@ -1,11 +1,16 @@
 U = rAU*UEqn().H();
 
-if (pimple.nCorr() <= 1)
+if (pimple.nCorrPISO() <= 1)
 {
     UEqn.clear();
 }
 
 phi = (fvc::interpolate(U) & mesh.Sf());
+
+if (ddtPhiCorr)
+{
+    phi += fvc::ddtPhiCorr(rAU, U, phi);
+}
 
 if (p.needReference())
 {
@@ -14,7 +19,7 @@ if (p.needReference())
     fvc::makeAbsolute(phi, U);
 }
 
-for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+while (pimple.correctNonOrthogonal())
 {
     fvScalarMatrix pEqn
     (
@@ -23,12 +28,9 @@ for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
 
     pEqn.setReference(pRefCell, pRefValue);
 
-    pEqn.solve
-    (
-        mesh.solver(p.select(pimple.finalInnerIter(corr, nonOrth)))
-    );
+    pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
 
-    if (nonOrth == pimple.nNonOrthCorr())
+    if (pimple.finalNonOrthogonalIter())
     {
         phi -= pEqn.flux();
     }

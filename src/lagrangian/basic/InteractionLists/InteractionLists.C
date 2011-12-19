@@ -163,7 +163,13 @@ void Foam::InteractionLists<ParticleType>::buildInteractionLists()
 
     indexedOctree<treeDataCell> coupledPatchRangeTree
     (
-        treeDataCell(true, mesh_, coupledPatchRangeCells),
+        treeDataCell
+        (
+            true,                   // cache cell bb
+            mesh_,
+            coupledPatchRangeCells, // subset of mesh
+            polyMesh::FACEDIAGTETS  // consistent with tracking
+        ),
         procBbRndExt,
         8,              // maxLevel,
         10,             // leafSize,
@@ -382,7 +388,7 @@ void Foam::InteractionLists<ParticleType>::buildInteractionLists()
 
     indexedOctree<treeDataCell> allCellsTree
     (
-        treeDataCell(true, mesh_),
+        treeDataCell(true, mesh_, polyMesh::FACEDIAGTETS),
         procBbRndExt,
         8,              // maxLevel,
         10,             // leafSize,
@@ -1208,10 +1214,11 @@ void Foam::InteractionLists<ParticleType>::sendReferredData
 template<class ParticleType>
 void Foam::InteractionLists<ParticleType>::receiveReferredData
 (
-    PstreamBuffers& pBufs
+    PstreamBuffers& pBufs,
+    const label startOfRequests
 )
 {
-    Pstream::waitRequests();
+    Pstream::waitRequests(startOfRequests);
 
     referredParticles_.setSize(cellMap().constructSize());
 

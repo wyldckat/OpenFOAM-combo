@@ -110,37 +110,35 @@ void Foam::extendedLeastSquaresVectors::makeLeastSquaresVectors() const
     const labelUList& owner = mesh_.owner();
     const labelUList& neighbour = mesh_.neighbour();
 
-    // Build the d-vectors
-    surfaceVectorField d
-    (
-        mesh_.Sf()/(mesh_.magSf()*mesh_.deltaCoeffs())
-    );
-
-    if (!mesh_.orthogonal())
-    {
-        d -= mesh_.correctionVectors()/mesh_.deltaCoeffs();
-    }
-
+    const volVectorField& C = mesh.C();
 
     // Set up temporary storage for the dd tensor (before inversion)
     symmTensorField dd(mesh_.nCells(), symmTensor::zero);
 
-    forAll(owner, faceI)
+    forAll(owner, facei)
     {
-        const symmTensor wdd(1.0/magSqr(d[faceI])*sqr(d[faceI]));
+        label own = owner[facei];
+        label nei = neighbour[facei];
 
-        dd[owner[faceI]] += wdd;
-        dd[neighbour[faceI]] += wdd;
+        vector d = C[nei] - C[own];
+
+        const symmTensor wdd(1.0/magSqr(d[facei])*sqr(d[facei]));
+
+        dd[own] += wdd;
+        dd[nei] += wdd;
     }
 
     // Visit the boundaries. Coupled boundaries are taken into account
     // in the construction of d vectors.
-    forAll(d.boundaryField(), patchI)
-    {
-        const fvsPatchVectorField& pd = d.boundaryField()[patchI];
+    surfaceVectorField::GeometricBoundaryField& blsP = lsP.boundaryField();
 
-        const fvPatch& p = pd.patch();
+    forAll(blsP, patchi)
+    {
+        const fvPatch& p = blsP[patchi].patch();
         const labelUList& faceCells = p.faceCells();
+
+        // Build the d-vectors
+        vectorField pd = p.delta();
 
         forAll(pd, patchFaceI)
         {
@@ -232,23 +230,29 @@ void Foam::extendedLeastSquaresVectors::makeLeastSquaresVectors() const
 
 
     // Revisit all faces and calculate the lsP and lsN vectors
-    forAll(owner, faceI)
+    forAll(owner, facei)
     {
-        lsP[faceI] =
-            (1.0/magSqr(d[faceI]))*(invDd[owner[faceI]] & d[faceI]);
+        label own = owner[facei];
+        label nei = neighbour[facei];
 
-        lsN[faceI] =
-            ((-1.0)/magSqr(d[faceI]))*(invDd[neighbour[faceI]] & d[faceI]);
+        vector d = C[nei] - C[own];
+
+        lsP[facei] =
+            (1.0/magSqr(d[facei]))*(invDd[owner[facei]] & d);
+
+        lsN[facei] =
+            ((-1.0)/magSqr(d[facei]))*(invDd[neighbour[facei]] & d);
     }
 
-    forAll(lsP.boundaryField(), patchI)
+    forAll(blsP, patchI)
     {
-        const fvsPatchVectorField& pd = d.boundaryField()[patchI];
-
-        fvsPatchVectorField& patchLsP = lsP.boundaryField()[patchI];
+        fvsPatchVectorField& patchLsP = blsP[patchI];
 
         const fvPatch& p = patchLsP.patch();
         const labelUList& faceCells = p.faceCells();
+
+        // Build the d-vectors
+        vectorField pd = p.delta();
 
         forAll(p, patchFaceI)
         {

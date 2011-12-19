@@ -87,6 +87,7 @@ private:
         //- Are faces collocated. Either size 0,1 or length of patch.
         mutable boolList collocated_;
 
+
 protected:
 
     // Protected Member Functions
@@ -327,7 +328,6 @@ public:
         //  from face centre to any of the face vertices.
         static scalarField calcFaceTol
         (
-            const scalar matchTol,
             const UList<face>& faces,
             const pointField& points,
             const pointField& faceCentres

@@ -160,7 +160,15 @@ inline Foam::scalar Foam::triangle<Point, PointRef>::circumRadius() const
 template<class Point, class PointRef>
 inline Foam::scalar Foam::triangle<Point, PointRef>::quality() const
 {
-    return mag()/(Foam::sqr(circumRadius())*3.0*sqrt(3.0)/4.0 + VSMALL);
+    scalar c = circumRadius();
+
+    if (c < ROOTVSMALL)
+    {
+        // zero circumRadius, something has gone wrong.
+        return SMALL;
+    }
+
+    return mag()/(Foam::sqr(c)*3.0*sqrt(3.0)/4.0);
 }
 
 
@@ -269,9 +277,9 @@ Foam::scalar Foam::triangle<Point, PointRef>::barycentric
 
     bary.setSize(3);
 
-    bary[1] = (d11*d20 - d01*d21)/denom;
-    bary[2] = (d00*d21 - d01*d20)/denom;
-    bary[0] = 1.0 - bary[1] - bary[2];
+    bary[0] = (d11*d20 - d01*d21)/denom;
+    bary[1] = (d00*d21 - d01*d20)/denom;
+    bary[2] = 1.0 - bary[0] - bary[1];
 
     return denom;
 }

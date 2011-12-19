@@ -29,7 +29,6 @@ Description
 #include "autoSnapDriver.H"
 #include "motionSmoother.H"
 #include "polyTopoChange.H"
-#include "OFstream.H"
 #include "syncTools.H"
 #include "fvMesh.H"
 #include "Time.H"
@@ -221,7 +220,7 @@ Foam::pointField Foam::autoSnapDriver::smoothPatchDisplacement
         pp.meshPoints(),
         nBoundary,
         plusEqOp<label>(),  // combine op
-        0                   // null value
+        label(0)            // null value
     );
 
     forAll(avgBoundary, i)
@@ -296,7 +295,7 @@ Foam::pointField Foam::autoSnapDriver::smoothPatchDisplacement
             mesh,
             globalNum,
             plusEqOp<label>(),  // combine op
-            0                   // null value
+            label(0)            // null value
         );
 
         avgInternal.setSize(meshPoints.size());
@@ -1006,7 +1005,11 @@ void Foam::autoSnapDriver::smoothDisplacement
         // but this will also delete all pointMesh but not pointFields which
         // gives an illegal situation.
 
-        mesh.write();
+        meshRefiner_.write
+        (
+            debug,
+            mesh.time().path()/meshRefiner_.timeName()
+        );
 
         Pout<< "Writing displacement field ..." << endl;
         disp.write();

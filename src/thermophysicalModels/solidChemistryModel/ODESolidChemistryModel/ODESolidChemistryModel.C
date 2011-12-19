@@ -135,8 +135,7 @@ ODESolidChemistryModel
                     Y0Default
                 )
             );
-
-            // Calculate inital values of Ysi0 = rho*delta*Yi
+        // Calculate inital values of Ysi0 = rho*delta*Yi
             Ys0_[fieldI].internalField() =
                 this->solidThermo().rho()
                *max(Ys_[fieldI], scalar(0.001))*mesh.V();
@@ -761,11 +760,11 @@ Foam::ODESolidChemistryModel<CompType, SolidThermo, GasThermo>::gasHs
         )
     );
 
-    volScalarField& gasHs = tHs();
+    volScalarField::InternalField& gasHs = tHs().internalField();
 
     const GasThermo& mixture = gasThermo_[index];
 
-    forAll(gasHs.internalField(), cellI)
+    forAll(gasHs, cellI)
     {
         gasHs[cellI] = mixture.Hs(T[cellI]);
     }

@@ -74,7 +74,6 @@ SourceFiles
 #include "fvPatchFields.H"
 #include "fixedValueFvPatchFields.H"
 
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam

@@ -92,7 +92,6 @@ private:
             const point& end
         ) const;
 
-
         //- Disallow default bitwise copy construct
         searchablePlate(const searchablePlate&);
 
@@ -148,6 +147,17 @@ public:
         virtual pointField coordinates() const
         {
             return pointField(1, origin_);
+        }
+
+        //- Does any part of the surface overlap the supplied bound box?
+        virtual bool overlaps(const boundBox& bb) const
+        {
+            notImplemented
+            (
+                "searchablePlate::overlaps(const boundBox&) const"
+            );
+
+            return false;
         }
 
 

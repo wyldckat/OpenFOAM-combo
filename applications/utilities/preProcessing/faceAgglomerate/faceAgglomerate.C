@@ -114,12 +114,9 @@ int main(int argc, char *argv[])
                     pp,
                     agglomDict.subDict(pp.name())
                 );
-
                 agglomObject.agglomerate();
-
                 finalAgglom[patchI] =
                     agglomObject.restrictTopBottomAddressing();
-
             }
             else
             {

@@ -86,15 +86,13 @@ int main(int argc, char *argv[])
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        p.storePrevIter();
-
         laminarTransport.lookup("lambda") >> lambda;
 
         //alpha +=
         //    mesh.relaxationFactor("alpha")
         //   *(lambda*max(Ua & U, zeroSensitivity) - alpha);
         alpha +=
-            mesh.relaxationFactor("alpha")
+            mesh.fieldRelaxationFactor("alpha")
            *(min(max(alpha + lambda*(Ua & U), zeroAlpha), alphaMax) - alpha);
 
         zeroCells(alpha, inletCells);
@@ -123,7 +121,7 @@ int main(int argc, char *argv[])
             adjustPhi(phi, U, p);
 
             // Non-orthogonal pressure corrector loop
-            for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
+            while (simple.correctNonOrthogonal())
             {
                 fvScalarMatrix pEqn
                 (
@@ -133,7 +131,7 @@ int main(int argc, char *argv[])
                 pEqn.setReference(pRefCell, pRefValue);
                 pEqn.solve();
 
-                if (nonOrth == simple.nNonOrthCorr())
+                if (simple.finalNonOrthogonalIter())
                 {
                     phi -= pEqn.flux();
                 }
@@ -148,8 +146,6 @@ int main(int argc, char *argv[])
             U -= rAU*fvc::grad(p);
             U.correctBoundaryConditions();
         }
-
-        pa.storePrevIter();
 
         // Adjoint Pressure-velocity SIMPLE corrector
         {
@@ -186,7 +182,7 @@ int main(int argc, char *argv[])
             adjustPhi(phia, Ua, pa);
 
             // Non-orthogonal pressure corrector loop
-            for (int nonOrth=0; nonOrth<=simple.nNonOrthCorr(); nonOrth++)
+            while (simple.correctNonOrthogonal())
             {
                 fvScalarMatrix paEqn
                 (
@@ -196,7 +192,7 @@ int main(int argc, char *argv[])
                 paEqn.setReference(paRefCell, paRefValue);
                 paEqn.solve();
 
-                if (nonOrth == simple.nNonOrthCorr())
+                if (simple.finalNonOrthogonalIter())
                 {
                     phia -= paEqn.flux();
                 }

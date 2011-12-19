@@ -101,7 +101,7 @@ public:
     TypeName("thermoBaffleModel");
 
 
-    // Declare runtime constructor selection table
+    // Declare runtime constructor selection tables
 
          declareRunTimeSelectionTable
          (
@@ -114,7 +114,6 @@ public:
              ),
              (modelType, mesh)
          );
-
 
          declareRunTimeSelectionTable
          (
@@ -166,9 +165,10 @@ public:
 
     // Member Functions
 
+
         // Access
 
-             //- Return solid thermo
+            //- Return solid thermo
             virtual const basicSolidThermo& thermo() const = 0;
 
             //- Return thickness
@@ -189,7 +189,7 @@ public:
                 return oneD_;
             }
 
-            //- Return if region has constant thickness
+             //- Return if region has constant thickness
             bool constantThickness() const
             {
                 return constantThickness_;

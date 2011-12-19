@@ -650,6 +650,9 @@ void Foam::addPatchCellLayer::calcSidePatch
     // ------------------------------------------------------
 
     const labelListList& edgeFaces = pp.edgeFaces();
+
+    DynamicList<label> dynMeshEdgeFaces;
+
     forAll(edgeFaces, edgeI)
     {
         if (edgeFaces[edgeI].size() == 1 && sidePatchID[edgeI] == -1)
@@ -660,7 +663,11 @@ void Foam::addPatchCellLayer::calcSidePatch
 
             // Pick up any boundary face on this edge and use its properties
             label meshEdgeI = meshEdges[edgeI];
-            const labelList& meshFaces = mesh.edgeFaces()[meshEdgeI];
+            const labelList& meshFaces = mesh.edgeFaces
+            (
+                meshEdgeI,
+                dynMeshEdgeFaces
+            );
 
             forAll(meshFaces, k)
             {
@@ -689,16 +696,21 @@ void Foam::addPatchCellLayer::calcSidePatch
 
 
     // Now hopefully every boundary edge has a side patch. Check
-    forAll(edgeFaces, edgeI)
+    if (debug)
     {
-        if (edgeFaces[edgeI].size() == 1 && sidePatchID[edgeI] == -1)
+        forAll(edgeFaces, edgeI)
         {
-            const edge& e = pp.edges()[edgeI];
-            FatalErrorIn("addPatchCellLayer::calcSidePatch(..)")
-                << "Have no sidePatchID for edge " << edgeI << " points "
-                << pp.points()[pp.meshPoints()[e[0]]]
-                << pp.points()[pp.meshPoints()[e[1]]]
-                << abort(FatalError);
+            if (edgeFaces[edgeI].size() == 1 && sidePatchID[edgeI] == -1)
+            {
+                const edge& e = pp.edges()[edgeI];
+                //FatalErrorIn("addPatchCellLayer::calcSidePatch(..)")
+                WarningIn("addPatchCellLayer::calcSidePatch(..)")
+                    << "Have no sidePatchID for edge " << edgeI << " points "
+                    << pp.points()[pp.meshPoints()[e[0]]]
+                    << pp.points()[pp.meshPoints()[e[1]]]
+                    //<< abort(FatalError);
+                    << endl;
+            }
         }
     }
 
@@ -708,7 +720,12 @@ void Foam::addPatchCellLayer::calcSidePatch
     // from.
     forAll(edgeFaces, edgeI)
     {
-        if (edgeFaces[edgeI].size() == 1 && inflateFaceI[edgeI] == -1)
+        if
+        (
+            edgeFaces[edgeI].size() == 1
+         && sidePatchID[edgeI] != -1
+         && inflateFaceI[edgeI] == -1
+        )
         {
             // 1. Do we have a boundary face to inflate from
 
@@ -716,7 +733,11 @@ void Foam::addPatchCellLayer::calcSidePatch
 
             // Pick up any boundary face on this edge and use its properties
             label meshEdgeI = meshEdges[edgeI];
-            const labelList& meshFaces = mesh.edgeFaces()[meshEdgeI];
+            const labelList& meshFaces = mesh.edgeFaces
+            (
+                meshEdgeI,
+                dynMeshEdgeFaces
+            );
 
             forAll(meshFaces, k)
             {
@@ -841,7 +862,7 @@ void Foam::addPatchCellLayer::setRefinement
         {
             labelList n(mesh_.nPoints(), 0);
             UIndirectList<label>(n, meshPoints) = nPointLayers;
-            syncTools::syncPointList(mesh_, n, maxEqOp<label>(), 0);
+            syncTools::syncPointList(mesh_, n, maxEqOp<label>(), label(0));
 
             // Non-synced
             forAll(meshPoints, i)
@@ -885,7 +906,7 @@ void Foam::addPatchCellLayer::setRefinement
                 mesh_,
                 nFromFace,
                 maxEqOp<label>(),
-                0
+                label(0)
             );
 
             forAll(nPointLayers, i)
@@ -1397,7 +1418,7 @@ void Foam::addPatchCellLayer::setRefinement
             mesh_,
             meshEdgeLayers,
             maxEqOp<label>(),
-            0                   // initial value
+            label(0)            // initial value
         );
 
         forAll(meshEdges, edgeI)

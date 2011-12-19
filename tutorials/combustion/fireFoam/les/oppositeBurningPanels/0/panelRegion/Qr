@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -38,7 +38,7 @@ boundaryField
 
     region0_to_panelRegion_left_face
     {
-        type            directMappedField;
+        type            mappedField;
         sampleRegion    region0;
         sampleMode      nearestPatchFace;
         samplePatch     region0_to_panelRegion_left_face;
@@ -51,7 +51,7 @@ boundaryField
 
     region0_to_panelRegion_right_face
     {
-        type            directMappedField;
+        type            mappedField;
         sampleRegion    region0;
         sampleMode      nearestPatchFace;
         samplePatch     region0_to_panelRegion_right_face;

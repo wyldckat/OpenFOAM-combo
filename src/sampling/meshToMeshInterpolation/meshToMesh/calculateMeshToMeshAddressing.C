@@ -102,7 +102,7 @@ void Foam::meshToMesh::calcAddressing()
 
     indexedOctree<treeDataCell> oc
     (
-        treeDataCell(false, fromMesh_),
+        treeDataCell(false, fromMesh_, polyMesh::FACEDIAGTETS),
         shiftedBb,      // overall bounding box
         8,              // maxLevel
         10,             // leafsize

@@ -27,7 +27,7 @@ License
 #include "meshSearch.H"
 #include "Tuple2.H"
 #include "globalIndex.H"
-#include "treeDataPolyMeshCell.H"
+#include "treeDataCell.H"
 #include "treeDataFace.H"
 #include "meshTools.H"
 
@@ -241,7 +241,7 @@ bool Foam::sampledTriSurfaceMesh::update()
     const pointField& fc = surface_.faceCentres();
 
     // Mesh search engine, no triangulation of faces.
-    meshSearch meshSearcher(mesh(), false);
+    meshSearch meshSearcher(mesh(), polyMesh::FACEPLANES);
 
 
     List<nearInfo> nearest(fc.size());
@@ -265,8 +265,7 @@ bool Foam::sampledTriSurfaceMesh::update()
     {
         // Search for nearest cell
 
-        const indexedOctree<treeDataPolyMeshCell>& cellTree =
-            meshSearcher.cellTree();
+        const indexedOctree<treeDataCell>& cellTree = meshSearcher.cellTree();
 
         forAll(fc, triI)
         {
@@ -436,7 +435,15 @@ bool Foam::sampledTriSurfaceMesh::update()
                 sampleElements_[pointI] = cellI;
 
                 // Check if point inside cell
-                if (mesh().pointInCell(pt, sampleElements_[pointI]))
+                if
+                (
+                    mesh().pointInCell
+                    (
+                        pt,
+                        sampleElements_[pointI],
+                        meshSearcher.decompMode()
+                    )
+                )
                 {
                     samplePoints_[pointI] = pt;
                 }

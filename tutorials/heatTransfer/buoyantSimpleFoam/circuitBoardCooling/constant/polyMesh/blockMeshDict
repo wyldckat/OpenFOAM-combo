@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.1.x                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -87,7 +87,7 @@ boundary
 
     baffle1Wall_0
     {
-        type            directMappedWall;
+        type            mappedWall;
         sampleMode      nearestPatchFace;
         sampleRegion    region0;
         samplePatch     baffle1Wall_1;
@@ -98,7 +98,7 @@ boundary
 
     baffle1Wall_1
     {
-        type            directMappedWall;
+        type            mappedWall;
         sampleMode      nearestPatchFace;
         sampleRegion    region0;
         samplePatch     baffle1Wall_0;

@@ -17,6 +17,7 @@ $(basicFvPatches)/generic/genericFvPatch.C
 
 constraintFvPatches = $(fvPatches)/constraint
 $(constraintFvPatches)/cyclic/cyclicFvPatch.C
+$(constraintFvPatches)/cyclicAMI/cyclicAMIFvPatch.C
 $(constraintFvPatches)/cyclicSlip/cyclicSlipFvPatch.C
 $(constraintFvPatches)/empty/emptyFvPatch.C
 $(constraintFvPatches)/nonuniformTransformCyclic/nonuniformTransformCyclicFvPatch.C
@@ -27,8 +28,8 @@ $(constraintFvPatches)/wedge/wedgeFvPatch.C
 
 derivedFvPatches = $(fvPatches)/derived
 $(derivedFvPatches)/wall/wallFvPatch.C
-$(derivedFvPatches)/directMapped/directMappedFvPatch.C
-$(derivedFvPatches)/directMapped/directMappedWallFvPatch.C
+$(derivedFvPatches)/mapped/mappedFvPatch.C
+$(derivedFvPatches)/mapped/mappedWallFvPatch.C
 
 wallDist = fvMesh/wallDist
 $(wallDist)/wallPointYPlus/wallPointYPlus.C
@@ -98,6 +99,7 @@ $(basicFvPatchFields)/zeroGradient/zeroGradientFvPatchFields.C
 
 constraintFvPatchFields = $(fvPatchFields)/constraint
 $(constraintFvPatchFields)/cyclic/cyclicFvPatchFields.C
+$(constraintFvPatchFields)/cyclicAMI/cyclicAMIFvPatchFields.C
 $(constraintFvPatchFields)/cyclicSlip/cyclicSlipFvPatchFields.C
 $(constraintFvPatchFields)/empty/emptyFvPatchFields.C
 $(constraintFvPatchFields)/jumpCyclic/jumpCyclicFvPatchFields.C
@@ -114,13 +116,14 @@ derivedFvPatchFields = $(fvPatchFields)/derived
 $(derivedFvPatchFields)/activeBaffleVelocity/activeBaffleVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/activePressureForceBaffleVelocity/activePressureForceBaffleVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/advective/advectiveFvPatchFields.C
+$(derivedFvPatchFields)/codedMixed/codedMixedFvPatchFields.C
 $(derivedFvPatchFields)/codedFixedValue/codedFixedValueFvPatchFields.C
-$(derivedFvPatchFields)/directMappedField/directMappedFieldFvPatchFields.C
-$(derivedFvPatchFields)/directMappedFixedInternalValue/directMappedFixedInternalValueFvPatchFields.C
-$(derivedFvPatchFields)/directMappedFixedPushedInternalValue/directMappedFixedPushedInternalValueFvPatchFields.C
-$(derivedFvPatchFields)/directMappedFixedValue/directMappedFixedValueFvPatchFields.C
-$(derivedFvPatchFields)/directMappedVelocityFluxFixedValue/directMappedVelocityFluxFixedValueFvPatchField.C
-$(derivedFvPatchFields)/directMappedFlowRate/directMappedFlowRateFvPatchVectorField.C
+$(derivedFvPatchFields)/mappedField/mappedFieldFvPatchFields.C
+$(derivedFvPatchFields)/mappedFixedInternalValue/mappedFixedInternalValueFvPatchFields.C
+$(derivedFvPatchFields)/mappedFixedPushedInternalValue/mappedFixedPushedInternalValueFvPatchFields.C
+$(derivedFvPatchFields)/mappedFixedValue/mappedFixedValueFvPatchFields.C
+$(derivedFvPatchFields)/mappedVelocityFluxFixedValue/mappedVelocityFluxFixedValueFvPatchField.C
+$(derivedFvPatchFields)/mappedFlowRate/mappedFlowRateFvPatchVectorField.C
 $(derivedFvPatchFields)/fan/fanFvPatchFields.C
 $(derivedFvPatchFields)/fanPressure/fanPressureFvPatchScalarField.C
 $(derivedFvPatchFields)/buoyantPressure/buoyantPressureFvPatchScalarField.C
@@ -144,30 +147,29 @@ $(derivedFvPatchFields)/pressureDirectedInletOutletVelocity/pressureDirectedInle
 $(derivedFvPatchFields)/pressureNormalInletOutletVelocity/pressureNormalInletOutletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/pressureDirectedInletVelocity/pressureDirectedInletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/pressureInletOutletVelocity/pressureInletOutletVelocityFvPatchVectorField.C
+$(derivedFvPatchFields)/pressureInletOutletParSlipVelocity/pressureInletOutletParSlipVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/pressureInletUniformVelocity/pressureInletUniformVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/pressureInletVelocity/pressureInletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/rotatingPressureInletOutletVelocity/rotatingPressureInletOutletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/rotatingTotalPressure/rotatingTotalPressureFvPatchScalarField.C
-$(derivedFvPatchFields)/selfContainedDirectMapped/selfContainedDirectMappedFixedValueFvPatchFields.C
 $(derivedFvPatchFields)/slip/slipFvPatchFields.C
 $(derivedFvPatchFields)/supersonicFreestream/supersonicFreestreamFvPatchVectorField.C
 $(derivedFvPatchFields)/surfaceNormalFixedValue/surfaceNormalFixedValueFvPatchVectorField.C
 $(derivedFvPatchFields)/syringePressure/syringePressureFvPatchScalarField.C
 $(derivedFvPatchFields)/timeVaryingMappedFixedValue/AverageIOFields.C
 $(derivedFvPatchFields)/timeVaryingMappedFixedValue/timeVaryingMappedFixedValueFvPatchFields.C
-$(derivedFvPatchFields)/timeVaryingFlowRateInletVelocity/timeVaryingFlowRateInletVelocityFvPatchVectorField.C
-$(derivedFvPatchFields)/timeVaryingUniformFixedValue/timeVaryingUniformFixedValueFvPatchFields.C
 $(derivedFvPatchFields)/totalPressure/totalPressureFvPatchScalarField.C
-$(derivedFvPatchFields)/timeVaryingUniformTotalPressure/timeVaryingUniformTotalPressureFvPatchScalarField.C
 $(derivedFvPatchFields)/totalTemperature/totalTemperatureFvPatchScalarField.C
 $(derivedFvPatchFields)/turbulentInlet/turbulentInletFvPatchFields.C
 $(derivedFvPatchFields)/turbulentIntensityKineticEnergyInlet/turbulentIntensityKineticEnergyInletFvPatchScalarField.C
 $(derivedFvPatchFields)/uniformFixedValue/uniformFixedValueFvPatchFields.C
+$(derivedFvPatchFields)/uniformTotalPressure/uniformTotalPressureFvPatchScalarField.C
 $(derivedFvPatchFields)/waveTransmissive/waveTransmissiveFvPatchFields.C
 $(derivedFvPatchFields)/uniformDensityHydrostaticPressure/uniformDensityHydrostaticPressureFvPatchScalarField.C
 $(derivedFvPatchFields)/swirlFlowRateInletVelocity/swirlFlowRateInletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/cylindricalInletVelocity/cylindricalInletVelocityFvPatchVectorField.C
 $(derivedFvPatchFields)/outletMappedUniformInlet/outletMappedUniformInletFvPatchFields.C
+$(derivedFvPatchFields)/waveSurfacePressure/waveSurfacePressureFvPatchScalarField.C
 
 
 fvsPatchFields = fields/fvsPatchFields
@@ -181,6 +183,7 @@ $(basicFvsPatchFields)/sliced/slicedFvsPatchFields.C
 
 constraintFvsPatchFields = $(fvsPatchFields)/constraint
 $(constraintFvsPatchFields)/cyclic/cyclicFvsPatchFields.C
+$(constraintFvsPatchFields)/cyclicAMI/cyclicAMIFvsPatchFields.C
 $(constraintFvsPatchFields)/cyclicSlip/cyclicSlipFvsPatchFields.C
 $(constraintFvsPatchFields)/empty/emptyFvsPatchFields.C
 $(constraintFvsPatchFields)/nonuniformTransformCyclic/nonuniformTransformCyclicFvsPatchFields.C
@@ -277,6 +280,7 @@ $(limitedSchemes)/limitWith/limitWith.C
 multivariateSchemes = $(surfaceInterpolation)/multivariateSchemes
 $(multivariateSchemes)/multivariateSurfaceInterpolationScheme/multivariateSurfaceInterpolationSchemes.C
 $(multivariateSchemes)/multivariateSelectionScheme/multivariateSelectionSchemes.C
+$(multivariateSchemes)/multivariateIndependentScheme/multivariateIndependentSchemes.C
 $(multivariateSchemes)/upwind/multivariateUpwind.C
 $(multivariateSchemes)/Gamma/multivariateGamma.C
 $(multivariateSchemes)/vanLeer/multivariateVanLeer.C
@@ -331,6 +335,7 @@ $(snGradSchemes)/snGradScheme/snGradSchemes.C
 $(snGradSchemes)/correctedSnGrad/correctedSnGrads.C
 $(snGradSchemes)/limitedSnGrad/limitedSnGrads.C
 $(snGradSchemes)/uncorrectedSnGrad/uncorrectedSnGrads.C
+$(snGradSchemes)/orthogonalSnGrad/orthogonalSnGrads.C
 /*
 $(snGradSchemes)/quadraticFitSnGrad/quadraticFitSnGradData.C
 $(snGradSchemes)/quadraticFitSnGrad/quadraticFitSnGrads.C
@@ -373,19 +378,19 @@ $(SRF)/SRFModel/rpm/rpm.C
 $(SRF)/derivedFvPatchFields/SRFVelocityFvPatchVectorField/SRFVelocityFvPatchVectorField.C
 $(SRF)/derivedFvPatchFields/SRFFreestreamVelocityFvPatchVectorField/SRFFreestreamVelocityFvPatchVectorField.C
 
-fieldSources = $(general)/fieldSources
-$(fieldSources)/pressureGradientExplicitSource/pressureGradientExplicitSource.C
-$(fieldSources)/timeActivatedExplicitSource/timeActivatedExplicitSource.C
-
 basicSource = $(general)/fieldSources/basicSource
 $(basicSource)/basicSource/basicSource.C
 $(basicSource)/basicSource/basicSourceIO.C
 $(basicSource)/basicSource/basicSourceList.C
 $(basicSource)/basicSource/IObasicSourceList.C
-$(basicSource)/actuationDiskSource/actuationDiskSource.C
-$(basicSource)/radialActuationDiskSource/radialActuationDiskSource.C
+
+$(basicSource)/pressureGradientExplicitSource/pressureGradientExplicitSource.C
+$(basicSource)/pressureGradientExplicitSource/pressureGradientExplicitSourceIO.C
+
 $(basicSource)/explicitSource/explicitSource.C
 $(basicSource)/explicitSetValue/explicitSetValue.C
 
+$(basicSource)/actuationDiskSource/actuationDiskSource.C
+$(basicSource)/radialActuationDiskSource/radialActuationDiskSource.C
 
 LIB = $(FOAM_LIBBIN)/libfiniteVolume

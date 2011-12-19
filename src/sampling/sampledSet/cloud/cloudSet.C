@@ -51,14 +51,9 @@ void Foam::cloudSet::calcSamples
     DynamicList<scalar>& samplingCurveDist
 ) const
 {
-    // Force calculation of face-diagonals
-    (void)mesh().tetBasePtIs();
-
-    const meshSearch& queryMesh = searchEngine();
-
     forAll(sampleCoords_, sampleI)
     {
-        label cellI = queryMesh.findCell(sampleCoords_[sampleI]);
+        label cellI = searchEngine().findCell(sampleCoords_[sampleI]);
 
         if (cellI != -1)
         {
