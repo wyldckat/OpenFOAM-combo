@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,31 @@ License
 Class
     Foam::cyclicAMIFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::cyclicAMIFvPatchField
+    This boundary condition enforces a cyclic condition between a pair of
+    boundaries, whereby communication between the patches is performed using
+    an arbitrary mesh interface (AMI) interpolation.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            cyclicAMI;
+    }
+    \endverbatim
+
+Note
+    The outer boundary of the patch pairs must be similar, i.e. if the owner
+    patch is transformed to the neighbour patch, the outer perimiter of each
+    patch should be identical (or very similar).
+
+SeeAlso
+    Foam::AMIInterpolation
 
 SourceFiles
     cyclicAMIFvPatchField.C
@@ -160,11 +183,19 @@ public:
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
             (
-                const scalarField& psiInternal,
                 scalarField& result,
-                const lduMatrix&,
+                const scalarField& psiInternal,
                 const scalarField& coeffs,
                 const direction cmpt,
+                const Pstream::commsTypes commsType
+            ) const;
+
+            //- Update result field based on interface functionality
+            virtual void updateInterfaceMatrix
+            (
+                Field<Type>&,
+                const Field<Type>&,
+                const scalarField&,
                 const Pstream::commsTypes commsType
             ) const;
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,9 +38,10 @@ SourceFiles
 #ifndef ODESolidChemistryModel_H
 #define ODESolidChemistryModel_H
 
-#include "solidReaction.H"
+#include "Reaction.H"
 #include "ODE.H"
 #include "volFieldsFwd.H"
+#include "DimensionedField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -71,11 +72,11 @@ protected:
         //- Reference to solid mass fractions
         PtrList<volScalarField>& Ys_;
 
+        //- Reactions
+        const PtrList<Reaction<SolidThermo> >& reactions_;
+
         //- List of gas species present in reaction system
         speciesTable pyrolisisGases_;
-
-        //- Reactions
-        const PtrList<solidReaction>& reactions_;
 
         //- Thermodynamic data of solids
         const PtrList<SolidThermo>& solidThermo_;
@@ -96,19 +97,19 @@ protected:
         label nReaction_;
 
         //- List of reaction rate per solid [kg/m3/s]
-        PtrList<scalarField> RRs_;
+        PtrList<DimensionedField<scalar, volMesh> > RRs_;
 
         //- List of reaction rate per gas [kg/m3/s]
-        PtrList<scalarField> RRg_;
+        PtrList<DimensionedField<scalar, volMesh> > RRg_;
 
 
     // Protected Member Functions
 
         //- Write access to source terms for solids
-        inline PtrList<scalarField>& RRs();
+        inline PtrList<DimensionedField<scalar, volMesh> >& RRs();
 
         //- Write access to source terms for gases
-        inline PtrList<scalarField>& RRg();
+        inline PtrList<DimensionedField<scalar, volMesh> >& RRg();
 
 
 private:
@@ -137,13 +138,8 @@ public:
 
     // Constructors
 
-        //- Construct from components
-        ODESolidChemistryModel
-        (
-            const fvMesh& mesh,
-            const word& compTypeName,
-            const word& SolidThermoName
-        );
+        //- Construct from mesh
+        ODESolidChemistryModel(const fvMesh& mesh);
 
 
     //- Destructor
@@ -153,7 +149,7 @@ public:
     // Member Functions
 
         //- The reactions
-        inline const PtrList<solidReaction>& reactions() const;
+        inline const PtrList<Reaction<SolidThermo> >& reactions() const;
 
         //- Thermodynamic data of gases
         inline const PtrList<GasThermo>& gasThermo() const;
@@ -184,7 +180,7 @@ public:
         //  species and charateristic times
         virtual scalar omega
         (
-            const solidReaction& r,
+            const Reaction<SolidThermo>& r,
             const scalarField& c,
             const scalar T,
             const scalar p,
@@ -203,23 +199,33 @@ public:
         // Chemistry model functions
 
             //- Return const access to the chemical source terms for solids
-            inline tmp<volScalarField> RRs(const label i) const;
+            inline const DimensionedField<scalar, volMesh>& RRs
+            (
+                const label i
+            ) const;
 
             //- Return const access to the chemical source terms for gases
-            inline tmp<volScalarField> RRg(const label i) const;
+            inline const DimensionedField<scalar, volMesh>& RRg
+            (
+                const label i
+            ) const;
 
             //- Return total gas source term
-            inline tmp<volScalarField> RRg() const;
+            inline tmp<DimensionedField<scalar, volMesh> > RRg() const;
 
             //- Return total solid source term
-            inline tmp<volScalarField> RRs() const;
+            inline tmp<DimensionedField<scalar, volMesh> > RRs() const;
 
             //- Return const access to the total source terms
-            inline tmp<volScalarField> RR(const label i) const;
+            inline const DimensionedField<scalar, volMesh>& RR
+            (
+                const label i
+            ) const;
 
             //- Return sensible enthalpy for gas i [J/Kg]
             virtual tmp<volScalarField> gasHs
             (
+                const volScalarField& p,
                 const volScalarField& T,
                 const label i
             ) const;

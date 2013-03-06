@@ -38,7 +38,6 @@ Description
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,12 +34,68 @@ License
 #include "globalIndex.H"
 #include "mapDistribute.H"
 #include "interpolationCellPoint.H"
+#include "PatchTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::streamLine, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(streamLine, 0);
+}
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+Foam::autoPtr<Foam::indirectPrimitivePatch>
+Foam::streamLine::wallPatch() const
+{
+    const fvMesh& mesh = dynamic_cast<const fvMesh&>(obr_);
+
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
+
+    label nFaces = 0;
+
+    forAll(patches, patchI)
+    {
+        //if (!polyPatch::constraintType(patches[patchI].type()))
+        if (isA<wallPolyPatch>(patches[patchI]))
+        {
+            nFaces += patches[patchI].size();
+        }
+    }
+
+    labelList addressing(nFaces);
+
+    nFaces = 0;
+
+    forAll(patches, patchI)
+    {
+        //if (!polyPatch::constraintType(patches[patchI].type()))
+        if (isA<wallPolyPatch>(patches[patchI]))
+        {
+            const polyPatch& pp = patches[patchI];
+
+            forAll(pp, i)
+            {
+                addressing[nFaces++] = pp.start()+i;
+            }
+        }
+    }
+
+    return autoPtr<indirectPrimitivePatch>
+    (
+        new indirectPrimitivePatch
+        (
+            IndirectList<face>
+            (
+                mesh.faces(),
+                addressing
+            ),
+            mesh.points()
+        )
+    );
+}
+
 
 void Foam::streamLine::track()
 {
@@ -72,7 +128,7 @@ void Foam::streamLine::track()
 
     label nSeeds = returnReduce(particles.size(), sumOp<label>());
 
-    Info<< "Seeded " << nSeeds << " particles." << endl;
+    Info<< type() << " : seeded " << nSeeds << " particles." << endl;
 
     // Read or lookup fields
     PtrList<volScalarField> vsFlds;
@@ -163,7 +219,6 @@ void Foam::streamLine::track()
                 vsInterp.set
                 (
                     nScalar++,
-                    //new interpolationCellPoint<scalar>(f)
                     interpolation<scalar>::New
                     (
                         interpolationScheme_,
@@ -186,7 +241,6 @@ void Foam::streamLine::track()
                 vvInterp.set
                 (
                     nVector++,
-                    //new interpolationCellPoint<vector>(f)
                     interpolation<vector>::New
                     (
                         interpolationScheme_,
@@ -241,6 +295,7 @@ void Foam::streamLine::track()
         allVectors_[i].setCapacity(nSeeds);
     }
 
+
     // additional particle info
     streamLineParticle::trackingData td
     (
@@ -248,8 +303,10 @@ void Foam::streamLine::track()
         vsInterp,
         vvInterp,
         UIndex,         // index of U in vvInterp
-        trackForward_,  // track in +u direction
-        nSubCycle_,     // step through cells in steps?
+        trackForward_,  // track in +u direction?
+        nSubCycle_,     // automatic track control:step through cells in steps?
+        trackLength_,   // fixed track length
+
         allTracks_,
         allScalars_,
         allVectors_
@@ -279,7 +336,8 @@ Foam::streamLine::streamLine
     name_(name),
     obr_(obr),
     loadFromFiles_(loadFromFiles),
-    active_(true)
+    active_(true),
+    nSubCycle_(0)
 {
     // Only active if a fvMesh is available
     if (isA<fvMesh>(obr_))
@@ -334,6 +392,16 @@ void Foam::streamLine::read(const dictionary& dict)
                 dict.lookup("U") >> UName_;
             }
         }
+
+        if (findIndex(fields_, UName_) == -1)
+        {
+            FatalIOErrorIn("streamLine::read(const dictionary&)", dict)
+                << "Velocity field for tracking " << UName_
+                << " should be present in the list of fields " << fields_
+                << exit(FatalIOError);
+        }
+
+
         dict.lookup("trackForward") >> trackForward_;
         dict.lookup("lifeTime") >> lifeTime_;
         if (lifeTime_ < 1)
@@ -343,11 +411,39 @@ void Foam::streamLine::read(const dictionary& dict)
                 << exit(FatalError);
         }
 
-        dict.lookup("nSubCycle") >> nSubCycle_;
-        if (nSubCycle_ < 1)
+
+        bool subCycling = dict.found("nSubCycle");
+        bool fixedLength = dict.found("trackLength");
+
+        if (subCycling && fixedLength)
         {
-            nSubCycle_ = 1;
+            FatalIOErrorIn("streamLine::read(const dictionary&)", dict)
+                << "Cannot both specify automatic time stepping (through '"
+                << "nSubCycle' specification) and fixed track length (through '"
+                << "trackLength')"
+                << exit(FatalIOError);
         }
+
+
+        nSubCycle_ = 1;
+        if (dict.readIfPresent("nSubCycle", nSubCycle_))
+        {
+            trackLength_ = VGREAT;
+            if (nSubCycle_ < 1)
+            {
+                nSubCycle_ = 1;
+            }
+            Info<< type() << " : automatic track length specified through"
+                << " number of sub cycles : " << nSubCycle_ << nl << endl;
+        }
+        else
+        {
+            dict.lookup("trackLength") >> trackLength_;
+
+            Info<< type() << " : fixed track length specified : "
+                << trackLength_ << nl << endl;
+        }
+
 
         interpolationScheme_ = dict.lookupOrDefault
         (
@@ -537,8 +633,8 @@ void Foam::streamLine::write()
             fileName vtkPath
             (
                 Pstream::parRun()
-              ? runTime.path()/".."/"sets"/name()
-              : runTime.path()/"sets"/name()
+              ? runTime.path()/".."/"postProcessing"/"sets"/name()
+              : runTime.path()/"postProcessing"/"sets"/name()
             );
             if (mesh.name() != fvMesh::defaultRegion)
             {
@@ -657,7 +753,7 @@ void Foam::streamLine::updateMesh(const mapPolyMesh&)
 }
 
 
-void Foam::streamLine::movePoints(const pointField&)
+void Foam::streamLine::movePoints(const polyMesh&)
 {
     // Moving mesh affects the search tree
     read(dict_);

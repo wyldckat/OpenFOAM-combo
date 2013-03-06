@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ Description
 #include "singlePhaseTransportModel.H"
 #include "LESModel.H"
 
-#include "MRFZones.H"
+#include "IOMRFZoneList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -82,7 +82,6 @@ int main(int argc, char *argv[])
             rho = fluid.rho();
             #include "zonePhaseVolumes.H"
 
-            //#include "TEqns.H"
             #include "UEqns.H"
 
             // --- Pressure corrector loop

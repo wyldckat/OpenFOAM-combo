@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -273,6 +273,12 @@ public:
             virtual void rename(const word& newName)
             {
                 name_ = newName;
+            }
+
+            //- Register object created from this IOobject with registry if true
+            bool& registerObject()
+            {
+                return registerObject_;
             }
 
             //- Register object created from this IOobject with registry if true

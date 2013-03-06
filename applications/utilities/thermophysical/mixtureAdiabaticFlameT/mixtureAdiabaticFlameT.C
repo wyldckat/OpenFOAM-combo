@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,15 +35,17 @@ Description
 #include "IFstream.H"
 #include "OSspecific.H"
 
-#include "specieThermo.H"
-#include "janafThermo.H"
+#include "specie.H"
 #include "perfectGas.H"
+#include "thermo.H"
+#include "janafThermo.H"
+#include "absoluteEnthalpy.H"
 #include "mixture.H"
 
 using namespace Foam;
 
-typedef specieThermo<janafThermo<perfectGas> > thermo;
-
+typedef species::thermo<janafThermo<perfectGas<specie> >, absoluteEnthalpy>
+    thermo;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -68,54 +70,55 @@ int main(int argc, char *argv[])
     dictionary control(controlFile);
 
 
+    scalar P(readScalar(control.lookup("P")));
     scalar T0(readScalar(control.lookup("T0")));
     mixture rMix(control.lookup("reactants"));
     mixture pMix(control.lookup("products"));
 
 
-    Info<< nl << "Reading Burcat data dictionary" << endl;
+    Info<< nl << "Reading thermodynamic data dictionary" << endl;
 
-    fileName BurcatCpDataFileName(findEtcFile("thermoData/BurcatCpData"));
+    fileName thermoDataFileName(findEtcFile("thermoData/thermoData"));
 
     // Construct control dictionary
-    IFstream BurcatCpDataFile(BurcatCpDataFileName);
+    IFstream thermoDataFile(thermoDataFileName);
 
-    // Check BurcatCpData stream is OK
-    if (!BurcatCpDataFile.good())
+    // Check thermoData stream is OK
+    if (!thermoDataFile.good())
     {
         FatalErrorIn(args.executable())
-            << "Cannot read file " << BurcatCpDataFileName
+            << "Cannot read file " << thermoDataFileName
             << abort(FatalError);
     }
 
-    dictionary CpData(BurcatCpDataFile);
+    dictionary thermoData(thermoDataFile);
 
 
     thermo reactants
     (
-        rMix[0].volFrac()*thermo(CpData.lookup(rMix[0].name()))
+        rMix[0].volFrac()*thermo(thermoData.subDict(rMix[0].name()))
     );
 
     for (label i = 1; i < rMix.size(); i++)
     {
         reactants = reactants
-            + rMix[i].volFrac()*thermo(CpData.lookup(rMix[i].name()));
+            + rMix[i].volFrac()*thermo(thermoData.subDict(rMix[i].name()));
     }
 
 
     thermo products
     (
-        2*pMix[0].volFrac()*thermo(CpData.lookup(pMix[0].name()))
+        2*pMix[0].volFrac()*thermo(thermoData.subDict(pMix[0].name()))
     );
 
     for (label i = 1; i < pMix.size(); i++)
     {
         products = products
-            + 2*pMix[i].volFrac()*thermo(CpData.lookup(pMix[i].name()));
+            + 2*pMix[i].volFrac()*thermo(thermoData.subDict(pMix[i].name()));
     }
 
     Info<< "Adiabatic flame temperature of mixture " << rMix.name() << " = "
-         << products.TH(reactants.H(T0), 1000.0) << " K" << endl;
+         << products.THa(reactants.Ha(P, T0), P, 1000.0) << " K" << endl;
 
     return 0;
 }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,11 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::vtkPV3Foam, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(vtkPV3Foam, 0);
+}
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -85,8 +89,6 @@ void Foam::vtkPV3Foam::reduceMemory()
         meshPtr_ = NULL;
     }
 }
-
-
 
 
 int Foam::vtkPV3Foam::setTime(int nRequest, const double requestTimes[])
@@ -213,6 +215,7 @@ void Foam::vtkPV3Foam::updateMeshPartsStatus()
         Info<< "<end> Foam::vtkPV3Foam::updateMeshPartsStatus" << endl;
     }
 }
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -378,7 +381,7 @@ void Foam::vtkPV3Foam::updateInfo()
 
     // Update mesh parts list - add Lagrangian at the bottom
     updateInfoInternalMesh(partSelection);
-    updateInfoPatches(partSelection);
+    updateInfoPatches(partSelection, enabledEntries);
     updateInfoSets(partSelection);
     updateInfoZones(partSelection);
     updateInfoLagrangian(partSelection);
@@ -576,7 +579,7 @@ double* Foam::vtkPV3Foam::findTimes(int& nTimeSteps)
         // skip "constant" time whenever possible
         if (timeI == 0 && nTimes > 1)
         {
-            if (timeLst[timeI].name() == "constant")
+            if (timeLst[timeI].name() == runTime.constant())
             {
                 ++timeI;
                 --nTimes;
@@ -812,7 +815,6 @@ void Foam::vtkPV3Foam::renderPatchNames(vtkRenderer* renderer, const bool show)
 }
 
 
-
 void Foam::vtkPV3Foam::PrintSelf(ostream& os, vtkIndent indent) const
 {
     os  << indent << "Number of nodes: "
@@ -822,9 +824,10 @@ void Foam::vtkPV3Foam::PrintSelf(ostream& os, vtkIndent indent) const
         << (meshPtr_ ? meshPtr_->nCells() : 0) << "\n";
 
     os  << indent << "Number of available time steps: "
-        << (dbPtr_.valid() ? dbPtr_().times().size() : 0) << endl;
+        << (dbPtr_.valid() ? dbPtr_().times().size() : 0) << "\n";
 
     os  << indent << "mesh region: " << meshRegion_ << "\n";
 }
+
 
 // ************************************************************************* //

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -248,12 +248,7 @@ public:
     // Constructors
 
         //- Construct from components
-        ThermoSurfaceFilm
-        (
-            const dictionary& dict,
-            CloudType& owner,
-            const dimensionedVector& g
-        );
+        ThermoSurfaceFilm(const dictionary& dict, CloudType& owner);
 
         //- Construct copy
         ThermoSurfaceFilm(const ThermoSurfaceFilm<CloudType>& sfm);
@@ -289,7 +284,7 @@ public:
         // I-O
 
             //- Write surface film info to stream
-            virtual void info(Ostream& os) const;
+            virtual void info(Ostream& os);
 };
 
 

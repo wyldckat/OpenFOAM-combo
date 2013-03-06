@@ -22,12 +22,28 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::incompressible::RASModels::nutWallFunctionFvPatchScalarField
+    Foam::incompressible::nutWallFunctionFvPatchScalarField
+
+Group
+    grpIcoWallFunctions
 
 Description
-    Boundary condition for turbulent (kinematic) viscosity when using wall
-    functions, based on turbulence kinetic energy.
+    This boundary condition provides a turbulent kinematic viscosity condition
+    when using wall functions, based on turbulence kinetic energy.
     - replicates OpenFOAM v1.5 (and earlier) behaviour
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            nutWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::fixedValueFvPatchField
 
 SourceFiles
     nutWallFunctionFvPatchScalarField.C
@@ -44,8 +60,6 @@ SourceFiles
 namespace Foam
 {
 namespace incompressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -157,7 +171,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace incompressible
 } // End namespace Foam
 

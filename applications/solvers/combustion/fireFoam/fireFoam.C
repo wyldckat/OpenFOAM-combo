@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,6 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
-#include "mapDistribute.H"
 #include "fvCFD.H"
 #include "turbulenceModel.H"
 #include "basicReactingCloud.H"
@@ -41,6 +40,7 @@ Description
 #include "solidChemistryModel.H"
 #include "psiCombustionModel.H"
 #include "pimpleControl.H"
+#include "fvIOoptionList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
+    #include "createFvOptions.H"
     #include "createClouds.H"
     #include "createSurfaceFilmModel.H"
     #include "createPyrolysisModel.H"
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
             while (pimple.loop())
             {
                 #include "UEqn.H"
-                #include "YhsEqn.H"
+                #include "YEEqn.H"
 
                 // --- Pressure corrector loop
                 while (pimple.correct())

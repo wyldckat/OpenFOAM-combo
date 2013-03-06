@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,24 +27,44 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class ReactionThermo, class ReactionRate>
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::
 NonEquilibriumReversibleReaction
 (
-    const Reaction<ReactionThermo>& reaction,
+    const ReactionType<ReactionThermo>& reaction,
     const ReactionRate& forwardReactionRate,
     const ReactionRate& reverseReactionRate
 )
 :
-    Reaction<ReactionThermo>(reaction),
+    ReactionType<ReactionThermo>(reaction),
     fk_(forwardReactionRate),
     rk_(reverseReactionRate)
 {}
 
 
 
-template<class ReactionThermo, class ReactionRate>
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::
 NonEquilibriumReversibleReaction
 (
     const speciesTable& species,
@@ -52,14 +72,24 @@ NonEquilibriumReversibleReaction
     Istream& is
 )
 :
-    Reaction<ReactionThermo>(species, thermoDatabase, is),
+    ReactionType<ReactionThermo>(species, thermoDatabase, is),
     fk_(species, is),
     rk_(species, is)
 {}
 
 
-template<class ReactionThermo, class ReactionRate>
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::
 NonEquilibriumReversibleReaction
 (
     const speciesTable& species,
@@ -67,21 +97,36 @@ NonEquilibriumReversibleReaction
     const dictionary& dict
 )
 :
-    Reaction<ReactionThermo>(species, thermoDatabase, dict),
+    ReactionType<ReactionThermo>(species, thermoDatabase, dict),
     fk_(species, dict.subDict("forward")),
     rk_(species, dict.subDict("reverse"))
 {}
 
 
-template<class ReactionThermo, class ReactionRate>
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::
 NonEquilibriumReversibleReaction
 (
-    const NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>& nerr,
+    const NonEquilibriumReversibleReaction
+    <
+        ReactionType,
+        ReactionThermo,
+        ReactionRate
+    >& nerr,
     const speciesTable& species
 )
 :
-    Reaction<ReactionThermo>(nerr, species),
+    ReactionType<ReactionThermo>(nerr, species),
     fk_(nerr.fk_),
     rk_(nerr.rk_)
 {}
@@ -89,53 +134,93 @@ NonEquilibriumReversibleReaction
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class ReactionThermo, class ReactionRate>
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
 Foam::scalar
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::kf
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::kf
 (
-    const scalar T,
     const scalar p,
+    const scalar T,
     const scalarField& c
 ) const
 {
-    return fk_(T, p, c);
+    return fk_(p, T, c);
 }
 
 
-template<class ReactionThermo, class ReactionRate>
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
 Foam::scalar
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::kr
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::kr
 (
     const scalar,
-    const scalar T,
     const scalar p,
+    const scalar T,
     const scalarField& c
 ) const
 {
-    return rk_(T, p, c);
+    return rk_(p, T, c);
 }
 
 
-template<class ReactionThermo, class ReactionRate>
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
 Foam::scalar
-Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::kr
+Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::kr
 (
-    const scalar T,
     const scalar p,
+    const scalar T,
     const scalarField& c
 ) const
 {
-    return rk_(T, p, c);
+    return rk_(p, T, c);
 }
 
 
-template<class ReactionThermo, class ReactionRate>
-void Foam::NonEquilibriumReversibleReaction<ReactionThermo, ReactionRate>::write
+template
+<
+    template<class> class ReactionType,
+    class ReactionThermo,
+    class ReactionRate
+>
+void Foam::NonEquilibriumReversibleReaction
+<
+    ReactionType,
+    ReactionThermo,
+    ReactionRate
+>::write
 (
     Ostream& os
 ) const
 {
-    Reaction<ReactionThermo>::write(os);
+    ReactionType<ReactionThermo>::write(os);
 
     os  << indent << "forward" << nl;
     os  << indent << token::BEGIN_BLOCK << nl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -196,12 +196,15 @@ protected:
         (
             TrackData& td,
             const scalar dt,           // timestep
-            const scalar Ts,           // Surface temperature
+            const scalar age,          // age
+            const scalar Ts,           // surface temperature
             const scalar d,            // diameter
             const scalar T,            // temperature
             const scalar mass,         // mass
             const scalar mass0,        // mass (initial on injection)
-            const scalarField& YGasEff,// Gas component mass fractions
+            const scalarField& YGasEff,// gas component mass fractions
+            const scalarField& YLiquidEff,// liquid component mass fractions
+            const scalarField& YSolidEff,// solid component mass fractions
             bool& canCombust,          // 'can combust' flag
             scalarField& dMassDV,      // mass transfer - local to particle
             scalar& Sh,                // explicit particle enthalpy source
@@ -239,11 +242,17 @@ public:
 
     // Static data members
 
-        //- String representation of properties
-        static string propHeader;
-
         //- Runtime type information
         TypeName("ReactingMultiphaseParcel");
+
+        //- String representation of properties
+        AddToPropertyList
+        (
+            ParcelType,
+            " nGas(Y1..YN)"
+          + " nLiquid(Y1..YN)"
+          + " nSolid(Y1..YN)"
+        );
 
 
     // Constructors

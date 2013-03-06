@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,18 +25,17 @@ License
 #include "PaSR.H"
 #include "fvmSup.H"
 
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class CombThermoType>
-Foam::combustionModels::PaSR<CombThermoType>::PaSR
+template<class Type>
+Foam::combustionModels::PaSR<Type>::PaSR
 (
     const word& modelType,
     const fvMesh& mesh
 )
 :
-    CombThermoType(modelType, mesh),
-    Cmix_(this->coeffs().lookup("Cmix")),
+    Type(modelType, mesh),
+    Cmix_(readScalar(this->coeffs().lookup("Cmix"))),
     turbulentReaction_(this->coeffs().lookup("turbulentReaction")),
     kappa_
     (
@@ -52,43 +51,45 @@ Foam::combustionModels::PaSR<CombThermoType>::PaSR
         dimensionedScalar("kappa", dimless, 0.0)
     ),
     useReactionRate_(this->coeffs().lookupOrDefault("useReactionRate", false))
-{}
+{
+    if (useReactionRate_)
+    {
+        Info<< "    using reaction rate" << endl;
+    }
+}
 
 
-// * * * * * * * * * * * * * * * * Destructors * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-template<class CombThermoType>
-Foam::combustionModels::PaSR<CombThermoType>::~PaSR()
+template<class Type>
+Foam::combustionModels::PaSR<Type>::~PaSR()
 {}
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-
-template<class CombThermoType>
-Foam::tmp<Foam::volScalarField>
-Foam::combustionModels::PaSR<CombThermoType>::tc() const
+template<class Type>
+Foam::tmp<Foam::volScalarField> Foam::combustionModels::PaSR<Type>::tc() const
 {
-    return this->pChemistry_->tc();
+    return this->chemistryPtr_->tc();
 }
 
 
-template<class CombThermoType>
-void Foam::combustionModels::PaSR<CombThermoType>::correct()
+template<class Type>
+void Foam::combustionModels::PaSR<Type>::correct()
 {
     if (this->active())
     {
+        const scalar t = this->mesh().time().value();
+        const scalar dt = this->mesh().time().deltaTValue();
+
         if (!useReactionRate_)
         {
-            this->pChemistry_->solve
-            (
-                this->mesh().time().value()-this->mesh().time().deltaTValue(),
-                this->mesh().time().deltaTValue()
-            );
+            this->chemistryPtr_->solve(t - dt, dt);
         }
         else
         {
-            this->pChemistry_->calculate();
+            this->chemistryPtr_->calculate();
         }
 
         if (turbulentReaction_)
@@ -99,18 +100,16 @@ void Foam::combustionModels::PaSR<CombThermoType>::correct()
             const volScalarField& epsilon = tepsilon();
             tmp<volScalarField> tmuEff(this->turbulence().muEff());
             const volScalarField& muEff = tmuEff();
+
             tmp<volScalarField> ttc(tc());
             const volScalarField& tc = ttc();
-
-            const scalar dt = this->mesh().time().deltaTValue();
 
             forAll(epsilon, i)
             {
                 if (epsilon[i] > 0)
                 {
                     scalar tk =
-                        Cmix_.value()
-                       *Foam::sqrt(muEff[i]/rho[i]/(epsilon[i] + SMALL));
+                        Cmix_*Foam::sqrt(muEff[i]/rho[i]/(epsilon[i] + SMALL));
 
                     // Chalmers PaSR model
                     if (!useReactionRate_)
@@ -137,15 +136,11 @@ void Foam::combustionModels::PaSR<CombThermoType>::correct()
 }
 
 
-template<class CombThermoType>
+template<class Type>
 Foam::tmp<Foam::fvScalarMatrix>
-Foam::combustionModels::PaSR<CombThermoType>::R(const volScalarField& Y) const
+Foam::combustionModels::PaSR<Type>::R(volScalarField& Y) const
 {
-
-    tmp<fvScalarMatrix> tSu
-    (
-        new fvScalarMatrix(Y, dimMass/dimTime)
-    );
+    tmp<fvScalarMatrix> tSu(new fvScalarMatrix(Y, dimMass/dimTime));
 
     fvScalarMatrix& Su = tSu();
 
@@ -153,16 +148,16 @@ Foam::combustionModels::PaSR<CombThermoType>::R(const volScalarField& Y) const
     {
         const label specieI = this->thermo().composition().species()[Y.name()];
 
-        Su += kappa_*this->pChemistry_->RR(specieI);
+        Su += kappa_*this->chemistryPtr_->RR(specieI);
     }
 
     return tSu;
 }
 
 
-template<class CombThermoType>
+template<class Type>
 Foam::tmp<Foam::volScalarField>
-Foam::combustionModels::PaSR<CombThermoType>::dQ() const
+Foam::combustionModels::PaSR<Type>::dQ() const
 {
     tmp<volScalarField> tdQ
     (
@@ -186,16 +181,16 @@ Foam::combustionModels::PaSR<CombThermoType>::dQ() const
     if (this->active())
     {
         volScalarField& dQ = tdQ();
-        dQ = kappa_*this->pChemistry_->dQ();
+        dQ = kappa_*this->chemistryPtr_->dQ();
     }
 
     return tdQ;
 }
 
 
-template<class CombThermoType>
+template<class Type>
 Foam::tmp<Foam::volScalarField>
-Foam::combustionModels::PaSR<CombThermoType>::Sh() const
+Foam::combustionModels::PaSR<Type>::Sh() const
 {
     tmp<volScalarField> tSh
     (
@@ -219,17 +214,17 @@ Foam::combustionModels::PaSR<CombThermoType>::Sh() const
     if (this->active())
     {
         scalarField& Sh = tSh();
-        Sh = kappa_*this->pChemistry_->Sh();
+        Sh = kappa_*this->chemistryPtr_->Sh();
     }
 
     return tSh;
 }
 
 
-template<class CombThermoType>
-bool Foam::combustionModels::PaSR<CombThermoType>::read()
+template<class Type>
+bool Foam::combustionModels::PaSR<Type>::read()
 {
-    if (CombThermoType::read())
+    if (Type::read())
     {
         this->coeffs().lookup("Cmix") >> Cmix_;
         this->coeffs().lookup("turbulentReaction") >> turbulentReaction_;

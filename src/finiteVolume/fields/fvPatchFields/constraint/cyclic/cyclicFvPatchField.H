@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,27 @@ License
 Class
     Foam::cyclicFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::cyclicFvPatchField
+    This boundary condition enforces a cyclic condition between a pair of
+    boundaries.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            cyclic;
+    }
+    \endverbatim
+
+Note
+    The patches must be topologically similar, i.e. if the owner patch is
+    transformed to the neighbour patch, the patches should be identical (or
+    very similar).
 
 SourceFiles
     cyclicFvPatchField.C
@@ -45,7 +64,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class cyclicFvPatch Declaration
+                        Class cyclicFvPatch Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
@@ -159,11 +178,19 @@ public:
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
             (
-                const scalarField& psiInternal,
                 scalarField& result,
-                const lduMatrix&,
+                const scalarField& psiInternal,
                 const scalarField& coeffs,
                 const direction cmpt,
+                const Pstream::commsTypes commsType
+            ) const;
+
+            //- Update result field based on interface functionality
+            virtual void updateInterfaceMatrix
+            (
+                Field<Type>& result,
+                const Field<Type>& psiInternal,
+                const scalarField& coeffs,
                 const Pstream::commsTypes commsType
             ) const;
 

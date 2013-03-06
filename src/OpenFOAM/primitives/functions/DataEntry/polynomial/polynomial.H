@@ -30,7 +30,7 @@ Description
     describes y = x^2 + 2x^3
 
     \verbatim
-        <entryName>   polynomial
+        <entryName>   polynomial  [0 0 1 0 0] // optional dimensions
         (
             (1    2)
             (2    3)
@@ -45,8 +45,10 @@ SourceFiles
 #ifndef polynomial_H
 #define polynomial_H
 
-#include "DataEntryFwd.H"
+#include "DataEntry.H"
 #include "Tuple2.H"
+#include "dimensionSet.H"
+#include "DataEntryFwd.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,6 +81,9 @@ class polynomial
         //- Flag to indicate whether poly can be integrated
         bool canIntegrate_;
 
+        //- The dimension set
+        dimensionSet dimensions_;
+
 
     // Private Member Functions
 
@@ -95,6 +100,9 @@ public:
     // Constructors
 
         polynomial(const word& entryName, const dictionary& dict);
+
+        //- Construct from components
+        polynomial(const word& entryName, const List<Tuple2<scalar, scalar> >&);
 
         //- Copy constructor
         polynomial(const polynomial& poly);
@@ -125,6 +133,16 @@ public:
 
             //- Integrate between two (scalar) values
             scalar integrate(const scalar x1, const scalar x2) const;
+
+            //- Return dimensioned constant value
+            dimensioned<scalar> dimValue(const scalar) const;
+
+            //- Integrate between two values and return dimensioned type
+            dimensioned<scalar> dimIntegrate
+            (
+                const scalar x1,
+                const scalar x2
+            ) const;
 
 
     // I/O

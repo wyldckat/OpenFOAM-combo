@@ -18,7 +18,7 @@ refineMeshByCellSet()
           topoSet > log.topoSet.$1 2>&1
 
           echo "refining primary zone - $1"
-          refineMesh -dict -overwrite > log.refineMesh.$1 2>&1
+          refineMesh -dict system/refineMeshDict -overwrite > log.refineMesh.$1 2>&1
       fi
       shift
    done
@@ -29,8 +29,8 @@ cp -r 0.org 0
 runApplication blockMesh
 refineMeshByCellSet 1 2 3
 
-echo "mapping fields from 2D throttle case"
-runApplication mapFields ../throttle -sourceTime latestTime
+#echo "mapping fields from 2D throttle case"
+#runApplication mapFields ../throttle -sourceTime latestTime
 
 runApplication decomposePar
 runParallel $application 4

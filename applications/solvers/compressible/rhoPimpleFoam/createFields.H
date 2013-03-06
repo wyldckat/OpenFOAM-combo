@@ -1,13 +1,13 @@
     Info<< "Reading thermophysical properties\n" << endl;
 
-    autoPtr<basicPsiThermo> pThermo
+    autoPtr<psiThermo> pThermo
     (
-        basicPsiThermo::New(mesh)
+        psiThermo::New(mesh)
     );
-    basicPsiThermo& thermo = pThermo();
+    psiThermo& thermo = pThermo();
+    thermo.validate(args.executable(), "h", "e");
 
     volScalarField& p = thermo.p();
-    volScalarField& h = thermo.h();
     const volScalarField& psi = thermo.psi();
 
     volScalarField rho
@@ -55,7 +55,17 @@
     );
 
     Info<< "Creating field dpdt\n" << endl;
-    volScalarField dpdt("dpdt", fvc::ddt(p));
+    volScalarField dpdt
+    (
+        IOobject
+        (
+            "dpdt",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
+    );
 
     Info<< "Creating field kinetic energy K\n" << endl;
     volScalarField K("K", 0.5*magSqr(U));

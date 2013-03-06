@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,8 +32,8 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "hCombustionThermo.H"
-#include "RASModel.H"
+#include "turbulenceModel.H"
+#include "solidThermo.H"
 #include "wallFvPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -41,7 +41,7 @@ Description
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
-#   include "addRegionOption.H"
+    #include "addRegionOption.H"
     #include "setRootCase.H"
     #include "createTime.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
@@ -57,7 +57,14 @@ int main(int argc, char *argv[])
 
         surfaceScalarField heatFlux
         (
-            fvc::interpolate(RASModel->alphaEff())*fvc::snGrad(h)
+            fvc::interpolate
+            (
+                (
+                    turbulence.valid()
+                  ? turbulence->alphaEff()()
+                  : thermo->alpha()
+                )
+            )*fvc::snGrad(h)
         );
 
         const surfaceScalarField::GeometricBoundaryField& patchHeatFlux =

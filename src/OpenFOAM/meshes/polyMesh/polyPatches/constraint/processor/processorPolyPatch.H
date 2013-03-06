@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -134,7 +134,8 @@ public:
             const label index,
             const polyBoundaryMesh& bm,
             const int myProcNo,
-            const int neighbProcNo
+            const int neighbProcNo,
+            const transformType transform = UNKNOWN  // transformation type
         );
 
         //- Construct from dictionary
@@ -143,7 +144,8 @@ public:
             const word& name,
             const dictionary& dict,
             const label index,
-            const polyBoundaryMesh&
+            const polyBoundaryMesh&,
+            const word& patchType
         );
 
         //- Construct as copy, resetting the boundary mesh
@@ -307,6 +309,17 @@ public:
         //- Initialize ordering for primitivePatch. Does not
         //  refer to *this (except for name() and type() etc.)
         virtual void initOrder(PstreamBuffers&, const primitivePatch&) const;
+
+        static label matchFace
+        (
+            const face& localFace,
+            const pointField& localPts,
+            const face& masterFace,
+            const pointField& masterPts,
+            const bool sameOrientation,
+            const scalar absTolSqr,
+            scalar& matchDistSqr
+        );
 
         //- Return new ordering for primitivePatch.
         //  Ordering is -faceMap: for every face

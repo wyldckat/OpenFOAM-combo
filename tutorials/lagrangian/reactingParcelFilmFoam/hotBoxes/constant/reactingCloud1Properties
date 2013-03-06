@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,7 +29,8 @@ solution
             rho             explicit 1;
             U               explicit 1;
             Yi              explicit 1;
-            hs              explicit 1;
+            h               explicit 1;
+            radiation       explicit 1;
         }
     }
 
@@ -37,7 +38,7 @@ solution
     {
         rho             cell;
         U               cellPoint;
-        mu              cell;
+        thermo:mu       cell;
         T               cell;
         Cp              cell;
         p               cell;
@@ -52,13 +53,6 @@ solution
 
 constantProperties
 {
-    parcelTypeId    1;
-
-    rhoMin          1e-15;
-    TMin            200;
-    pMin            1000;
-    minParticleMass 1e-15;
-
     rho0            1000;
     T0              300;
     Cp0             4187;
@@ -83,7 +77,41 @@ subModels
         gravity;
     }
 
-    injectionModel  coneInjection;
+    injectionModels
+    {
+        model1
+        {
+            type            coneInjection;
+            SOI             0.000;
+            duration        20.000;
+            positionAxis
+            (
+                ((0.3 0.35 1.45) (0 0 -1))
+                ((0.6 0.35 1.45) (0 0 -1))
+            );
+
+            massTotal       10;
+            parcelsPerInjector 20000;
+            parcelsPerSecond 500;
+            parcelBasisType mass;
+            flowRateProfile constant 0.1;
+            Umag            constant 3.0;
+            thetaInner      constant 0;
+            thetaOuter      constant 45;
+
+            sizeDistribution
+            {
+                type         RosinRammler;
+                RosinRammlerDistribution
+                {
+                    minValue        5e-04;
+                    maxValue        0.0012;
+                    d               7.5e-05;
+                    n               0.5;
+                }
+            }
+        }
+    }
 
     dispersionModel none;
 
@@ -98,38 +126,6 @@ subModels
     surfaceFilmModel thermoSurfaceFilm;
 
     radiation       off;
-
-    coneInjectionCoeffs
-    {
-        SOI             0.000;
-        duration        20.000;
-        positionAxis
-        (
-            ((0.3 0.35 1.45) (0 0 -1))
-            ((0.6 0.35 1.45) (0 0 -1))
-        );
-
-        massTotal       10;
-        parcelsPerInjector 20000;
-        parcelsPerSecond 500;
-        parcelBasisType mass;
-        flowRateProfile constant 0.1;
-        Umag            constant 3.0;
-        thetaInner      constant 0;
-        thetaOuter      constant 45;
-
-        sizeDistribution
-        {
-            type         RosinRammler;
-            RosinRammlerDistribution
-            {
-                minValue        5e-04;
-                maxValue        0.0012;
-                d               7.5e-05;
-                n               0.5;
-            }
-        }
-    }
 
     standardWallInteractionCoeffs
     {

@@ -4,7 +4,10 @@ set -x
 
 wmake blockMesh
 wmake all extrude
-wmake extrude2DMesh
+
+extrude2DMesh/Allwmake
+
 wmake snappyHexMesh
+
 
 # ----------------------------------------------------------------- end-of-file

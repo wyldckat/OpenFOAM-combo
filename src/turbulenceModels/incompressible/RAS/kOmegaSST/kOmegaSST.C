@@ -410,7 +410,7 @@ void kOmegaSST::correct()
     }
 
     const volScalarField S2(2*magSqr(symm(fvc::grad(U_))));
-    volScalarField G("RASModel::G", nut_*S2);
+    volScalarField G(type() + ".G", nut_*S2);
 
     // Update omega and G at the wall
     omega_.boundaryField().updateCoeffs();
@@ -427,7 +427,6 @@ void kOmegaSST::correct()
     (
         fvm::ddt(omega_)
       + fvm::div(phi_, omega_)
-      - fvm::Sp(fvc::div(phi_), omega_)
       - fvm::laplacian(DomegaEff(F1), omega_)
      ==
         gamma(F1)*S2
@@ -451,7 +450,6 @@ void kOmegaSST::correct()
     (
         fvm::ddt(k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(F1), k_)
      ==
         min(G, c1_*betaStar_*k_*omega_)

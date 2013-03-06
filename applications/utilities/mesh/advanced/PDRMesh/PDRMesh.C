@@ -22,6 +22,9 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+Application
+    PDRMesh
+
 Description
     Mesh and field preparation utility for PDR type simulations.
 
@@ -553,7 +556,6 @@ label findPatch(const polyBoundaryMesh& patches, const word& patchName)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

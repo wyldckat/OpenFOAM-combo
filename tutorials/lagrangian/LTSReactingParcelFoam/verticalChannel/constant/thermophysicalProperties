@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,7 +15,16 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-thermoType      hsRhoMixtureThermo<reactingMixture<icoPoly8ThermoPhysics>>;
+thermoType
+{
+    type            heRhoThermo;
+    mixture         reactingMixture;
+    transport       polynomial;
+    thermo          hPolynomial;
+    energy          sensibleEnthalpy;
+    equationOfState icoPolynomial;
+    specie          specie;
+}
 
 chemistryReader foamChemistryReader;
 
@@ -27,11 +36,6 @@ inertSpecie     air;
 
 liquids
 {
-    liquidComponents
-    (
-        H2O
-    );
-
     H2O
     {
         defaultCoeffs   yes;
@@ -40,10 +44,10 @@ liquids
 
 solids
 {
-    solidComponents
-    (
-    );
+    // none
 }
 
+// de-activate the pressure-work term when running local time-stepping
+dpdt            no;
 
 // ************************************************************************* //

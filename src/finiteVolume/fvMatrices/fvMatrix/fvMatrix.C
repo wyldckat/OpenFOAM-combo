@@ -570,20 +570,11 @@ void Foam::fvMatrix<Type>::relax(const scalar alpha)
             }
             else
             {
-                // For non-coupled boundaries
-                // add the difference between maximised boundary diagonal
-                // contribution and the boundary diagonal contribution
-                // to both the diagonal and the sum of the off-diagonal fields
-                // to ensure the relaxation operates on the appropriately
-                // normalised diagonal
+                // For non-coupled boundaries add the maximum magnitude diagonal
+                // contribution to ensure stability
                 forAll(pa, face)
                 {
-                    D[pa[face]] +=
-                        cmptMag(cmptMin(iCoeffs[face]))
-                      - cmptMin(iCoeffs[face]);
-                    sumOff[pa[face]] +=
-                        cmptMag(cmptMin(iCoeffs[face]))
-                      - cmptMin(iCoeffs[face]);
+                    D[pa[face]] += cmptMax(cmptMag(iCoeffs[face]));
                 }
             }
         }
@@ -647,6 +638,13 @@ void Foam::fvMatrix<Type>::relax(const scalar alpha)
                 forAll(pa, face)
                 {
                     D[pa[face]] -= component(iCoeffs[face], 0);
+                }
+            }
+            else
+            {
+                forAll(pa, face)
+                {
+                    D[pa[face]] -= cmptMin(iCoeffs[face]);
                 }
             }
         }
@@ -1371,7 +1369,7 @@ void Foam::checkMethod
 
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve
+Foam::solverPerformance Foam::solve
 (
     fvMatrix<Type>& fvm,
     const dictionary& solverControls
@@ -1381,13 +1379,13 @@ Foam::lduMatrix::solverPerformance Foam::solve
 }
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve
+Foam::solverPerformance Foam::solve
 (
     const tmp<fvMatrix<Type> >& tfvm,
     const dictionary& solverControls
 )
 {
-    lduMatrix::solverPerformance solverPerf =
+    solverPerformance solverPerf =
         const_cast<fvMatrix<Type>&>(tfvm()).solve(solverControls);
 
     tfvm.clear();
@@ -1397,15 +1395,15 @@ Foam::lduMatrix::solverPerformance Foam::solve
 
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve(fvMatrix<Type>& fvm)
+Foam::solverPerformance Foam::solve(fvMatrix<Type>& fvm)
 {
     return fvm.solve();
 }
 
 template<class Type>
-Foam::lduMatrix::solverPerformance Foam::solve(const tmp<fvMatrix<Type> >& tfvm)
+Foam::solverPerformance Foam::solve(const tmp<fvMatrix<Type> >& tfvm)
 {
-    lduMatrix::solverPerformance solverPerf =
+    solverPerformance solverPerf =
         const_cast<fvMatrix<Type>&>(tfvm()).solve();
 
     tfvm.clear();

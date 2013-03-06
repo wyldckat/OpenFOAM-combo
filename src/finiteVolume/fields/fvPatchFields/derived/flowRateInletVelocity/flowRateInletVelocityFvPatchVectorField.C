@@ -40,8 +40,9 @@ flowRateInletVelocityFvPatchVectorField
 :
     fixedValueFvPatchField<vector>(p, iF),
     flowRate_(),
-    phiName_("phi"),
-    rhoName_("rho")
+    volumetric_(false),
+    rhoName_("rho"),
+    rhoInlet_(0.0)
 {}
 
 
@@ -56,8 +57,9 @@ flowRateInletVelocityFvPatchVectorField
 :
     fixedValueFvPatchField<vector>(ptf, p, iF, mapper),
     flowRate_(ptf.flowRate_().clone().ptr()),
-    phiName_(ptf.phiName_),
-    rhoName_(ptf.rhoName_)
+    volumetric_(ptf.volumetric_),
+    rhoName_(ptf.rhoName_),
+    rhoInlet_(ptf.rhoInlet_)
 {}
 
 
@@ -70,18 +72,42 @@ flowRateInletVelocityFvPatchVectorField
 )
 :
     fixedValueFvPatchField<vector>(p, iF),
-    flowRate_(DataEntry<scalar>::New("flowRate", dict)),
-    phiName_(dict.lookupOrDefault<word>("phi", "phi")),
-    rhoName_(dict.lookupOrDefault<word>("rho", "rho"))
+    rhoInlet_(dict.lookupOrDefault<scalar>("rhoInlet", -VGREAT))
 {
-    if (dict.found("value") || (phiName_ != "none"))
+    if (dict.found("volumetricFlowRate"))
+    {
+        volumetric_ = true;
+        flowRate_ = DataEntry<scalar>::New("volumetricFlowRate", dict);
+        rhoName_ = "rho";
+    }
+    else if (dict.found("massFlowRate"))
+    {
+        volumetric_ = false;
+        flowRate_ = DataEntry<scalar>::New("massFlowRate", dict);
+        rhoName_ = word(dict.lookupOrDefault<word>("rho", "rho"));
+    }
+    else
+    {
+        FatalIOErrorIn
+        (
+            "flowRateInletVelocityFvPatchVectorField::"
+            "flowRateInletVelocityFvPatchVectorField"
+            "(const fvPatch&, const DimensionedField<vector, volMesh>&,"
+            " const dictionary&)",
+            dict
+        )   << "Please supply either 'volumetricFlowRate' or"
+            << " 'massFlowRate' and 'rho'" << exit(FatalIOError);
+    }
+
+    // Value field require if mass based
+    if (dict.found("value"))
     {
         fvPatchField<vector>::operator=
         (
             vectorField("value", dict, p.size())
         );
     }
-    else 
+    else
     {
         evaluate(Pstream::blocking);
     }
@@ -96,8 +122,9 @@ flowRateInletVelocityFvPatchVectorField
 :
     fixedValueFvPatchField<vector>(ptf),
     flowRate_(ptf.flowRate_().clone().ptr()),
-    phiName_(ptf.phiName_),
-    rhoName_(ptf.rhoName_)
+    volumetric_(ptf.volumetric_),
+    rhoName_(ptf.rhoName_),
+    rhoInlet_(ptf.rhoInlet_)
 {}
 
 
@@ -110,12 +137,43 @@ flowRateInletVelocityFvPatchVectorField
 :
     fixedValueFvPatchField<vector>(ptf, iF),
     flowRate_(ptf.flowRate_().clone().ptr()),
-    phiName_(ptf.phiName_),
-    rhoName_(ptf.rhoName_)
+    volumetric_(ptf.volumetric_),
+    rhoName_(ptf.rhoName_),
+    rhoInlet_(ptf.rhoInlet_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::flowRateInletVelocityFvPatchVectorField::updateCoeffs
+(
+    const scalar uniformRho
+)
+{
+    if (updated())
+    {
+        return;
+    }
+
+    const scalar t = db().time().timeOutputValue();
+
+    // a simpler way of doing this would be nice
+    const scalar avgU = -flowRate_->value(t)/gSum(patch().magSf());
+
+    tmp<vectorField> n = patch().nf();
+
+    if (volumetric_ || rhoName_ == "none")
+    {
+        // volumetric flow-rate
+        operator==(n*avgU);
+    }
+    else
+    {
+        // mass flow-rate
+        operator==(n*avgU/uniformRho);
+    }
+}
+
 
 void Foam::flowRateInletVelocityFvPatchVectorField::updateCoeffs()
 {
@@ -131,48 +189,37 @@ void Foam::flowRateInletVelocityFvPatchVectorField::updateCoeffs()
 
     tmp<vectorField> n = patch().nf();
 
-
-    if (phiName_ == "none")
+    if (volumetric_ || rhoName_ == "none")
     {
-        // volumetric flow-rate
+        // volumetric flow-rate or density not given
         operator==(n*avgU);
     }
     else
     {
-        const surfaceScalarField& phi =
-            db().lookupObject<surfaceScalarField>(phiName_);
-
-        if (phi.dimensions() == dimVelocity*dimArea)
+        // mass flow-rate
+        if
+        (
+            patch().boundaryMesh().mesh().foundObject<volScalarField>(rhoName_)
+        )
         {
-            // volumetric flow-rate
-            operator==(n*avgU);
-        }
-        else if (phi.dimensions() == dimDensity*dimVelocity*dimArea)
-        {
-            if (rhoName_ == "none")
-            {
-                // volumetric flow-rate
-                operator==(n*avgU);
-            }
-            else
-            {
-                // mass flow-rate
-                const fvPatchField<scalar>& rhop =
-                    patch().lookupPatchField<volScalarField, scalar>(rhoName_);
+            const fvPatchField<scalar>& rhop =
+                patch().lookupPatchField<volScalarField, scalar>(rhoName_);
 
-                operator==(n*avgU/rhop);
-            }
+            operator==(n*avgU/rhop);
         }
         else
         {
-            FatalErrorIn
-            (
-                "flowRateInletVelocityFvPatchVectorField::updateCoeffs()"
-            )   << "dimensions of " << phiName_ << " are incorrect" << nl
-                << "    on patch " << this->patch().name()
-                << " of field " << this->dimensionedInternalField().name()
-                << " in file " << this->dimensionedInternalField().objectPath()
-                << nl << exit(FatalError);
+            // Use constant density
+            if (rhoInlet_ < 0)
+            {
+                FatalErrorIn
+                (
+                    "flowRateInletVelocityFvPatchVectorField::updateCoeffs()"
+                )   << "Did not find registered density field " << rhoName_
+                    << " and no constant density 'rhoInlet' specified"
+                    << exit(FatalError);
+            }
+            operator==(n*avgU/rhoInlet_);
         }
     }
 
@@ -184,8 +231,11 @@ void Foam::flowRateInletVelocityFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchField<vector>::write(os);
     flowRate_->writeData(os);
-    writeEntryIfDifferent<word>(os, "phi", "phi", phiName_);
-    writeEntryIfDifferent<word>(os, "rho", "rho", rhoName_);
+    if (!volumetric_)
+    {
+        writeEntryIfDifferent<word>(os, "rho", "rho", rhoName_);
+        writeEntryIfDifferent<scalar>(os, "rhoInlet", -VGREAT, rhoInlet_);
+    }
     writeEntry("value", os);
 }
 

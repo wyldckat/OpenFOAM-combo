@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -113,12 +113,12 @@ SpalartAllmaras::SpalartAllmaras
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel,
+    const fluidThermo& thermoPhysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
 :
-    LESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
+    DESModel(modelName, rho, U, phi, thermoPhysicalModel, turbulenceModelName),
 
     sigmaNut_
     (
@@ -361,6 +361,32 @@ bool SpalartAllmaras::read()
     {
         return false;
     }
+}
+
+
+tmp<volScalarField> SpalartAllmaras::LESRegion() const
+{
+    volScalarField wd(wallDist(mesh_).y());
+
+    tmp<volScalarField> tLESRegion
+    (
+        new volScalarField
+        (
+            IOobject
+            (
+                "DES::LESRegion",
+                mesh_.time().timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            neg(min(CDES_*delta(), wd) - wd)
+//            mesh_,
+//            dimensionedScalar("zero", dimless, 0.0)
+        )
+    );
+
+    return tLESRegion;
 }
 
 

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,7 +15,16 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-thermoType      hsPsiMixtureThermo<reactingMixture<gasThermoPhysics>>;
+thermoType
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
 
 chemistryReader foamChemistryReader;
 
@@ -25,21 +34,17 @@ foamChemistryThermoFile "$FOAM_CASE/constant/foam.dat";
 
 inertSpecie     N2;
 
-
 liquids
 {
-    liquidComponents (H2O);
-
     H2O
     {
         defaultCoeffs   yes;
     }
 }
 
-
 solids
 {
-    solidComponents ();
+    // none
 }
 
 

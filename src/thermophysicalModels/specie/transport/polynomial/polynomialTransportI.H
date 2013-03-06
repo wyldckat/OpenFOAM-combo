@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -104,6 +104,7 @@ Foam::polynomialTransport<Thermo, PolySize>::New(const dictionary& dict)
 template<class Thermo, int PolySize>
 inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::mu
 (
+    const scalar p,
     const scalar T
 ) const
 {
@@ -114,6 +115,7 @@ inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::mu
 template<class Thermo, int PolySize>
 inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::kappa
 (
+    const scalar p,
     const scalar T
 ) const
 {
@@ -122,17 +124,12 @@ inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::kappa
 
 
 template<class Thermo, int PolySize>
-inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::alpha
+inline Foam::scalar Foam::polynomialTransport<Thermo, PolySize>::alphah
 (
-    const scalar T
+    const scalar p, const scalar T
 ) const
 {
-    scalar deltaT = T - specie::Tstd;
-    scalar CpBar =
-        (deltaT*(this->H(T) - this->H(specie::Tstd)) + this->Cp(T))
-       /(sqr(deltaT) + 1);
-
-    return kappa(T)/CpBar;
+    return kappa(p, T)/this->Cp(p, T);
 }
 
 

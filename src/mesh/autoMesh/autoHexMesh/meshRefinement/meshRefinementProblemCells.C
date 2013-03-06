@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,6 @@ License
 #include "pointSet.H"
 #include "faceSet.H"
 #include "indirectPrimitivePatch.H"
-#include "OFstream.H"
 #include "cellSet.H"
 #include "searchableSurfaces.H"
 #include "polyMeshGeometry.H"
@@ -199,7 +198,7 @@ Foam::Map<Foam::label> Foam::meshRefinement::findEdgeConnectedProblemCells
         << " faces on edge-connected cells of differing level."
         << endl;
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         faceSet fSet(mesh_, "edgeConnectedFaces", candidateFaces);
         fSet.instance() = timeName();
@@ -263,7 +262,7 @@ Foam::Map<Foam::label> Foam::meshRefinement::findEdgeConnectedProblemCells
         }
     }
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         perpFaces.instance() = timeName();
         Pout<< "Writing " << perpFaces.size()
@@ -485,7 +484,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             << returnReduce(problemCells.size(), sumOp<label>())
             << " cells edge-connected to lower level cells." << endl;
 
-        if (debug)
+        if (debug&meshRefinement::MESH)
         {
             cellSet problemCellSet(mesh_, "problemCells", problemCells.toc());
             problemCellSet.instance() = timeName();
@@ -542,7 +541,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
 
         Info<< "markFacesOnProblemCells :"
             << " Deleting all-anchor surface cells only if"
-            << "snapping them violates mesh quality constraints:" << nl
+            << " snapping them violates mesh quality constraints:" << nl
             << "    snapped/original cell volume < " << volFraction << nl
             << "    face area                    < " << minArea << nl
             << "    non-orthogonality            > " << maxNonOrtho << nl
@@ -572,7 +571,7 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             hitInfo
         );
 
-        // Start of from current points
+        // Start off from current points
         newPoints = mesh_.points();
 
         forAll(hitInfo, i)
@@ -581,6 +580,17 @@ Foam::labelList Foam::meshRefinement::markFacesOnProblemCells
             {
                 newPoints[meshPoints[i]] = hitInfo[i].hitPoint();
             }
+        }
+
+        if (debug&meshRefinement::MESH)
+        {
+            const_cast<Time&>(mesh_.time())++;
+            pointField oldPoints(mesh_.points());
+            mesh_.movePoints(newPoints);
+            Pout<< "Writing newPoints mesh to time " << timeName()
+                << endl;
+            write(debug, mesh_.time().path()/"newPoints");
+            mesh_.movePoints(oldPoints);
         }
     }
 

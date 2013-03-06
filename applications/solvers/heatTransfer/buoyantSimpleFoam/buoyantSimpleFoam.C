@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,18 +22,20 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantSimpleFoam
+    buoyantSimpleRadiationFoam
 
 Description
-    Steady-state solver for buoyant, turbulent flow of compressible fluids
+    Steady-state solver for buoyant, turbulent flow of compressible fluids,
+    including radiation, for ventilation and heat-transfer.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "basicPsiThermo.H"
+#include "rhoThermo.H"
 #include "RASModel.H"
-#include "fixedGradientFvPatchFields.H"
+#include "radiationModel.H"
 #include "simpleControl.H"
+#include "fvIOoptionList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,6 +46,8 @@ int main(int argc, char *argv[])
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
+    #include "createFvOptions.H"
+    #include "createRadiationModel.H"
     #include "initContinuityErrs.H"
 
     simpleControl simple(mesh);
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
         // Pressure-velocity SIMPLE corrector
         {
             #include "UEqn.H"
-            #include "hEqn.H"
+            #include "EEqn.H"
             #include "pEqn.H"
         }
 

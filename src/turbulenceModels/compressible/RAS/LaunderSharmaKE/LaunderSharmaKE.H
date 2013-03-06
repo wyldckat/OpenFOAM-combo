@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,9 @@ License
 
 Class
     Foam::compressible::RASModels::LaunderSharmaKE
+
+Group
+    grpCmpRASTurbulence
 
 Description
     Launder and Sharma low-Reynolds k-epsilon turbulence model for
@@ -112,7 +115,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel,
+            const fluidThermo& thermophysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );

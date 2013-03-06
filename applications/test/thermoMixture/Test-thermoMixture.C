@@ -33,7 +33,8 @@ Description
 #include "specie.H"
 #include "perfectGas.H"
 #include "hConstThermo.H"
-#include "specieThermo.H"
+#include "sensibleEnthalpy.H"
+#include "thermo.H"
 #include "constTransport.H"
 
 using namespace Foam;
@@ -43,7 +44,14 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
-    typedef constTransport<specieThermo<hConstThermo<perfectGas> > > ThermoType;
+    typedef constTransport
+    <
+        species::thermo
+        <
+            hConstThermo<perfectGas<specie> >,
+            sensibleEnthalpy
+        >
+    > ThermoType;
 
     dictionary dict(IFstream("thermoDict")());
 
@@ -55,12 +63,12 @@ int main(int argc, char *argv[])
     Info<< "W 1, 2, (1 + 2) = " << t1.W() << " " << t2.W() << " "
         << (t1 + t2).W() << endl;
 
-    Info<< "Cp 1, 2, 1 + 2 = " << t1.cp(1) << " " << t2.cp(1) << " "
-        << (t1 + t2).cp(1) << endl;
+    Info<< "Cp 1, 2, 1 + 2 = " << t1.cp(1, 1) << " " << t2.cp(1, 1) << " "
+        << (t1 + t2).cp(1, 1) << endl;
 
     ThermoType t3(t1);
     t3 += t2;
-    Info<< "Cp (1 += 2) = " << t3.cp(1) << endl;
+    Info<< "Cp (1 += 2) = " << t3.cp(1, 1) << endl;
 
     Info<< "\nEnd\n" << endl;
 

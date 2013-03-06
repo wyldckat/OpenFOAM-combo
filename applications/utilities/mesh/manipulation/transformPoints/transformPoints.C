@@ -137,7 +137,6 @@ void rotateFields(const argList& args, const Time& runTime, const tensor& T)
 }
 
 
-//  Main program:
 
 int main(int argc, char *argv[])
 {

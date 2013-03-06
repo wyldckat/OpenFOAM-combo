@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,6 +75,17 @@ class quaternion
 
 public:
 
+    //- Component type
+    typedef scalar cmptType;
+
+    // Member constants
+
+        enum
+        {
+            rank = 1 // Rank of quaternion is 1
+        };
+
+
     // Static data members
 
         static const char* const typeName;
@@ -95,6 +106,15 @@ public:
         //  and angle theta
         inline quaternion(const vector& d, const scalar theta);
 
+        //- Construct a rotation quaternion given the direction d
+        //  and cosine angle cosTheta and a if d is normalized
+        inline quaternion
+        (
+            const vector& d,
+            const scalar cosTheta,
+            const bool normalized
+        );
+
         //- Construct given scalar part, the vector part = vector::zero
         inline explicit quaternion(const scalar w);
 
@@ -108,6 +128,9 @@ public:
             const scalar angleY,
             const scalar angleZ
         );
+
+        //- Construct a quaternion from a rotation tensor
+        inline explicit quaternion(const tensor& rotationTensor);
 
         //- Construct from Istream
         quaternion(Istream&);
@@ -125,6 +148,8 @@ public:
 
                //- The rotation tensor corresponding the quaternion
                inline tensor R() const;
+
+               inline quaternion normalized() const;
 
 
            // Edit
@@ -192,6 +217,14 @@ inline quaternion inv(const quaternion& q);
 
 //- Return a string representation of a quaternion
 word name(const quaternion&);
+
+//- Spherical linear interpolation of quaternions
+quaternion slerp
+(
+    const quaternion& qa,
+    const quaternion& qb,
+    const scalar t
+);
 
 //- Data associated with quaternion type are contiguous
 template<>

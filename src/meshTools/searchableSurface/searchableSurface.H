@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -206,7 +206,10 @@ public:
 
         //- Get representative set of element coordinates
         //  Usually the element centres (should be of length size()).
-        virtual pointField coordinates() const = 0;
+        virtual tmp<pointField> coordinates() const = 0;
+
+        //- Get the points that define the surface.
+        virtual tmp<pointField> points() const = 0;
 
         //- Does any part of the surface overlap the supplied bound box?
         virtual bool overlaps(const boundBox& bb) const = 0;
@@ -322,6 +325,17 @@ public:
                 const pointField&,
                 List<volumeType>&
             ) const = 0;
+
+            //- Find nearest, normal and region. Can be overridden with
+            //  optimised implementation
+            virtual void findNearest
+            (
+                const pointField& sample,
+                const scalarField& nearestDistSqr,
+                List<pointIndexHit>&,
+                vectorField& normal,
+                labelList& region
+            ) const;
 
 
         // Other

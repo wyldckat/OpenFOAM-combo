@@ -11,7 +11,7 @@ gnuplot<<EOF
     set xlabel "Time / [s]" font "Helvetica,24"
     set ylabel "Temperature / [K]" font "Helvetica,24"
     set grid
-    set key left top 
+    set key left top
     set xrange [0:0.001]
     set yrange [750:2750]
     set ytics 250

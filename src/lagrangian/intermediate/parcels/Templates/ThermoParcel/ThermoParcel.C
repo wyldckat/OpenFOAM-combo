@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -144,7 +144,7 @@ void Foam::ThermoParcel<ParcelType>::calcSurfaceValues
         Ts = td.cloud().constProps().TMin();
     }
 
-    // Assuming thermo props vary linearly with T for small dT
+    // Assuming thermo props vary linearly with T for small d(T)
     const scalar TRatio = Tc_/Ts;
 
     rhos = this->rhoc_*TRatio;
@@ -252,6 +252,16 @@ void Foam::ThermoParcel<ParcelType>::calc
 
         // Update sensible enthalpy coefficient
         td.cloud().hsCoeff()[cellI] += np0*Sph;
+
+        // Update radiation fields
+        if (td.cloud().radiation())
+        {
+            const scalar ap = this->areaP();
+            const scalar T4 = pow4(this->T_);
+            td.cloud().radAreaP()[cellI] += dt*np0*ap;
+            td.cloud().radT4()[cellI] += dt*np0*T4;
+            td.cloud().radAreaP()[cellI] += dt*np0*ap*T4;
+        }
     }
 }
 
@@ -314,11 +324,20 @@ Foam::scalar Foam::ThermoParcel<ParcelType>::calcHeatTransfer
     IntegrationScheme<scalar>::integrationResult Tres =
         td.cloud().TIntegrator().integrate(T_, dt, ap*bp, bp);
 
-    scalar Tnew = max(Tres.value(), td.cloud().constProps().TMin());
+    scalar Tnew =
+        min
+        (
+            max
+            (
+                Tres.value(),
+                td.cloud().constProps().TMin()
+            ),
+            td.cloud().constProps().TMax()
+        );
 
     Sph = dt*htc*As;
 
-    dhsTrans += Sph*(0.5*(T_ + Tnew) - Tc_);
+    dhsTrans += Sph*(Tres.average() - Tc_);
 
     return Tnew;
 }

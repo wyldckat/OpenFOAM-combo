@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,10 +25,10 @@ License
 
 #include "radiationCoupledBase.H"
 #include "volFields.H"
-#include "basicSolidThermo.H"
-
 #include "mappedPatchBase.H"
 #include "fvPatchFieldMapper.H"
+#include "radiationModel.H"
+#include "absorptionEmissionModel.H"
 
 // * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * * * //
 
@@ -41,7 +41,7 @@ namespace Foam
         2
     >::names[] =
     {
-        "solidThermo",
+        "solidRadiation",
         "lookup"
     };
 }
@@ -77,7 +77,7 @@ Foam::radiationCoupledBase::radiationCoupledBase
 {
     switch (method_)
     {
-        case SOLIDTHERMO:
+        case SOLIDRADIATION:
         {
             if (!isA<mappedPatchBase>(patch_.patch()))
             {
@@ -101,7 +101,7 @@ Foam::radiationCoupledBase::radiationCoupledBase
 
         case LOOKUP:
         {
-            if(!dict.found("emissivity"))
+            if (!dict.found("emissivity"))
             {
                 FatalIOErrorIn
                 (
@@ -131,45 +131,37 @@ Foam::scalarField Foam::radiationCoupledBase::emissivity() const
 {
     switch (method_)
     {
-        case SOLIDTHERMO:
+        case SOLIDRADIATION:
         {
             // Get the coupling information from the mappedPatchBase
             const mappedPatchBase& mpp =
-                refCast<const mappedPatchBase>
-                (
-                    patch_.patch()
-                );
+                refCast<const mappedPatchBase>(patch_.patch());
 
             const polyMesh& nbrMesh = mpp.sampleMesh();
 
-            const fvPatch& nbrPatch = refCast<const fvMesh>
-            (
-                nbrMesh
-            ).boundary()[mpp.samplePolyPatch().index()];
-
-            if (nbrMesh.foundObject<volScalarField>("emissivity"))
-            {
-                tmp<scalarField> temissivity
+            const radiation::radiationModel& radiation =
+                nbrMesh.lookupObject<radiation::radiationModel>
                 (
-                    new scalarField
-                    (
-                        nbrPatch.lookupPatchField<volScalarField, scalar>
-                        (
-                            "emissivity"
-                        )
-                    )
+                    "radiationProperties"
                 );
 
-                scalarField emissivity(temissivity);
-                // Use direct map mapping to exchange data
-                mpp.distribute(emissivity);
-                //Pout << emissivity << endl;
-                return emissivity;
-            }
-            else
-            {
-                return scalarField(0);
-            }
+
+            const fvMesh& nbrFvMesh = refCast<const fvMesh>(nbrMesh);
+
+            const fvPatch& nbrPatch =
+                nbrFvMesh.boundary()[mpp.samplePolyPatch().index()];
+
+
+            scalarField emissivity
+            (
+                radiation.absorptionEmission().e()().boundaryField()
+                [
+                    nbrPatch.index()
+                ]
+            );
+            mpp.distribute(emissivity);
+
+            return emissivity;
 
         }
         break;
@@ -185,15 +177,14 @@ Foam::scalarField Foam::radiationCoupledBase::emissivity() const
             FatalErrorIn
             (
                 "radiationCoupledBase::emissivity(const scalarField&)"
-            )
-                << "Unimplemented method " << method_ << endl
+            )   << "Unimplemented method " << method_ << endl
                 << "Please set 'emissivity' to one of "
                 << emissivityMethodTypeNames_.toc()
-                << " and 'emissivityName' to the name of the volScalar"
                 << exit(FatalError);
         }
         break;
     }
+
     return scalarField(0);
 }
 

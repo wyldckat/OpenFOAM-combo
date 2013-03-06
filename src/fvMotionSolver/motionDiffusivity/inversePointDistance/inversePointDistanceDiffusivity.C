@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,11 +48,11 @@ namespace Foam
 
 Foam::inversePointDistanceDiffusivity::inversePointDistanceDiffusivity
 (
-    const fvMotionSolver& mSolver,
+    const fvMesh& mesh,
     Istream& mdData
 )
 :
-    uniformDiffusivity(mSolver, mdData),
+    uniformDiffusivity(mesh, mdData),
     patchNames_(mdData)
 {
     correct();
@@ -69,27 +69,20 @@ Foam::inversePointDistanceDiffusivity::~inversePointDistanceDiffusivity()
 
 void Foam::inversePointDistanceDiffusivity::correct()
 {
-    const polyMesh& mesh = mSolver().mesh();
-    const polyBoundaryMesh& bdry = mesh.boundaryMesh();
+    const polyBoundaryMesh& bdry = mesh().boundaryMesh();
 
-    labelHashSet patchSet(bdry.size());
+    labelHashSet patchSet(bdry.patchSet(patchNames_));
 
     label nPatchEdges = 0;
 
-    forAll(patchNames_, i)
+    forAllConstIter(labelHashSet, patchSet, iter)
     {
-        const label pID = bdry.findPatchID(patchNames_[i]);
-
-        if (pID > -1)
-        {
-            patchSet.insert(pID);
-            nPatchEdges += bdry[pID].nEdges();
-        }
+        nPatchEdges += bdry[iter.key()].nEdges();
     }
 
     // Distance to wall on points and edges.
-    List<pointEdgePoint> pointWallDist(mesh.nPoints());
-    List<pointEdgePoint> edgeWallDist(mesh.nEdges());
+    List<pointEdgePoint> pointWallDist(mesh().nPoints());
+    List<pointEdgePoint> edgeWallDist(mesh().nEdges());
 
     int dummyTrackData = 0;
 
@@ -116,7 +109,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
                     // Not yet seeded
                     seedInfo[nPatchEdges] = pointEdgePoint
                     (
-                        mesh.points()[pointI],
+                        mesh().points()[pointI],
                         0.0
                     );
                     seedPoints[nPatchEdges] = pointI;
@@ -132,21 +125,21 @@ void Foam::inversePointDistanceDiffusivity::correct()
         // Do calculations
         PointEdgeWave<pointEdgePoint> waveInfo
         (
-            mesh,
+            mesh(),
             seedPoints,
             seedInfo,
 
             pointWallDist,
             edgeWallDist,
-            mesh.globalData().nTotalPoints(),// max iterations
+            mesh().globalData().nTotalPoints(),// max iterations
             dummyTrackData
         );
     }
 
 
-    for (label faceI=0; faceI<mesh.nInternalFaces(); faceI++)
+    for (label faceI=0; faceI<mesh().nInternalFaces(); faceI++)
     {
-        const face& f = mesh.faces()[faceI];
+        const face& f = mesh().faces()[faceI];
 
         scalar dist = 0;
 
@@ -169,7 +162,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
             forAll(bfld, i)
             {
-                const cell& ownFaces = mesh.cells()[faceCells[i]];
+                const cell& ownFaces = mesh().cells()[faceCells[i]];
 
                 labelHashSet cPoints(4*ownFaces.size());
 
@@ -177,7 +170,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
                 forAll(ownFaces, ownFaceI)
                 {
-                    const face& f = mesh.faces()[ownFaces[ownFaceI]];
+                    const face& f = mesh().faces()[ownFaces[ownFaceI]];
 
                     forAll(f, fp)
                     {
@@ -198,7 +191,7 @@ void Foam::inversePointDistanceDiffusivity::correct()
 
             forAll(bfld, i)
             {
-                const face& f = mesh.faces()[start+i];
+                const face& f = mesh().faces()[start+i];
 
                 scalar dist = 0;
 

@@ -353,7 +353,7 @@ void kOmegaSSTSAS::correct(const tmp<volTensorField>& gradU)
     volScalarField L(sqrt(k_)/(pow025(Cmu_)*omega_));
     volScalarField CDkOmega((2.0*alphaOmega2_)*(gradK & gradOmega)/omega_);
     volScalarField F1(this->F1(CDkOmega));
-    volScalarField G(nuSgs_*S2);
+    volScalarField G(type() + ".G", nuSgs_*S2);
 
     // Turbulent kinetic energy equation
     {
@@ -361,7 +361,6 @@ void kOmegaSSTSAS::correct(const tmp<volTensorField>& gradU)
         (
             fvm::ddt(k_)
           + fvm::div(phi(), k_)
-          - fvm::Sp(fvc::div(phi()), k_)
           - fvm::laplacian(DkEff(F1), k_)
         ==
             min(G, c1_*betaStar_*k_*omega_)
@@ -385,7 +384,6 @@ void kOmegaSSTSAS::correct(const tmp<volTensorField>& gradU)
         (
             fvm::ddt(omega_)
           + fvm::div(phi(), omega_)
-          - fvm::Sp(fvc::div(phi()), omega_)
           - fvm::laplacian(DomegaEff(F1), omega_)
         ==
             gamma(F1)*S2

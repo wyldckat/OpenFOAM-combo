@@ -318,7 +318,6 @@ Foam::tmp<Foam::tensorField> Foam::sampledPatch::sample
     return sampleField(sField);
 }
 
-
 Foam::tmp<Foam::scalarField> Foam::sampledPatch::interpolate
 (
     const interpolation<scalar>& interpolator

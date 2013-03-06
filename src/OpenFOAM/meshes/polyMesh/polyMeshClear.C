@@ -63,10 +63,7 @@ void Foam::polyMesh::clearGeom()
 
     primitiveMesh::clearGeom();
 
-    forAll(boundary_, patchI)
-    {
-        boundary_[patchI].clearGeom();
-    }
+    boundary_.clearGeom();
 
     // Reset valid directions (could change with rotation)
     geometricD_ = Vector<label>::zero;

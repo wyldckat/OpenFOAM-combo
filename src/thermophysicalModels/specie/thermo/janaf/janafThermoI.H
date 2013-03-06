@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -159,6 +159,7 @@ Foam::janafThermo<EquationOfState>::lowCpCoeffs() const
 template<class EquationOfState>
 inline Foam::scalar Foam::janafThermo<EquationOfState>::cp
 (
+    const scalar p,
     const scalar T
 ) const
 {
@@ -168,8 +169,9 @@ inline Foam::scalar Foam::janafThermo<EquationOfState>::cp
 
 
 template<class EquationOfState>
-inline Foam::scalar Foam::janafThermo<EquationOfState>::h
+inline Foam::scalar Foam::janafThermo<EquationOfState>::ha
 (
+    const scalar p,
     const scalar T
 ) const
 {
@@ -185,10 +187,11 @@ inline Foam::scalar Foam::janafThermo<EquationOfState>::h
 template<class EquationOfState>
 inline Foam::scalar Foam::janafThermo<EquationOfState>::hs
 (
+    const scalar p,
     const scalar T
 ) const
 {
-    return h(T) - hc();
+    return ha(p, T) - hc();
 }
 
 
@@ -210,6 +213,7 @@ inline Foam::scalar Foam::janafThermo<EquationOfState>::hc() const
 template<class EquationOfState>
 inline Foam::scalar Foam::janafThermo<EquationOfState>::s
 (
+    const scalar p,
     const scalar T
 ) const
 {

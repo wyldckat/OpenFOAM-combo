@@ -129,7 +129,11 @@ Foam::sutherlandTransport<Thermo>::New
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Thermo>
-inline Foam::scalar Foam::sutherlandTransport<Thermo>::mu(const scalar T) const
+inline Foam::scalar Foam::sutherlandTransport<Thermo>::mu
+(
+    const scalar p,
+    const scalar T
+) const
 {
     return As_*::sqrt(T)/(1.0 + Ts_/T);
 }
@@ -138,29 +142,23 @@ inline Foam::scalar Foam::sutherlandTransport<Thermo>::mu(const scalar T) const
 template<class Thermo>
 inline Foam::scalar Foam::sutherlandTransport<Thermo>::kappa
 (
-    const scalar T
+    const scalar p, const scalar T
 ) const
 {
-    scalar Cv_ = this->Cv(T);
-    return mu(T)*Cv_*(1.32 + 1.77*this->R()/Cv_);
+    scalar Cv_ = this->Cv(p, T);
+    return mu(p, T)*Cv_*(1.32 + 1.77*this->R()/Cv_);
 }
 
 
 template<class Thermo>
-inline Foam::scalar Foam::sutherlandTransport<Thermo>::alpha
+inline Foam::scalar Foam::sutherlandTransport<Thermo>::alphah
 (
+    const scalar p,
     const scalar T
 ) const
 {
-    scalar Cv_ = this->Cv(T);
-    scalar R_ = this->R();
-    scalar Cp_ = Cv_ + R_;
 
-    scalar deltaT = T - specie::Tstd;
-    scalar CpBar =
-        (deltaT*(this->H(T) - this->H(specie::Tstd)) + Cp_)/(sqr(deltaT) + 1);
-
-    return mu(T)*Cv_*(1.32 + 1.77*this->R()/Cv_)/CpBar;
+    return kappa(p, T)/this->Cp(p, T);
 }
 
 
@@ -179,52 +177,6 @@ Foam::sutherlandTransport<Thermo>::operator=
     Ts_ = st.Ts_;
 
     return *this;
-}
-
-
-template<class Thermo>
-inline void Foam::sutherlandTransport<Thermo>::operator+=
-(
-    const sutherlandTransport<Thermo>& st
-)
-{
-    scalar molr1 = this->nMoles();
-
-    Thermo::operator+=(st);
-
-    molr1 /= this->nMoles();
-    scalar molr2 = st.nMoles()/this->nMoles();
-
-    As_ = molr1*As_ + molr2*st.As_;
-    Ts_ = molr1*Ts_ + molr2*st.Ts_;
-}
-
-
-template<class Thermo>
-inline void Foam::sutherlandTransport<Thermo>::operator-=
-(
-    const sutherlandTransport<Thermo>& st
-)
-{
-    scalar molr1 = this->nMoles();
-
-    Thermo::operator-=(st);
-
-    molr1 /= this->nMoles();
-    scalar molr2 = st.nMoles()/this->nMoles();
-
-    As_ = molr1*As_ - molr2*st.As_;
-    Ts_ = molr1*Ts_ - molr2*st.Ts_;
-}
-
-
-template<class Thermo>
-inline void Foam::sutherlandTransport<Thermo>::operator*=
-(
-    const scalar s
-)
-{
-    Thermo::operator*=(s);
 }
 
 

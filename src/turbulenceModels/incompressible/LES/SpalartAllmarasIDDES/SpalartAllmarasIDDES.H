@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,9 @@ License
 
 Class
     Foam::incompressible::LESModels::SpalartAllmarasIDDES
+
+Group
+    grpIcoDESTurbulence
 
 Description
     SpalartAllmarasIDDES LES turbulence model for incompressible flows
@@ -58,8 +61,8 @@ class SpalartAllmarasIDDES
 
         // Model constants
 
-            autoPtr<LESdelta> hmax_;
-            autoPtr<LESdelta> IDDESDelta_;
+            autoPtr<Foam::LESdelta> hmax_;
+            autoPtr<Foam::LESdelta> IDDESDelta_;
             dimensionedScalar fwStar_;
             dimensionedScalar cl_;
             dimensionedScalar ct_;

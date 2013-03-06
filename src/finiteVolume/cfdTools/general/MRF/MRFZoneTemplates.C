@@ -28,7 +28,6 @@ License
 #include "volFields.H"
 #include "surfaceFields.H"
 #include "fvMatrices.H"
-#include "geometricOneField.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 

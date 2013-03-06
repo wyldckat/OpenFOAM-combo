@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -170,11 +170,22 @@ Foam::scalar Foam::PhaseChangeModel<CloudType>::dh
 (
     const label idc,
     const label idl,
-    const label p,
-    const label T
+    const scalar p,
+    const scalar T
 ) const
 {
     return 0.0;
+}
+
+
+template<class CloudType>
+Foam::scalar Foam::PhaseChangeModel<CloudType>::TMax
+(
+    const scalar,
+    const scalar
+) const
+{
+    return GREAT;
 }
 
 
@@ -193,11 +204,7 @@ void Foam::PhaseChangeModel<CloudType>::info(Ostream& os)
 
     Info<< "    Mass transfer phase change      = " << massTotal << nl;
 
-    if
-    (
-        this->owner().solution().transient()
-     && this->owner().db().time().outputTime()
-    )
+    if (this->outputTime())
     {
         this->setBaseProperty("mass", massTotal);
         dMass_ = 0.0;

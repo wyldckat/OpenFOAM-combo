@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    dsmcFields
+    dsmcFieldsCalc
 
 Description
     Calculate intensive fields (U and T) from averaged extensive fields from a

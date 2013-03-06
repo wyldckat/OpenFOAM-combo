@@ -25,7 +25,8 @@ Application
     yPlusLES
 
 Description
-    Calculates and reports yPlus for all wall patches, for the specified times.
+    Calculates and reports yPlus for all wall patches, for the specified times
+    when using LES turbulence models.
 
 \*---------------------------------------------------------------------------*/
 

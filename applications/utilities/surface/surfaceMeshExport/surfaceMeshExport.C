@@ -67,7 +67,6 @@ Note
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {
@@ -103,12 +102,7 @@ int main(int argc, char *argv[])
         "factor",
         "geometry scaling factor on output - default is 1"
     );
-    argList::addOption
-    (
-        "dict",
-        "file",
-        "specify an alternative dictionary for constant/coordinateSystems"
-    );
+    #include "addDictOption.H"
     argList::addOption
     (
         "from",

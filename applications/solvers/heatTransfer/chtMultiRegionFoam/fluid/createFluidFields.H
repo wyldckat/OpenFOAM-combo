@@ -1,7 +1,6 @@
     // Initialise fluid field pointer lists
-    PtrList<basicRhoThermo> thermoFluid(fluidRegions.size());
+    PtrList<rhoThermo> thermoFluid(fluidRegions.size());
     PtrList<volScalarField> rhoFluid(fluidRegions.size());
-    PtrList<volScalarField> kappaFluid(fluidRegions.size());
     PtrList<volVectorField> UFluid(fluidRegions.size());
     PtrList<surfaceScalarField> phiFluid(fluidRegions.size());
     PtrList<uniformDimensionedVectorField> gFluid(fluidRegions.size());
@@ -15,6 +14,8 @@
 
     List<scalar> initialMassFluid(fluidRegions.size());
 
+    PtrList<fv::IOoptionList> fluidFvOptions(fluidRegions.size());
+
     // Populate fluid field pointer lists
     forAll(fluidRegions, i)
     {
@@ -22,10 +23,11 @@
             << fluidRegions[i].name() << nl << endl;
 
         Info<< "    Adding to thermoFluid\n" << endl;
+
         thermoFluid.set
         (
             i,
-            basicRhoThermo::New(fluidRegions[i]).ptr()
+            rhoThermo::New(fluidRegions[i]).ptr()
         );
 
         Info<< "    Adding to rhoFluid\n" << endl;
@@ -43,24 +45,6 @@
                     IOobject::AUTO_WRITE
                 ),
                 thermoFluid[i].rho()
-            )
-        );
-
-        Info<< "    Adding to kappaFluid\n" << endl;
-        kappaFluid.set
-        (
-            i,
-            new volScalarField
-            (
-                IOobject
-                (
-                    "kappa",
-                    runTime.timeName(),
-                    fluidRegions[i],
-                    IOobject::NO_READ,
-                    IOobject::NO_WRITE
-                ),
-                thermoFluid[i].Cp()*thermoFluid[i].alpha()
             )
         );
 
@@ -118,19 +102,16 @@
             )
         );
 
-        Info<< "    Adding to turbulence\n" << endl;
+        Info<< "    Adding turbulence \n" << endl;
         turbulence.set
         (
             i,
-            autoPtr<compressible::turbulenceModel>
+            compressible::turbulenceModel::New
             (
-                compressible::turbulenceModel::New
-                (
-                    rhoFluid[i],
-                    UFluid[i],
-                    phiFluid[i],
-                    thermoFluid[i]
-                )
+                rhoFluid[i],
+                UFluid[i],
+                phiFluid[i],
+                thermoFluid[i]
             ).ptr()
         );
 
@@ -193,8 +174,26 @@
             i,
             new volScalarField
             (
-                "dpdt",
-                fvc::ddt(thermoFluid[i].p())
+                IOobject
+                (
+                    "dpdt",
+                    runTime.timeName(),
+                    fluidRegions[i]
+                ),
+                fluidRegions[i],
+                dimensionedScalar
+                (
+                    "dpdt",
+                    thermoFluid[i].p().dimensions()/dimTime,
+                    0
+                )
             )
+        );
+
+        Info<< "    Adding fvOptions\n" << endl;
+        fluidFvOptions.set
+        (
+            i,
+            new fv::IOoptionList(fluidRegions[i])
         );
     }

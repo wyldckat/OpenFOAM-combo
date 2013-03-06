@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,9 +24,11 @@ License
 Namespace
     Foam::compressible::LESModels
 
+Group
+    grpCmpLESTurbulence
+
 Description
     Namespace for compressible LES models.
-
 
 Class
     Foam::compressible::LESModel
@@ -49,11 +51,11 @@ SourceFiles
 #define compressibleLESModel_H
 
 #include "compressible/turbulenceModel/turbulenceModel.H"
-#include "LESdelta.H"
+#include "compressible/LES/compressibleLESdelta/compressibleLESdelta.H"
 #include "fvm.H"
 #include "fvc.H"
 #include "fvMatrices.H"
-#include "basicThermo.H"
+#include "fluidThermo.H"
 #include "bound.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
@@ -84,7 +86,7 @@ protected:
 
         dimensionedScalar kMin_;
 
-        autoPtr<LESdelta> delta_;
+        autoPtr<Foam::LESdelta> delta_;
 
 
     // Protected Member Functions
@@ -121,7 +123,7 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel,
+                const fluidThermo& thermoPhysicalModel,
                 const word& turbulenceModelName
             ),
             (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
@@ -137,7 +139,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName
         );
 
@@ -150,7 +152,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName
         );
 
@@ -167,7 +169,7 @@ public:
             //- Const access to the coefficients dictionary,
             //  which provides info. about choice of models,
             //  and all related data (particularly model coefficients).
-            inline const dictionary& coeffDict() const
+            virtual const dictionary& coeffDict() const
             {
                 return coeffDict_;
             }
@@ -206,21 +208,30 @@ public:
         //- Return the SGS turbulent thermal diffusivity
         virtual tmp<volScalarField> alphaSgs() const = 0;
 
+        //- Return the effective turbulent temperature diffusivity
+        virtual tmp<volScalarField> kappaEff() const
+        {
+            return thermo().kappaEff(alphaSgs());
+        }
+
+        //- Return the effective turbulent temperature diffusivity for a patch
+        virtual tmp<scalarField> kappaEff(const label patchI) const
+        {
+            return
+                thermo().kappaEff(alphaSgs()().boundaryField()[patchI], patchI);
+        }
+
         //- Return the effective thermal diffusivity
         virtual tmp<volScalarField> alphaEff() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphaSgs() + alpha())
-            );
+            return thermo().alphaEff(alphaSgs());
         }
 
         //- Return the effective turbulence thermal diffusivity for a patch
         virtual tmp<scalarField> alphaEff(const label patchI) const
         {
             return
-                alphaSgs()().boundaryField()[patchI]
-              + alpha().boundaryField()[patchI];
+                thermo().alphaEff(alphaSgs()().boundaryField()[patchI], patchI);
         }
 
         //- Return the sub-grid stress tensor.

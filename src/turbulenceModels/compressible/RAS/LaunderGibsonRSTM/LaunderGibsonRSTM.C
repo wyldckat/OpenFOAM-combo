@@ -50,7 +50,7 @@ LaunderGibsonRSTM::LaunderGibsonRSTM
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -253,7 +253,7 @@ LaunderGibsonRSTM::LaunderGibsonRSTM
         (
             "LaunderGibsonRSTM::LaunderGibsonRSTM"
             "(const volScalarField&, const volVectorField&"
-            ", const surfaceScalarField&, basicThermo&)"
+            ", const surfaceScalarField&, fluidThermo&)"
         )   << "couplingFactor = " << couplingFactor_
             << " is not in range 0 - 1" << nl
             << exit(FatalError);
@@ -379,7 +379,7 @@ void LaunderGibsonRSTM::correct()
     }
 
     volSymmTensorField P(-twoSymm(R_ & fvc::grad(U_)));
-    volScalarField G("RASModel::G", 0.5*mag(tr(P)));
+    volScalarField G(type() + ".G", 0.5*mag(tr(P)));
 
     // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
@@ -389,7 +389,6 @@ void LaunderGibsonRSTM::correct()
     (
         fvm::ddt(rho_, epsilon_)
       + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), epsilon_)
     //- fvm::laplacian(Ceps*rho_*(k_/epsilon_)*R_, epsilon_)
       - fvm::laplacian(DepsilonEff(), epsilon_)
      ==
@@ -433,7 +432,6 @@ void LaunderGibsonRSTM::correct()
     (
         fvm::ddt(rho_, R_)
       + fvm::div(phi_, R_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), R_)
     //- fvm::laplacian(Cs*rho_*(k_/epsilon_)*R_, R_)
       - fvm::laplacian(DREff(), R_)
       + fvm::Sp(Clg1_*rho_*epsilon_/k_, R_)

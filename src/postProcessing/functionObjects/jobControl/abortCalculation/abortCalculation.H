@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,6 +24,9 @@ License
 Class
     Foam::abortCalculation
 
+Group
+    grpJobControlFunctionObjects
+
 Description
     Watches for presence of the named file in the $FOAM_CASE directory
     and aborts the calculation if it is present.
@@ -42,7 +45,6 @@ SourceFiles
 #ifndef abortCalculation_H
 #define abortCalculation_H
 
-#include "pointFieldFwd.H"
 #include "NamedEnum.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -53,6 +55,7 @@ namespace Foam
 // Forward declaration of classes
 class objectRegistry;
 class dictionary;
+class polyMesh;
 class mapPolyMesh;
 
 /*---------------------------------------------------------------------------*\
@@ -151,7 +154,7 @@ public:
         {}
 
         //- Update for changes of mesh - does nothing
-        virtual void movePoints(const pointField&)
+        virtual void movePoints(const polyMesh&)
         {}
 };
 

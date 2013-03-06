@@ -1,10 +1,12 @@
     Info<< "Reading thermophysical properties\n" << endl;
 
-    autoPtr<hhuCombustionThermo> pThermo
+    autoPtr<psiuReactionThermo> pThermo
     (
-        hhuCombustionThermo::New(mesh)
+        psiuReactionThermo::New(mesh)
     );
-    hhuCombustionThermo& thermo = pThermo();
+    psiuReactionThermo& thermo = pThermo();
+    thermo.validate(args.executable(), "ha", "ea");
+
     basicMultiComponentMixture& composition = thermo.composition();
 
     volScalarField rho
@@ -22,13 +24,9 @@
 
     volScalarField& p = thermo.p();
     const volScalarField& psi = thermo.psi();
-    volScalarField& h = thermo.h();
-    volScalarField& hu = thermo.hu();
 
     volScalarField& b = composition.Y("b");
     Info<< "min(b) = " << min(b).value() << endl;
-
-    //const volScalarField& T = thermo->T();
 
     Info<< "\nReading field U\n" << endl;
     volVectorField U
@@ -60,7 +58,17 @@
 
 
     Info<< "Creating field dpdt\n" << endl;
-    volScalarField dpdt("dpdt", fvc::ddt(p));
+    volScalarField dpdt
+    (
+        IOobject
+        (
+            "dpdt",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
+    );
 
     Info<< "Creating field kinetic energy K\n" << endl;
     volScalarField K("K", 0.5*magSqr(U));
@@ -186,6 +194,6 @@
     }
 
     fields.add(b);
-    fields.add(h);
-    fields.add(hu);
+    fields.add(thermo.he());
+    fields.add(thermo.heu());
     flameWrinkling->addXi(fields);

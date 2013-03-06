@@ -30,14 +30,16 @@ tmp<fv::convectionScheme<scalar> > mvConvection
               ==
                 coalParcels.SYi(i, Yi)
               + combustion->R(Yi)
-              + sources(rho, Yi)
+              + fvOptions(rho, Yi)
             );
 
             YiEqn.relax();
 
-            sources.constrain(YiEqn);
+            fvOptions.constrain(YiEqn);
 
             YiEqn.solve(mesh.solver("Yi"));
+
+            fvOptions.correct(Yi);
 
             Yi.max(0.0);
             Yt += Yi;

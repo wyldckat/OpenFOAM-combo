@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,7 +16,7 @@ FoamFile
 
 solvers
 {
-    T
+    h
     {
         solver           PCG;
         preconditioner   DIC;
@@ -37,7 +37,7 @@ relaxationFactors
     }
     equations
     {
-        T               0.7;
+        h               0.7;
     }
 }
 

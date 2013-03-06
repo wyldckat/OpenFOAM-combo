@@ -12,13 +12,7 @@ runApplication splitMeshRegions -cellZones -overwrite
 # remove fluid fields from solid regions (important for post-processing)
 for i in heater leftSolid rightSolid
 do
-   rm -f 0*/$i/{rho,mut,alphat,epsilon,k,p,U,p_rgh,Qr,G,IDefault}
-done
-
-## remove solid fields from fluid regions (important for post-processing)
-for i in bottomAir topAir
-do
-    rm -f 0*/$i/{Ypmma,Ychar}
+   rm -f 0*/$i/{rho,mut,alphat,epsilon,k,U,p_rgh,Qr,G,IDefault}
 done
 
 for i in bottomAir topAir heater leftSolid rightSolid
@@ -29,7 +23,7 @@ done
 
 for i in bottomAir topAir
 do
-    faceAgglomerate -region $i -dict viewFactorsDict > log.faceAgglomerate.$i 2>&1
+    faceAgglomerate -region $i -dict constant/viewFactorsDict > log.faceAgglomerate.$i 2>&1
 done
 
 for i in bottomAir topAir
@@ -44,14 +38,11 @@ runApplication `getApplication`
 
 ## Run in parallel
 ## Decompose
-#for i in bottomAir topAir heater leftSolid rightSolid
-#do
-#   decomposePar -region $i > log.decomposePar.$i 2>&1
-#done
+#runApplication decomposePar -allRegions
 #
 #for i in bottomAir topAir
 #do
-#    mpirun -np 4 faceAgglomerate -region $i -dict viewFactorsDict -parallel>   log.faceAgglomerate.$i 2>&1
+#    mpirun -np 4 faceAgglomerate -region $i -dict constant/viewFactorsDict -parallel>   log.faceAgglomerate.$i 2>&1
 #done
 
 #for i in bottomAir topAir
@@ -63,10 +54,7 @@ runApplication `getApplication`
 #runParallel `getApplication` 4
 #
 ## Reconstruct
-#for i in bottomAir topAir heater leftSolid rightSolid
-#do
-#   reconstructPar -region $i > log.reconstructPar.$i 2>&1
-#done
+#runApplication reconstructPar -allRegions
 
 
 echo

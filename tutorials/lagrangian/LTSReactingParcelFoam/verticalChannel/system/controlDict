@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -52,10 +52,10 @@ functions
     {
         type            faceSource;
         functionObjectLibs ("libfieldFunctionObjects.so");
-        enabled         true;
+        enabled         yes;
         outputControl   outputTime;
-        log             true;
-        valueOutput     true;
+        log             yes;
+        valueOutput     no;
         source          patch;
         sourceName      outlet;
         operation       weightedAverage;

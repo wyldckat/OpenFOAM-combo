@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,13 +35,13 @@ Description
 #include "vector.H"
 #include "Cloud.H"
 #include "IDLList.H"
-#include "labelList.H"
 #include "pointField.H"
 #include "faceList.H"
 #include "OFstream.H"
-#include "tetPointRef.H"
+#include "tetrahedron.H"
 #include "FixedList.H"
 #include "polyMeshTetDecomposition.H"
+#include "particleMacros.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -285,7 +285,7 @@ public:
         TypeName("particle");
 
         //- String representation of properties
-        static string propHeader;
+        DefinePropertyList("(Px Py Pz) cellI tetFaceI tetPtI origProc origId");
 
         //- Cumulative particle counter - used to provode unique ID
         static label particleCount_;
@@ -555,13 +555,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "particleI.H"
-/*
-#define defineParticleTypeNameAndDebug(Type, DebugSwitch)                     \
-    template<>                                                                \
-    const Foam::word Particle<Type>::typeName(#Type);                         \
-    template<>                                                                \
-    int Particle<Type>::debug(Foam::debug::debugSwitch(#Type, DebugSwitch));
-*/
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository

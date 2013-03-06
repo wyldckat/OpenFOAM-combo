@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ License
 #include "phaseModel.H"
 #include "diameterModel.H"
 #include "fixedValueFvPatchFields.H"
-#include "slipFvPatchFields.H"
 #include "surfaceInterpolate.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -38,35 +37,30 @@ Foam::phaseModel::phaseModel
     const word& phaseName
 )
 :
-    dict_
+    volScalarField
     (
-        transportProperties.subDict("phase" + phaseName)
+        IOobject
+        (
+            "alpha" + phaseName,
+            mesh.time().timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("alpha", dimless, 0)
     ),
     name_(phaseName),
-    nu_
+    phaseDict_
     (
-        "nu",
-        dimensionSet(0, 2, -1, 0, 0),
-        dict_.lookup("nu")
+        transportProperties.subDict
+        (
+            phaseName == "1" || phaseName == "2"
+          ? "phase" + phaseName
+          : word(phaseName)
+        )
     ),
-    kappa_
-    (
-        "kappa",
-        dimensionSet(1, 1, -3, -1, 0),
-        dict_.lookup("kappa")
-    ),
-    Cp_
-    (
-        "Cp",
-        dimensionSet(0, 2, -2, -1, 0),
-        dict_.lookup("Cp")
-    ),
-    rho_
-    (
-        "rho",
-        dimDensity,
-        dict_.lookup("rho")
-    ),
+    thermo_(rhoThermo::New(mesh, phaseName)),
     U_
     (
         IOobject
@@ -80,6 +74,8 @@ Foam::phaseModel::phaseModel
         mesh
     )
 {
+    thermo_->validate("phaseModel " + phaseName, "h", "e");
+
     const word phiName = "phi" + phaseName;
 
     IOobject phiHeader
@@ -122,11 +118,7 @@ Foam::phaseModel::phaseModel
 
         forAll(U_.boundaryField(), i)
         {
-            if
-            (
-                isA<fixedValueFvPatchVectorField>(U_.boundaryField()[i])
-             || isA<slipFvPatchVectorField>(U_.boundaryField()[i])
-            )
+            if (isA<fixedValueFvPatchVectorField>(U_.boundaryField()[i]))
             {
                 phiTypes[i] = fixedValueFvPatchScalarField::typeName;
             }
@@ -152,7 +144,7 @@ Foam::phaseModel::phaseModel
 
     dPtr_ = diameterModel::New
     (
-        dict_,
+        phaseDict_,
         *this
     );
 }

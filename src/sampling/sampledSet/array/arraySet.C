@@ -143,7 +143,7 @@ Foam::arraySet::arraySet
 (
     const word& name,
     const polyMesh& mesh,
-    meshSearch& searchEngine,
+    const meshSearch& searchEngine,
     const word& axis,
     const coordinateSystem& origin,
     const Vector<label>& pointsDensity,
@@ -168,7 +168,7 @@ Foam::arraySet::arraySet
 (
     const word& name,
     const polyMesh& mesh,
-    meshSearch& searchEngine,
+    const meshSearch& searchEngine,
     const dictionary& dict
 )
 :

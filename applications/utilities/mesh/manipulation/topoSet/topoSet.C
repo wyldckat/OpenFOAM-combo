@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,6 +20,9 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    topoSet
 
 Description
     Operates on cellSets/faceSets/pointSets through a dictionary.
@@ -188,17 +191,11 @@ polyMesh::readUpdateState meshReadUpdate(polyMesh& mesh)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions(true, false);
-    argList::addOption
-    (
-        "dict",
-        "file",
-        "specify an alternative dictionary for the topoSet dictionary"
-    );
+    #include "addDictOption.H"
     #include "addRegionOption.H"
     argList::addBoolOption
     (
@@ -216,41 +213,11 @@ int main(int argc, char *argv[])
     const bool noSync = args.optionFound("noSync");
 
     const word dictName("topoSetDict");
-
-    fileName dictPath = dictName;
-    if (args.optionFound("dict"))
-    {
-        dictPath = args["dict"];
-        if (isDir(dictPath))
-        {
-            dictPath = dictPath / dictName;
-        }
-    }
+    #include "setSystemMeshDictionaryIO.H"
 
     Info<< "Reading " << dictName << "\n" << endl;
 
-    IOdictionary topoSetDict
-    (
-        (
-            args.optionFound("dict")
-          ? IOobject
-            (
-                dictPath,
-                mesh,
-                IOobject::MUST_READ_IF_MODIFIED,
-                IOobject::NO_WRITE
-            )
-          : IOobject
-            (
-                dictName,
-                runTime.system(),
-                mesh,
-                IOobject::MUST_READ_IF_MODIFIED,
-                IOobject::NO_WRITE
-            )
-        )
-    );
-
+    IOdictionary topoSetDict(dictIO);
 
     // Read set construct info from dictionary
     PtrList<dictionary> actions(topoSetDict.lookup("actions"));

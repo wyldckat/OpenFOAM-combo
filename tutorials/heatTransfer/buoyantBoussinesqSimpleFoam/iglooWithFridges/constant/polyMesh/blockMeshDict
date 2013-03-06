@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -31,7 +31,7 @@ vertices
 
 blocks
 (
-    hex (0 1 2 3 4 5 6 7) (20 20 20) simpleGrading (1 1 1)
+    hex (0 1 2 3 4 5 6 7) (20 20 10) simpleGrading (1 1 1)
 );
 
 edges
@@ -42,7 +42,7 @@ boundary
 (
     maxY
     {
-        type empty;
+        type symmetryPlane;
         faces
         (
             (3 7 6 2)
@@ -51,7 +51,7 @@ boundary
 
     minX
     {
-        type empty;
+        type symmetryPlane;
         faces
         (
             (0 4 7 3)
@@ -60,7 +60,7 @@ boundary
 
     maxX
     {
-        type empty;
+        type symmetryPlane;
         faces
         (
             (2 6 5 1)
@@ -69,7 +69,7 @@ boundary
 
     minY
     {
-        type empty;
+        type symmetryPlane;
         faces
         (
             (1 5 4 0)
@@ -78,7 +78,8 @@ boundary
 
     ground
     {
-        type wall;
+        type        wall;
+        inGroups    (wall);
         faces
         (
             (0 3 2 1)
@@ -87,7 +88,7 @@ boundary
 
     maxZ
     {
-        type empty;
+        type symmetryPlane;
         faces
         (
             (4 5 6 7)

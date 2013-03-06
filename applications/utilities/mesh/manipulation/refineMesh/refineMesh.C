@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,6 +20,9 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    refineMesh
 
 Description
     Utility to refine cells in multiple directions.
@@ -52,7 +55,7 @@ using namespace Foam;
 
 
 // Max cos angle for edges to be considered aligned with axis.
-static const scalar edgeTol = 1E-3;
+static const scalar edgeTol = 1e-3;
 
 
 // Calculate some edge statistics on mesh.
@@ -206,7 +209,7 @@ label twoDNess(const polyMesh& mesh)
             minLen = min(minLen, mesh.edges()[cEdges[i]].mag(mesh.points()));
         }
 
-        if (cellPlane.distance(ctrs[cellI]) > 1E-6*minLen)
+        if (cellPlane.distance(ctrs[cellI]) > 1e-6*minLen)
         {
             // Centres not in plane
             return  -1;
@@ -274,7 +277,7 @@ label twoDNess(const polyMesh& mesh)
 
             const scalarField cosAngle(mag(n/mag(n) & cellPlane.normal()));
 
-            if (mag(min(cosAngle) - max(cosAngle)) > 1E-6)
+            if (mag(min(cosAngle) - max(cosAngle)) > 1e-6)
             {
                 // cosAngle should be either ~1 over all faces (2D front and
                 // back) or ~0 (all other patches perp to 2D)
@@ -287,7 +290,6 @@ label twoDNess(const polyMesh& mesh)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
@@ -298,12 +300,7 @@ int main(int argc, char *argv[])
 
     #include "addOverwriteOption.H"
     #include "addRegionOption.H"
-    argList::addBoolOption
-    (
-        "dict",
-        "refine according to system/refineMeshDict"
-    );
-
+    #include "addDictOption.H"
     #include "setRootCase.H"
     #include "createTime.H"
     runTime.functionObjects().off();
@@ -327,19 +324,12 @@ int main(int argc, char *argv[])
 
     if (readDict)
     {
-        Info<< "Refining according to refineMeshDict" << nl << endl;
+        const word dictName("refineMeshDict");
+        #include "setSystemMeshDictionaryIO.H"
 
-        refineDict = IOdictionary
-        (
-            IOobject
-            (
-                "refineMeshDict",
-                runTime.system(),
-                mesh,
-                IOobject::MUST_READ_IF_MODIFIED,
-                IOobject::NO_WRITE
-            )
-        );
+        Info<< "Refining according to " << dictName << nl << endl;
+
+        refineDict = IOdictionary(dictIO);
 
         const word setName(refineDict.lookup("set"));
 

@@ -24,6 +24,9 @@ License
 Class
     Foam::compressible::LESModels::Smagorinsky
 
+Group
+    grpCmpLESTurbulence
+
 Description
     The choric Smagorinsky Model for compressible flows.
 
@@ -96,7 +99,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );

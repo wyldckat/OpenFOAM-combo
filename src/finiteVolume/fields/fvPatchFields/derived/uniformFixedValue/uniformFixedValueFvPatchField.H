@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,36 @@ License
 Class
     Foam::uniformFixedValueFvPatchField
 
+Group
+    grpGenericBoundaryConditions
+
 Description
-    Foam::uniformFixedValueFvPatchField
+    This boundary condition provides a uniform fixed value condition.
+
+    \heading Patch usage
+
+    \table
+        Property     | Description             | Required    | Default value
+        uniformValue | uniform value           |         yes |
+    \endtable
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            uniformFixedValue;
+        uniformValue    constant 0.2;
+    }
+    \endverbatim
+
+Note
+    The uniformValue entry is a DataEntry type, able to describe time
+    varying functions.  The example above gives the usage for supplying a
+    constant value.
+
+SeeAlso
+    Foam::DataEntry
+    Foam::fixedValueFvPatchField
 
 SourceFiles
     uniformFixedValueFvPatchField.C
@@ -35,7 +63,6 @@ SourceFiles
 #ifndef uniformFixedValueFvPatchField_H
 #define uniformFixedValueFvPatchField_H
 
-#include "Random.H"
 #include "fixedValueFvPatchFields.H"
 #include "DataEntry.H"
 
@@ -45,7 +72,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                 Class uniformFixedValueFvPatch Declaration
+                Class uniformFixedValueFvPatchField Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
@@ -71,6 +98,14 @@ public:
         (
             const fvPatch&,
             const DimensionedField<Type, volMesh>&
+        );
+
+        //- Construct from patch and internal field and patch field
+        uniformFixedValueFvPatchField
+        (
+            const fvPatch&,
+            const DimensionedField<Type, volMesh>&,
+            const Field<Type>& fld
         );
 
         //- Construct from patch, internal field and dictionary
@@ -127,14 +162,6 @@ public:
 
 
     // Member functions
-
-        // Mapping functions
-
-            //- Map (and resize as needed) from self given a mapping object
-            virtual void autoMap
-            (
-                const fvPatchFieldMapper&
-            );
 
 
         // Evaluation functions

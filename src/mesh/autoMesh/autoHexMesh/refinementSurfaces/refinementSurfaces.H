@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -70,6 +70,16 @@ public:
 
     static const NamedEnum<areaSelectionAlgo, 4> areaSelectionAlgoNames;
 
+    //- What to do with faceZone faces
+    enum faceZoneType
+    {
+        INTERNAL,
+        BAFFLE,
+        BOUNDARY
+    };
+
+    static const NamedEnum<faceZoneType, 3> faceZoneTypeNames;
+
 private:
 
     // Private data
@@ -96,6 +106,10 @@ private:
 
         //- If zoneInside=location gives the corresponding inside point
         pointField zoneInsidePoints_;
+
+        //- Per 'interface' surface :
+        //  Waht to do with outside
+        List<faceZoneType> faceType_;
 
         //- From local region number to global region number
         labelList regionOffset_;
@@ -154,7 +168,8 @@ public:
                 return names_;
             }
 
-            //- Per 'interface' surface : name of faceZone to put faces into
+            //- Per 'interface' surface : empty or name of faceZone to put
+            //  faces into
             const wordList& faceZoneNames() const
             {
                 return faceZoneNames_;
@@ -185,6 +200,12 @@ public:
             const pointField& zoneInsidePoints() const
             {
                 return zoneInsidePoints_;
+            }
+
+            //- How to handle face of surfaces with a faceZone
+            const List<faceZoneType>& faceType() const
+            {
+                return faceType_;
             }
 
             //- From local region number to global region number
@@ -295,6 +316,24 @@ public:
                 labelList& surface2,
                 List<pointIndexHit>& hit2,
                 labelList& region2
+            ) const;
+
+            //- findNearestIntersection but also get normals
+            void findNearestIntersection
+            (
+                const labelList& surfacesToTest,
+                const pointField& start,
+                const pointField& end,
+
+                labelList& surface1,
+                List<pointIndexHit>& hit1,
+                labelList& region1,
+                vectorField& normal1,
+
+                labelList& surface2,
+                List<pointIndexHit>& hit2,
+                labelList& region2,
+                vectorField& normal2
             ) const;
 
             //- Used for debugging only: find intersection of edge.

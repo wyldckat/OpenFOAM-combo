@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,7 @@ License
 #include "processorPolyPatch.H"
 #include "fvMesh.H"
 #include "CompactListList.H"
+#include "ListOps.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -495,6 +496,21 @@ void Foam::polyTopoChange::makeCells
 
     for (label faceI = 0; faceI < nActiveFaces; faceI++)
     {
+        if (faceOwner_[faceI] < 0)
+        {
+            FatalErrorIn
+            (
+                "polyTopoChange::makeCells\n"
+                "(\n"
+                "    const label,\n"
+                "    labelList&,\n"
+                "    labelList&\n"
+                ") const\n"
+            )   << "Face " << faceI << " is active but its owner has"
+                << " been deleted. This is usually due to deleting cells"
+                << " without modifying exposed faces to be boundary faces."
+                << exit(FatalError);
+        }
         nNbrs[faceOwner_[faceI]]++;
     }
     for (label faceI = 0; faceI < nActiveFaces; faceI++)
@@ -604,51 +620,95 @@ Foam::label Foam::polyTopoChange::getCellOrder
     label cellInOrder = 0;
 
 
-    // loop over the cells
-    forAll(visited, cellI)
+    // Work arrays. Kept outside of loop to minimise allocations.
+    // - neighbour cells
+    DynamicList<label> nbrs;
+    // - corresponding weights
+    DynamicList<label> weights;
+
+    // - ordering
+    labelList order;
+
+
+    while (true)
     {
-        // find the first non-removed cell that has not been visited yet
-        if (!cellRemoved(cellI) && visited[cellI] == 0)
+        // For a disconnected region find the lowest connected cell.
+
+        label currentCell = -1;
+        label minWeight = labelMax;
+
+        forAll(visited, cellI)
         {
-            // use this cell as a start
-            nextCell.append(cellI);
-
-            // loop through the nextCell list. Add the first cell into the
-            // cell order if it has not already been visited and ask for its
-            // neighbours. If the neighbour in question has not been visited,
-            // add it to the end of the nextCell list
-
-            do
+            // find the lowest connected cell that has not been visited yet
+            if (!cellRemoved(cellI) && !visited[cellI])
             {
-                label currentCell = nextCell.removeHead();
-
-                if (visited[currentCell] == 0)
+                if (cellCellAddressing[cellI].size() < minWeight)
                 {
-                    visited[currentCell] = 1;
-
-                    // add into cellOrder
-                    newOrder[cellInOrder] = currentCell;
-                    cellInOrder++;
-
-                    // find if the neighbours have been visited
-                    const UList<label> cCells = cellCellAddressing[currentCell];
-
-                    forAll(cCells, i)
-                    {
-                        label nbr = cCells[i];
-
-                        if (!cellRemoved(nbr) && visited[nbr] == 0)
-                        {
-                            // not visited, add to the list
-                            nextCell.append(nbr);
-                        }
-                    }
+                    minWeight = cellCellAddressing[cellI].size();
+                    currentCell = cellI;
                 }
             }
-            while (nextCell.size());
+        }
+
+
+        if (currentCell == -1)
+        {
+            break;
+        }
+
+
+        // Starting from currentCell walk breadth-first
+
+
+        // use this cell as a start
+        nextCell.append(currentCell);
+
+        // loop through the nextCell list. Add the first cell into the
+        // cell order if it has not already been visited and ask for its
+        // neighbours. If the neighbour in question has not been visited,
+        // add it to the end of the nextCell list
+
+        while (nextCell.size())
+        {
+            currentCell = nextCell.removeHead();
+
+            if (!visited[currentCell])
+            {
+                visited[currentCell] = 1;
+
+                // add into cellOrder
+                newOrder[cellInOrder] = currentCell;
+                cellInOrder++;
+
+                // find if the neighbours have been visited
+                const labelList& neighbours = cellCellAddressing[currentCell];
+
+                // Add in increasing order of connectivity
+
+                // 1. Count neighbours of unvisited neighbours
+                nbrs.clear();
+                weights.clear();
+
+                forAll(neighbours, nI)
+                {
+                    label nbr = neighbours[nI];
+                    if (!cellRemoved(nbr) && !visited[nbr])
+                    {
+                        // not visited, add to the list
+                        nbrs.append(nbr);
+                        weights.append(cellCellAddressing[nbr].size());
+                    }
+                }
+                // 2. Sort
+                sortedOrder(weights, order);
+                // 3. Add in sorted order
+                forAll(order, i)
+                {
+                    nextCell.append(nbrs[i]);
+                }
+            }
         }
     }
-
 
     // Now we have new-to-old in newOrder.
     newOrder.setSize(cellInOrder);
@@ -1890,30 +1950,6 @@ void Foam::polyTopoChange::calcFaceZonePointMap
 }
 
 
-Foam::face Foam::polyTopoChange::rotateFace
-(
-    const face& f,
-    const label nPos
-)
-{
-    face newF(f.size());
-
-    forAll(f, fp)
-    {
-        label fp1 = (fp + nPos) % f.size();
-
-        if (fp1 < 0)
-        {
-            fp1 += f.size();
-        }
-
-        newF[fp1] = f[fp];
-    }
-
-    return newF;
-}
-
-
 void Foam::polyTopoChange::reorderCoupledFaces
 (
     const bool syncParallel,
@@ -2024,7 +2060,7 @@ void Foam::polyTopoChange::reorderCoupledFaces
         {
             if (rotation[faceI] != 0)
             {
-                faces_[faceI] = rotateFace(faces_[faceI], rotation[faceI]);
+                inplaceRotateList<List, label>(faces_[faceI], rotation[faceI]);
             }
         }
     }
@@ -3374,11 +3410,13 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::polyTopoChange::makeMesh
     // Create the mesh
     // ~~~~~~~~~~~~~~~
 
+    IOobject noReadIO(io);
+    noReadIO.readOpt() = IOobject::NO_READ;
     newMeshPtr.reset
     (
         new fvMesh
         (
-            io,
+            noReadIO,
             xferMove(newPoints),
             faces_.xfer(),
             faceOwner_.xfer(),

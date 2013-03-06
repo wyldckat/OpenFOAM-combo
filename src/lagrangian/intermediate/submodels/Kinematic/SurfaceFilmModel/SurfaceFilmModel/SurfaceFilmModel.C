@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,12 +53,11 @@ Foam::SurfaceFilmModel<CloudType>::SurfaceFilmModel
 (
     const dictionary& dict,
     CloudType& owner,
-    const dimensionedVector& g,
     const word& type
 )
 :
     SubModelBase<CloudType>(owner, dict, typeName, type),
-    g_(g),
+    g_(owner.g()),
     ejectedParcelType_
     (
         this->coeffDict().lookupOrDefault("ejectedParcelType", -1)
@@ -134,7 +133,7 @@ void Foam::SurfaceFilmModel<CloudType>::inject(TrackData& td)
 
     // Retrieve the film model from the owner database
     const regionModels::surfaceFilmModels::surfaceFilmModel& filmModel =
-        this->owner().db().objectRegistry::template lookupObject
+        this->owner().mesh().time().objectRegistry::template lookupObject
         <regionModels::surfaceFilmModels::surfaceFilmModel>
         (
             "surfaceFilmProperties"
@@ -276,9 +275,30 @@ void Foam::SurfaceFilmModel<CloudType>::setParcelProperties
 
 
 template<class CloudType>
-void Foam::SurfaceFilmModel<CloudType>::info(Ostream& os) const
+void Foam::SurfaceFilmModel<CloudType>::info(Ostream& os)
 {
-    // do nothing
+    label nTrans0 =
+        this->template getModelProperty<label>("nParcelsTransferred");
+
+    label nInject0 =
+        this->template getModelProperty<label>("nParcelsInjected");
+
+    label nTransTotal =
+        nTrans0 + returnReduce(nParcelsTransferred_, sumOp<label>());
+
+    label nInjectTotal =
+        nInject0 + returnReduce(nParcelsInjected_, sumOp<label>());
+
+    os  << "    Parcels absorbed into film      = " << nTransTotal << nl
+        << "    New film detached parcels       = " << nInjectTotal << endl;
+
+    if (this->outputTime())
+    {
+        this->setModelProperty("nParcelsTransferred", nTransTotal);
+        this->setModelProperty("nParcelsInjected", nInjectTotal);
+        nParcelsTransferred_ = 0;
+        nParcelsInjected_ = 0;
+    }
 }
 
 

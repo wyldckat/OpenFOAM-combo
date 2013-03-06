@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -47,8 +47,8 @@ dictionaryReplacement
             {
                 type            compressible::turbulentTemperatureCoupledBaffleMixed;
                 neighbourFieldName T;
-                K               solidThermo;
-                KName           none;
+                kappa           solidThermo;
+                kappaName       none;
                 value           uniform 300;
             }
             minY
@@ -58,37 +58,6 @@ dictionaryReplacement
             }
         }
     }
-
-    Ypmma
-    {
-        internalField   uniform 0.5;
-
-
-        boundaryField
-        {
-            ".*"
-            {
-                type            calculated;
-                value           uniform 0.5;
-            }
-        }
-
-    }
-
-    Ychar
-    {
-        internalField   uniform 0.5;
-
-        boundaryField
-        {
-            ".*"
-            {
-                type            calculated;
-                value           uniform 0.5;
-            }
-        }
-    }
-
 }
 
 // ************************************************************************* //

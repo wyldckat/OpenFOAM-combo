@@ -277,7 +277,7 @@ public:
 
             //- Remap the cells of particles corresponding to the
             //  mesh topology change with a default tracking data object
-            void autoMap(const mapPolyMesh&);
+            virtual void autoMap(const mapPolyMesh&);
 
 
         // I-O

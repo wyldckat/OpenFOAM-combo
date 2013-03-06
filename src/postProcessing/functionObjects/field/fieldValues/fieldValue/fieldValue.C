@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,70 +26,18 @@ License
 #include "fieldValue.H"
 #include "fvMesh.H"
 #include "Time.H"
+#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
     defineTypeNameAndDebug(fieldValue, 0);
+    defineRunTimeSelectionTable(fieldValue, dictionary);
 }
 
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
-
-void Foam::fieldValue::updateMesh(const mapPolyMesh&)
-{
-    // Do nothing
-}
-
-
-void Foam::fieldValue::movePoints(const Field<point>&)
-{
-    // Do nothing
-}
-
-
-void Foam::fieldValue::makeFile()
-{
-    // Create the output file if not already created
-    if (outputFilePtr_.empty())
-    {
-        if (debug)
-        {
-            Info<< "Creating output file." << endl;
-        }
-
-        // File update
-        if (Pstream::master())
-        {
-            fileName outputDir;
-            word startTimeName =
-                obr_.time().timeName(obr_.time().startTime().value());
-
-            if (Pstream::parRun())
-            {
-                // Put in undecomposed case (Note: gives problems for
-                // distributed data running)
-                outputDir =
-                    obr_.time().path()/".."/name_/startTimeName;
-            }
-            else
-            {
-                outputDir = obr_.time().path()/name_/startTimeName;
-            }
-
-            // Create directory if does not exist
-            mkDir(outputDir);
-
-            // Open new file at start up
-            outputFilePtr_.reset(new OFstream(outputDir/(type() + ".dat")));
-
-            // Add headers to output data
-            writeFileHeader();
-        }
-    }
-}
-
 
 void Foam::fieldValue::read(const dictionary& dict)
 {
@@ -106,12 +54,12 @@ void Foam::fieldValue::write()
 {
     if (active_)
     {
+        functionObjectFile::write();
+
         if (log_)
         {
             Info<< type() << " " << name_ << " output:" << nl;
         }
-
-        makeFile();
     }
 }
 
@@ -123,9 +71,11 @@ Foam::fieldValue::fieldValue
     const word& name,
     const objectRegistry& obr,
     const dictionary& dict,
+    const word& valueType,
     const bool loadFromFiles
 )
 :
+    functionObjectFile(obr, name, valueType),
     name_(name),
     obr_(obr),
     active_(true),
@@ -133,7 +83,7 @@ Foam::fieldValue::fieldValue
     sourceName_(dict.lookupOrDefault<word>("sourceName", "sampledSurface")),
     fields_(dict.lookup("fields")),
     valueOutput_(dict.lookup("valueOutput")),
-    outputFilePtr_(NULL)
+    resultDict_(fileName("name"), dictionary::null)
 {
     // Only active if obr is an fvMesh
     if (isA<fvMesh>(obr_))
@@ -173,6 +123,18 @@ void Foam::fieldValue::execute()
 
 
 void Foam::fieldValue::end()
+{
+    // Do nothing
+}
+
+
+void Foam::fieldValue::updateMesh(const mapPolyMesh&)
+{
+    // Do nothing
+}
+
+
+void Foam::fieldValue::movePoints(const polyMesh&)
 {
     // Do nothing
 }

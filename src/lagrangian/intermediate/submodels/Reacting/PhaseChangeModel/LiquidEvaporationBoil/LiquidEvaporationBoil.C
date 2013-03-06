@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -171,10 +171,10 @@ void Foam::LiquidEvaporationBoil<CloudType>::calculate
     forAll(this->owner().thermo().carrier().Y(), i)
     {
         scalar Yc = this->owner().thermo().carrier().Y()[i][cellI];
-        Hc += Yc*this->owner().thermo().carrier().H(i, Tc);
-        Hsc += Yc*this->owner().thermo().carrier().H(i, Ts);
-        Cpc += Yc*this->owner().thermo().carrier().Cp(i, Ts);
-        kappac += Yc*this->owner().thermo().carrier().kappa(i, Ts);
+        Hc += Yc*this->owner().thermo().carrier().Ha(i, pc, Tc);
+        Hsc += Yc*this->owner().thermo().carrier().Ha(i, ps, Ts);
+        Cpc += Yc*this->owner().thermo().carrier().Cp(i, ps, Ts);
+        kappac += Yc*this->owner().thermo().carrier().kappa(i, ps, Ts);
     }
 
     // calculate mass transfer of each specie in liquid
@@ -293,8 +293,8 @@ Foam::scalar Foam::LiquidEvaporationBoil<CloudType>::dh
 (
     const label idc,
     const label idl,
-    const label p,
-    const label T
+    const scalar p,
+    const scalar T
 ) const
 {
     scalar dh = 0;
@@ -315,7 +315,7 @@ Foam::scalar Foam::LiquidEvaporationBoil<CloudType>::dh
         }
         case (parent::etEnthalpyDifference):
         {
-            scalar hc = this->owner().composition().carrier().H(idc, TDash);
+            scalar hc = this->owner().composition().carrier().Ha(idc, p, TDash);
             scalar hp = liquids_.properties()[idl].h(p, TDash);
 
             dh = hc - hp;
@@ -329,14 +329,31 @@ Foam::scalar Foam::LiquidEvaporationBoil<CloudType>::dh
                 "("
                     "const label, "
                     "const label, "
-                    "const label, "
-                    "const label"
+                    "const scalar, "
+                    "const scalar"
                 ") const"
             )   << "Unknown enthalpyTransfer type" << abort(FatalError);
         }
     }
 
     return dh;
+}
+
+
+template<class CloudType>
+Foam::scalar Foam::LiquidEvaporationBoil<CloudType>::TMax
+(
+    const scalar pIn,
+    const scalar TIn
+) const
+{
+    scalar T = -GREAT;
+    forAll(liquids_, i)
+    {
+        T = max(T, liquids_.properties()[i].pv(pIn, TIn));
+    }
+
+    return T;
 }
 
 

@@ -142,7 +142,6 @@ void ReadAndMapFields
 
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

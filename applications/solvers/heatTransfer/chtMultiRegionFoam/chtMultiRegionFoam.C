@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,19 +26,27 @@ Application
 
 Description
     Combination of heatConductionFoam and buoyantFoam for conjugate heat
-    transfer between a solid region and fluid region
+    transfer between a solid region and fluid region. It includes
+    porous media in the primary fluid region treated explicitly.
+
+    It handles secondary fluid or solid circuits which can be coupled
+    thermally with the main fluid region. i.e radiators, etc.
+
+    The secondary fluid region is
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "basicRhoThermo.H"
+#include "rhoThermo.H"
 #include "turbulenceModel.H"
 #include "fixedGradientFvPatchFields.H"
 #include "regionProperties.H"
 #include "compressibleCourantNo.H"
 #include "solidRegionDiffNo.H"
-#include "basicSolidThermo.H"
+#include "solidThermo.H"
 #include "radiationModel.H"
+#include "fvIOoptionList.H"
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,7 +64,6 @@ int main(int argc, char *argv[])
     #include "createSolidFields.H"
 
     #include "initContinuityErrs.H"
-
     #include "readTimeControls.H"
     #include "readSolidTimeControls.H"
 
@@ -65,13 +72,11 @@ int main(int argc, char *argv[])
     #include "solidRegionDiffusionNo.H"
     #include "setInitialMultiRegionDeltaT.H"
 
-
     while (runTime.run())
     {
         #include "readTimeControls.H"
         #include "readSolidTimeControls.H"
         #include "readPIMPLEControls.H"
-
 
         #include "compressibleMultiRegionCourantNo.H"
         #include "solidRegionDiffusionNo.H"
@@ -113,6 +118,7 @@ int main(int argc, char *argv[])
                 #include "readSolidMultiRegionPIMPLEControls.H"
                 #include "solveSolid.H"
             }
+
         }
 
         runTime.write();

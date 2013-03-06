@@ -34,7 +34,6 @@ Description
 #include "starMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

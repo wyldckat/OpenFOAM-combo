@@ -244,7 +244,7 @@ void kOmega::correct()
         return;
     }
 
-    volScalarField G("RASModel::G", nut_*2*magSqr(symm(fvc::grad(U_))));
+    volScalarField G(type() + ".G", nut_*2*magSqr(symm(fvc::grad(U_))));
 
     // Update omega and G at the wall
     omega_.boundaryField().updateCoeffs();
@@ -254,7 +254,6 @@ void kOmega::correct()
     (
         fvm::ddt(omega_)
       + fvm::div(phi_, omega_)
-      - fvm::Sp(fvc::div(phi_), omega_)
       - fvm::laplacian(DomegaEff(), omega_)
      ==
         alpha_*G*omega_/k_
@@ -274,7 +273,6 @@ void kOmega::correct()
     (
         fvm::ddt(k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(), k_)
      ==
         G

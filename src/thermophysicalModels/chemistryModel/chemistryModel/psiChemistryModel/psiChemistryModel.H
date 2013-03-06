@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ SourceFiles
 #include "basicChemistryModel.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
-#include "hsCombustionThermo.H"
+#include "psiReactionThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -72,13 +72,13 @@ protected:
     // Protected data
 
         //- Thermo package
-        autoPtr<hsCombustionThermo> thermo_;
+        autoPtr<psiReactionThermo> thermo_;
 
 
 public:
 
     //- Runtime type information
-    TypeName("psiChemistryModel");
+    TypeName("psi");
 
 
     //- Declare run-time constructor selection tables
@@ -87,19 +87,15 @@ public:
         autoPtr,
         psiChemistryModel,
         fvMesh,
-        (
-            const fvMesh& mesh,
-            const word& compTypeName,
-            const word& thermoTypeName
-        ),
-        (mesh, compTypeName, thermoTypeName)
+        (const fvMesh& mesh),
+        (mesh)
     );
 
 
     // Constructors
 
         //- Construct from mesh
-        psiChemistryModel(const fvMesh& mesh, const word& thermoTypeName);
+        psiChemistryModel(const fvMesh& mesh);
 
 
     //- Selector
@@ -113,10 +109,10 @@ public:
     // Member Functions
 
         //- Return access to the thermo package
-        inline hsCombustionThermo& thermo();
+        inline psiReactionThermo& thermo();
 
         //- Return const access to the thermo package
-        inline const hsCombustionThermo& thermo() const;
+        inline const psiReactionThermo& thermo() const;
 };
 
 

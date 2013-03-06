@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -150,6 +150,12 @@ public:
 
     // Member Functions
 
+        //- Return the instantiated type name
+        static word typeName()
+        {
+            return "janaf<" + EquationOfState::typeName() + '>';
+        }
+
         //- Limit the temperature to be in the range Tlow_ to Thigh_
         inline scalar limit(const scalar T) const;
 
@@ -175,19 +181,19 @@ public:
         // Fundamental properties
 
             //- Heat capacity at constant pressure [J/(kmol K)]
-            inline scalar cp(const scalar T) const;
+            inline scalar cp(const scalar p, const scalar T) const;
 
-            //- Enthalpy [J/kmol]
-            inline scalar h(const scalar T) const;
+            //- Absolute Enthalpy [J/kmol]
+            inline scalar ha(const scalar p, const scalar T) const;
 
             //- Sensible enthalpy [J/kmol]
-            inline scalar hs(const scalar T) const;
+            inline scalar hs(const scalar p, const scalar T) const;
 
             //- Chemical enthalpy [J/kmol]
             inline scalar hc() const;
 
             //- Entropy [J/(kmol K)]
-            inline scalar s(const scalar T) const;
+            inline scalar s(const scalar p, const scalar T) const;
 
 
         // I-O

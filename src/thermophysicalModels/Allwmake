@@ -4,7 +4,7 @@ makeType=${1:-libso}
 set -x
 
 wmake $makeType specie
-wmake $makeType solid
+wmake $makeType solidSpecie
 wmake $makeType thermophysicalFunctions
 ./properties/Allwmake $*
 
@@ -13,11 +13,10 @@ wmake $makeType reactionThermo
 wmake $makeType laminarFlameSpeed
 wmake $makeType chemistryModel
 wmake $makeType barotropicCompressibilityModel
-wmake $makeType thermalPorousZone
 wmake $makeType SLGThermo
 
-# Should be combined with solids&solidMixture
-wmake $makeType basicSolidThermo
+
+wmake $makeType solidThermo
 wmake $makeType solidChemistryModel
 
 wmake $makeType radiationModels

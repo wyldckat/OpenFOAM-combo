@@ -37,8 +37,6 @@
 
     #include "readGravitationalAcceleration.H"
 
-    Info<< "\nReading freeSurfaceProperties\n" << endl;
-
     Info<< "Creating field zeta\n" << endl;
     volVectorField zeta
     (
@@ -69,12 +67,10 @@
     );
 
     // Force p_gh to be consistent with p
-    p_gh = p - (g & mesh.C());
+    // Height is made relative to field 'refLevel'
+    p_gh =  p - (g & mesh.C());
 
 
     label p_ghRefCell = 0;
     scalar p_ghRefValue = 0.0;
     setRefCell(p_gh, pimple.dict(), p_ghRefCell, p_ghRefValue);
-
-
-    IObasicSourceList sources(mesh);

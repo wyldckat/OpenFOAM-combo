@@ -94,7 +94,7 @@ turbulentHeatFluxTemperatureFvPatchScalarField
 )
 :
     fixedGradientFvPatchScalarField(ptf, p, iF, mapper),
-    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.KName()),
+    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.kappaName()),
     heatSource_(ptf.heatSource_),
     q_(ptf.q_, mapper),
     QrName_(ptf.QrName_)
@@ -127,7 +127,7 @@ turbulentHeatFluxTemperatureFvPatchScalarField
 )
 :
     fixedGradientFvPatchScalarField(thftpsf),
-    temperatureCoupledBase(patch(), thftpsf.KMethod(), thftpsf.KName()),
+    temperatureCoupledBase(patch(), thftpsf.KMethod(), thftpsf.kappaName()),
     heatSource_(thftpsf.heatSource_),
     q_(thftpsf.q_),
     QrName_(thftpsf.QrName_)
@@ -142,7 +142,7 @@ turbulentHeatFluxTemperatureFvPatchScalarField
 )
 :
     fixedGradientFvPatchScalarField(thftpsf, iF),
-    temperatureCoupledBase(patch(), thftpsf.KMethod(), thftpsf.KName()),
+    temperatureCoupledBase(patch(), thftpsf.KMethod(), thftpsf.kappaName()),
     heatSource_(thftpsf.heatSource_),
     q_(thftpsf.q_),
     QrName_(thftpsf.QrName_)
@@ -201,12 +201,12 @@ void turbulentHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
         case hsPower:
         {
             const scalar Ap = gSum(patch().magSf());
-            gradient() = (q_/Ap + qr)/K(Tp);
+            gradient() = (q_/Ap + qr)/kappa(Tp);
             break;
         }
         case hsFlux:
         {
-            gradient() = (q_ + qr)/K(Tp);
+            gradient() = (q_ + qr)/kappa(Tp);
             break;
         }
         default:
@@ -220,23 +220,6 @@ void turbulentHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
     }
 
     fixedGradientFvPatchScalarField::updateCoeffs();
-
-    if (debug)
-    {
-        scalar Q = gSum(K(*this)*patch().magSf()*snGrad());
-        scalar Qr = gSum(qr*patch().magSf());
-
-        Info<< patch().boundaryMesh().mesh().name() << ':'
-            << patch().name() << ':'
-            << this->dimensionedInternalField().name() << " :"
-            << " heatFlux:" << Q
-            << " walltemperature "
-            << " min:" << gMin(*this)
-            << " max:" << gMax(*this)
-            << " avg:" << gAverage(*this)
-            << " Qrad:"  << Qr
-            << endl;
-    }
 }
 
 
@@ -249,8 +232,8 @@ void turbulentHeatFluxTemperatureFvPatchScalarField::write
     os.writeKeyword("heatSource") << heatSourceTypeNames_[heatSource_]
         << token::END_STATEMENT << nl;
     temperatureCoupledBase::write(os);
-    os.writeKeyword("Qr")<< QrName_ << token::END_STATEMENT << nl;
     q_.writeEntry("q", os);
+    os.writeKeyword("Qr")<< QrName_ << token::END_STATEMENT << nl;
     writeEntry("value", os);
 }
 

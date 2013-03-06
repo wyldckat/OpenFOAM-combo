@@ -21,8 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    moveMesh
+
 Description
-    Solver for moving meshes
+    Solver for moving meshes.
 
 \*---------------------------------------------------------------------------*/
 
@@ -34,7 +37,6 @@ Description
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

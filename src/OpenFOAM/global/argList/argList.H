@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,7 @@ Class
 
 Description
     Extract command arguments and options from the supplied
-    \a argc and @a argv parameters.
+    \a argc and \a argv parameters.
 
     Sequences with "(" ... ")" are transformed into a stringList.
     For example,
@@ -270,7 +270,7 @@ public:
             ) const;
 
             //- Read a value from the named option if present.
-            //  Return true if the named option was found.
+            //  Return supplied default otherwise.
             template<class T>
             inline T optionLookupOrDefault
             (

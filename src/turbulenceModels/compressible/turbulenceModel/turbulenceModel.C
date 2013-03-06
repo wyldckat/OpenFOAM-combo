@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ turbulenceModel::turbulenceModel
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName
 )
 :
@@ -68,7 +68,9 @@ turbulenceModel::turbulenceModel
     rho_(rho),
     U_(U),
     phi_(phi),
-    thermophysicalModel_(thermophysicalModel)
+    thermophysicalModel_(thermophysicalModel),
+
+    y_(mesh_)
 {}
 
 
@@ -79,7 +81,7 @@ autoPtr<turbulenceModel> turbulenceModel::New
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName
 )
 {
@@ -112,7 +114,7 @@ autoPtr<turbulenceModel> turbulenceModel::New
         (
             "turbulenceModel::New(const volScalarField&, "
             "const volVectorField&, const surfaceScalarField&, "
-            "basicThermo&, const word&)"
+            "fluidThermo&, const word&)"
         )   << "Unknown turbulenceModel type "
             << modelType << nl << nl
             << "Valid turbulenceModel types:" << endl
@@ -137,7 +139,12 @@ tmp<volScalarField> turbulenceModel::rhoEpsilonEff() const
 
 
 void turbulenceModel::correct()
-{}
+{
+    if (mesh_.changing())
+    {
+        y_.correct();
+    }
+}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

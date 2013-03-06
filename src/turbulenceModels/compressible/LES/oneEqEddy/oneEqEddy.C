@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,7 +59,7 @@ oneEqEddy::oneEqEddy
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel,
+    const fluidThermo& thermoPhysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -105,7 +105,7 @@ void oneEqEddy::correct(const tmp<volTensorField>& tgradU)
     GenEddyVisc::correct(gradU);
 
     volScalarField divU(fvc::div(phi()/fvc::interpolate(rho())));
-    volScalarField G(2*muSgs_*(gradU && dev(symm(gradU))));
+    volScalarField G(type() + ".G", 2*muSgs_*(gradU && dev(symm(gradU))));
 
     tmp<fvScalarMatrix> kEqn
     (

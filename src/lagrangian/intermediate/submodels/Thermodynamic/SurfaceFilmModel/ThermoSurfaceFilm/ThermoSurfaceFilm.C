@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -398,13 +398,15 @@ void Foam::ThermoSurfaceFilm<CloudType>::splashInteraction
     // surface energy of secondary parcels [J]
     scalar ESigmaSec = 0;
 
-    // sample splash distribution to detrmine secondary parcel diameters
+    // sample splash distribution to determine secondary parcel diameters
     scalarList dNew(parcelsPerSplash_);
+    scalarList npNew(parcelsPerSplash_);
     forAll(dNew, i)
     {
         const scalar y = rndGen_.sample01<scalar>();
         dNew[i] = -dBarSplash*log(exp(-dMin/dBarSplash) - y*K);
-        ESigmaSec += sigma*p.areaS(dNew[i]);
+        npNew[i] = mRatio*np*pow3(d)/pow3(dNew[i])/parcelsPerSplash_;
+        ESigmaSec += npNew[i]*sigma*p.areaS(dNew[i]);
     }
 
     // incident kinetic energy [J]
@@ -459,7 +461,7 @@ void Foam::ThermoSurfaceFilm<CloudType>::splashInteraction
         // perturb new parcels towards the owner cell centre
         pPtr->position() += 0.5*rndGen_.sample01<scalar>()*(posC - posCf);
 
-        pPtr->nParticle() = mRatio*np*pow3(d)/pow3(dNew[i])/parcelsPerSplash_;
+        pPtr->nParticle() = npNew[i];
 
         pPtr->d() = dNew[i];
 
@@ -487,11 +489,10 @@ template<class CloudType>
 Foam::ThermoSurfaceFilm<CloudType>::ThermoSurfaceFilm
 (
     const dictionary& dict,
-    CloudType& owner,
-    const dimensionedVector& g
+    CloudType& owner
 )
 :
-    SurfaceFilmModel<CloudType>(dict, owner, g, typeName),
+    SurfaceFilmModel<CloudType>(dict, owner, typeName),
     rndGen_(owner.rndGen()),
     thermo_
     (
@@ -571,7 +572,7 @@ bool Foam::ThermoSurfaceFilm<CloudType>::transferParcel
     regionModels::surfaceFilmModels::surfaceFilmModel& filmModel =
         const_cast<regionModels::surfaceFilmModels::surfaceFilmModel&>
         (
-            this->owner().db().objectRegistry::template
+            this->owner().db().time().objectRegistry::template
                 lookupObject<regionModels::surfaceFilmModels::surfaceFilmModel>
                 (
                     "surfaceFilmProperties"
@@ -677,14 +678,21 @@ void Foam::ThermoSurfaceFilm<CloudType>::setParcelProperties
 
 
 template<class CloudType>
-void Foam::ThermoSurfaceFilm<CloudType>::info(Ostream& os) const
+void Foam::ThermoSurfaceFilm<CloudType>::info(Ostream& os)
 {
-    os  << "    Parcels absorbed into film      = "
-        << returnReduce(this->nParcelsTransferred(), sumOp<label>()) << nl
-        << "    New film detached parcels       = "
-        << returnReduce(this->nParcelsInjected(), sumOp<label>()) << nl
-        << "    New film splash parcels         = "
-        << returnReduce(nParcelsSplashed_, sumOp<label>()) << nl;
+    SurfaceFilmModel<CloudType>::info(os);
+
+    label nSplash0 = this->template getModelProperty<label>("nParcelsSplashed");
+    label nSplashTotal =
+        nSplash0 + returnReduce(nParcelsSplashed_, sumOp<label>());
+
+    os  << "    New film splash parcels         = " << nSplashTotal << endl;
+
+    if (this->outputTime())
+    {
+        this->setModelProperty("nParcelsSplashed", nSplashTotal);
+        nParcelsSplashed_ = 0;
+    }
 }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -205,7 +205,15 @@ void Foam::lduMatrix::operator+=(const lduMatrix& A)
         if (debug > 1)
         {
             WarningIn("lduMatrix::operator+=(const lduMatrix& A)")
-                << "Unknown matrix type combination"
+                << "Unknown matrix type combination" << nl
+                << "    this :"
+                << " diagonal:" << diagonal()
+                << " symmetric:" << symmetric()
+                << " asymmetric:" << asymmetric() << nl
+                << "    A    :"
+                << " diagonal:" << A.diagonal()
+                << " symmetric:" << A.symmetric()
+                << " asymmetric:" << A.asymmetric()
                 << endl;
         }
     }
@@ -276,7 +284,15 @@ void Foam::lduMatrix::operator-=(const lduMatrix& A)
         if (debug > 1)
         {
             WarningIn("lduMatrix::operator-=(const lduMatrix& A)")
-                << "Unknown matrix type combination"
+                << "Unknown matrix type combination" << nl
+                << "    this :"
+                << " diagonal:" << diagonal()
+                << " symmetric:" << symmetric()
+                << " asymmetric:" << asymmetric() << nl
+                << "    A    :"
+                << " diagonal:" << A.diagonal()
+                << " symmetric:" << A.symmetric()
+                << " asymmetric:" << A.asymmetric()
                 << endl;
         }
     }
@@ -332,38 +348,6 @@ void Foam::lduMatrix::operator*=(scalar s)
     {
         *lowerPtr_ *= s;
     }
-}
-
-
-Foam::tmp<Foam::scalarField > Foam::lduMatrix::H1() const
-{
-    tmp<scalarField > tH1
-    (
-        new scalarField(lduAddr().size(), 0.0)
-    );
-
-    if (lowerPtr_ || upperPtr_)
-    {
-        scalarField& H1_ = tH1();
-
-        scalar* __restrict__ H1Ptr = H1_.begin();
-
-        const label* __restrict__ uPtr = lduAddr().upperAddr().begin();
-        const label* __restrict__ lPtr = lduAddr().lowerAddr().begin();
-
-        const scalar* __restrict__ lowerPtr = lower().begin();
-        const scalar* __restrict__ upperPtr = upper().begin();
-
-        register const label nFaces = upper().size();
-
-        for (register label face=0; face<nFaces; face++)
-        {
-            H1Ptr[uPtr[face]] -= lowerPtr[face];
-            H1Ptr[lPtr[face]] -= upperPtr[face];
-        }
-    }
-
-    return tH1;
 }
 
 

@@ -12,6 +12,17 @@
     list-style-type: square;
 }
 
+/* colour and underline to match OpenFOAM style */
+div.title
+{
+    text-align: center;
+    font-size: 150%;
+    color:  #646464;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    margin-bottom: 1em;
+    border-bottom: 7px solid #E1E1E1;
+}
 
 /* colour and underline to match OpenFOAM style */
 .contents h1,
@@ -61,3 +72,23 @@ tr.memlist
     margin-top: 0px;
     width: 200px;
 }
+
+.OFTable {
+    width: 100%;
+    border: 1px solid rgb(175,175,175);
+    margin-top: 10px;
+    margin-bottom: 10px;
+/*    background-color: #F0F0F0; */
+    padding: 5px;
+}
+
+.OFTable th {
+    text-align: left;
+    padding: 5px;
+    border-bottom: 2px solid rgb(175,175,175);
+}
+
+.OFTable td {
+    padding-left: 5px;
+}
+

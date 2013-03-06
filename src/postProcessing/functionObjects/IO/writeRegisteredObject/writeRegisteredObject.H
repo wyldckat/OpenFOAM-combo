@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,34 @@ License
 Class
     Foam::writeRegisteredObject
 
+Group
+    grpIOFunctionObjects
+
 Description
-    Takes over the writing of registered IO objects
+    This function object takes-over the writing of objects registered to the
+    database.
+
+    Example of function object specification:
+    \verbatim
+    writeRegisteredObject1
+    {
+        type        writeRegisteredObject;
+        functionObjectLibs ("libIOFunctionObjects.so");
+        ...
+        objectNames (obj1 obj2);   
+    }
+    \endverbatim
+
+    \heading Function object usage
+    \table
+        Property     | Description             | Required    | Default value
+        type         | type name: writeRegisteredObject | yes |
+        objectNames  | objects to write        | yes         |
+    \endtable
+
+SeeAlso
+    Foam::functionObject
+    Foam::OutputFilterFunctionObject
 
 SourceFiles
     writeRegisteredObject.C
@@ -36,7 +62,6 @@ SourceFiles
 #ifndef writeRegisteredObject_H
 #define writeRegisteredObject_H
 
-#include "pointFieldFwd.H"
 #include "wordList.H"
 #include "runTimeSelectionTables.H"
 
@@ -48,6 +73,7 @@ namespace Foam
 // Forward declaration of classes
 class objectRegistry;
 class dictionary;
+class polyMesh;
 class mapPolyMesh;
 
 /*---------------------------------------------------------------------------*\
@@ -129,7 +155,7 @@ public:
         {}
 
         //- Update for changes of mesh
-        virtual void movePoints(const pointField&)
+        virtual void movePoints(const polyMesh&)
         {}
 };
 

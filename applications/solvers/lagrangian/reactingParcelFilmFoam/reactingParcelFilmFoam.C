@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Application
     reactingParcelFilmFoam
 
 Description
-    Transient PISO solver for compressible, laminar or turbulent flow with
+    Transient PIMPLE solver for compressible, laminar or turbulent flow with
     reacting Lagrangian parcels, and surface film modelling.
 
 \*---------------------------------------------------------------------------*/
@@ -34,9 +34,10 @@ Description
 #include "turbulenceModel.H"
 #include "basicReactingCloud.H"
 #include "surfaceFilmModel.H"
-#include "psiChemistryCombustionModel.H"
+#include "psiCombustionModel.H"
 #include "radiationModel.H"
 #include "SLGThermo.H"
+#include "fvIOoptionList.H"
 #include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -49,6 +50,7 @@ int main(int argc, char *argv[])
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
+    #include "createFvOptions.H"
     #include "createClouds.H"
     #include "createRadiationModel.H"
     #include "createSurfaceFilmModel.H"
@@ -87,7 +89,7 @@ int main(int argc, char *argv[])
             {
                 #include "UEqn.H"
                 #include "YEqn.H"
-                #include "hsEqn.H"
+                #include "EEqn.H"
 
                 // --- Pressure corrector loop
                 while (pimple.correct())

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,17 +16,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-radiation       on;
-
 radiationModel  fvDOM;
-
-noRadiation
-{
-}
-
-P1Coeffs
-{
-}
 
 fvDOMCoeffs
 {
@@ -43,9 +33,9 @@ absorptionEmissionModel greyMeanAbsorptionEmission;
 
 constantAbsorptionEmissionCoeffs
 {
-    a               a [ 0 -1 0 0 0 0 0 ] 0.1;
-    e               e [ 0 -1 0 0 0 0 0 ] 0.1;
-    E               E [ 1 -1 -3 0 0 0 0 ] 0;
+    absorptivity    absorptivity    [ 0 -1 0 0 0 0 0 ] 0.01;
+    emissivity      emissivity      [ 0 -1 0 0 0 0 0 ] 0.01;
+    E               E   [ 1 -1 -3 0 0 0 0 ] 0;
 }
 
 greyMeanAbsorptionEmissionCoeffs
@@ -192,13 +182,7 @@ greyMeanAbsorptionEmissionCoeffs
     }
 }
 
-scatterModel    constantScatter;
-
-constantScatterCoeffs
-{
-    sigma           sigma [ 0 -1 0 0 0 0 0 ] 0;
-    C               C [ 0 0 0 0 0 0 0 ] 0;
-}
+scatterModel    none;
 
 
 // ************************************************************************* //

@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    surfaceTransformPoints
+
 Description
     Transform (scale/rotate) a surface.
     Like transformPoints but for surfaces.
@@ -50,7 +53,6 @@ using namespace Foam::constant::mathematical;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

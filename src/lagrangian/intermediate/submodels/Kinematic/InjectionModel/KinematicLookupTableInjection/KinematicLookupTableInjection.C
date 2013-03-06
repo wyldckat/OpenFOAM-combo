@@ -32,10 +32,11 @@ template<class CloudType>
 Foam::KinematicLookupTableInjection<CloudType>::KinematicLookupTableInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName, typeName),
     inputFileName_(this->coeffDict().lookup("inputFile")),
     duration_(readScalar(this->coeffDict().lookup("duration"))),
     parcelsPerSecond_
@@ -64,16 +65,7 @@ Foam::KinematicLookupTableInjection<CloudType>::KinematicLookupTableInjection
     injectorTetFaces_.setSize(injectors_.size());
     injectorTetPts_.setSize(injectors_.size());
 
-    forAll(injectors_, i)
-    {
-        this->findCellAtPosition
-        (
-            injectorCells_[i],
-            injectorTetFaces_[i],
-            injectorTetPts_[i],
-            injectors_[i].x()
-        );
-    }
+    updateMesh();
 
     // Determine volume of particles to inject
     this->volumeTotal_ = 0.0;
@@ -110,6 +102,23 @@ Foam::KinematicLookupTableInjection<CloudType>::~KinematicLookupTableInjection()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::KinematicLookupTableInjection<CloudType>::updateMesh()
+{
+    // Set/cache the injector cells
+    forAll(injectors_, i)
+    {
+        this->findCellAtPosition
+        (
+            injectorCells_[i],
+            injectorTetFaces_[i],
+            injectorTetPts_[i],
+            injectors_[i].x()
+        );
+    }
+}
+
 
 template<class CloudType>
 Foam::scalar Foam::KinematicLookupTableInjection<CloudType>::timeEnd() const

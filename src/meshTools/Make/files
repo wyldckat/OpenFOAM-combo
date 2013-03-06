@@ -27,6 +27,8 @@ polyMeshZipUpCells/polyMeshZipUpCells.C
 primitiveMeshGeometry/primitiveMeshGeometry.C
 
 meshSearch/meshSearch.C
+meshSearch/meshSearchFACECENTRETETSMeshObject.C
+meshSearch/meshSearchMeshObject.C
 
 meshTools/meshTools.C
 
@@ -39,6 +41,7 @@ $(pWave)/pointEdgePoint.C
 patchWave = $(algorithms)/PatchEdgeFaceWave
 $(patchWave)/PatchEdgeFaceWaveName.C
 $(patchWave)/patchEdgeFaceInfo.C
+$(patchWave)/patchPatchDist.C
 
 meshWave = $(algorithms)/MeshWave
 $(meshWave)/MeshWaveName.C
@@ -125,6 +128,7 @@ faceZoneSources = sets/faceZoneSources
 $(faceZoneSources)/faceZoneToFaceZone/faceZoneToFaceZone.C
 $(faceZoneSources)/setsToFaceZone/setsToFaceZone.C
 $(faceZoneSources)/setToFaceZone/setToFaceZone.C
+$(faceZoneSources)/searchableSurfaceToFaceZone/searchableSurfaceToFaceZone.C
 
 cellZoneSources = sets/cellZoneSources
 $(cellZoneSources)/setToCellZone/setToCellZone.C
@@ -183,5 +187,20 @@ mappedPatches/mappedPolyPatch/mappedVariableThicknessWallPolyPatch.C
 mappedPatches/mappedPointPatch/mappedPointPatch.C
 mappedPatches/mappedPointPatch/mappedWallPointPatch.C
 
+
+regionCoupled/patches/regionCoupledPolyPatch/regionCoupledBase.C
+regionCoupled/patches/regionCoupledPolyPatch/regionCoupledPolyPatch.C
+regionCoupled/patches/regionCoupledPolyPatch/regionCoupledWallPolyPatch.C
+regionCoupled/patches/regionCoupledLduInterface/regionCoupledLduInterface.C
+regionCoupled/patches/regionCoupledPointPatch/regionCoupledPointPatch.C
+regionCoupled/patches/regionCoupledPointPatch/regionCoupledWallPointPatch.C
+
+regionCoupled/GAMG/interfaces/regionCoupledGAMGInterface/regionCoupledBaseGAMGInterface.C
+regionCoupled/GAMG/interfaces/regionCoupledGAMGInterface/regionCoupledGAMGInterface.C
+regionCoupled/GAMG/interfaces/regionCoupledGAMGInterface/regionCoupledWallGAMGInterface.C
+regionCoupled/GAMG/interfaceFields/regionCoupledGAMGInterfaceField/regionCoupledGAMGInterfaceField.C
+regionCoupled/GAMG/interfaceFields/regionCoupledGAMGInterfaceField/regionCoupledWallGAMGInterfaceField.C
+
+tetOverlapVolume/tetOverlapVolume.C
 
 LIB = $(FOAM_LIBBIN)/libmeshTools

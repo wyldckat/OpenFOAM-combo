@@ -59,10 +59,16 @@ License
 #include "upwindFECCellToFaceStencilObject.H"
 
 #include "centredCFCFaceToCellStencilObject.H"
+#include "meshSearchMeshObject.H"
+#include "meshSearchFACECENTRETETSMeshObject.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::fvMesh, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(fvMesh, 0);
+}
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -133,6 +139,11 @@ void Foam::fvMesh::clearGeom()
     CentredFitData<quadraticLinearFitPolynomial>::Delete(*this);
     skewCorrectionVectors::Delete(*this);
     //quadraticFitSnGradData::Delete(*this);
+
+    // Note: should be in polyMesh::clearGeom but meshSearch not in OpenFOAM
+    // library
+    meshSearchMeshObject::Delete(*this);
+    meshSearchFACECENTRETETSMeshObject::Delete(*this);
 }
 
 
@@ -162,6 +173,11 @@ void Foam::fvMesh::clearAddressing()
     upwindFECCellToFaceStencilObject::Delete(*this);
 
     centredCFCFaceToCellStencilObject::Delete(*this);
+
+    // Note: should be in polyMesh::clearGeom but meshSearch not in OpenFOAM
+    // library
+    meshSearchMeshObject::Delete(*this);
+    meshSearchFACECENTRETETSMeshObject::Delete(*this);
 }
 
 
@@ -331,7 +347,7 @@ Foam::fvMesh::fvMesh
     fvSchemes(static_cast<const objectRegistry&>(*this)),
     fvSolution(static_cast<const objectRegistry&>(*this)),
     data(static_cast<const objectRegistry&>(*this)),
-    boundary_(*this),
+    boundary_(*this, boundaryMesh()),
     lduPtr_(NULL),
     curTimeIndex_(time().timeIndex()),
     VPtr_(NULL),

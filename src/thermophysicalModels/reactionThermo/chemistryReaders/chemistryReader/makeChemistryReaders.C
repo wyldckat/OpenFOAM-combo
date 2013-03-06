@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ License
 
 #include "makeReactionThermo.H"
 #include "thermoPhysicsTypes.H"
+#include "solidThermoPhysicsTypes.H"
 
 #include "chemistryReader.H"
 #include "foamChemistryReader.H"
@@ -38,15 +39,23 @@ namespace Foam
 
 makeChemistryReader(constGasThermoPhysics);
 makeChemistryReader(gasThermoPhysics);
-makeChemistryReader(constIsobaricGasThermoPhysics);
-makeChemistryReader(isobaricGasThermoPhysics);
+makeChemistryReader(constIncompressibleGasThermoPhysics);
+makeChemistryReader(incompressibleGasThermoPhysics);
 makeChemistryReader(icoPoly8ThermoPhysics);
+makeChemistryReader(hConstSolidThermoPhysics);
+makeChemistryReader(hExponentialSolidThermoPhysics);
 
 makeChemistryReaderType(foamChemistryReader, constGasThermoPhysics);
 makeChemistryReaderType(foamChemistryReader, gasThermoPhysics);
-makeChemistryReaderType(foamChemistryReader, constIsobaricGasThermoPhysics);
-makeChemistryReaderType(foamChemistryReader, isobaricGasThermoPhysics);
+makeChemistryReaderType
+(
+    foamChemistryReader,
+    constIncompressibleGasThermoPhysics
+);
+makeChemistryReaderType(foamChemistryReader, incompressibleGasThermoPhysics);
 makeChemistryReaderType(foamChemistryReader, icoPoly8ThermoPhysics);
+makeChemistryReaderType(foamChemistryReader, hConstSolidThermoPhysics);
+makeChemistryReaderType(foamChemistryReader, hExponentialSolidThermoPhysics);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

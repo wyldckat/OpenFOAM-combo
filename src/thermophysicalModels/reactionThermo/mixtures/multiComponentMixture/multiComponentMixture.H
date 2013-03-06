@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,6 +60,10 @@ class multiComponentMixture
         //- Temporary storage for the cell/face mixture thermo data
         mutable ThermoType mixture_;
 
+        //- Temporary storage for the volume weighted
+        //  cell/face mixture thermo data
+        mutable ThermoType mixtureVol_;
+
 
     // Private Member Functions
 
@@ -87,7 +91,7 @@ public:
         (
             const dictionary&,
             const wordList& specieNames,
-            const HashPtrTable<ThermoType>& specieThermoData,
+            const HashPtrTable<ThermoType>& thermoData,
             const fvMesh&
         );
 
@@ -110,6 +114,21 @@ public:
             const label facei
         ) const;
 
+        const ThermoType& cellVolMixture
+        (
+            const scalar p,
+            const scalar T,
+            const label celli
+        ) const;
+
+        const ThermoType& patchFaceVolMixture
+        (
+            const scalar p,
+            const scalar T,
+            const label patchi,
+            const label facei
+        ) const;
+
         //- Return the raw specie thermodynamic data
         const PtrList<ThermoType>& speciesData() const
         {
@@ -119,56 +138,11 @@ public:
         //- Read dictionary
         void read(const dictionary&);
 
-
-        // Per specie properties
-
-            //- Number of moles []
-            virtual scalar nMoles(const label specieI) const;
-
-            //- Molecular weight [kg/kmol]
-            virtual scalar W(const label specieI) const;
-
-
-        // Per specie thermo properties
-
-            //- Heat capacity at constant pressure [J/(kg K)]
-            virtual scalar Cp(const label specieI, const scalar T) const;
-
-            //- Heat capacity at constant volume [J/(kg K)]
-            virtual scalar Cv(const label specieI, const scalar T) const;
-
-            //- Enthalpy [J/kg]
-            virtual scalar H(const label specieI, const scalar T) const;
-
-            //- Sensible enthalpy [J/kg]
-            virtual scalar Hs(const label specieI, const scalar T) const;
-
-            //- Chemical enthalpy [J/kg]
-            virtual scalar Hc(const label specieI) const;
-
-            //- Entropy [J/(kg K)]
-            virtual scalar S(const label specieI, const scalar T) const;
-
-            //- Internal energy [J/kg]
-            virtual scalar E(const label specieI, const scalar T) const;
-
-            //- Gibbs free energy [J/kg]
-            virtual scalar G(const label specieI, const scalar T) const;
-
-            //- Helmholtz free energy [J/kg]
-            virtual scalar A(const label specieI, const scalar T) const;
-
-
-        // Per specie transport properties
-
-            //- Dynamic viscosity [kg/m/s]
-            virtual scalar mu(const label specieI, const scalar T) const;
-
-            //- Thermal conductivity [W/m/K]
-            virtual scalar kappa(const label specieI, const scalar T) const;
-
-            //- Thermal diffusivity [kg/m/s]
-            virtual scalar alpha(const label specieI, const scalar T) const;
+        //- Return thermo based on index
+        inline const ThermoType& getLocalThermo(const label speciei) const
+        {
+            return speciesData_[speciei];
+        }
 };
 
 

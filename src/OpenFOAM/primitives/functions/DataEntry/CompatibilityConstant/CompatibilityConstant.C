@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,13 +30,32 @@ License
 template<class Type>
 Foam::CompatibilityConstant<Type>::CompatibilityConstant
 (
-    const word& entryName, const dictionary& dict
+    const word& entryName,
+    const dictionary& dict
 )
 :
     DataEntry<Type>(entryName),
-    value_(pTraits<Type>::zero)
+    value_(pTraits<Type>::zero),
+    dimensions_(dimless)
 {
-    dict.lookup(entryName)  >> value_;
+    Istream& is(dict.lookup(entryName));
+
+    token firstToken(is);
+    if (firstToken.isWord())
+    {
+        token nextToken(is);
+        if (nextToken == token::BEGIN_SQR)
+        {
+            is.putBack(nextToken);
+            is >> dimensions_;
+            is >> value_;
+        }
+    }
+    else
+    {
+        is.putBack(firstToken);
+        is  >> value_;
+    }
 }
 
 
@@ -47,7 +66,8 @@ Foam::CompatibilityConstant<Type>::CompatibilityConstant
 )
 :
     DataEntry<Type>(cnst),
-    value_(cnst.value_)
+    value_(cnst.value_),
+    dimensions_(cnst.dimensions_)
 {}
 
 
@@ -77,6 +97,23 @@ Type Foam::CompatibilityConstant<Type>::integrate
     return (x2 - x1)*value_;
 }
 
+
+template<class Type>
+Foam::dimensioned<Type> Foam::CompatibilityConstant<Type>::
+dimValue(const scalar x) const
+{
+    return dimensioned<Type>("dimensionedValue", dimensions_, value_);
+}
+
+
+template<class Type>
+Foam::dimensioned<Type> Foam::CompatibilityConstant<Type>::dimIntegrate
+(
+    const scalar x1, const scalar x2
+) const
+{
+    return dimensioned<Type>("dimensionedValue", dimensions_, (x2-x1)*value_);
+}
 
 // * * * * * * * * * * * * * *  IOStream operators * * * * * * * * * * * * * //
 

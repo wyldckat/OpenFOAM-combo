@@ -297,7 +297,7 @@ void realizableKE::correct()
     const volScalarField eta(magS*k_/epsilon_);
     tmp<volScalarField> C1 = max(eta/(scalar(5) + eta), scalar(0.43));
 
-    volScalarField G("RASModel::G", nut_*S2);
+    volScalarField G(type() + ".G", nut_*S2);
 
     // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
@@ -308,7 +308,6 @@ void realizableKE::correct()
     (
         fvm::ddt(epsilon_)
       + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::div(phi_), epsilon_)
       - fvm::laplacian(DepsilonEff(), epsilon_)
      ==
         C1*magS*epsilon_
@@ -332,7 +331,6 @@ void realizableKE::correct()
     (
         fvm::ddt(k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(), k_)
      ==
         G - fvm::Sp(epsilon_/k_, k_)

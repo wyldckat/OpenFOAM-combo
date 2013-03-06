@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,7 +67,7 @@ turbulentTemperatureRadCoupledMixedFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(psf, p, iF, mapper),
-    temperatureCoupledBase(patch(), psf.KMethod(), psf.KName()),
+    temperatureCoupledBase(patch(), psf.KMethod(), psf.kappaName()),
     TnbrName_(psf.TnbrName_),
     QrNbrName_(psf.QrNbrName_),
     QrName_(psf.QrName_)
@@ -134,7 +134,7 @@ turbulentTemperatureRadCoupledMixedFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(psf, iF),
-    temperatureCoupledBase(patch(), psf.KMethod(), psf.KName()),
+    temperatureCoupledBase(patch(), psf.KMethod(), psf.kappaName()),
     TnbrName_(psf.TnbrName_),
     QrNbrName_(psf.QrNbrName_),
     QrName_(psf.QrName_)
@@ -180,11 +180,11 @@ void turbulentTemperatureRadCoupledMixedFvPatchScalarField::updateCoeffs()
 
 
     // Swap to obtain full local values of neighbour K*delta
-    scalarField KDeltaNbr(nbrField.K(nbrField)*nbrPatch.deltaCoeffs());
+    scalarField KDeltaNbr(nbrField.kappa(nbrField)*nbrPatch.deltaCoeffs());
     mpp.distribute(KDeltaNbr);
 
 
-    scalarField KDelta(K(*this)*patch().deltaCoeffs());
+    scalarField KDelta(kappa(*this)*patch().deltaCoeffs());
 
     scalarField Qr(Tp.size(), 0.0);
     if (QrName_ != "none")

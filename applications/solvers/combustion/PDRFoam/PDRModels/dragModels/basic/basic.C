@@ -164,7 +164,6 @@ Foam::tmp<Foam::volScalarField> Foam::PDRDragModels::basic::Gk() const
           + Csk*betav*turbulence_.muEff()*sqr(Aw_)*magSqr(U_);
     }
 
-
     return tGk;
 }
 

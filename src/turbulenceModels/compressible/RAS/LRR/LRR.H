@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,9 @@ License
 
 Class
     Foam::compressible::RASModels::LRR
+
+Group
+    grpCmpRASTurbulence
 
 Description
     Launder, Reece and Rodi Reynolds-stress turbulence model for
@@ -119,7 +122,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermophysicalModel,
+            const fluidThermo& thermophysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );

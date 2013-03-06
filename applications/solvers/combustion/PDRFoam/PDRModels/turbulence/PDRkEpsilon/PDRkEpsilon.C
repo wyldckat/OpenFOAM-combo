@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,7 +50,7 @@ PDRkEpsilon::PDRkEpsilon
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -116,7 +116,7 @@ void PDRkEpsilon::correct()
     }
 
     tmp<volTensorField> tgradU = fvc::grad(U_);
-    volScalarField G("RASModel::G", mut_*(tgradU() && dev(twoSymm(tgradU()))));
+    volScalarField G(type() + ".G", mut_*(tgradU() && dev(twoSymm(tgradU()))));
     tgradU.clear();
 
     // Update espsilon and G at the wall

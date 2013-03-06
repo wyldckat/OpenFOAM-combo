@@ -83,9 +83,17 @@ type -P gnuplot &>/dev/null || {
     exit 1
 }
 
+SETSDIR="../postProcessing/sets"
+
+if [ ! -d $SETSDIR ]
+then
+    echo "createGraphs: results sets not available in folder $SETSDIR"
+    exit 0
+fi
+
 # paths to data
-LATESTTIME=`ls ../sets`
-OFDATAROOT=../sets/$LATESTTIME
+LATESTTIME=`ls $SETSDIR`
+OFDATAROOT=../postProcessing/sets/$LATESTTIME
 
 EXPTDATAROOT=./exptData
 

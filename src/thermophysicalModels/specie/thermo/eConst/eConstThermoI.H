@@ -102,30 +102,33 @@ inline Foam::scalar Foam::eConstThermo<EquationOfState>::limit
 template<class EquationOfState>
 inline Foam::scalar Foam::eConstThermo<EquationOfState>::cp
 (
-    const scalar
+    const scalar p,
+    const scalar T
 ) const
 {
-    return Cv_ + specie::RR;
+    return Cv_ + this->cpMcv(p, T);
 }
 
 
 template<class EquationOfState>
-inline Foam::scalar Foam::eConstThermo<EquationOfState>::h
+inline Foam::scalar Foam::eConstThermo<EquationOfState>::ha
 (
+    const scalar p,
     const scalar T
 ) const
 {
-    return cp(T)*T + Hf_;
+    return cp(p, T)*T + Hf_;
 }
 
 
 template<class EquationOfState>
 inline Foam::scalar Foam::eConstThermo<EquationOfState>::hs
 (
+    const scalar p,
     const scalar T
 ) const
 {
-    return cp(T)*T;
+    return cp(p, T)*T;
 }
 
 
@@ -139,12 +142,14 @@ inline Foam::scalar Foam::eConstThermo<EquationOfState>::hc() const
 template<class EquationOfState>
 inline Foam::scalar Foam::eConstThermo<EquationOfState>::s
 (
+    const scalar p,
     const scalar T
 ) const
 {
     notImplemented
     (
-        "scalar eConstThermo<EquationOfState>::s(const scalar) const"
+        "scalar eConstThermo<EquationOfState>::"
+        "s(const scalar p, const scalar) const"
     );
     return T;
 }

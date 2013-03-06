@@ -21,7 +21,10 @@ EXE_INC = \
     -I$(LIB_SRC)/regionModels/surfaceFilmModels/lnInclude \
     -I$(LIB_SRC)/ODE/lnInclude \
     -I$(LIB_SRC)/combustionModels/lnInclude \
-    -I$(FOAM_SOLVERS)/combustion/reactingFoam
+    -I$(FOAM_SOLVERS)/combustion/reactingFoam \
+    -I$(LIB_SRC)/fvOptions/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude
+
 
 
 EXE_LIBS = \
@@ -34,7 +37,7 @@ EXE_LIBS = \
     -llagrangianIntermediate \
     -lcoalCombustion\
     -lspecie \
-    -lbasicThermophysicalModels \
+    -lfluidThermophysicalModels \
     -lliquidProperties \
     -lliquidMixtureProperties \
     -lsolidProperties \
@@ -47,4 +50,7 @@ EXE_LIBS = \
     -lregionModels \
     -lsurfaceFilmModels \
     -lODE \
-    -lcombustionModels
+    -lcombustionModels \
+    -lfvOptions \
+    -lsampling
+

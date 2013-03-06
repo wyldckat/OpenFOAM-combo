@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,7 +81,7 @@ void Foam::regExp::set(const char* pattern, const bool ignoreCase) const
         }
 
         int err = regcomp(preg_, pattern, cflags);
-        
+
         if (err != 0)
         {
             char errbuf[200];

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,10 +30,10 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::UPstream, 0);
-
 namespace Foam
 {
+    defineTypeNameAndDebug(UPstream, 0);
+
     template<>
     const char* Foam::NamedEnum
     <
@@ -240,6 +240,12 @@ bool Foam::UPstream::floatTransfer
 (
     debug::optimisationSwitch("floatTransfer", 0)
 );
+registerOptSwitchWithName
+(
+    Foam::UPstream::floatTransfer,
+    floatTransfer,
+    "floatTransfer"
+);
 
 // Number of processors at which the reduce algorithm changes from linear to
 // tree
@@ -247,12 +253,55 @@ int Foam::UPstream::nProcsSimpleSum
 (
     debug::optimisationSwitch("nProcsSimpleSum", 16)
 );
+registerOptSwitchWithName
+(
+    Foam::UPstream::nProcsSimpleSum,
+    nProcsSimpleSum,
+    "nProcsSimpleSum"
+);
 
 // Default commsType
 Foam::UPstream::commsTypes Foam::UPstream::defaultCommsType
 (
     commsTypeNames.read(debug::optimisationSwitches().lookup("commsType"))
 );
+// Register re-reader
+class addcommsTypeToOpt
+:
+    public ::Foam::simpleRegIOobject
+{
+public:
+    addcommsTypeToOpt(const char* name)
+    :
+        ::Foam::simpleRegIOobject(Foam::debug::addOptimisationObject, name)
+    {}
+    virtual ~addcommsTypeToOpt()
+    {}
+    virtual void readData(Foam::Istream& is)
+    {
+        Foam::UPstream::defaultCommsType = Foam::UPstream::commsTypeNames.read
+        (
+            is
+        );
+    }
+    virtual void writeData(Foam::Ostream& os) const
+    {
+        os << Foam::UPstream::commsTypeNames[Foam::UPstream::defaultCommsType];
+    }
+};
+addcommsTypeToOpt addcommsTypeToOpt_("commsType");
 
+
+// Number of polling cycles in processor updates
+int Foam::UPstream::nPollProcInterfaces
+(
+    debug::optimisationSwitch("nPollProcInterfaces", 0)
+);
+registerOptSwitchWithName
+(
+    Foam::UPstream::nPollProcInterfaces,
+    nPollProcInterfaces,
+    "nPollProcInterfaces"
+);
 
 // ************************************************************************* //

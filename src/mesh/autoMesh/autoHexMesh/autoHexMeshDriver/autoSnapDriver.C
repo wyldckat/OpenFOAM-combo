@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,6 +40,7 @@ Description
 #include "snapParameters.H"
 #include "refinementSurfaces.H"
 #include "unitConversion.H"
+#include "localPointRegion.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -63,27 +64,26 @@ Foam::label Foam::autoSnapDriver::getCollocatedPoints
 )
 {
     labelList pointMap;
-    pointField newPoints;
-    bool hasMerged = mergePoints
+    label nUnique = mergePoints
     (
         points,                         // points
         tol,                            // mergeTol
         false,                          // verbose
-        pointMap,
-        newPoints
+        pointMap
     );
+    bool hasMerged = (nUnique < points.size());
 
     if (!returnReduce(hasMerged, orOp<bool>()))
     {
         return 0;
     }
 
-    // Determine which newPoints are referenced more than once
+    // Determine which merged points are referenced more than once
     label nCollocated = 0;
 
     // Per old point the newPoint. Or -1 (not set yet) or -2 (already seen
     // twice)
-    labelList firstOldPoint(newPoints.size(), -1);
+    labelList firstOldPoint(nUnique, -1);
     forAll(pointMap, oldPointI)
     {
         label newPointI = pointMap[oldPointI];
@@ -506,7 +506,7 @@ void Foam::autoSnapDriver::dumpMove
 )
 {
     // Dump direction of growth into file
-    Pout<< nl << "Dumping move direction to " << fName << endl;
+    Info<< "Dumping move direction to " << fName << endl;
 
     OFstream nearestStream(fName);
 
@@ -573,11 +573,13 @@ bool Foam::autoSnapDriver::outwardsDisplacement
 Foam::autoSnapDriver::autoSnapDriver
 (
     meshRefinement& meshRefiner,
-    const labelList& globalToPatch
+    const labelList& globalToMasterPatch,
+    const labelList& globalToSlavePatch
 )
 :
     meshRefiner_(meshRefiner),
-    globalToPatch_(globalToPatch)
+    globalToMasterPatch_(globalToMasterPatch),
+    globalToSlavePatch_(globalToSlavePatch)
 {}
 
 
@@ -718,17 +720,17 @@ void Foam::autoSnapDriver::preSmoothPatch
     // The current mesh is the starting mesh to smooth from.
     meshMover.correct();
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         const_cast<Time&>(mesh.time())++;
-        Pout<< "Writing patch smoothed mesh to time "
+        Info<< "Writing patch smoothed mesh to time "
             << meshRefiner_.timeName() << '.' << endl;
         meshRefiner_.write
         (
             debug,
             mesh.time().path()/meshRefiner_.timeName()
         );
-        Pout<< "Dumped mesh in = "
+        Info<< "Dumped mesh in = "
             << mesh.time().cpuTimeIncrement() << " s\n" << nl << endl;
     }
 
@@ -995,10 +997,10 @@ void Foam::autoSnapDriver::smoothDisplacement
     Info<< "Displacement smoothed in = "
         << mesh.time().cpuTimeIncrement() << " s\n" << nl << endl;
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         const_cast<Time&>(mesh.time())++;
-        Pout<< "Writing smoothed mesh to time " << meshRefiner_.timeName()
+        Info<< "Writing smoothed mesh to time " << meshRefiner_.timeName()
             << endl;
 
         // Moving mesh creates meshPhi. Can be cleared out by a mesh.clearOut
@@ -1010,17 +1012,17 @@ void Foam::autoSnapDriver::smoothDisplacement
             debug,
             mesh.time().path()/meshRefiner_.timeName()
         );
-
-        Pout<< "Writing displacement field ..." << endl;
+        Info<< "Writing displacement field ..." << endl;
         disp.write();
         tmp<pointScalarField> magDisp(mag(disp));
         magDisp().write();
 
-        Pout<< "Writing actual patch displacement ..." << endl;
+        Info<< "Writing actual patch displacement ..." << endl;
         vectorField actualPatchDisp(disp, pp.meshPoints());
         dumpMove
         (
-            mesh.time().path()/"actualPatchDisplacement.obj",
+            mesh.time().path()
+          / "actualPatchDisplacement_" + meshRefiner_.timeName() + ".obj",
             pp.localPoints(),
             pp.localPoints() + actualPatchDisp
         );
@@ -1064,14 +1066,14 @@ bool Foam::autoSnapDriver::scaleMesh
             Info<< "Successfully moved mesh" << endl;
             break;
         }
-        if (debug)
+        if (debug&meshRefinement::MESH)
         {
             const_cast<Time&>(mesh.time())++;
-            Pout<< "Writing scaled mesh to time " << meshRefiner_.timeName()
+            Info<< "Writing scaled mesh to time " << meshRefiner_.timeName()
                 << endl;
             mesh.write();
 
-            Pout<< "Writing displacement field ..." << endl;
+            Info<< "Writing displacement field ..." << endl;
             meshMover.displacement().write();
             tmp<pointScalarField> magDisp(mag(meshMover.displacement()));
             magDisp().write();
@@ -1191,7 +1193,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::autoSnapDriver::repatchToSurface
 
             if (hitSurface[i] != -1 && !isZonedFace.get(faceI))
             {
-                closestPatch[i] = globalToPatch_
+                closestPatch[i] = globalToMasterPatch_
                 [
                     surfaces.globalRegion
                     (
@@ -1265,7 +1267,127 @@ void Foam::autoSnapDriver::doSnap
     // Create baffles (pairs of faces that share the same points)
     // Baffles stored as owner and neighbour face that have been created.
     List<labelPair> baffles;
-    meshRefiner_.createZoneBaffles(globalToPatch_, baffles);
+    meshRefiner_.createZoneBaffles
+    (
+        globalToMasterPatch_,
+        globalToSlavePatch_,
+        baffles
+    );
+
+
+    // Selectively 'forget' about the baffles, i.e. not check across them
+    // or merge across them.
+    {
+        const faceZoneMesh& fZones = mesh.faceZones();
+        const refinementSurfaces& surfaces = meshRefiner_.surfaces();
+        const wordList& faceZoneNames = surfaces.faceZoneNames();
+        const List<refinementSurfaces::faceZoneType>& faceType =
+            surfaces.faceType();
+
+        // Determine which
+        //  - faces to remove from list of baffles (so not merge)
+        //  - points to duplicate
+        labelList filterFace(mesh.nFaces(), -1);
+        label nFilterFaces = 0;
+        PackedBoolList duplicatePoint(mesh.nPoints());
+        label nDuplicatePoints = 0;
+        forAll(faceZoneNames, surfI)
+        {
+            if
+            (
+                faceType[surfI] == refinementSurfaces::BAFFLE
+             || faceType[surfI] == refinementSurfaces::BOUNDARY
+            )
+            {
+                if (faceZoneNames[surfI].size())
+                {
+                    // Filter out all faces for this zone.
+                    label zoneI = fZones.findZoneID(faceZoneNames[surfI]);
+                    const faceZone& fZone = fZones[zoneI];
+                    forAll(fZone, i)
+                    {
+                        label faceI = fZone[i];
+                        filterFace[faceI] = zoneI;
+                        nFilterFaces++;
+                    }
+
+                    if (faceType[surfI] == refinementSurfaces::BOUNDARY)
+                    {
+                        forAll(fZone, i)
+                        {
+                            label faceI = fZone[i];
+                            const face& f = mesh.faces()[faceI];
+                            forAll(f, fp)
+                            {
+                                if (!duplicatePoint[f[fp]])
+                                {
+                                    duplicatePoint[f[fp]] = 1;
+                                    nDuplicatePoints++;
+                                }
+                            }
+                        }
+                    }
+
+                    Info<< "Surface : " << surfaces.names()[surfI] << nl
+                        << "    faces to become baffle : "
+                        << returnReduce(nFilterFaces, sumOp<label>()) << nl
+                        << "    points to duplicate    : "
+                        << returnReduce(nDuplicatePoints, sumOp<label>())
+                        << endl;
+                }
+            }
+        }
+
+
+        // Duplicate points
+        if (returnReduce(nDuplicatePoints, sumOp<label>()) > 0)
+        {
+            // Collect all points
+            labelList candidatePoints(nDuplicatePoints);
+            nDuplicatePoints = 0;
+            forAll(duplicatePoint, pointI)
+            {
+                if (duplicatePoint[pointI])
+                {
+                    candidatePoints[nDuplicatePoints++] = pointI;
+                }
+            }
+
+
+            localPointRegion regionSide(mesh, candidatePoints);
+            autoPtr<mapPolyMesh> mapPtr = meshRefiner_.dupNonManifoldPoints
+            (
+                regionSide
+            );
+            meshRefinement::updateList(mapPtr().faceMap(), -1, filterFace);
+        }
+
+
+        // Forget about baffles in a BAFFLE/BOUNDARY type zone
+        DynamicList<labelPair> newBaffles(baffles.size());
+        forAll(baffles, i)
+        {
+            const labelPair& baffle = baffles[i];
+            if
+            (
+                filterFace[baffle.first()] == -1
+             && filterFace[baffles[i].second()] == -1
+            )
+            {
+                newBaffles.append(baffle);
+            }
+        }
+
+        if (newBaffles.size() < baffles.size())
+        {
+            //Info<< "Splitting baffles into" << nl
+            //    << "    internal : " << newBaffles.size() << nl
+            //    << "    baffle   : " << baffles.size()-newBaffles.size()
+            //    << nl << endl;
+            baffles.transfer(newBaffles);
+        }
+        Info<< endl;
+    }
 
 
     bool doFeatures = false;
@@ -1291,9 +1413,10 @@ void Foam::autoSnapDriver::doSnap
                 adaptPatchIDs
             )
         );
+        indirectPrimitivePatch& pp = ppPtr();
 
         // Distance to attract to nearest feature on surface
-        const scalarField snapDist(calcSnapDistance(snapParams, ppPtr()));
+        const scalarField snapDist(calcSnapDistance(snapParams, pp));
 
 
         // Construct iterative mesh mover.
@@ -1305,7 +1428,7 @@ void Foam::autoSnapDriver::doSnap
         motionSmoother meshMover
         (
             mesh,
-            ppPtr(),
+            pp,
             adaptPatchIDs,
             meshRefinement::makeDisplacementField(pMesh, adaptPatchIDs),
             motionDict
@@ -1349,6 +1472,7 @@ void Foam::autoSnapDriver::doSnap
             {
                 disp = calcNearestSurfaceFeature
                 (
+                    snapParams,
                     iter,
                     featureCos,
                     scalar(iter+1)/nFeatIter,
@@ -1359,7 +1483,7 @@ void Foam::autoSnapDriver::doSnap
             }
 
             // Check for displacement being outwards.
-            outwardsDisplacement(ppPtr(), disp);
+            outwardsDisplacement(pp, disp);
 
             // Set initial distribution of displacement field (on patches)
             // from patchDisp and make displacement consistent with b.c.
@@ -1373,8 +1497,8 @@ void Foam::autoSnapDriver::doSnap
                 (
                     mesh.time().path()
                   / "patchDisplacement_" + name(iter) + ".obj",
-                    ppPtr().localPoints(),
-                    ppPtr().localPoints() + disp
+                    pp.localPoints(),
+                    pp.localPoints() + disp
                 );
             }
 
@@ -1401,17 +1525,17 @@ void Foam::autoSnapDriver::doSnap
                 break;
             }
 
-            if (debug)
+            if (debug&meshRefinement::MESH)
             {
                 const_cast<Time&>(mesh.time())++;
-                Pout<< "Writing scaled mesh to time "
+                Info<< "Writing scaled mesh to time "
                     << meshRefiner_.timeName() << endl;
                 meshRefiner_.write
                 (
                     debug,
                     mesh.time().path()/meshRefiner_.timeName()
                 );
-                Pout<< "Writing displacement field ..." << endl;
+                Info<< "Writing displacement field ..." << endl;
                 meshMover.displacement().write();
                 tmp<pointScalarField> magDisp(mag(meshMover.displacement()));
                 magDisp().write();
@@ -1444,10 +1568,10 @@ void Foam::autoSnapDriver::doSnap
         motionDict
     );
 
-    if (nChanged > 0 && debug)
+    if (nChanged > 0 && debug&meshRefinement::MESH)
     {
         const_cast<Time&>(mesh.time())++;
-        Pout<< "Writing patchFace merged mesh to time "
+        Info<< "Writing patchFace merged mesh to time "
             << meshRefiner_.timeName() << endl;
         meshRefiner_.write
         (

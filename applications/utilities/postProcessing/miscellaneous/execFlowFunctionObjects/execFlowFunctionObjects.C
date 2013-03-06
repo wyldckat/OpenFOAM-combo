@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ Description
 #include "incompressible/RAS/RASModel/RASModel.H"
 #include "incompressible/LES/LESModel/LESModel.H"
 
-#include "basicThermo.H"
+#include "fluidThermo.H"
 #include "compressible/RAS/RASModel/RASModel.H"
 #include "compressible/LES/LESModel/LESModel.H"
 
@@ -65,7 +65,6 @@ namespace Foam
                 IOobject
                 (
                     args["dict"],
-                    runTime.system(),
                     runTime,
                     IOobject::MUST_READ_IF_MODIFIED
                 )
@@ -265,7 +264,7 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
         }
         else if (phi.dimensions() == dimensionSet(1, 0, -1, 0, 0))
         {
-            autoPtr<basicThermo> thermo(basicThermo::New(mesh));
+            autoPtr<fluidThermo> thermo(fluidThermo::New(mesh));
 
             volScalarField rho
             (

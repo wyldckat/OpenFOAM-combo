@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,14 +34,16 @@ Description
         wideBandAbsorptionEmission
 
     i.e. dictionary
-    fvDOMCoeffs
-    {
-        nPhi    1;          // azimuthal angles in PI/2 on X-Y.(from Y to X)
-        nTheta  2;          // polar angles in PI (from Z to X-Y plane)
-        convergence 1e-4;   // convergence criteria for radiation iteration
-    }
+    \verbatim
+        fvDOMCoeffs
+        {
+            nPhi    1;          // azimuthal angles in PI/2 on X-Y.(from Y to X)
+            nTheta  2;          // polar angles in PI (from Z to X-Y plane)
+            convergence 1e-4;   // convergence criteria for radiation iteration
+        }
 
-    solverFreq   1; // Number of flow iterations per radiation iteration
+        solverFreq   1; // Number of flow iterations per radiation iteration
+    \endverbatim
 
     The total number of solid angles is  4*nPhi*nTheta.
 
@@ -122,6 +124,9 @@ class fvDOM
 
     // Private Member Functions
 
+        //- Initialise
+        void initialise();
+
         //- Disallow default bitwise copy construct
         fvDOM(const fvDOM&);
 
@@ -142,6 +147,9 @@ public:
 
         //- Construct from components
         fvDOM(const volScalarField& T);
+
+        //- Construct from components
+        fvDOM(const dictionary& dict, const volScalarField& T);
 
 
     //- Destructor

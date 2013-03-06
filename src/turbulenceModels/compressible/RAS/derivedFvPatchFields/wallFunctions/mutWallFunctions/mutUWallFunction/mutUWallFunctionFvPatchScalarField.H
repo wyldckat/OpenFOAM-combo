@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,10 +22,27 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::mutUWallFunctionFvPatchScalarField
+    Foam::compressible::mutUWallFunctionFvPatchScalarField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Wall function boundary condition for walls, based on velocity.
+    This boundary condition provides a turbulent viscosity condition when
+    using wall functions, based on velocity.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            mutUWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::compressible::mutWallFunctionFvPatchScalarField
 
 SourceFiles
     mutUWallFunctionFvPatchScalarField.C
@@ -35,15 +52,13 @@ SourceFiles
 #ifndef compressibleMutUWallFunctionFvPatchScalarField_H
 #define compressibleMutUWallFunctionFvPatchScalarField_H
 
-#include "mutkWallFunctionFvPatchScalarField.H"
+#include "mutWallFunctionFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -52,7 +67,7 @@ namespace RASModels
 
 class mutUWallFunctionFvPatchScalarField
 :
-    public mutkWallFunctionFvPatchScalarField
+    public mutWallFunctionFvPatchScalarField
 {
 protected:
 
@@ -151,7 +166,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

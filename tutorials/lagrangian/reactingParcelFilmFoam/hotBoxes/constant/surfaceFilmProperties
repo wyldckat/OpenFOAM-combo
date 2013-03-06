@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -27,6 +27,9 @@ thermoSingleLayerCoeffs
     thermoModel singleComponent; // constant
 
     liquid      H2O;
+
+    deltaWet    1e-4;
+    hydrophilic no;
 
     radiationModel  none;
 
@@ -65,7 +68,6 @@ thermoSingleLayerCoeffs
 
     contactAngleCoeffs
     {
-        deltaWet        1e-4;
         Ccf             0.085;
         contactAngleDistribution
         {
@@ -78,6 +80,9 @@ thermoSingleLayerCoeffs
                 variance        100;
             }
         }
+
+        zeroForcePatches
+        ();
     }
 
     injectionModels

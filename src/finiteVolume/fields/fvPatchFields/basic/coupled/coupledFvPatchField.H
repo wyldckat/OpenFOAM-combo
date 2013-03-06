@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,11 @@ License
 Class
     Foam::coupledFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::coupledFvPatchField
+    Abstract base class for coupled patches.
 
 SourceFiles
     coupledFvPatchField.C
@@ -35,7 +38,7 @@ SourceFiles
 #ifndef coupledFvPatchField_H
 #define coupledFvPatchField_H
 
-#include "lduInterfaceField.H"
+#include "LduInterfaceField.H"
 #include "fvPatchField.H"
 #include "coupledFvPatch.H"
 
@@ -45,13 +48,13 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class coupledFvPatch Declaration
+                       Class coupledFvPatch Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
 class coupledFvPatchField
 :
-    public lduInterfaceField,
+    public LduInterfaceField<Type>,
     public fvPatchField<Type>
 {
 
@@ -178,13 +181,22 @@ public:
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
             (
-                const scalarField& psiInternal,
                 scalarField& result,
-                const lduMatrix&,
+                const scalarField& psiInternal,
                 const scalarField& coeffs,
                 const direction,
                 const Pstream::commsTypes commsType
             ) const = 0;
+
+            //- Update result field based on interface functionality
+            virtual void updateInterfaceMatrix
+            (
+                Field<Type>&,
+                const Field<Type>&,
+                const scalarField&,
+                const Pstream::commsTypes commsType
+            ) const = 0;
+
 
         //- Write
         virtual void write(Ostream&) const;

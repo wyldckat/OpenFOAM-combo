@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,23 +29,27 @@ boundaryField
         value           uniform (0 0 0);
 
     }
+
     sides
     {
         type            pressureInletOutletVelocity;
         outletValue     uniform (0 0 0);
         value           uniform (0 0 0);
     }
+
     base
     {
         type            fixedValue;
         value           uniform (0 0 0);
     }
+
     inlet
     {
         type            fixedValue;
         value           uniform (0 0.05 0);
     }
-    frontBack
+
+    frontAndBack
     {
         type        empty;
     }

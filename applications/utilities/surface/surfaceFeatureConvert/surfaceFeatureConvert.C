@@ -25,7 +25,7 @@ Application
     surfaceFeatureConvert
 
 Description
-    Convert between edgeMesh formats
+    Convert between edgeMesh formats.
 
 \*---------------------------------------------------------------------------*/
 
@@ -38,7 +38,6 @@ using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -27,25 +27,20 @@ gradSchemes
 
 divSchemes
 {
-    default             none;
+    default                 none;
 
-    div(phi,alpha1)     Gauss limitedLinear01 1;
-    div(phir,alpha1)    Gauss limitedLinear01 1;
-    div(alphaPhi1,U1)   Gauss limitedLinearV 1;
-    div(alphaPhi2,U2)   Gauss limitedLinearV 1;
-    div(phi1,U1)        Gauss limitedLinearV 1;
-    div(phi2,U2)        Gauss limitedLinearV 1;
-    div((alpha1*Rc1))   Gauss linear;
-    div((alpha2*Rc2))   Gauss linear;
-    div(alphaPhi1,T1)   Gauss limitedLinear 1;
-    div(alphaPhi2,T2)   Gauss limitedLinear 1;
-    div(alphaPhi2,k)    Gauss limitedLinear 1;
-    div(alphaPhi2,epsilon) Gauss limitedLinear 1;
-    div(phi,Theta)      Gauss limitedLinear 1;
-    div(phid1,p)        Gauss upwind;
-    div(phid2,p)        Gauss upwind;
-    div(phi1,K1)        Gauss limitedLinear 1;
-    div(phi2,K2)        Gauss limitedLinear 1;
+    div(phi,alphaair)       Gauss vanLeer;
+    div(phir,alphaair)      Gauss vanLeer;
+
+    "div\(alphaPhi.*,U.*\)" Gauss limitedLinearV 1;
+    "div\(phi.*,U.*\)"      Gauss limitedLinearV 1;
+    "div\(\(alpha.*Rc\)\)"  Gauss linear;
+    "div\(phid.*,p\)"       Gauss upwind;
+
+    "div\(alphaPhi.*,h.*\)" Gauss limitedLinear 1;
+    "div\(alphaPhi.*,K.*\)" Gauss limitedLinear 1;
+
+    "div\(alphaPhi.*,(k|epsilon)\)"  Gauss limitedLinear 1;
 }
 
 laplacianSchemes
@@ -67,7 +62,6 @@ fluxRequired
 {
     default         no;
     p               ;
-    alpha1          ;
 }
 
 

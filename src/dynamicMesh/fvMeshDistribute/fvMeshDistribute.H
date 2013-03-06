@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,7 @@ class mapAddedPolyMesh;
 class mapDistributePolyMesh;
 
 /*---------------------------------------------------------------------------*\
-                           Class fvMeshDistribute Declaration
+                      Class fvMeshDistribute Declaration
 \*---------------------------------------------------------------------------*/
 
 class fvMeshDistribute
@@ -102,20 +102,6 @@ class fvMeshDistribute
             //- Find patch to put exposed faces into.
             label findNonEmptyPatch() const;
 
-            //- Appends polyPatch. Returns patchID.
-            label addPatch(polyPatch*);
-
-            //- Add patch field
-            template<class GeoField>
-            void addPatchFields(const word& patchFieldType);
-
-            //- Deletes last patch.
-            void deleteTrailingPatch();
-
-            // Delete trailing patch fields
-            template<class GeoField>
-            void deleteTrailingPatchFields();
-
             //- Save boundary fields
             template <class T, class Mesh>
             void saveBoundaryFields
@@ -138,11 +124,15 @@ class fvMeshDistribute
                 const typename GeoField::value_type& initVal
             );
 
+            //- Call correctBoundaryConditions on fields
+            template<class GeoField>
+            void correctBoundaryConditions();
+
             //- Delete all processor patches. Move any processor faces into
             //  patchI.
             autoPtr<mapPolyMesh> deleteProcPatches(const label patchI);
 
-            //- Repatch the mesh. This is only nessecary for the proc
+            //- Repatch the mesh. This is only necessary for the proc
             //  boundary faces. newPatchID is over all boundary faces: -1 or
             //  new patchID. constructFaceMap is being adapted for the
             //  possible new face position (since proc faces get automatically

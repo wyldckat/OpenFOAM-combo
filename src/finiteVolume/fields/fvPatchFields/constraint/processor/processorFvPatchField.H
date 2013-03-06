@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,8 +24,21 @@ License
 Class
     Foam::processorFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::processorFvPatchField
+    This boundary condition enables processor communication across patches.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            processor;
+    }
+    \endverbatim
 
 SourceFiles
     processorFvPatchField.C
@@ -45,7 +58,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                      Class processorFvPatch Declaration
+                    Class processorFvPatchField Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
@@ -59,6 +72,25 @@ class processorFvPatchField
         //- Local reference cast into the processor patch
         const processorFvPatch& procPatch_;
 
+        // Sending and receiving
+
+            //- Send buffer.
+            mutable Field<Type> sendBuf_;
+
+            //- Receive buffer.
+            mutable Field<Type> receiveBuf_;
+
+            //- Outstanding request
+            mutable label outstandingSendRequest_;
+
+            //- Outstanding request
+            mutable label outstandingRecvRequest_;
+
+            //- Scalar send buffer
+            mutable Field<scalar> scalarSendBuf_;
+
+            //- Scalar receive buffer
+            mutable Field<scalar> scalarReceiveBuf_;
 
 public:
 
@@ -168,12 +200,14 @@ public:
             //- Return patch-normal gradient
             virtual tmp<Field<Type> > snGrad() const;
 
+            //- Is all data available
+            virtual bool ready() const;
+
             //- Initialise neighbour matrix update
             virtual void initInterfaceMatrixUpdate
             (
-                const scalarField& psiInternal,
                 scalarField& result,
-                const lduMatrix& m,
+                const scalarField& psiInternal,
                 const scalarField& coeffs,
                 const direction cmpt,
                 const Pstream::commsTypes commsType
@@ -182,13 +216,31 @@ public:
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
             (
-                const scalarField& psiInternal,
                 scalarField& result,
-                const lduMatrix& m,
+                const scalarField& psiInternal,
                 const scalarField& coeffs,
                 const direction cmpt,
                 const Pstream::commsTypes commsType
             ) const;
+
+            //- Initialise neighbour matrix update
+            virtual void initInterfaceMatrixUpdate
+            (
+                Field<Type>& result,
+                const Field<Type>& psiInternal,
+                const scalarField& coeffs,
+                const Pstream::commsTypes commsType
+            ) const;
+
+            //- Update result field based on interface functionality
+            virtual void updateInterfaceMatrix
+            (
+                Field<Type>& result,
+                const Field<Type>& psiInternal,
+                const scalarField& coeffs,
+                const Pstream::commsTypes commsType
+            ) const;
+
 
         //- Processor coupled interface functions
 
@@ -221,6 +273,7 @@ public:
             {
                 return pTraits<Type>::rank;
             }
+
 };
 
 

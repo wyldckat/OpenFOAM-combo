@@ -581,7 +581,14 @@ Foam::labelList Foam::scotchDecomp::decompose
 
     // Calculate local or global (if Pstream::parRun()) connectivity
     CompactListList<label> cellCells;
-    calcCellCells(mesh, identity(mesh.nCells()), mesh.nCells(), cellCells);
+    calcCellCells
+    (
+        mesh,
+        identity(mesh.nCells()),
+        mesh.nCells(),
+        true,
+        cellCells
+    );
 
     // Decompose using default weights
     List<int> finalDecomp;
@@ -626,7 +633,14 @@ Foam::labelList Foam::scotchDecomp::decompose
 
     // Calculate local or global (if Pstream::parRun()) connectivity
     CompactListList<label> cellCells;
-    calcCellCells(mesh, agglom, agglomPoints.size(), cellCells);
+    calcCellCells
+    (
+        mesh,
+        agglom,
+        agglomPoints.size(),
+        true,
+        cellCells
+    );
 
     // Decompose using weights
     List<int> finalDecomp;

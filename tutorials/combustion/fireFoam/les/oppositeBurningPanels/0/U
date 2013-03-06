@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -37,7 +37,7 @@ boundaryField
     burner
     {
         type            flowRateInletVelocity;
-        flowRate        constant 0.001294;     //60kW  C3H8
+        massFlowRate    constant 0.001294;     //60kW  C3H8
         value           uniform (0 0 0);
     }
 

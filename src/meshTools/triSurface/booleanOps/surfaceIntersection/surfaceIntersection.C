@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,10 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::surfaceIntersection, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(surfaceIntersection, 0);
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -569,7 +572,7 @@ void Foam::surfaceIntersection::doCutEdges
     List<DynamicList<label> >& surfEdgeCuts
 )
 {
-    scalar oldTol = intersection::setPlanarTol(1E-3);
+    scalar oldTol = intersection::setPlanarTol(1e-3);
 
     const pointField& surf1Pts = surf1.localPoints();
 

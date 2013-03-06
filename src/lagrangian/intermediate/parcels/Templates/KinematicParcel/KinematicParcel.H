@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -319,11 +319,27 @@ public:
 
     // Static data members
 
-        //- String representation of properties
-        static string propHeader;
-
         //- Runtime type information
         TypeName("KinematicParcel");
+
+        //- String representation of properties
+        AddToPropertyList
+        (
+            ParcelType,
+            " active"
+          + " typeId"
+          + " nParticle"
+          + " d"
+          + " dTarget "
+          + " (Ux Uy Uz)"
+          + " (fx fy fz)"
+          + " (angularMomentumx angularMomentumy angularMomentumz)"
+          + " (torquex torquey torquez)"
+          + " rho"
+          + " age"
+          + " tTurb"
+          + " (UTurbx UTurby UTurbz)"
+        );
 
 
     // Constructors
@@ -553,6 +569,14 @@ public:
                 const vector& U,        // particle velocity
                 const scalar d,         // particle diameter
                 const scalar rhoc,      // carrier density
+                const scalar sigma      // particle surface tension
+            ) const;
+
+            //- Eotvos number
+            inline scalar Eo
+            (
+                const vector& a,        // acceleration
+                const scalar d,         // particle diameter
                 const scalar sigma      // particle surface tension
             ) const;
 

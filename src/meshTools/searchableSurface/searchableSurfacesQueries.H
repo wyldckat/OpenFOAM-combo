@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -182,6 +182,22 @@ public:
                 const scalarField& nearestDistSqr,
                 labelList& surfaces,
                 List<pointIndexHit>&
+            );
+
+            //- Find signed distance to nearest surface. Outside is positive.
+            //  illegalHandling: how to handle non-inside or outside
+            //      OUTSIDE : treat as outside
+            //      INSIDE  : treat as inside
+            //      UNKNOWN : throw fatal error
+            static void signedDistance
+            (
+                const PtrList<searchableSurface>& allSurfaces,
+                const labelList& surfacesToTest,
+                const pointField& samples,
+                const scalarField& nearestDistSqr,
+                const searchableSurface::volumeType illegalHandling,
+                labelList& nearestSurfaces,
+                scalarField& distance
             );
 
             //- Find the boundBox of the selected surfaces

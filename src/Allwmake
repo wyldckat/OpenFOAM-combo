@@ -28,10 +28,10 @@ OSspecific/${WM_OSTYPE:-POSIX}/Allwmake
 wmake $makeType OpenFOAM
 
 wmake $makeType fileFormats
+wmake $makeType surfMesh
 wmake $makeType triSurface
 wmake $makeType meshTools
 wmake $makeType edgeMesh
-wmake $makeType surfMesh
 
 # Decomposition methods needed by dummyThirdParty
 parallel/decompose/AllwmakeLnInclude
@@ -46,9 +46,13 @@ wmake $makeType genericPatchFields
 # Build the proper scotchDecomp, metisDecomp etc.
 parallel/Allwmake $*
 
+renumber/Allwmake $*
+
 wmake $makeType conversion
 
 wmake $makeType sampling
+
+wmake $makeType mesh/extrudeModel
 
 wmake $makeType dynamicMesh
 wmake $makeType dynamicFvMesh
@@ -63,12 +67,17 @@ turbulenceModels/Allwmake $*
 wmake $makeType combustionModels
 regionModels/Allwmake $*
 lagrangian/Allwmake $*
-postProcessing/Allwmake $*
 mesh/Allwmake $*
 
 fvAgglomerationMethods/Allwmake $*
 
 wmake $makeType fvMotionSolver
 wmake $makeType engine
+
+wmake $makeType fvOptions
+
+wmake $makeType regionCoupled
+
+postProcessing/Allwmake $*
 
 # ----------------------------------------------------------------- end-of-file

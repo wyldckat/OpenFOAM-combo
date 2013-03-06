@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,6 +20,12 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    surfaceCheck
+
+Description
+    Checks geometric and topological quality of a surface.
 
 \*---------------------------------------------------------------------------*/
 
@@ -165,7 +171,6 @@ labelList countBins
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {
@@ -367,7 +372,7 @@ int main(int argc, char *argv[])
 
             forAll(triQ, faceI)
             {
-                if (triQ[faceI] < 1E-11)
+                if (triQ[faceI] < 1e-11)
                 {
                     problemFaces.append(faceI);
                 }
@@ -427,9 +432,9 @@ int main(int argc, char *argv[])
         const pointField& localPoints = surf.localPoints();
 
         const boundBox bb(localPoints);
-        scalar smallDim = 1E-6 * bb.mag();
+        scalar smallDim = 1e-6 * bb.mag();
 
-        Info<< "Checking for points less than 1E-6 of bounding box ("
+        Info<< "Checking for points less than 1e-6 of bounding box ("
             << bb.span() << " meter) apart."
             << endl;
 

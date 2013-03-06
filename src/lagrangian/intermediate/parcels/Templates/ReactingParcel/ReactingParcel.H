@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -115,6 +115,7 @@ public:
                 const scalar poissonsRatio,
                 const scalar T0,
                 const scalar TMin,
+                const scalar TMax,
                 const scalar Cp0,
                 const scalar epsilon0,
                 const scalar f0,
@@ -239,11 +240,16 @@ public:
 
     // Static data members
 
-        //- String representation of properties
-        static string propHeader;
-
         //- Runtime type information
         TypeName("ReactingParcel");
+
+        //- String representation of properties
+        AddToPropertyList
+        (
+            ParcelType,
+            " mass0"
+          + " nPhases(Y1..YN)"
+        );
 
 
     // Constructors

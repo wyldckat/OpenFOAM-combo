@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -43,7 +43,7 @@ solvers
         relTol          0;
     }
 
-    "(U|k|epsion)"
+    "(U|k|epsilon)"
     {
         solver          smoothSolver;
         smoother        GaussSeidel;
@@ -63,7 +63,7 @@ solvers
 PIMPLE
 {
     correctPhi          no;
-    nOuterCorrectors    3;
+    nOuterCorrectors    2;
     nCorrectors         1;
     nNonOrthogonalCorrectors 0;
 }

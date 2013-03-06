@@ -46,7 +46,13 @@ Foam::autoPtr<Foam::decompositionMethod> Foam::decompositionMethod::New
     const dictionary& decompositionDict
 )
 {
-    const word methodType(decompositionDict.lookup("method"));
+    word methodType(decompositionDict.lookup("method"));
+
+    if (methodType == "scotch" && Pstream::parRun())
+    {
+        methodType = "ptscotch";
+    }
+
 
     Info<< "Selecting decompositionMethod " << methodType << endl;
 
@@ -96,6 +102,7 @@ Foam::labelList Foam::decompositionMethod::decompose
         mesh,
         fineToCoarse,
         coarsePoints.size(),
+        true,                       // use global cell labels
         coarseCellCells
     );
 
@@ -158,6 +165,7 @@ void Foam::decompositionMethod::calcCellCells
     const polyMesh& mesh,
     const labelList& agglom,
     const label nCoarse,
+    const bool parallel,
     CompactListList<label>& cellCells
 )
 {
@@ -169,7 +177,7 @@ void Foam::decompositionMethod::calcCellCells
     // Create global cell numbers
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    globalIndex globalAgglom(nCoarse);
+    globalIndex globalAgglom(nCoarse, Pstream::msgType(), parallel);
 
 
     // Get agglomerate owner on other side of coupled faces
@@ -181,7 +189,7 @@ void Foam::decompositionMethod::calcCellCells
     {
         const polyPatch& pp = patches[patchI];
 
-        if (pp.coupled())
+        if (pp.coupled() && (parallel || !isA<processorPolyPatch>(pp)))
         {
             label faceI = pp.start();
             label bFaceI = pp.start() - mesh.nInternalFaces();
@@ -222,7 +230,7 @@ void Foam::decompositionMethod::calcCellCells
     {
         const polyPatch& pp = patches[patchI];
 
-        if (pp.coupled())
+        if (pp.coupled() && (parallel || !isA<processorPolyPatch>(pp)))
         {
             label faceI = pp.start();
             label bFaceI = pp.start()-mesh.nInternalFaces();
@@ -273,7 +281,7 @@ void Foam::decompositionMethod::calcCellCells
     {
         const polyPatch& pp = patches[patchI];
 
-        if (pp.coupled())
+        if (pp.coupled() && (parallel || !isA<processorPolyPatch>(pp)))
         {
             label faceI = pp.start();
             label bFaceI = pp.start()-mesh.nInternalFaces();

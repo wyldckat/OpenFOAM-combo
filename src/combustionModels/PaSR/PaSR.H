@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,9 +24,10 @@ Class
     Foam::combustionModels::PaSR
 
 Description
-    Simple infinitely fast chemistry combustion model based on the principle
-    mixed is burnt. Additional parameter C is used to distribute the heat
-    release rate.in time
+    Partially stirred reactor combustion model.  The model calculates a finite
+    rate, based on both turbulence and chemistry time scales.  Depending on
+    mesh resolution, the Cmix parameter can be used to scale the turbulence
+    mixing time scale.
 
 SourceFiles
     PaSR.C
@@ -47,15 +48,15 @@ namespace combustionModels
                             Class PaSR Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class CombThermoType>
+template<class Type>
 class PaSR
 :
-    public CombThermoType
+    public Type
 {
     // Private data
 
         //- Mixing constant
-        dimensionedScalar Cmix_;
+        scalar Cmix_;
 
         //- Turbulent reaction switch
         Switch turbulentReaction_;
@@ -88,11 +89,7 @@ public:
     // Constructors
 
         //- Construct from components
-        PaSR
-        (
-            const word& modelType,
-            const fvMesh& mesh
-        );
+        PaSR(const word& modelType, const fvMesh& mesh);
 
 
     //- Destructor
@@ -107,13 +104,14 @@ public:
             virtual void correct();
 
             //- Fuel consumption rate matrix.
-            virtual tmp<fvScalarMatrix> R(const volScalarField& Y) const;
+            virtual tmp<fvScalarMatrix> R(volScalarField& Y) const;
 
             //- Heat release rate calculated from fuel consumption rate matrix
             virtual tmp<volScalarField> dQ() const;
 
             //-  Return source for enthalpy equation [kg/m/s3]
             virtual tmp<volScalarField> Sh() const;
+
 
     // I-O
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,14 +38,19 @@ License
 #include "SubField.H"
 
 #include "pointMesh.H"
+#include "Istream.H"
+#include "Ostream.H"
+#include "simpleRegIOobject.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::polyMesh, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(polyMesh, 0);
 
-
-Foam::word Foam::polyMesh::defaultRegion = "region0";
-Foam::word Foam::polyMesh::meshSubDir = "polyMesh";
+word polyMesh::defaultRegion = "region0";
+word polyMesh::meshSubDir = "polyMesh";
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -338,7 +343,7 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::AUTO_WRITE
         ),
         points
@@ -351,7 +356,7 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::AUTO_WRITE
         ),
         faces
@@ -364,7 +369,7 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::AUTO_WRITE
         ),
         owner
@@ -377,7 +382,7 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::AUTO_WRITE
         ),
         neighbour
@@ -391,11 +396,11 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::AUTO_WRITE
         ),
         *this,
-        0
+        polyPatchList()
     ),
     bounds_(points_, syncPar),
     geometricD_(Vector<label>::zero),
@@ -410,11 +415,11 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::NO_WRITE
         ),
         *this,
-        0
+        PtrList<pointZone>()
     ),
     faceZones_
     (
@@ -424,11 +429,11 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::NO_WRITE
         ),
         *this,
-        0
+        PtrList<faceZone>()
     ),
     cellZones_
     (
@@ -438,11 +443,11 @@ Foam::polyMesh::polyMesh
             instance(),
             meshSubDir,
             *this,
-            IOobject::NO_READ,
+            io.readOpt(),
             IOobject::NO_WRITE
         ),
         *this,
-        0
+        PtrList<cellZone>()
     ),
     globalMeshDataPtr_(NULL),
     moving_(false),
@@ -703,11 +708,11 @@ void Foam::polyMesh::resetPrimitives
     {
         boundary_[patchI] = polyPatch
         (
-            boundary_[patchI].name(),
-            patchSizes[patchI],
-            patchStarts[patchI],
+            boundary_[patchI],
+            boundary_,
             patchI,
-            boundary_
+            patchSizes[patchI],
+            patchStarts[patchI]
         );
     }
 
@@ -893,7 +898,7 @@ Foam::polyMesh::cellTree() const
 
         Random rndGen(261782);
 
-        overallBb = overallBb.extend(rndGen, 1E-4);
+        overallBb = overallBb.extend(rndGen, 1e-4);
         overallBb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         overallBb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
 
@@ -1118,7 +1123,7 @@ Foam::tmp<Foam::scalarField> Foam::polyMesh::movePoints
     if (debug)
     {
         // Check mesh motion
-        if (primitiveMesh::checkMeshMotion(points_, true))
+        if (checkMeshMotion(points_, true))
         {
             Info<< "tmp<scalarField> polyMesh::movePoints"
                 << "(const pointField&) : "
@@ -1173,6 +1178,8 @@ Foam::tmp<Foam::scalarField> Foam::polyMesh::movePoints
         ).movePoints(points_);
     }
 
+    const_cast<Time&>(time()).functionObjects().movePoints(*this);
+
     return sweptVols;
 }
 
@@ -1208,7 +1215,7 @@ const Foam::globalMeshData& Foam::polyMesh::globalData() const
 // Remove all files and some subdirs (eg, sets)
 void Foam::polyMesh::removeFiles(const fileName& instanceDir) const
 {
-    fileName meshFilesPath = thisDb().path()/instanceDir/meshDir();
+    fileName meshFilesPath = thisDb().time().path()/instanceDir/meshDir();
 
     rm(meshFilesPath/"points");
     rm(meshFilesPath/"faces");

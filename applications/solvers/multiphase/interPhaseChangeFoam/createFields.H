@@ -12,6 +12,20 @@
         mesh
     );
 
+    Info<< "Reading field alpha1\n" << endl;
+    volScalarField alpha1
+    (
+        IOobject
+        (
+            "alpha1",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
     Info<< "Reading field U\n" << endl;
     volVectorField U
     (
@@ -31,8 +45,6 @@
     Info<< "Creating phaseChangeTwoPhaseMixture\n" << endl;
     autoPtr<phaseChangeTwoPhaseMixture> twoPhaseProperties =
         phaseChangeTwoPhaseMixture::New(U, phi);
-
-    volScalarField& alpha1(twoPhaseProperties->alpha1());
 
     const dimensionedScalar& rho1 = twoPhaseProperties->rho1();
     const dimensionedScalar& rho2 = twoPhaseProperties->rho2();

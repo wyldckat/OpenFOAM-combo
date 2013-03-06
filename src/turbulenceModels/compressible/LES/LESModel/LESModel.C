@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,7 +58,7 @@ LESModel::LESModel
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel,
+    const fluidThermo& thermoPhysicalModel,
     const word& turbulenceModelName
 )
 :
@@ -98,7 +98,7 @@ autoPtr<LESModel> LESModel::New
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermoPhysicalModel,
+    const fluidThermo& thermoPhysicalModel,
     const word& turbulenceModelName
 )
 {
@@ -134,7 +134,7 @@ autoPtr<LESModel> LESModel::New
                 "const volScalarField&, "
                 "const volVectorField&, "
                 "const surfaceScalarField&, "
-                "const basicThermo&, "
+                "const fluidThermo&, "
                 "const word&"
             ")"
         )   << "Unknown LESModel type "
@@ -155,6 +155,7 @@ autoPtr<LESModel> LESModel::New
 
 void LESModel::correct(const tmp<volTensorField>&)
 {
+    turbulenceModel::correct();
     delta_().correct();
 }
 

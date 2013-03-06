@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,10 +34,11 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "basicPsiThermo.H"
+#include "psiThermo.H"
 #include "turbulenceModel.H"
 #include "bound.H"
 #include "pimpleControl.H"
+#include "fvIOoptionList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
     pimpleControl pimple(mesh);
 
     #include "createFields.H"
+    #include "createFvOptions.H"
     #include "initContinuityErrs.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -66,13 +68,16 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        #include "rhoEqn.H"
+        if (pimple.nCorrPIMPLE() <= 1)
+        {
+            #include "rhoEqn.H"
+        }
 
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
             #include "UEqn.H"
-            #include "hEqn.H"
+            #include "EEqn.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())

@@ -107,6 +107,13 @@ public:
         basicChemistryModel(const fvMesh& mesh);
 
 
+    // Selectors
+
+        //- Generic New for each of the related chemistry model
+        template<class Thermo>
+        static autoPtr<Thermo> New(const fvMesh&);
+
+
     //- Destructor
     virtual ~basicChemistryModel();
 
@@ -128,7 +135,10 @@ public:
             // Fields
 
                 //- Return const access to chemical source terms [kg/m3/s]
-                virtual tmp<volScalarField> RR(const label i) const = 0;
+                virtual const DimensionedField<scalar, volMesh>& RR
+                (
+                    const label i
+                ) const = 0;
 
 
             // Chemistry solution
@@ -158,6 +168,10 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "basicChemistryModelI.H"
+
+#ifdef NoRepository
+#   include "basicChemistryModelTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

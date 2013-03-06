@@ -1,8 +1,8 @@
 EXE_LIBS = \
     -lautoMesh \
     -lbarotropicCompressibilityModel \
-    -lbasicSolidThermo \
-    -lbasicThermophysicalModels \
+    -lsolidThermo \
+    -lfluidThermophysicalModels \
     -lblockMesh \
     -lchemistryModel \
     -lcoalCombustion \
@@ -56,12 +56,10 @@ EXE_LIBS = \
     -lsolidMixtureProperties \
     -lsolidParticle \
     -lsolidProperties \
-    -lsolid \
     -lspecie \
     -lsurfaceFilmModels \
     -lsurfMesh \
     -lsystemCall \
-    -lthermalPorousZone \
     -lthermophysicalFunctions \
     -ltopoChangerFvMesh \
     -ltriSurface \

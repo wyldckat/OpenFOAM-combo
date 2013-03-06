@@ -25,7 +25,7 @@ Application
     kivaToFoam
 
 Description
-    Converts a KIVA3v grid to OpenFOAM format
+    Converts a KIVA3v grid to OpenFOAM format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -54,7 +54,6 @@ enum kivaVersions
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

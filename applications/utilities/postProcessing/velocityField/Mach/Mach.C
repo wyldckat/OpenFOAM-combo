@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "calc.H"
-#include "basicThermo.H"
+#include "fluidThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,9 +75,9 @@ void Foam::calc(const argList& args, const Time& runTime, const fvMesh& mesh)
         )
         {
             // thermophysical Mach
-            autoPtr<basicThermo> thermo
+            autoPtr<fluidThermo> thermo
             (
-                basicThermo::New(mesh)
+                fluidThermo::New(mesh)
             );
 
             volScalarField Cp(thermo->Cp());

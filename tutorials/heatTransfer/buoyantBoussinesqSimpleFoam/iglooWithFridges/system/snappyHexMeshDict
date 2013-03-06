@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -40,38 +40,6 @@ geometry
         type searchableBox;
         min (0 0 0);
         max (1 1 1);
-    }
-
-    fridgeFreezer
-    {
-        type searchableSurfaceCollection;
-
-        mergeSubRegions true;
-
-        freezer
-        {
-            surface box1;
-            scale (1 1 1);
-            transform
-            {
-                type    cartesian;
-                origin  (0 0 0);
-                e1      (1 0 0);
-                e3      (0 0 1);
-            }
-        }
-        fridge
-        {
-            surface box1;
-            scale (1 1 1.1);
-            transform
-            {
-                type    cartesian;
-                origin  (0 0 1);
-                e1      (1 0 0);
-                e3      (0 0 1);
-            }
-        }
     }
 
     twoFridgeFreezers
@@ -150,7 +118,7 @@ castellatedMeshControls
     (
         {
             file "fridgeA.eMesh";
-            level 3;
+            levels ((0.01 3));
         }
     );
 
@@ -180,12 +148,28 @@ castellatedMeshControls
                     level (3 3);
                 }
             }
+
+            // Optional specification of patch type (default is wall). No
+            // constraint types (cyclic, symmetry) etc. are allowed.
+            patchInfo
+            {
+                type        wall;
+                inGroups    (wall);
+            }
         }
 
         "iglo.*"
         {
             // Surface-wise min and max refinement level
             level (1 1);
+
+            // Optional specification of patch type (default is wall). No
+            // constraint types (cyclic, symmetry) etc. are allowed.
+            patchInfo
+            {
+                type        wall;
+                inGroups    (wall);
+            }
         }
     }
 
@@ -240,7 +224,7 @@ snapControls
     //- Relative distance for points to be attracted by surface feature point
     //  or edge. True distance is this factor times local
     //  maximum edge length.
-    tolerance 4.0;
+    tolerance 2.0;
 
     //- Number of mesh displacement relaxation iterations.
     nSolveIter 30;
@@ -248,6 +232,19 @@ snapControls
     //- Maximum number of snapping relaxation iterations. Should stop
     //  before upon reaching a correct mesh.
     nRelaxIter 5;
+
+
+    // Feature snapping
+
+        //- Number of feature edge snapping iterations.
+        //  Leave out altogether to disable.
+        nFeatureSnapIter 10;
+
+        //- Detect (geometric) features by sampling the surface (default=false)
+        implicitFeatureSnap true;
+
+        //- Use castellatedMeshControls::features (default = true)
+        explicitFeatureSnap false;
 }
 
 
@@ -275,35 +272,34 @@ addLayersControls
     // Expansion factor for layer mesh
     expansionRatio 1.0;
 
-    //- Wanted thickness of final added cell layer. If multiple layers
-    //  is the
-    //  thickness of the layer furthest away from the wall.
-    //  Relative to undistorted size of cell outside layer.
-    //  is the thickness of the layer furthest away from the wall.
-    //  See relativeSizes parameter.
+    // Wanted thickness of final added cell layer. If multiple layers
+    // is the thickness of the layer furthest away from the wall.
+    // Relative to undistorted size of cell outside layer.
+    // is the thickness of the layer furthest away from the wall.
+    // See relativeSizes parameter.
     finalLayerThickness 0.5;
 
-    //- Minimum thickness of cell layer. If for any reason layer
-    //  cannot be above minThickness do not add layer.
-    //  Relative to undistorted size of cell outside layer.
-    //  See relativeSizes parameter.
+    // Minimum thickness of cell layer. If for any reason layer
+    // cannot be above minThickness do not add layer.
+    // Relative to undistorted size of cell outside layer.
+    // See relativeSizes parameter.
     minThickness 0.25;
 
-    //- If points get not extruded do nGrow layers of connected faces that are
-    //  also not grown. This helps convergence of the layer addition process
-    //  close to features.
+    // If points get not extruded do nGrow layers of connected faces that are
+    // also not grown. This helps convergence of the layer addition process
+    // close to features.
     // Note: changed(corrected) w.r.t 17x! (didn't do anything in 17x)
     nGrow 0;
 
 
     // Advanced settings
 
-    //- When not to extrude surface. 0 is flat surface, 90 is when two faces
-    //  make straight angle.
+    // When not to extrude surface. 0 is flat surface, 90 is when two faces
+    // are perpendicular
     featureAngle 60;
 
-    //- Maximum number of snapping relaxation iterations. Should stop
-    //  before upon reaching a correct mesh.
+    // Maximum number of snapping relaxation iterations. Should stop
+    // before upon reaching a correct mesh.
     nRelaxIter 5;
 
     // Number of smoothing iterations of surface normals
@@ -342,52 +338,7 @@ addLayersControls
 // where to undo.
 meshQualityControls
 {
-    //- Maximum non-orthogonality allowed. Set to 180 to disable.
-    maxNonOrtho 65;
-
-    //- Max skewness allowed. Set to <0 to disable.
-    maxBoundarySkewness 20;
-    maxInternalSkewness 4;
-
-    //- Max concaveness allowed. Is angle (in degrees) below which concavity
-    //  is allowed. 0 is straight face, <0 would be convex face.
-    //  Set to 180 to disable.
-    maxConcave 80;
-
-    //- Minimum pyramid volume. Is absolute volume of cell pyramid.
-    //  Set to a sensible fraction of the smallest cell volume expected.
-    //  Set to very negative number (e.g. -1E30) to disable.
-    minVol 1e-13;
-
-    //- Minimum quality of the tet formed by the face-centre
-    //  and variable base point minimum decomposition triangles and
-    //  the cell centre.  Set to very negative number (e.g. -1E30) to
-    //  disable.
-    //     <0 = inside out tet,
-    //      0 = flat tet
-    //      1 = regular tet
-    minTetQuality 1e-30;
-
-    //- Minimum face area. Set to <0 to disable.
-    minArea -1;
-
-    //- Minimum face twist. Set to <-1 to disable. dot product of face normal
-    //- and face centre triangles normal
-    minTwist 0.05;
-
-    //- minimum normalised cell determinant
-    //- 1 = hex, <= 0 = folded or flattened illegal cell
-    minDeterminant 0.001;
-
-    //- minFaceWeight (0 -> 0.5)
-    minFaceWeight 0.05;
-
-    //- minVolRatio (0 -> 1)
-    minVolRatio 0.01;
-
-    //must be >0 for Fluent compatibility
-    minTriangleTwist -1;
-
+    #include "meshQualityDict"
 
     // Advanced
 

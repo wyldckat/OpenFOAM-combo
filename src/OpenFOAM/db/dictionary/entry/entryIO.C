@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,7 @@ License
 #include "functionEntry.H"
 #include "includeEntry.H"
 #include "inputModeEntry.H"
+#include "stringOps.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -110,9 +111,21 @@ bool Foam::entry::New(dictionary& parentDict, Istream& is)
         else if
         (
            !disableFunctionEntries
-         && keyword[0] == '$')      // ... Substitution entry
+         && keyword[0] == '$'
+        )                           // ... Substitution entry
         {
-            parentDict.substituteKeyword(keyword);
+            if (keyword.size() > 2 && keyword[1] == token::BEGIN_BLOCK)
+            {
+                // Recursive substitution mode. Replace between {} with
+                // expansion and then let standard variable expansion deal
+                // with rest.
+                string s(keyword(2, keyword.size()-3));
+                // Substitute dictionary and environment variables. Do not allow
+                // empty substitutions.
+                stringOps::inplaceExpand(s, parentDict, true, false);
+                keyword.std::string::replace(1, keyword.size()-1, s);
+            }
+            parentDict.substituteScopedKeyword(keyword);
             return true;
         }
         else if

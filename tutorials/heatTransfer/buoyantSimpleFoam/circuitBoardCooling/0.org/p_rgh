@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -23,31 +23,27 @@ boundaryField
 {
     floor
     {
-        type            buoyantPressure;
+        type            fixedFluxPressure;
         value           $internalField;
     }
     ceiling
     {
-        type            buoyantPressure;
+        type            fixedFluxPressure;
         value           $internalField;
     }
     inlet
     {
-        type            buoyantPressure;
+        type            fixedFluxPressure;
         value           $internalField;
     }
     outlet
     {
-        type            buoyantPressure;
+        type            fixedFluxPressure;
         value           $internalField;
     }
     fixedWalls
     {
         type            empty;
-    }
-    "baffle1Wall.*"
-    {
-        type           calculated;
     }
 }
 

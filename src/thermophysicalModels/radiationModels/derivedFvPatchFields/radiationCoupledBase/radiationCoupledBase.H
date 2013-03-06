@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,7 @@ Description
     dictionary or calculated by the solidThermo:
 
     - 'lookup' : lookup volScalarField with name
-    - 'solidThermo' : use basicSolidThermo emissivity()
+    - 'solidThermo' : use solidThermo emissivity()
 
 SourceFiles
     radiationCoupledBase.C
@@ -55,12 +55,14 @@ namespace Foam
 class radiationCoupledBase
 {
 public:
-        //- Type of supplied emissivity
-        enum emissivityMethodType
-        {
-            SOLIDTHERMO,
-            LOOKUP
-        };
+
+    //- Type of supplied emissivity
+    enum emissivityMethodType
+    {
+        SOLIDRADIATION,
+        LOOKUP
+    };
+
 
 private:
 
@@ -71,6 +73,7 @@ private:
 
         //- Underlying patch
         const fvPatch& patch_;
+
 
 protected:
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,41 +44,41 @@ namespace Foam
 
 // Forward declaration of friend functions and operators
 
-template<class equationOfState> class hConstThermo;
+template<class EquationOfState> class hConstThermo;
 
-template<class equationOfState>
-inline hConstThermo<equationOfState> operator+
+template<class EquationOfState>
+inline hConstThermo<EquationOfState> operator+
 (
-    const hConstThermo<equationOfState>&,
-    const hConstThermo<equationOfState>&
+    const hConstThermo<EquationOfState>&,
+    const hConstThermo<EquationOfState>&
 );
 
-template<class equationOfState>
-inline hConstThermo<equationOfState> operator-
+template<class EquationOfState>
+inline hConstThermo<EquationOfState> operator-
 (
-    const hConstThermo<equationOfState>&,
-    const hConstThermo<equationOfState>&
+    const hConstThermo<EquationOfState>&,
+    const hConstThermo<EquationOfState>&
 );
 
-template<class equationOfState>
-inline hConstThermo<equationOfState> operator*
+template<class EquationOfState>
+inline hConstThermo<EquationOfState> operator*
 (
     const scalar,
-    const hConstThermo<equationOfState>&
+    const hConstThermo<EquationOfState>&
 );
 
-template<class equationOfState>
-inline hConstThermo<equationOfState> operator==
+template<class EquationOfState>
+inline hConstThermo<EquationOfState> operator==
 (
-    const hConstThermo<equationOfState>&,
-    const hConstThermo<equationOfState>&
+    const hConstThermo<EquationOfState>&,
+    const hConstThermo<EquationOfState>&
 );
 
-template<class equationOfState>
+template<class EquationOfState>
 Ostream& operator<<
 (
     Ostream&,
-    const hConstThermo<equationOfState>&
+    const hConstThermo<EquationOfState>&
 );
 
 
@@ -86,19 +86,14 @@ Ostream& operator<<
                            Class hConstThermo Declaration
 \*---------------------------------------------------------------------------*/
 
-template<class equationOfState>
+template<class EquationOfState>
 class hConstThermo
 :
-    public equationOfState
+    public EquationOfState
 {
     // Private data
 
-        //- Heat capacity at constant pressure
-        //  Note: input in [J/(kg K)], but internally uses [J/(kmol K)]
         scalar Cp_;
-
-        //- Heat of formation
-        //  Note: input in [J/kg], but internally uses [J/kmol]
         scalar Hf_;
 
 
@@ -107,7 +102,7 @@ class hConstThermo
         //- Construct from components
         inline hConstThermo
         (
-            const equationOfState& st,
+            const EquationOfState& st,
             const scalar cp,
             const scalar hf
         );
@@ -138,25 +133,32 @@ public:
 
     // Member Functions
 
+        //- Return the instantiated type name
+        static word typeName()
+        {
+            return "hConst<" + EquationOfState::typeName() + '>';
+        }
+
         //- Limit the temperature to be in the range Tlow_ to Thigh_
         inline scalar limit(const scalar T) const;
+
 
         // Fundamental properties
 
             //- Heat capacity at constant pressure [J/(kmol K)]
-            inline scalar cp(const scalar T) const;
+            inline scalar cp(const scalar p, const scalar T) const;
 
-            //- Enthalpy [J/kmol]
-            inline scalar h(const scalar T) const;
+            //- Absolute Enthalpy [J/kmol]
+            inline scalar ha(const scalar p, const scalar T) const;
 
             //- Sensible enthalpy [J/kmol]
-            inline scalar hs(const scalar T) const;
+            inline scalar hs(const scalar p, const scalar T) const;
 
             //- Chemical enthalpy [J/kmol]
             inline scalar hc() const;
 
             //- Entropy [J/(kmol K)]
-            inline scalar s(const scalar T) const;
+            inline scalar s(const scalar p, const scalar T) const;
 
 
         // I-O
@@ -173,25 +175,25 @@ public:
 
     // Friend operators
 
-        friend hConstThermo operator+ <equationOfState>
+        friend hConstThermo operator+ <EquationOfState>
         (
             const hConstThermo&,
             const hConstThermo&
         );
 
-        friend hConstThermo operator- <equationOfState>
+        friend hConstThermo operator- <EquationOfState>
         (
             const hConstThermo&,
             const hConstThermo&
         );
 
-        friend hConstThermo operator* <equationOfState>
+        friend hConstThermo operator* <EquationOfState>
         (
             const scalar,
             const hConstThermo&
         );
 
-        friend hConstThermo operator== <equationOfState>
+        friend hConstThermo operator== <EquationOfState>
         (
             const hConstThermo&,
             const hConstThermo&
@@ -200,7 +202,7 @@ public:
 
     // IOstream Operators
 
-        friend Ostream& operator<< <equationOfState>
+        friend Ostream& operator<< <EquationOfState>
         (
             Ostream&,
             const hConstThermo&

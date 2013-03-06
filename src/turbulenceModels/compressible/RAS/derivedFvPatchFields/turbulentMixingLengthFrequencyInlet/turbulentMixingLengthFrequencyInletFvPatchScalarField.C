@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,13 +48,14 @@ turbulentMixingLengthFrequencyInletFvPatchScalarField
 :
     inletOutletFvPatchScalarField(p, iF),
     mixingLength_(0.0),
-    phiName_("undefined-phi"),
-    kName_("undefined-k")
+    phiName_("phi"),
+    kName_("k")
 {
     this->refValue() = 0.0;
     this->refGrad() = 0.0;
     this->valueFraction() = 0.0;
 }
+
 
 turbulentMixingLengthFrequencyInletFvPatchScalarField::
 turbulentMixingLengthFrequencyInletFvPatchScalarField
@@ -70,6 +71,7 @@ turbulentMixingLengthFrequencyInletFvPatchScalarField
     phiName_(ptf.phiName_),
     kName_(ptf.kName_)
 {}
+
 
 turbulentMixingLengthFrequencyInletFvPatchScalarField::
 turbulentMixingLengthFrequencyInletFvPatchScalarField
@@ -91,6 +93,7 @@ turbulentMixingLengthFrequencyInletFvPatchScalarField
     this->valueFraction() = 0.0;
 }
 
+
 turbulentMixingLengthFrequencyInletFvPatchScalarField::
 turbulentMixingLengthFrequencyInletFvPatchScalarField
 (
@@ -102,6 +105,7 @@ turbulentMixingLengthFrequencyInletFvPatchScalarField
     phiName_(ptf.phiName_),
     kName_(ptf.kName_)
 {}
+
 
 turbulentMixingLengthFrequencyInletFvPatchScalarField::
 turbulentMixingLengthFrequencyInletFvPatchScalarField
@@ -127,10 +131,11 @@ void turbulentMixingLengthFrequencyInletFvPatchScalarField::updateCoeffs()
     }
 
     // Lookup Cmu corresponding to the turbulence model selected
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
+    const turbulenceModel& turbulence =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
 
     const scalar Cmu =
-        rasModel.coeffDict().lookupOrDefault<scalar>("Cmu", 0.09);
+        turbulence.coeffDict().lookupOrDefault<scalar>("Cmu", 0.09);
 
     const scalar Cmu25 = pow(Cmu, 0.25);
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -156,7 +156,7 @@ void Foam::SprayParcel<ParcelType>::calcAtomization
     // calculate average gas density based on average temperature
     scalar rhoAv = this->pc()/(R*Tav);
 
-    scalar soi = td.cloud().injection().timeStart();
+    scalar soi = td.cloud().injectors().timeStart();
     scalar currentTime = td.cloud().db().time().value();
     const vector& pos = this->position();
     const vector& injectionPos = this->position0();
@@ -166,9 +166,10 @@ void Foam::SprayParcel<ParcelType>::calcAtomization
     scalar Urel = mag(this->U());
 
     scalar t0 = max(0.0, currentTime - this->age() - soi);
-    scalar t1 = min(t0 + dt, td.cloud().injection().timeEnd() - soi);
+    scalar t1 = min(t0 + dt, td.cloud().injectors().timeEnd() - soi);
+
     // this should be the vol flow rate from when the parcel was injected
-    scalar volFlowRate = td.cloud().injection().volumeToInject(t0, t1)/dt;
+    scalar volFlowRate = td.cloud().injectors().volumeToInject(t0, t1)/dt;
 
     scalar chi = 0.0;
     if (atomization.calcChi())
@@ -403,7 +404,7 @@ void Foam::SprayParcel<ParcelType>::solveTABEq
     // oscillation frequency (squared)
     scalar omega2 = TABComega*sigma/(rho*r3) - rtd*rtd;
 
-    if(omega2 > 0)
+    if (omega2 > 0)
     {
         scalar omega = sqrt(omega2);
         scalar rhoc = this->rhoc();

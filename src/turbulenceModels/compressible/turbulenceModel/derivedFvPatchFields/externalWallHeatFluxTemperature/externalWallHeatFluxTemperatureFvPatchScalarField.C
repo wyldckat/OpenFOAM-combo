@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -86,7 +86,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(ptf, p, iF, mapper),
-    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.KName()),
+    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.kappaName()),
     oldMode_(ptf.oldMode_),
     q_(ptf.q_, mapper),
     h_(ptf.h_, mapper),
@@ -181,7 +181,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(tppsf, iF),
-    temperatureCoupledBase(patch(), tppsf.KMethod(), tppsf.KName()),
+    temperatureCoupledBase(patch(), tppsf.KMethod(), tppsf.kappaName()),
     oldMode_(tppsf.oldMode_),
     q_(tppsf.q_),
     h_(tppsf.h_),
@@ -191,35 +191,6 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::autoMap
-(
-    const fvPatchFieldMapper& m
-)
-{
-    mixedFvPatchScalarField::autoMap(m);
-    q_.autoMap(m);
-    h_.autoMap(m);
-    Ta_.autoMap(m);
-}
-
-
-void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::rmap
-(
-    const fvPatchScalarField& ptf,
-    const labelList& addr
-)
-{
-    mixedFvPatchScalarField::rmap(ptf, addr);
-
-    const externalWallHeatFluxTemperatureFvPatchScalarField& tiptf =
-        refCast<const externalWallHeatFluxTemperatureFvPatchScalarField>(ptf);
-
-    q_.rmap(tiptf.q_, addr);
-    h_.rmap(tiptf.h_, addr);
-    Ta_.rmap(tiptf.Ta_, addr);
-}
-
-
 void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
 {
     if (updated())
@@ -228,7 +199,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
     }
 
     scalarField q(size(), 0.0);
-    scalarField KWall(K(*this));
+    scalarField KWall(kappa(*this));
     scalarField KDelta(KWall*patch().deltaCoeffs());
 
     if (oldMode_ == fixedHeatFlux)
@@ -245,7 +216,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
         (
             "externalWallHeatFluxTemperatureFvPatchScalarField"
             "::updateCoeffs()"
-        )   << "Illegal mode " << operationModeNames[oldMode_]
+        )   << "Illegal heat flux mode " << operationModeNames[oldMode_]
             << exit(FatalError);
     }
 
@@ -253,7 +224,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
     {
         if (q[i] > 0) //in
         {
-            this->refGrad()[i] = q[i]/KWall[i];
+            this->refGrad()[i] = q[i]/kappa(*this)()[i];
             this->refValue()[i] = 0.0;
             this->valueFraction()[i] = 0.0;
         }
@@ -274,7 +245,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
         Info<< patch().boundaryMesh().mesh().name() << ':'
             << patch().name() << ':'
             << this->dimensionedInternalField().name() << " :"
-            << " heatFlux:" << Q
+            << " heat transfer rate:" << Q
             << " walltemperature "
             << " min:" << gMin(*this)
             << " max:" << gMax(*this)

@@ -120,7 +120,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        PatchFlowRateInjection(const dictionary& dict, CloudType& owner);
+        PatchFlowRateInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         PatchFlowRateInjection(const PatchFlowRateInjection<CloudType>& im);
@@ -140,6 +145,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

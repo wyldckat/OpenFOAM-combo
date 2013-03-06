@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,8 +37,6 @@ SourceFiles
 
 #include "runTimeSelectionTables.H"
 #include "volFieldsFwd.H"
-#include "solidChemistryModel.H"
-#include "basicSolidThermo.H"
 #include "regionModel1D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -82,18 +80,6 @@ private:
 
 protected:
 
-    // Protected Data
-
-        //- Flag to indicate whether pyrolysis region coupled to a film region
-        bool filmCoupled_;
-
-        //- Pointer to film thickness field
-        autoPtr<volScalarField> filmDeltaPtr_;
-
-        //- Film height below which reactions can occur [m]
-        scalar reactionDeltaMin_;
-
-
     // Protected Member Functions
 
         //- Read control parameters
@@ -117,8 +103,8 @@ public:
             pyrolysisModel,
             mesh,
             (
-            const word& modelType,
-            const fvMesh& mesh
+                const word& modelType,
+                const fvMesh& mesh
             ),
             (modelType, mesh)
         );
@@ -129,9 +115,9 @@ public:
             pyrolysisModel,
             dictionary,
             (
-            const word& modelType,
-            const fvMesh& mesh,
-            const dictionary& dict
+                const word& modelType,
+                const fvMesh& mesh,
+                const dictionary& dict
             ),
             (modelType, mesh, dict)
         );
@@ -163,7 +149,7 @@ public:
 
     // Selectors
 
-        //- Return a reference to the selected pyrolysis film model
+        //- Return a reference to the selected pyrolysis model
         static autoPtr<pyrolysisModel> New(const fvMesh& mesh);
 
         //- Return a reference to a named selected pyrolysis model
@@ -218,10 +204,10 @@ public:
                 virtual const tmp<volScalarField> Cp() const = 0;
 
                 //- Return the region absorptivity [1/m]
-                virtual const volScalarField& kappa() const = 0;
+                virtual tmp<volScalarField> kappaRad() const = 0;
 
                 //- Return the region thermal conductivity [W/m/k]
-                virtual const volScalarField& K() const = 0;
+                virtual tmp<volScalarField> kappa() const = 0;
 
                 //- Return the total gas mass flux to primary region [kg/m2/s]
                 virtual const surfaceScalarField& phiGas() const = 0;
@@ -234,12 +220,6 @@ public:
                     const label patchI,
                     const label faceI
                 );
-
-
-        // Evolution
-
-            //- Pre-evolve region
-            virtual void preEvolveRegion();
 
 
         // Helper function

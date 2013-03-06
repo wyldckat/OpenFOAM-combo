@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -1 0 0 0 0];
+dimensions      [m^2 s^-1];
 
 internalField   uniform 0;
 
@@ -32,18 +32,6 @@ boundaryField
     outlet2
     {
         type            zeroGradient;
-    }
-    baffles
-    {
-        type            zeroGradient;
-    }
-    fan_half0
-    {
-        type            cyclic;
-    }
-    fan_half1
-    {
-        type            cyclic;
     }
     defaultFaces
     {

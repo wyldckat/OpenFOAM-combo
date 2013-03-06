@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    refinementLevel
+
 Description
     Tries to figure out what the refinement level is on refined cartesian
     meshes. Run BEFORE snapping.
@@ -92,7 +95,6 @@ bool limitRefinementLevel
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

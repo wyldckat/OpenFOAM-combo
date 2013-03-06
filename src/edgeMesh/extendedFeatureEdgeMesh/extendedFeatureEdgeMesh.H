@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,8 +30,8 @@ Description
 
     Feature points are a sorted subset at the start of the overall points list:
         0 .. concaveStart_-1                : convex points (w.r.t normals)
-        concaveStart_-1 .. mixedStart_-1    : concave points
-        mixedStart_ .. nonFeatureStart_     : mixed internal/external points
+        concaveStart_ .. mixedStart_-1      : concave points
+        mixedStart_ .. nonFeatureStart_-1   : mixed internal/external points
         nonFeatureStart_ .. size-1          : non-feature points
 
     Feature edges are the edgeList of the edgeMesh and are sorted:
@@ -56,17 +56,19 @@ SourceFiles
 #define extendedFeatureEdgeMesh_H
 
 #include "edgeMesh.H"
-#include "surfaceFeatures.H"
-#include "objectRegistry.H"
-#include "IOdictionary.H"
+#include "regIOobject.H"
 #include "indexedOctree.H"
 #include "treeDataEdge.H"
-#include "pointIndexHit.H"
+#include "treeDataPoint.H"
+#include "PrimitivePatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+
+class surfaceFeatures;
+class objectRegistry;
 
 /*---------------------------------------------------------------------------*\
                        Class extendedFeatureEdgeMesh Declaration
@@ -91,6 +93,8 @@ public:
         NONFEATURE  // Not a feature point
     };
 
+    static const Foam::NamedEnum<pointStatus, 4> pointStatusNames_;
+
     enum edgeStatus
     {
         EXTERNAL,   // "Convex" edge
@@ -101,6 +105,9 @@ public:
         NONE        // Not a classified feature edge (consistency with
                     // surfaceFeatures)
     };
+
+    static const Foam::NamedEnum<edgeStatus, 6> edgeStatusNames_;
+
 
 private:
 
@@ -150,10 +157,18 @@ private:
         labelListList edgeNormals_;
 
         //- Indices of the normals that are adjacent to the feature points
+        //  (only valid for 0..nonFeatureStart_-1)
         labelListList featurePointNormals_;
+
+        //- Indices of feature edges attached to feature points. The edges are
+        //  ordered so that they can be circulated.
+        labelListList featurePointEdges_;
 
         //- Feature edges which are on the boundary between regions
         labelList regionEdges_;
+
+        //- Search tree for all feature points
+        mutable autoPtr<indexedOctree<treeDataPoint> > pointTree_;
 
         //- Search tree for all edges
         mutable autoPtr<indexedOctree<treeDataEdge> > edgeTree_;
@@ -177,6 +192,14 @@ private:
             const vector& fC0tofC1
         ) const;
 
+        template<class Patch>
+        void sortPointsAndEdges
+        (
+            const Patch&,
+            const labelList& featureEdges,
+            const labelList& regionFeatureEdges,
+            const labelList& feaurePoints
+        );
 
 public:
 
@@ -187,6 +210,7 @@ public:
 
         //- Number of possible feature edge types (i.e. number of slices)
         static label nEdgeTypes;
+
 
     // Constructors
 
@@ -208,14 +232,25 @@ public:
             const Xfer<edgeList>&
         );
 
-        //- Construct (read) given surfaceFeatures, an objectRegistry and a
-        //  fileName to write to.  Extracts, classifies and reorders the data
-        //  from surfaceFeatures.
+        //- Construct given a surface with selected edges,point
+        //  (surfaceFeatures), an objectRegistry and a
+        //  fileName to write to.
+        //  Extracts, classifies and reorders the data from surfaceFeatures.
         extendedFeatureEdgeMesh
         (
             const surfaceFeatures& sFeat,
             const objectRegistry& obr,
             const fileName& sFeatFileName
+        );
+
+        //- Construct from PrimitivePatch
+        extendedFeatureEdgeMesh
+        (
+            const IOobject&,
+            const PrimitivePatch<face, List, pointField, point>& surf,
+            const labelList& featureEdges,
+            const labelList& regionFeatureEdges,
+            const labelList& featurePoints
         );
 
         //- Construct from all components
@@ -235,6 +270,7 @@ public:
             const vectorField& edgeDirections,
             const labelListList& edgeNormals,
             const labelListList& featurePointNormals,
+            const labelListList& featurePointEdges,
             const labelList& regionEdges
         );
 
@@ -246,6 +282,14 @@ public:
     // Member Functions
 
         // Find
+
+            //- Find nearest surface edge for the sample point.
+            void nearestFeaturePoint
+            (
+                const point& sample,
+                scalar searchDistSqr,
+                pointIndexHit& info
+            ) const;
 
             //- Find nearest surface edge for the sample point.
             void nearestFeatureEdge
@@ -270,6 +314,23 @@ public:
                 const scalarField& searchDistSqr,
                 List<pointIndexHit>& info
             ) const;
+
+            //- Find all the feature points within searchDistSqr of sample
+            void allNearestFeaturePoints
+            (
+                const point& sample,
+                scalar searchRadiusSqr,
+                List<pointIndexHit>& info
+            ) const;
+
+            //- Find all the feature edges within searchDistSqr of sample
+            void allNearestFeatureEdges
+            (
+                const point& sample,
+                const scalar searchRadiusSqr,
+                List<pointIndexHit>& info
+            ) const;
+
 
         // Access
 
@@ -331,6 +392,11 @@ public:
             //- Return the normal vectors for a given feature point
             inline vectorField featurePointNormals(label ptI) const;
 
+            //- Return the edge labels for a given feature point. Edges are
+            //  ordered by the faces that they share. The edge labels
+            //  correspond to the entry in edges().
+            inline const labelListList& featurePointEdges() const;
+
             //- Return the feature edges which are on the boundary between
             //  regions
             inline const labelList& regionEdges() const;
@@ -341,12 +407,25 @@ public:
             //- Return the edgeStatus of a specified edge
             inline edgeStatus getEdgeStatus(label edgeI) const;
 
+            //- Demand driven construction of octree for feature points
+            const indexedOctree<treeDataPoint>& pointTree() const;
+
             //- Demand driven construction of octree for boundary edges
             const indexedOctree<treeDataEdge>& edgeTree() const;
 
             //- Demand driven construction of octree for boundary edges by type
             const PtrList<indexedOctree<treeDataEdge> >&
             edgeTreesByType() const;
+
+
+        // Edit
+
+            //- Add extendedFeatureEdgeMesh. No filtering of duplicates.
+            void add(const extendedFeatureEdgeMesh&);
+
+            //- Flip normals. All concave become convex, all internal external
+            //  etc.
+            void flipNormals();
 
 
         // Write
@@ -369,6 +448,10 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "extendedFeatureEdgeMeshI.H"
+
+#ifdef NoRepository
+#   include "extendedFeatureEdgeMeshTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

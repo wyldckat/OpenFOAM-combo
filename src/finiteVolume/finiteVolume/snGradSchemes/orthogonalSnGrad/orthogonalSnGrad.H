@@ -48,7 +48,7 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class orthogonalSnGrad Declaration
+                 Class orthogonalSnGrad Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>

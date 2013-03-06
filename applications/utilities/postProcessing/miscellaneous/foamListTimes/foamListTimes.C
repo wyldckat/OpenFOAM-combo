@@ -25,7 +25,7 @@ Application
     foamListTimes
 
 Description
-    List times using timeSelector
+    List times using timeSelector.
 
 Usage
 

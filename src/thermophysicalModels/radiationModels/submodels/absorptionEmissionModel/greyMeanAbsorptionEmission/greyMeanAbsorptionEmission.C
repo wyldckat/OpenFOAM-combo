@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,7 +60,7 @@ Foam::radiation::greyMeanAbsorptionEmission::greyMeanAbsorptionEmission
     speciesNames_(0),
     specieIndex_(label(0)),
     lookUpTablePtr_(),
-    thermo_(mesh.lookupObject<basicThermo>("thermophysicalProperties")),
+    thermo_(mesh.lookupObject<fluidThermo>("thermophysicalProperties")),
     EhrrCoeff_(readScalar(coeffsDict_.lookup("EhrrCoeff"))),
     Yj_(nSpecies_)
 {
@@ -284,7 +284,7 @@ Foam::radiation::greyMeanAbsorptionEmission::aCont(const label bandI) const
 Foam::tmp<Foam::volScalarField>
 Foam::radiation::greyMeanAbsorptionEmission::eCont(const label bandI) const
 {
-    return aCont(bandI);
+   return aCont(bandI);
 }
 
 
@@ -312,7 +312,30 @@ Foam::radiation::greyMeanAbsorptionEmission::ECont(const label bandI) const
     {
         const volScalarField& dQ =
             mesh_.lookupObject<volScalarField>("dQ");
-        E().internalField() = EhrrCoeff_*dQ;
+
+        if (dQ.dimensions() == dimEnergy/dimTime)
+        {
+            E().internalField() = EhrrCoeff_*dQ/mesh_.V();
+        }
+        else if (dQ.dimensions() == dimEnergy/dimTime/dimVolume)
+        {
+            E().internalField() = EhrrCoeff_*dQ;
+        }
+        else
+        {
+            if (debug)
+            {
+                WarningIn
+                (
+                    "tmp<volScalarField>"
+                    "radiation::greyMeanAbsorptionEmission::ECont"
+                    "("
+                        "const label"
+                    ") const"
+                )
+                    << "Incompatible dimensions for dQ field" << endl;
+            }
+        }
     }
 
     return E;

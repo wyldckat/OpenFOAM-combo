@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,6 +24,9 @@ License
 Class
     Foam::fieldValue
 
+Group
+    grpFieldFunctionObjects
+
 Description
     Base class for field value -based function objects.
 
@@ -35,9 +38,12 @@ SourceFiles
 #ifndef fieldValue_H
 #define fieldValue_H
 
+#include "functionObjectFile.H"
 #include "Switch.H"
-#include "pointFieldFwd.H"
 #include "OFstream.H"
+#include "dictionary.H"
+#include "Field.H"
+#include "runTimeSelectionTables.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,9 +51,9 @@ namespace Foam
 {
 
 // Forward declaration of classes
-class dictionary;
 class objectRegistry;
 class fvMesh;
+class polyMesh;
 class mapPolyMesh;
 
 /*---------------------------------------------------------------------------*\
@@ -55,6 +61,8 @@ class mapPolyMesh;
 \*---------------------------------------------------------------------------*/
 
 class fieldValue
+:
+    public functionObjectFile
 {
 
 protected:
@@ -82,23 +90,8 @@ protected:
         //- Output field values flag
         Switch valueOutput_;
 
-        //- Output file pointer
-        autoPtr<OFstream> outputFilePtr_;
-
-
-        // Functions to be over-ridden from IOoutputFilter class
-
-            //- Make the output file
-            virtual void makeFile();
-
-            //- Write the output file header
-            virtual void writeFileHeader() = 0;
-
-            //- Update mesh
-            virtual void updateMesh(const mapPolyMesh&);
-
-            //- Move points
-            virtual void movePoints(const Field<point>&);
+        //- Results dictionary for external access of results
+        dictionary resultDict_;
 
 
 public:
@@ -106,6 +99,21 @@ public:
     //- Run-time type information
     TypeName("fieldValue");
 
+    // Declare runtime constructor selection table
+
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            fieldValue,
+            dictionary,
+            (
+                const word& name,
+                const objectRegistry& obr,
+                const dictionary& dict,
+                const bool loadFromFiles
+            ),
+            (name, obr, dict, loadFromFiles)
+        );
 
     //- Construct from components
     fieldValue
@@ -113,9 +121,19 @@ public:
         const word& name,
         const objectRegistry& obr,
         const dictionary& dict,
+        const word& valueType,
         const bool loadFromFiles = false
     );
 
+    //- Return a reference to the selected fieldValue
+    static autoPtr<fieldValue> New
+    (
+        const word& name,
+        const objectRegistry& obr,
+        const dictionary& dict,
+        const bool loadFromFiles = false,
+        const bool output = true
+    );
 
     //- Destructor
     virtual ~fieldValue();
@@ -149,6 +167,9 @@ public:
             //- Helper function to return the reference to the mesh
             inline const fvMesh& mesh() const;
 
+            //- Return access to the latest set of results
+            inline const dictionary& resultDict() const;
+
 
         // Function object functions
 
@@ -163,6 +184,12 @@ public:
 
             //- Execute the at the final time-loop, currently does nothing
             virtual void end();
+
+            //- Update mesh
+            virtual void updateMesh(const mapPolyMesh&);
+
+            //- Move points
+            virtual void movePoints(const polyMesh&);
 
             //- Combine fields from all processor domains into single field
             template<class Type>

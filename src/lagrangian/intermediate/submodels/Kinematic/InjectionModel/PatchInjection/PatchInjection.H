@@ -103,7 +103,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        PatchInjection(const dictionary& dict, CloudType& owner);
+        PatchInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         PatchInjection(const PatchInjection<CloudType>& im);
@@ -123,6 +128,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

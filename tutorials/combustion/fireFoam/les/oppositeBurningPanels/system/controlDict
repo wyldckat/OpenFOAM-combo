@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,25 +16,25 @@ FoamFile
 
 application     fireFoam;
 
-startFrom       latestTime;
+startFrom       startTime;
 
 startTime       0;
 
 stopAt          endTime;
 
-endTime         15.0;
+endTime         5;
 
 deltaT          0.03;
 
 writeControl    adjustableRunTime;
 
-writeInterval   0.5;
+writeInterval   1;
 
 purgeWrite      0;
 
 writeFormat     ascii;
 
-writePrecision  6;
+writePrecision  12;
 
 writeCompression off;
 

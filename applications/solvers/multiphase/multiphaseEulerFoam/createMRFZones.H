@@ -1,2 +1,8 @@
-    MRFZones mrfZones(mesh);
-    #include "mrfZonesCorrectBCs.H"
+    IOMRFZoneList mrfZones(mesh);
+
+    forAllIter(PtrDictionary<phaseModel>, fluid.phases(), iter)
+    {
+        mrfZones.correctBoundaryVelocity(iter().U());
+    }
+
+    mrfZones.correctBoundaryVelocity(U);

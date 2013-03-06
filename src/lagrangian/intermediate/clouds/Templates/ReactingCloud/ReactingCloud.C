@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -87,8 +87,6 @@ void Foam::ReactingCloud<CloudType>::cloudReset(ReactingCloud<CloudType>& c)
 
     compositionModel_.reset(c.compositionModel_.ptr());
     phaseChangeModel_.reset(c.phaseChangeModel_.ptr());
-
-    dMassPhaseChange_ = c.dMassPhaseChange_;
 }
 
 
@@ -111,8 +109,7 @@ Foam::ReactingCloud<CloudType>::ReactingCloud
     constProps_(this->particleProperties(), this->solution().active()),
     compositionModel_(NULL),
     phaseChangeModel_(NULL),
-    rhoTrans_(thermo.carrier().species().size()),
-    dMassPhaseChange_(0.0)
+    rhoTrans_(thermo.carrier().species().size())
 {
     if (this->solution().active())
     {
@@ -135,7 +132,7 @@ Foam::ReactingCloud<CloudType>::ReactingCloud
             (
                 IOobject
                 (
-                    this->name() + "rhoTrans_" + specieName,
+                    this->name() + ":rhoTrans_" + specieName,
                     this->db().time().timeName(),
                     this->db(),
                     IOobject::READ_IF_PRESENT,
@@ -167,8 +164,7 @@ Foam::ReactingCloud<CloudType>::ReactingCloud
     constProps_(c.constProps_),
     compositionModel_(c.compositionModel_->clone()),
     phaseChangeModel_(c.phaseChangeModel_->clone()),
-    rhoTrans_(c.rhoTrans_.size()),
-    dMassPhaseChange_(c.dMassPhaseChange_)
+    rhoTrans_(c.rhoTrans_.size())
 {
     forAll(c.rhoTrans_, i)
     {
@@ -180,7 +176,7 @@ Foam::ReactingCloud<CloudType>::ReactingCloud
             (
                 IOobject
                 (
-                    this->name() + "rhoTrans_" + specieName,
+                    this->name() + ":rhoTrans_" + specieName,
                     this->db().time().timeName(),
                     this->db(),
                     IOobject::NO_READ,
@@ -209,8 +205,7 @@ Foam::ReactingCloud<CloudType>::ReactingCloud
     compositionModel_(c.compositionModel_->clone()),
 //    compositionModel_(NULL),
     phaseChangeModel_(NULL),
-    rhoTrans_(0),
-    dMassPhaseChange_(0.0)
+    rhoTrans_(0)
 {}
 
 
@@ -341,7 +336,6 @@ void Foam::ReactingCloud<CloudType>::evolve()
 }
 
 
-
 template<class CloudType>
 void Foam::ReactingCloud<CloudType>::autoMap(const mapPolyMesh& mapper)
 {
@@ -350,6 +344,8 @@ void Foam::ReactingCloud<CloudType>::autoMap(const mapPolyMesh& mapper)
     tdType td(*this);
 
     Cloud<parcelType>::template autoMap<tdType>(td, mapper);
+
+    this->updateMesh();
 }
 
 

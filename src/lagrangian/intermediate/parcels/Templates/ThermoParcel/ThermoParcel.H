@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -82,6 +82,9 @@ public:
             //- Minimum temperature [K]
             scalar TMin_;
 
+            //- Maximum temperature [K]
+            scalar TMax_;
+
             //- Particle specific heat capacity [J/(kg.K)]
             scalar Cp0_;
 
@@ -123,6 +126,7 @@ public:
                 const scalar poissonsRatio,
                 const scalar T0,
                 const scalar TMin,
+                const scalar TMax,
                 const scalar Cp0,
                 const scalar epsilon0,
                 const scalar f0,
@@ -139,6 +143,9 @@ public:
 
                 //- Return const access to minimum temperature [K]
                 inline scalar TMin() const;
+
+                //- Return const access to maximum temperature [K]
+                inline scalar TMax() const;
 
                 //- Return const access to the particle specific heat capacity
                 //  [J/(kg.K)]
@@ -264,11 +271,16 @@ public:
 
     // Static data members
 
-        //- String representation of properties
-        static string propHeader;
-
         //- Runtime type information
         TypeName("ThermoParcel");
+
+        //- String representation of properties
+        AddToPropertyList
+        (
+            ParcelType,
+            " T"
+          + " Cp"
+        );
 
 
     // Constructors

@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    splitMesh
+
 Description
     Splits mesh by making internal faces external. Uses attachDetach.
 
@@ -105,7 +108,6 @@ void checkPatch(const polyBoundaryMesh& bMesh, const word& name)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

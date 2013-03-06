@@ -25,9 +25,6 @@ License
 
 #include "extrudedMesh.H"
 #include "wallPolyPatch.H"
-#include "meshTools.H"
-#include "ListOps.H"
-#include "OFstream.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -341,7 +338,8 @@ Foam::extrudedMesh::extrudedMesh
         sz,
         facei,
         0,
-        boundaryMesh()
+        boundaryMesh(),
+        wallPolyPatch::typeName
     );
 
     facei += sz;
@@ -352,7 +350,8 @@ Foam::extrudedMesh::extrudedMesh
         extrudePatch.size(),
         facei,
         1,
-        boundaryMesh()
+        boundaryMesh(),
+        polyPatch::typeName
     );
 
     facei += extrudePatch.size();
@@ -363,7 +362,8 @@ Foam::extrudedMesh::extrudedMesh
         extrudePatch.size(),
         facei,
         2,
-        boundaryMesh()
+        boundaryMesh(),
+        polyPatch::typeName
     );
 
     addPatches(patches);

@@ -32,11 +32,13 @@ Description
 #ifndef thermoPhysicsTypes_H
 #define thermoPhysicsTypes_H
 
+#include "specie.H"
 #include "perfectGas.H"
-#include "isobaricPerfectGas.H"
+#include "incompressiblePerfectGas.H"
 #include "hConstThermo.H"
 #include "janafThermo.H"
-#include "specieThermo.H"
+#include "sensibleEnthalpy.H"
+#include "thermo.H"
 #include "sutherlandTransport.H"
 #include "constTransport.H"
 
@@ -48,31 +50,72 @@ Description
 
 namespace Foam
 {
-    typedef constTransport<specieThermo<hConstThermo<perfectGas> > >
-        constGasThermoPhysics;
-
-    typedef sutherlandTransport<specieThermo<janafThermo<perfectGas> > >
-        gasThermoPhysics;
-
-    typedef constTransport<specieThermo<hConstThermo<isobaricPerfectGas> > >
-        constIsobaricGasThermoPhysics;
-
-    typedef sutherlandTransport<specieThermo<janafThermo<isobaricPerfectGas> > >
-        isobaricGasThermoPhysics;
-
-    typedef polynomialTransport
+    typedef
+    constTransport
+    <
+        species::thermo
         <
-            specieThermo
+            hConstThermo
             <
-                hPolynomialThermo
-                <
-                    icoPolynomial<8>,
-                    8
-                >
+                perfectGas<specie>
             >,
-            8
+            sensibleEnthalpy
         >
-        icoPoly8ThermoPhysics;
+    > constGasThermoPhysics;
+
+    typedef
+    sutherlandTransport
+    <
+        species::thermo
+        <
+            janafThermo
+            <
+                perfectGas<specie>
+            >,
+            sensibleEnthalpy
+        >
+    > gasThermoPhysics;
+
+    typedef
+    constTransport
+    <
+        species::thermo
+        <
+            hConstThermo
+            <
+                incompressiblePerfectGas<specie>
+            >,
+            sensibleEnthalpy
+        >
+    > constIncompressibleGasThermoPhysics;
+
+    typedef
+    sutherlandTransport
+    <
+        species::thermo
+        <
+            janafThermo
+            <
+                incompressiblePerfectGas<specie>
+            >,
+            sensibleEnthalpy
+        >
+    > incompressibleGasThermoPhysics;
+
+    typedef
+    polynomialTransport
+    <
+        species::thermo
+        <
+            hPolynomialThermo
+            <
+                icoPolynomial<specie, 8>,
+                8
+            >,
+            sensibleEnthalpy
+        >,
+        8
+    > icoPoly8ThermoPhysics;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

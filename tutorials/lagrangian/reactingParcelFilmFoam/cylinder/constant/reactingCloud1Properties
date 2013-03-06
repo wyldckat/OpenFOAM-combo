@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,7 +29,8 @@ solution
             rho             explicit 1;
             U               explicit 1;
             Yi              explicit 1;
-            hs              explicit 1;
+            h               explicit 1;
+            radiation       explicit 1;
         }
     }
 
@@ -37,7 +38,7 @@ solution
     {
         rho             cell;
         U               cellPoint;
-        mu              cell;
+        thermo:mu       cell;
         T               cell;
         Cp              cell;
         p               cell;
@@ -52,13 +53,6 @@ solution
 
 constantProperties
 {
-    parcelTypeId    1;
-
-    rhoMin          1e-15;
-    TMin            200;
-    pMin            1000;
-    minParticleMass 1e-15;
-
     rho0            1000;
     T0              300;
     Cp0             4187;
@@ -83,7 +77,19 @@ subModels
         gravity;
     }
 
-    injectionModel  reactingLookupTableInjection;
+    injectionModels
+    {
+        model1
+        {
+            type            reactingLookupTableInjection;
+            massTotal       0.5;
+            parcelBasisType mass;
+            SOI             0;
+            inputFile       "parcelInjectionProperties";
+            duration        20.0;
+            parcelsPerSecond 50;
+        }
+    }
 
     dispersionModel none;
 
@@ -98,16 +104,6 @@ subModels
     surfaceFilmModel thermoSurfaceFilm;
 
     radiation       off;
-
-    reactingLookupTableInjectionCoeffs
-    {
-        massTotal       0.5;
-        parcelBasisType mass;
-        SOI             0;
-        inputFile       "parcelInjectionProperties";
-        duration        20.0;
-        parcelsPerSecond 50;
-    }
 
     standardWallInteractionCoeffs
     {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,7 @@ Description
 
 SourceFiles
     radiationModel.C
+    radiationModelNew.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -44,10 +45,10 @@ SourceFiles
 #include "IOdictionary.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
-#include "volFields.H"
-#include "basicThermo.H"
-#include "fvMatrices.H"
-#include "blackBodyEmission.H"
+#include "addToRunTimeSelectionTable.H"
+#include "volFieldsFwd.H"
+#include "fluidThermo.H"
+#include "fvMatricesFwd.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -108,6 +109,12 @@ private:
 
     // Private Member Functions
 
+        //- Create IO object if dictionary is present
+        IOobject createIOobject(const fvMesh& mesh) const;
+
+        //- Initialise
+        void initialise();
+
         //- Disallow default bitwise copy construct
         radiationModel(const radiationModel&);
 
@@ -123,16 +130,28 @@ public:
 
     // Declare runtime constructor selection table
 
-         declareRunTimeSelectionTable
-         (
-             autoPtr,
-             radiationModel,
-             dictionary,
-             (
-                 const volScalarField& T
-             ),
-             (T)
-         );
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            radiationModel,
+            T,
+            (
+                const volScalarField& T
+            ),
+            (T)
+        );
+
+        declareRunTimeSelectionTable
+        (
+            autoPtr,
+            radiationModel,
+            dictionary,
+            (
+                const dictionary& dict,
+                const volScalarField& T
+            ),
+            (dict, T)
+        );
 
 
     // Constructors
@@ -143,11 +162,26 @@ public:
         //- Construct from components
         radiationModel(const word& type, const volScalarField& T);
 
+        //- Construct from components
+        radiationModel
+        (
+            const word& type,
+            const dictionary& dict,
+            const volScalarField& T
+        );
+
 
     // Selectors
 
-         //- Return a reference to the selected radiation model
-         static autoPtr<radiationModel> New(const volScalarField& T);
+        //- Return a reference to the selected radiation model
+        static autoPtr<radiationModel> New(const volScalarField& T);
+
+        //- Return a reference to the selected radiation model
+        static autoPtr<radiationModel> New
+        (
+            const dictionary& dict,
+            const volScalarField& T
+        );
 
 
     //- Destructor
@@ -176,13 +210,31 @@ public:
             //- Source term component (constant)
             virtual tmp<DimensionedField<scalar, volMesh> > Ru() const = 0;
 
-            //- Enthalpy source term
-            virtual tmp<fvScalarMatrix> Sh(basicThermo& thermo) const;
+            //- Energy source term
+            virtual tmp<fvScalarMatrix> Sh(fluidThermo& thermo) const;
 
-            //- Sensible enthalpy source term
-            virtual tmp<fvScalarMatrix> Shs(basicThermo& thermo) const;
+            //- Access to absorptionEmissionModel
+            const absorptionEmissionModel& absorptionEmission() const;
 };
 
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#define addToRadiationRunTimeSelectionTables(model)                           \
+                                                                              \
+    addToRunTimeSelectionTable                                                \
+    (                                                                         \
+        radiationModel,                                                       \
+        model,                                                                \
+        dictionary                                                            \
+    );                                                                        \
+                                                                              \
+    addToRunTimeSelectionTable                                                \
+    (                                                                         \
+        radiationModel,                                                       \
+        model,                                                                \
+        T                                                                     \
+    );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

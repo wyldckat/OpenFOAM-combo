@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,6 +65,12 @@ void Foam::polyPatch::updateMesh(PstreamBuffers&)
 }
 
 
+void Foam::polyPatch::clearGeom()
+{
+    primitivePatch::clearGeom();
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::polyPatch::polyPatch
@@ -73,7 +79,8 @@ Foam::polyPatch::polyPatch
     const label size,
     const label start,
     const label index,
-    const polyBoundaryMesh& bm
+    const polyBoundaryMesh& bm,
+    const word& patchType
 )
 :
     patchIdentifier(name, index),
@@ -86,7 +93,17 @@ Foam::polyPatch::polyPatch
     boundaryMesh_(bm),
     faceCellsPtr_(NULL),
     mePtr_(NULL)
-{}
+{
+    if
+    (
+        patchType != word::null
+     && constraintType(patchType)
+     && findIndex(inGroups(), patchType) == -1
+    )
+    {
+        inGroups().append(patchType);
+    }
+}
 
 
 Foam::polyPatch::polyPatch
@@ -94,7 +111,8 @@ Foam::polyPatch::polyPatch
     const word& name,
     const dictionary& dict,
     const label index,
-    const polyBoundaryMesh& bm
+    const polyBoundaryMesh& bm,
+    const word& patchType
 )
 :
     patchIdentifier(name, dict, index),
@@ -112,7 +130,17 @@ Foam::polyPatch::polyPatch
     boundaryMesh_(bm),
     faceCellsPtr_(NULL),
     mePtr_(NULL)
-{}
+{
+    if
+    (
+        patchType != word::null
+     && constraintType(patchType)
+     && findIndex(inGroups(), patchType) == -1
+    )
+    {
+        inGroups().append(patchType);
+    }
+}
 
 
 Foam::polyPatch::polyPatch

@@ -6,19 +6,27 @@ if (finalIter)
 {
     for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
     {
-        tmp<fvScalarMatrix> TEqn
+        tmp<fvScalarMatrix> hEqn
         (
-            fvm::ddt(rho*cp, T)
-          - fvm::laplacian(kappa, T)
+            fvm::ddt(betav*rho, h)
+          - fvm::laplacian(betav*alpha, h, "laplacian(alpha,h)")
+          ==
+            fvOptions(rho, h)
         );
-        TEqn().relax();
-        TEqn().solve(mesh.solver(T.select(finalIter)));
-    }
 
-    Info<< "Min/max T:" << min(T) << ' ' << max(T) << endl;
+        hEqn().relax();
+
+        fvOptions.constrain(hEqn());
+
+        hEqn().solve(mesh.solver(h.select(finalIter)));
+
+        fvOptions.correct(h);
+    }
 }
 
 thermo.correct();
+
+Info<< "Min/max T:" << min(thermo.T()) << ' ' << max(thermo.T()) << endl;
 
 if (finalIter)
 {

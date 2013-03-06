@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,8 +35,6 @@ SourceFiles
 #ifndef basicMixture_H
 #define basicMixture_H
 
-#include "typeInfo.H"
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -54,18 +52,15 @@ class basicMixture
 
 public:
 
-    // Runtime type information
-    TypeName("basicMixture");
+    //- The base class of the mixture
+    typedef basicMixture basicMixtureType;
 
 
     // Constructors
 
         //- Construct from dictionary and mesh
-        basicMixture(const dictionary&, const fvMesh&);
-
-
-    //- Destructor
-    virtual ~basicMixture();
+        basicMixture(const dictionary&, const fvMesh&)
+        {}
 };
 
 

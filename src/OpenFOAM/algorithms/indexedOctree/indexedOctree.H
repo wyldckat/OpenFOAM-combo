@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -320,6 +320,13 @@ private:
                 const bool verbose = false
             ) const;
 
+//            bool isLineInsideOrOutside
+//            (
+//                const label nodeI,
+//                const point& start,
+//                const point& end
+//            ) const;
+
             //- Find any or nearest intersection of line between start and end.
             pointIndexHit findLine
             (
@@ -531,6 +538,19 @@ public:
                 const point& sample,
                 const scalar nearestDistSqr
             ) const;
+
+//            bool findAnyOverlap
+//            (
+//                const point& sample,
+//                const scalar nearestDistSqr
+//            ) const;
+//
+//            bool findAnyOverlap
+//            (
+//                const label nodeI,
+//                const point& sample,
+//                const scalar nearestDistSqr
+//            ) const;
 
             //- Low level: calculate nearest starting from subnode.
             void findNearest

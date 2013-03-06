@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,18 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "fanFvPatchField.H"
-#include "IOmanip.H"
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+template<class Type>
+void Foam::fanFvPatchField<Type>::calcFanJump()
+{
+    if (this->cyclicPatch().owner())
+    {
+        this->jump_ = this->jumpTable_->value(this->db().time().value());
+    }
+}
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -35,8 +46,7 @@ Foam::fanFvPatchField<Type>::fanFvPatchField
     const DimensionedField<Type, volMesh>& iF
 )
 :
-    fixedJumpFvPatchField<Type>(p, iF),
-    f_(0)
+    uniformJumpFvPatchField<Type>(p, iF)
 {}
 
 
@@ -49,8 +59,7 @@ Foam::fanFvPatchField<Type>::fanFvPatchField
     const fvPatchFieldMapper& mapper
 )
 :
-    fixedJumpFvPatchField<Type>(ptf, p, iF, mapper),
-    f_(ptf.f_)
+    uniformJumpFvPatchField<Type>(ptf, p, iF, mapper)
 {}
 
 
@@ -62,29 +71,8 @@ Foam::fanFvPatchField<Type>::fanFvPatchField
     const dictionary& dict
 )
 :
-    fixedJumpFvPatchField<Type>(p, iF),
-    f_()
-{
-    {
-        Istream& is = dict.lookup("f");
-        is.format(IOstream::ASCII);
-        is >> f_;
-
-        // Check that f_ table is same on both sides.?
-    }
-
-    if (dict.found("value"))
-    {
-        fvPatchField<Type>::operator=
-        (
-            Field<Type>("value", dict, p.size())
-        );
-    }
-    else
-    {
-        this->evaluate(Pstream::blocking);
-    }
-}
+    uniformJumpFvPatchField<Type>(p, iF, dict)
+{}
 
 
 template<class Type>
@@ -93,9 +81,7 @@ Foam::fanFvPatchField<Type>::fanFvPatchField
     const fanFvPatchField<Type>& ptf
 )
 :
-    cyclicLduInterfaceField(),
-    fixedJumpFvPatchField<Type>(ptf),
-    f_(ptf.f_)
+    uniformJumpFvPatchField<Type>(ptf)
 {}
 
 
@@ -106,25 +92,24 @@ Foam::fanFvPatchField<Type>::fanFvPatchField
     const DimensionedField<Type, volMesh>& iF
 )
 :
-    fixedJumpFvPatchField<Type>(ptf, iF),
-    f_(ptf.f_)
+    uniformJumpFvPatchField<Type>(ptf, iF)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-
 template<class Type>
-void Foam::fanFvPatchField<Type>::write(Ostream& os) const
+void Foam::fanFvPatchField<Type>::updateCoeffs()
 {
+    if (this->updated())
+    {
+        return;
+    }
 
-    fixedJumpFvPatchField<Type>::write(os);
+    calcFanJump();
 
-    IOstream::streamFormat fmt0 = os.format(IOstream::ASCII);
-    os.writeKeyword("f") << f_ << token::END_STATEMENT << nl;
-    os.format(fmt0);
-
-    this->writeEntry("value", os);
+    // call fixedJump variant - uniformJump will overwrite the jump value
+    fixedJumpFvPatchField<scalar>::updateCoeffs();
 }
 
 

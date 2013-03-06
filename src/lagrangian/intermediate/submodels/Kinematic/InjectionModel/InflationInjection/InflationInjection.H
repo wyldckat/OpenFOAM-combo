@@ -120,7 +120,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        InflationInjection(const dictionary& dict, CloudType& owner);
+        InflationInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         InflationInjection(const InflationInjection<CloudType>& im);
@@ -140,6 +145,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

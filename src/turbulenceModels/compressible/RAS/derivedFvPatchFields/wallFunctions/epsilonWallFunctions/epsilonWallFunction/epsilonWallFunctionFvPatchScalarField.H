@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,12 +22,46 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::epsilonWallFunctionFvPatchScalarField
+    Foam::compressible::epsilonWallFunctionFvPatchScalarField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Boundary condition for epsilon when using wall functions
-    - calculates epsilon and G
-    - epsilon values added directly into the matrix to act as a constraint
+    This boundary condition provides a turbulence dissipation wall function
+    condition for high Reynolds number, turbulent flow cases.
+
+    The condition can be applied to wall boundaries, whereby it
+    - calculates \c epsilon and \c G
+    - inserts near wall epsilon values directly into the epsilon equation
+        to act as a constraint
+
+    where
+
+    \vartable
+        epsilon | turblence dissipation field
+        G       | turblence generation field
+    \endvartable
+
+    \heading Patch usage
+
+    \table
+        Property     | Description             | Required    | Default value
+        Cmu          | model coefficient       | no          | 0.09
+        kappa        | Von Karman constant     | no          | 0.41
+        E            | model coefficient       | no          | 9.8
+    \endtable
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            compressible::epsilonWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::fixedInternalValueFvPatchField
 
 SourceFiles
     epsilonWallFunctionFvPatchScalarField.C
@@ -45,8 +79,6 @@ namespace Foam
 {
 namespace compressible
 {
-namespace RASModels
-{
 
 /*---------------------------------------------------------------------------*\
            Class epsilonWallFunctionFvPatchScalarField Declaration
@@ -60,9 +92,6 @@ protected:
 
     // Protected data
 
-        //- Name of turbulence generation field
-        word GName_;
-
         //- Cmu coefficient
         scalar Cmu_;
 
@@ -72,17 +101,11 @@ protected:
         //- E coefficient
         scalar E_;
 
-        //- Y+ at the edge of the laminar sublayer
-        scalar yPlusLam_;
-
 
     // Protected Member Functions
 
         //- Check the type of the patch
         virtual void checkType();
-
-        //- Calculate the Y+ at the edge of the laminar sublayer
-        virtual scalar calcYPlusLam(const scalar kappa, const scalar E) const;
 
         //- Write local wall function variables
         virtual void writeLocalEntries(Ostream&) const;
@@ -177,7 +200,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,9 +50,14 @@ void Foam::globalMeshData::syncData
         Type& elem = elems[i];
 
         const labelList& slavePoints = slaves[i];
-        const labelList& transformSlavePoints = transformedSlaves[i];
+        label nTransformSlavePoints =
+        (
+            transformedSlaves.size() == 0
+          ? 0
+          : transformedSlaves[i].size()
+        );
 
-        if (slavePoints.size()+transformSlavePoints.size() > 0)
+        if (slavePoints.size()+nTransformSlavePoints > 0)
         {
             // Combine master with untransformed slave data
             forAll(slavePoints, j)
@@ -61,20 +66,27 @@ void Foam::globalMeshData::syncData
             }
 
             // Combine master with transformed slave data
-            forAll(transformSlavePoints, j)
+            if (nTransformSlavePoints)
             {
-                cop(elem, elems[transformSlavePoints[j]]);
+                const labelList& transformSlavePoints = transformedSlaves[i];
+                forAll(transformSlavePoints, j)
+                {
+                    cop(elem, elems[transformSlavePoints[j]]);
+                }
             }
-
 
             // Copy result back to slave slots
             forAll(slavePoints, j)
             {
                 elems[slavePoints[j]] = elem;
             }
-            forAll(transformSlavePoints, j)
+            if (nTransformSlavePoints)
             {
-                elems[transformSlavePoints[j]] = elem;
+                const labelList& transformSlavePoints = transformedSlaves[i];
+                forAll(transformSlavePoints, j)
+                {
+                    elems[transformSlavePoints[j]] = elem;
+                }
             }
         }
     }
@@ -109,9 +121,14 @@ void Foam::globalMeshData::syncData
         Type& elem = elems[i];
 
         const labelList& slavePoints = slaves[i];
-        const labelList& transformSlavePoints = transformedSlaves[i];
+        label nTransformSlavePoints =
+        (
+            transformedSlaves.size() == 0
+          ? 0
+          : transformedSlaves[i].size()
+        );
 
-        if (slavePoints.size()+transformSlavePoints.size() > 0)
+        if (slavePoints.size()+nTransformSlavePoints > 0)
         {
             // Combine master with untransformed slave data
             forAll(slavePoints, j)
@@ -120,20 +137,27 @@ void Foam::globalMeshData::syncData
             }
 
             // Combine master with transformed slave data
-            forAll(transformSlavePoints, j)
+            if (nTransformSlavePoints)
             {
-                cop(elem, elems[transformSlavePoints[j]]);
+                const labelList& transformSlavePoints = transformedSlaves[i];
+                forAll(transformSlavePoints, j)
+                {
+                    cop(elem, elems[transformSlavePoints[j]]);
+                }
             }
-
 
             // Copy result back to slave slots
             forAll(slavePoints, j)
             {
                 elems[slavePoints[j]] = elem;
             }
-            forAll(transformSlavePoints, j)
+            if (nTransformSlavePoints)
             {
-                elems[transformSlavePoints[j]] = elem;
+                const labelList& transformSlavePoints = transformedSlaves[i];
+                forAll(transformSlavePoints, j)
+                {
+                    elems[transformSlavePoints[j]] = elem;
+                }
             }
         }
     }

@@ -25,7 +25,7 @@ Application
     surfaceMeshInfo
 
 Description
-    Miscellaneous information about surface meshes
+    Miscellaneous information about surface meshes.
 
 Usage
     - surfaceMeshInfo surfaceFile [OPTION]
@@ -64,7 +64,6 @@ using namespace Foam;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -731,7 +731,8 @@ void Foam::fvMeshSubset::setCellSubset
                 boundaryPatchSizes[oldInternalPatchID],
                 patchStart,
                 nNewPatches,
-                fvMeshSubsetPtr_().boundaryMesh()
+                fvMeshSubsetPtr_().boundaryMesh(),
+                emptyPolyPatch::typeName
             );
 
             // The index for the first patch is -1 as it originates from
@@ -824,7 +825,7 @@ void Foam::fvMeshSubset::setLargeCellSubset
     // 3: face coupled and used by one cell only (so should become normal,
     //    non-coupled patch face)
     //
-    // Note that this is not really nessecary - but means we can size things
+    // Note that this is not really necessary - but means we can size things
     // correctly. Also makes handling coupled faces much easier.
 
     labelList nCellsUsingFace(oldFaces.size(), 0);
@@ -1296,7 +1297,8 @@ void Foam::fvMeshSubset::setLargeCellSubset
                 boundaryPatchSizes[oldInternalPatchID],
                 patchStart,
                 nNewPatches,
-                fvMeshSubsetPtr_().boundaryMesh()
+                fvMeshSubsetPtr_().boundaryMesh(),
+                emptyPolyPatch::typeName
             );
 
             //Pout<< "    oldInternalFaces : "

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,9 +33,12 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::meshSearch, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(meshSearch, 0);
 
-Foam::scalar Foam::meshSearch::tol_ = 1E-3;
+scalar meshSearch::tol_ = 1e-3;
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -567,7 +570,7 @@ const Foam::indexedOctree<Foam::treeDataFace>& Foam::meshSearch::boundaryTree()
 
             treeBoundBox& overallBb = overallBbPtr_();
             // Extend slightly and make 3D
-            overallBb = overallBb.extend(rndGen, 1E-4);
+            overallBb = overallBb.extend(rndGen, 1e-4);
             overallBb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
             overallBb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         }
@@ -620,7 +623,7 @@ const
 
             treeBoundBox& overallBb = overallBbPtr_();
             // Extend slightly and make 3D
-            overallBb = overallBb.extend(rndGen, 1E-4);
+            overallBb = overallBb.extend(rndGen, 1e-4);
             overallBb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
             overallBb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         }
@@ -799,7 +802,7 @@ Foam::label Foam::meshSearch::findCell
         }
         else
         {
-             return findCellLinear(location);
+            return findCellLinear(location);
         }
     }
     else

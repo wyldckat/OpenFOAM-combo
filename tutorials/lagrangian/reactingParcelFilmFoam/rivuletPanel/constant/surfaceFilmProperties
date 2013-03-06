@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -43,7 +43,6 @@ kinematicSingleLayerCoeffs
 
     contactAngleCoeffs
     {
-        deltaWet        1e-4;
         Ccf             1;
         contactAngleDistribution
         {
@@ -56,6 +55,8 @@ kinematicSingleLayerCoeffs
                 variance        100;
             }
         }
+
+        zeroForcePatches    ();
     }
 
     surfaceShearCoeffs

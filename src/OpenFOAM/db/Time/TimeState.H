@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -61,8 +61,14 @@ protected:
         bool deltaTchanged_;
 
         label outputTimeIndex_;
+        //- Is outputTime because of primary?
+        bool primaryOutputTime_;
+
         label secondaryOutputTimeIndex_;
-        bool  outputTime_;
+        //- Is outputTime because of secondary?
+        bool secondaryOutputTime_;
+
+        bool outputTime_;
 
 public:
 
@@ -112,7 +118,7 @@ public:
 
         // Check
 
-            //- Return true if this is an output time
+            //- Return true if this is an output time (primary or secondary)
             bool outputTime() const;
 };
 

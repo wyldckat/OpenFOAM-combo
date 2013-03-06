@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,9 +37,27 @@ inline Foam::quaternion::quaternion(const scalar w, const vector& v)
 inline Foam::quaternion::quaternion(const vector& d, const scalar theta)
 :
     w_(cos(0.5*theta)),
-    v_((sin(0.5*theta)/magSqr(d))*d)
+    v_((sin(0.5*theta)/mag(d))*d)
+{}
+
+inline Foam::quaternion::quaternion
+(
+    const vector& d,
+    const scalar cosTheta,
+    const bool normalized
+)
 {
-    normalize();
+    scalar cosHalfTheta2 = 0.5*(cosTheta + 1);
+    w_ = sqrt(cosHalfTheta2);
+
+    if (normalized)
+    {
+        v_ = sqrt(1 - cosHalfTheta2)*d;
+    }
+    else
+    {
+        v_ = (sqrt(1 - cosHalfTheta2)/mag(d))*d;
+    }
 }
 
 inline Foam::quaternion::quaternion(const scalar w)
@@ -66,6 +84,82 @@ inline Foam::quaternion::quaternion
     operator*=(quaternion(vector(0, 0, 1), angleZ));
 }
 
+inline Foam::quaternion::quaternion
+(
+    const tensor& rotationTensor
+)
+{
+    scalar trace =
+        rotationTensor.xx()
+      + rotationTensor.yy()
+      + rotationTensor.zz();
+
+    if (trace > 0)
+    {
+        scalar s = 0.5/Foam::sqrt(trace + 1.0);
+
+        w_ = 0.25/s;
+        v_[0] = (rotationTensor.zy() - rotationTensor.yz())*s;
+        v_[1] = (rotationTensor.xz() - rotationTensor.zx())*s;
+        v_[2] = (rotationTensor.yx() - rotationTensor.xy())*s;
+    }
+    else
+    {
+        if
+        (
+            rotationTensor.xx() > rotationTensor.yy()
+         && rotationTensor.xx() > rotationTensor.zz()
+        )
+        {
+            scalar s = 2.0*Foam::sqrt
+            (
+                1.0
+              + rotationTensor.xx()
+              - rotationTensor.yy()
+              - rotationTensor.zz()
+            );
+
+            w_ = (rotationTensor.zy() - rotationTensor.yz())/s;
+            v_[0] = 0.25*s;
+            v_[1] = (rotationTensor.xy() + rotationTensor.yx())/s;
+            v_[2] = (rotationTensor.xz() + rotationTensor.zx())/s;
+        }
+        else if
+        (
+            rotationTensor.yy() > rotationTensor.zz()
+        )
+        {
+            scalar s = 2.0*Foam::sqrt
+            (
+                1.0
+              + rotationTensor.yy()
+              - rotationTensor.xx()
+              - rotationTensor.zz()
+            );
+
+            w_ = (rotationTensor.xz() - rotationTensor.xz())/s;
+            v_[0] = (rotationTensor.xy() + rotationTensor.yx())/s;
+            v_[1] = 0.25*s;
+            v_[2] = (rotationTensor.yz() + rotationTensor.zy())/s;
+        }
+        else
+        {
+            scalar s = 2.0*Foam::sqrt
+            (
+                1.0
+              + rotationTensor.zz()
+              - rotationTensor.xx()
+              - rotationTensor.yy()
+            );
+
+            w_ = (rotationTensor.yx() - rotationTensor.xy())/s;
+            v_[0] = (rotationTensor.xz() + rotationTensor.zx())/s;
+            v_[1] = (rotationTensor.yz() + rotationTensor.zy())/s;
+            v_[2] = 0.25*s;
+        }
+    }
+}
+
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -90,6 +184,12 @@ inline Foam::scalar& Foam::quaternion::w()
 inline Foam::vector& Foam::quaternion::v()
 {
     return v_;
+}
+
+
+inline Foam::quaternion Foam::quaternion::normalized() const
+{
+    return *this/mag(*this);
 }
 
 

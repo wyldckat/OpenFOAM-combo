@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,12 +36,14 @@ Description
       + fvc::div(phi)
       ==
         coalParcels.Srho(rho)
-      + sources(rho)
+      + fvOptions(rho)
     );
 
-    sources.constrain(rhoEqn);
+    fvOptions.constrain(rhoEqn);
 
     rhoEqn.solve();
+
+    fvOptions.correct(rho);
 }
 
 // ************************************************************************* //

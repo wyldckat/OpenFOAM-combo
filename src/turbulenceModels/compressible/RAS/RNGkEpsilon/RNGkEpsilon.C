@@ -49,7 +49,7 @@ RNGkEpsilon::RNGkEpsilon
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -303,7 +303,7 @@ void RNGkEpsilon::correct()
     volScalarField S2((tgradU() && dev(twoSymm(tgradU()))));
     tgradU.clear();
 
-    volScalarField G("RASModel::G", mut_*S2);
+    volScalarField G(type() + ".G", mut_*S2);
 
     volScalarField eta(sqrt(mag(S2))*k_/epsilon_);
     volScalarField eta3(eta*sqr(eta));
@@ -321,7 +321,6 @@ void RNGkEpsilon::correct()
     (
         fvm::ddt(rho_, epsilon_)
       + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), epsilon_)
       - fvm::laplacian(DepsilonEff(), epsilon_)
       ==
         (C1_ - R)*G*epsilon_/k_
@@ -343,7 +342,6 @@ void RNGkEpsilon::correct()
     (
         fvm::ddt(rho_, k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(), k_)
       ==
         G - fvm::SuSp(2.0/3.0*rho_*divU, k_)

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -870,7 +870,7 @@ Foam::surfaceLocation Foam::triSurfaceTools::cutEdge
     {
         d[i] /= norm;
 
-        if (mag(d[i]) < 1E-6)
+        if (mag(d[i]) < 1e-6)
         {
             d[i] = 0.0;
         }
@@ -2096,7 +2096,8 @@ Foam::triSurface Foam::triSurfaceTools::mergePoints
         (
             newTriangles,
             surf.patches(),
-            newPoints
+            newPoints,
+            true                //reuse storage
         );
     }
     else

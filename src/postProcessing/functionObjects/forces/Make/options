@@ -1,7 +1,7 @@
 EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
-    -I$(LIB_SRC)/sampling/lnInclude \
+    -I$(LIB_SRC)/fileFormats/lnInclude \
     -I$(LIB_SRC)/transportModels \
     -I$(LIB_SRC)/turbulenceModels \
     -I$(LIB_SRC)/turbulenceModels/LES/LESdeltas/lnInclude \
@@ -11,10 +11,10 @@ LIB_LIBS = \
     -lincompressibleTransportModels \
     -lincompressibleRASModels \
     -lincompressibleLESModels \
-    -lbasicThermophysicalModels \
+    -lfluidThermophysicalModels \
     -lspecie \
     -lcompressibleRASModels \
     -lcompressibleLESModels \
     -lfiniteVolume \
     -lmeshTools \
-    -lsampling
+    -lfileFormats

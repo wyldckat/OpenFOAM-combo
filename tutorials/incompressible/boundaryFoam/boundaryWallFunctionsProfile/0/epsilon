@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -24,12 +24,12 @@ boundaryField
     lowerWall
     {
         type            epsilonWallFunction;
-        value           uniform 1e-08;
+        value           $internalField;
     }
     upperWall
     {
         type            epsilonWallFunction;
-        value           uniform 1e-08;
+        value           $internalField;
     }
     front
     {

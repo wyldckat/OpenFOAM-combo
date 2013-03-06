@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,6 +30,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "fvIOoptionList.H"
 #include "simpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
     #include "createFields.H"
+    #include "createFvOptions.H"
 
     simpleControl simple(mesh);
 
@@ -60,6 +62,8 @@ int main(int argc, char *argv[])
                 fvm::ddt(T)
               + fvm::div(phi, T)
               - fvm::laplacian(DT, T)
+             ==
+                fvOptions(T)
             );
         }
 

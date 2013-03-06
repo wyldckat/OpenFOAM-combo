@@ -3,12 +3,9 @@
         fvm::ddt(rho, U)
       + fvm::div(rhoPhi, U)
       + turbulence->divDevRhoReff(rho, U)
-     ==
-        sources(rho, U)
     );
 
     UEqn.relax();
-    sources.constrain(UEqn);
 
     if (pimple.momentumPredictor())
     {

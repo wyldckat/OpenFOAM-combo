@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,6 +49,24 @@ void Foam::primitiveEntry::append
          || (
                 !(w[0] == '$' && expandVariable(w, dict))
              && !(w[0] == '#' && expandFunction(w, dict, is))
+            )
+        )
+        {
+            newElmt(tokenIndex()++) = currToken;
+        }
+    }
+    else if (currToken.isVariable())
+    {
+        const string& w = currToken.stringToken();
+
+        if
+        (
+            disableFunctionEntries
+         || w.size() <= 3
+         || !(
+                w[0] == '$'
+             && w[1] == token::BEGIN_BLOCK
+             && expandVariable(w, dict)
             )
         )
         {
@@ -186,7 +204,7 @@ Foam::primitiveEntry::primitiveEntry
     entry(key),
     ITstream
     (
-        is.name() + "::" + key,
+        is.name() + '.' + key,
         tokenList(10),
         is.format(),
         is.version()
@@ -201,7 +219,7 @@ Foam::primitiveEntry::primitiveEntry(const keyType& key, Istream& is)
     entry(key),
     ITstream
     (
-        is.name() + "::" + key,
+        is.name() + '.' + key,
         tokenList(10),
         is.format(),
         is.version()
@@ -225,9 +243,9 @@ void Foam::primitiveEntry::write(Ostream& os, const bool contentsOnly) const
         const token& t = operator[](i);
         if (t.type() == token::VERBATIMSTRING)
         {
-            os  << token::HASH << token::BEGIN_BLOCK;
-            os.writeQuoted(t.stringToken(), false);
-            os  << token::HASH << token::END_BLOCK;
+            // Bypass token output operator to avoid losing verbatimness.
+            // Handle in Ostreams themselves
+            os.write(t);
         }
         else
         {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,6 +60,10 @@ class lduInterfaceField
         //- Reference to the coupled patch this field is defined for
         const lduInterface& interface_;
 
+        //- Update index used so that updateInterfaceMatrix is called only once
+        //  during the construction of the matrix
+        bool updatedMatrix_;
+
 
     // Private Member Functions
 
@@ -81,7 +85,8 @@ public:
         //- Construct given coupled patch
         lduInterfaceField(const lduInterface& patch)
         :
-            interface_(patch)
+            interface_(patch),
+            updatedMatrix_(false)
         {}
 
 
@@ -108,12 +113,29 @@ public:
 
         // Coupled interface matrix update
 
+            //- Whether matrix has been updated
+            bool updatedMatrix() const
+            {
+                return updatedMatrix_;
+            }
+
+            //- Whether matrix has been updated
+            bool& updatedMatrix()
+            {
+                return updatedMatrix_;
+            }
+
+            //- Is all data available
+            virtual bool ready() const
+            {
+                return true;
+            }
+
             //- Initialise neighbour matrix update
             virtual void initInterfaceMatrixUpdate
             (
-                const scalarField&,
                 scalarField&,
-                const lduMatrix&,
+                const scalarField&,
                 const scalarField&,
                 const direction,
                 const Pstream::commsTypes commsType
@@ -123,9 +145,8 @@ public:
             //- Update result field based on interface functionality
             virtual void updateInterfaceMatrix
             (
-                const scalarField&,
                 scalarField&,
-                const lduMatrix&,
+                const scalarField&,
                 const scalarField&,
                 const direction,
                 const Pstream::commsTypes commsType

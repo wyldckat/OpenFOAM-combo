@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,42 +28,20 @@ License
 #include "dictionary.H"
 #include "Time.H"
 #include "IOmanip.H"
-#include "ListListOps.H"
-#include "mergePoints.H"
 #include "volPointInterpolation.H"
+#include "PatchTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::sampledSurfaces, 0);
-bool Foam::sampledSurfaces::verbose_ = false;
-Foam::scalar Foam::sampledSurfaces::mergeTol_ = 1e-10;
-
 namespace Foam
 {
-    //- Used to offset faces in Pstream::combineOffset
-    template <>
-    class offsetOp<face>
-    {
-
-    public:
-
-        face operator()
-        (
-            const face& x,
-            const label offset
-        ) const
-        {
-            face result(x.size());
-
-            forAll(x, xI)
-            {
-                result[xI] = x[xI] + offset;
-            }
-            return result;
-        }
-    };
-
+defineTypeNameAndDebug(sampledSurfaces, 0);
 }
+
+
+bool Foam::sampledSurfaces::verbose_ = false;
+
+Foam::scalar Foam::sampledSurfaces::mergeTol_ = 1e-10;
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -128,11 +106,11 @@ Foam::sampledSurfaces::sampledSurfaces
 {
     if (Pstream::parRun())
     {
-        outputPath_ = mesh_.time().path()/".."/name_;
+        outputPath_ = mesh_.time().path()/".."/"postProcessing"/name_;
     }
     else
     {
-        outputPath_ = mesh_.time().path()/name_;
+        outputPath_ = mesh_.time().path()/"postProcessing"/name_;
     }
 
     read(dict);
@@ -180,6 +158,7 @@ void Foam::sampledSurfaces::write()
             {
                 Pout<< "Creating directory "
                     << outputPath_/mesh_.time().timeName() << nl << endl;
+
             }
 
             mkDir(outputPath_/mesh_.time().timeName());
@@ -276,7 +255,7 @@ void Foam::sampledSurfaces::updateMesh(const mapPolyMesh&)
 }
 
 
-void Foam::sampledSurfaces::movePoints(const pointField&)
+void Foam::sampledSurfaces::movePoints(const polyMesh&)
 {
     expire();
 }
@@ -373,80 +352,18 @@ bool Foam::sampledSurfaces::update()
             continue;
         }
 
-
-        // Collect points from all processors
-        List<pointField> gatheredPoints(Pstream::nProcs());
-        gatheredPoints[Pstream::myProcNo()] = s.points();
-        Pstream::gatherList(gatheredPoints);
-
-        if (Pstream::master())
-        {
-            mergeList_[surfI].points = ListListOps::combine<pointField>
-            (
-                gatheredPoints,
-                accessOp<pointField>()
-            );
-        }
-
-        // Collect faces from all processors and renumber using sizes of
-        // gathered points
-        List<faceList> gatheredFaces(Pstream::nProcs());
-        gatheredFaces[Pstream::myProcNo()] = s.faces();
-        Pstream::gatherList(gatheredFaces);
-
-        if (Pstream::master())
-        {
-            mergeList_[surfI].faces = static_cast<const faceList&>
-            (
-                ListListOps::combineOffset<faceList>
-                (
-                    gatheredFaces,
-                    ListListOps::subSizes
-                    (
-                        gatheredPoints,
-                        accessOp<pointField>()
-                    ),
-                    accessOp<faceList>(),
-                    offsetOp<face>()
-                )
-            );
-        }
-
-        pointField newPoints;
-        labelList oldToNew;
-
-        bool hasMerged = mergePoints
+        PatchTools::gatherAndMerge
         (
-            mergeList_[surfI].points,
             mergeDim,
-            false,                  // verbosity
-            oldToNew,
-            newPoints
+            primitivePatch
+            (
+                SubList<face>(s.faces(), s.faces().size()),
+                s.points()
+            ),
+            mergeList_[surfI].points,
+            mergeList_[surfI].faces,
+            mergeList_[surfI].pointsMap
         );
-
-        if (hasMerged)
-        {
-            // Store point mapping
-            mergeList_[surfI].pointsMap.transfer(oldToNew);
-
-            // Copy points
-            mergeList_[surfI].points.transfer(newPoints);
-
-            // Relabel faces
-            faceList& faces = mergeList_[surfI].faces;
-
-            forAll(faces, faceI)
-            {
-                inplaceRenumber(mergeList_[surfI].pointsMap, faces[faceI]);
-            }
-
-            if (Pstream::master() && debug)
-            {
-                Pout<< "For surface " << surfI << " merged from "
-                    << mergeList_[surfI].pointsMap.size() << " points down to "
-                    << mergeList_[surfI].points.size()    << " points" << endl;
-            }
-        }
     }
 
     return updated;

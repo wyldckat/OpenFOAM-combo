@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,8 @@ SourceFiles
 #define reactingOneDim_H
 
 #include "pyrolysisModel.H"
-
+#include "solidChemistryModel.H"
+#include "radiationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -78,25 +79,22 @@ protected:
         autoPtr<solidChemistryModel> solidChemistry_;
 
         //- Reference to solid thermo
-        basicSolidThermo& solidThermo_;
+        solidReactionThermo& solidThermo_;
+
+        //- Pointer to radiation model
+        autoPtr<radiation::radiationModel> radiation_;
 
 
         // Reference to solid thermo properties
 
-            //- Absorption coefficient [1/m]
-            const volScalarField& kappa_;
-
-            //- Thermal conductivity [W/m/K]
-            const volScalarField& K_;
-
             //- Density [kg/m3]
-            volScalarField& rho_;
+            volScalarField rho_;
 
             //- List of solid components
             PtrList<volScalarField>& Ys_;
 
-            // Non-const access to temperature
-            volScalarField& T_;
+            // Non-const access to enthalpy
+            volScalarField& h_;
 
 
         //- Name of the radiative flux in the primary region
@@ -127,16 +125,6 @@ protected:
             volScalarField chemistrySh_;
 
 
-        // Source term fields
-
-            //- Coupled region radiative heat flux [W/m2]
-            //  Requires user to input mapping info for coupled patches
-            volScalarField QrCoupled_;
-
-            //- In depth radiative heat flux [W/m2]
-            volScalarField Qr_;
-
-
         // Checks
 
             //- Cumulative lost mass of the condensed phase [kg]
@@ -165,9 +153,6 @@ protected:
 
         //- Update/move mesh based on change in mass
         void updateMesh(const scalarField& mass0);
-
-        //- Update radiative flux in pyrolysis region
-        void updateQr();
 
         //- Update enthalpy flux for pyrolysis gases
         void updatePhiGas();
@@ -220,8 +205,8 @@ public:
 
             //- Fields
 
-                //- Return density [kg/m3]
-                virtual const volScalarField& rho() const;
+                //- Return const density [Kg/m3]
+                const volScalarField& rho() const;
 
                 //- Return const temperature [K]
                 virtual const volScalarField& T() const;
@@ -230,10 +215,10 @@ public:
                 virtual const tmp<volScalarField> Cp() const;
 
                 //- Return the region absorptivity [1/m]
-                virtual const volScalarField& kappa() const;
+                virtual tmp<volScalarField> kappaRad() const;
 
                 //- Return the region thermal conductivity [W/m/k]
-                virtual const volScalarField& K() const;
+                virtual tmp<volScalarField> kappa() const;
 
                 //- Return the total gas mass flux to primary region [kg/m2/s]
                 virtual const surfaceScalarField& phiGas() const;
@@ -259,12 +244,6 @@ public:
 
             //- Mean diffusion number of the solid region
             virtual scalar solidRegionDiffNo() const;
-
-
-        // Source fields (read/write access)
-
-            //- In depth radiative heat flux
-            inline const volScalarField& Qr() const;
 
 
        // Evolution

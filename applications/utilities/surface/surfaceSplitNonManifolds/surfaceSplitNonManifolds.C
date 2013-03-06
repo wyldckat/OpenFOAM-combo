@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    surfaceSplitNonManifolds
+
 Description
     Takes multiply connected surface and tries to split surface at
     multiply connected edges by duplicating points. Introduces concept of
@@ -660,7 +663,6 @@ bool splitBorderEdges
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

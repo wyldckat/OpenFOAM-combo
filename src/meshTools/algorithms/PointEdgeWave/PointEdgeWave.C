@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,6 +42,30 @@ Foam::scalar Foam::PointEdgeWave<Type, TrackingData>::propagationTol_ = 0.01;
 
 template <class Type, class TrackingData>
 int Foam::PointEdgeWave<Type, TrackingData>::dummyTrackData_ = 12345;
+
+namespace Foam
+{
+    //- Reduction class. If x and y are not equal assign value.
+    template<class Type, class TrackingData>
+    class combineEqOp
+    {
+        TrackingData& td_;
+
+        public:
+            combineEqOp(TrackingData& td)
+            :
+                td_(td)
+            {}
+
+        void operator()(Type& x, const Type& y) const
+        {
+            if (!x.valid(td_) && y.valid(td_))
+            {
+                x = y;
+            }
+        }
+    };
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -115,6 +139,7 @@ void Foam::PointEdgeWave<Type, TrackingData>::transform
             "PointEdgeWave<Type, TrackingData>::transform"
             "(const tensorField&, List<Type>&)"
         )   << "Non-uniform transformation on patch " << patch.name()
+            << " of type " << patch.type()
             << " not supported for point fields"
             << abort(FatalError);
 
@@ -324,12 +349,12 @@ void Foam::PointEdgeWave<Type, TrackingData>::handleProcPatches()
         // Adapt for leaving domain
         leaveDomain(procPatch, thisPoints, patchInfo);
 
-        if (debug)
-        {
-            Pout<< "Processor patch " << patchI << ' ' << procPatch.name()
-                << " communicating with " << procPatch.neighbProcNo()
-                << "  Sending:" << patchInfo.size() << endl;
-        }
+        //if (debug)
+        //{
+        //    Pout<< "Processor patch " << patchI << ' ' << procPatch.name()
+        //        << " communicating with " << procPatch.neighbProcNo()
+        //        << "  Sending:" << patchInfo.size() << endl;
+        //}
 
         UOPstream toNeighbour(procPatch.neighbProcNo(), pBufs);
         toNeighbour << nbrPoints << patchInfo;
@@ -356,12 +381,12 @@ void Foam::PointEdgeWave<Type, TrackingData>::handleProcPatches()
             fromNeighbour >> patchPoints >> patchInfo;
         }
 
-        if (debug)
-        {
-            Pout<< "Processor patch " << patchI << ' ' << procPatch.name()
-                << " communicating with " << procPatch.neighbProcNo()
-                << "  Received:" << patchInfo.size() << endl;
-        }
+        //if (debug)
+        //{
+        //    Pout<< "Processor patch " << patchI << ' ' << procPatch.name()
+        //        << " communicating with " << procPatch.neighbProcNo()
+        //        << "  Received:" << patchInfo.size() << endl;
+        //}
 
         // Apply transform to received data for non-parallel planes
         if (!procPatch.parallel())
@@ -491,12 +516,12 @@ void Foam::PointEdgeWave<Type, TrackingData>::handleCyclicPatches()
                 transform(cycPatch, cycPatch.forwardT(), nbrInfo);
             }
 
-            if (debug)
-            {
-                Pout<< "Cyclic patch " << patchI << ' ' << patch.name()
-                    << "  Changed : " << nbrInfo.size()
-                    << endl;
-            }
+            //if (debug)
+            //{
+            //    Pout<< "Cyclic patch " << patchI << ' ' << patch.name()
+            //        << "  Changed : " << nbrInfo.size()
+            //        << endl;
+            //}
 
             // Adapt for entering domain
             enterDomain(cycPatch, thisPoints, nbrInfo);
@@ -519,6 +544,98 @@ void Foam::PointEdgeWave<Type, TrackingData>::handleCyclicPatches()
             }
         }
     }
+}
+
+
+// Guarantee collocated points have same information.
+// Return number of points changed.
+template <class Type, class TrackingData>
+Foam::label Foam::PointEdgeWave<Type, TrackingData>::handleCollocatedPoints()
+{
+    // Transfer onto coupled patch
+    const globalMeshData& gmd = mesh_.globalData();
+    const indirectPrimitivePatch& cpp = gmd.coupledPatch();
+    const labelList& meshPoints = cpp.meshPoints();
+
+    const mapDistribute& slavesMap = gmd.globalPointSlavesMap();
+    const labelListList& slaves = gmd.globalPointSlaves();
+
+    List<Type> elems(slavesMap.constructSize());
+    forAll(meshPoints, pointI)
+    {
+        elems[pointI] = allPointInfo_[meshPoints[pointI]];
+    }
+
+    // Pull slave data onto master (which might or might not have any
+    // initialised points). No need to update transformed slots.
+    slavesMap.distribute(elems, false);
+
+    // Combine master data with slave data
+    combineEqOp<Type, TrackingData> cop(td_);
+
+    forAll(slaves, pointI)
+    {
+        Type& elem = elems[pointI];
+
+        const labelList& slavePoints = slaves[pointI];
+
+        // Combine master with untransformed slave data
+        forAll(slavePoints, j)
+        {
+            cop(elem, elems[slavePoints[j]]);
+        }
+
+        // Copy result back to slave slots
+        forAll(slavePoints, j)
+        {
+            elems[slavePoints[j]] = elem;
+        }
+    }
+
+    // Push slave-slot data back to slaves
+    slavesMap.reverseDistribute(elems.size(), elems, false);
+
+    // Extract back onto mesh
+    forAll(meshPoints, pointI)
+    {
+        if (elems[pointI].valid(td_))
+        {
+            label meshPointI = meshPoints[pointI];
+
+            Type& elem = allPointInfo_[meshPointI];
+
+            bool wasValid = elem.valid(td_);
+
+            // Like updatePoint but bypass Type::updatePoint with its tolerance
+            // checking
+            //if (!elem.valid(td_) || !elem.equal(elems[pointI], td_))
+            if (!elem.equal(elems[pointI], td_))
+            {
+                nEvals_++;
+                elem = elems[pointI];
+
+                // See if element now valid
+                if (!wasValid && elem.valid(td_))
+                {
+                    --nUnvisitedPoints_;
+                }
+
+                // Update database of changed points
+                if (!changedPoint_[meshPointI])
+                {
+                    changedPoint_[meshPointI] = true;
+                    changedPoints_[nChangedPoints_++] = meshPointI;
+                }
+            }
+        }
+    }
+
+    // Sum nChangedPoints over all procs
+    label totNChanged = nChangedPoints_;
+
+    reduce(totNChanged, sumOp<label>());
+
+    return totNChanged;
 }
 
 
@@ -588,7 +705,8 @@ Foam::PointEdgeWave<Type, TrackingData>::PointEdgeWave
 
     if (debug)
     {
-        Pout<< "Seed points               : " << nChangedPoints_ << endl;
+        Info<< typeName << ": Seed points               : "
+            << returnReduce(nChangedPoints_, sumOp<label>()) << endl;
     }
 
     // Iterate until nothing changes
@@ -691,6 +809,9 @@ void Foam::PointEdgeWave<Type, TrackingData>::setPointInfo
             changedPoints_[nChangedPoints_++] = pointI;
         }
     }
+
+    // Sync
+    handleCollocatedPoints();
 }
 
 
@@ -756,10 +877,10 @@ Foam::label Foam::PointEdgeWave<Type, TrackingData>::edgeToPoint()
         handleProcPatches();
     }
 
-    if (debug)
-    {
-        Pout<< "Changed points            : " << nChangedPoints_ << endl;
-    }
+    //if (debug)
+    //{
+    //    Pout<< "Changed points            : " << nChangedPoints_ << endl;
+    //}
 
     // Sum nChangedPoints over all procs
     label totNChanged = nChangedPoints_;
@@ -824,10 +945,10 @@ Foam::label Foam::PointEdgeWave<Type, TrackingData>::pointToEdge()
     // Handled all changed points by now
     nChangedPoints_ = 0;
 
-    if (debug)
-    {
-        Pout<< "Changed edges             : " << nChangedEdges_ << endl;
-    }
+    //if (debug)
+    //{
+    //    Pout<< "Changed edges             : " << nChangedEdges_ << endl;
+    //}
 
     // Sum nChangedPoints over all procs
     label totNChanged = nChangedEdges_;
@@ -862,44 +983,63 @@ Foam::label Foam::PointEdgeWave<Type, TrackingData>::iterate
 
     while (iter < maxIter)
     {
-        if (debug)
+        while (iter < maxIter)
         {
-            Pout<< "Iteration " << iter << endl;
+            if (debug)
+            {
+                Info<< typeName << ": Iteration " << iter << endl;
+            }
+
+            label nEdges = pointToEdge();
+
+            if (debug)
+            {
+                Info<< typeName << ": Total changed edges       : "
+                    << nEdges << endl;
+            }
+
+            if (nEdges == 0)
+            {
+                break;
+            }
+
+            label nPoints = edgeToPoint();
+
+            if (debug)
+            {
+                Info<< typeName << ": Total changed points      : "
+                    << nPoints << nl
+                    << typeName << ": Total evaluations         : "
+                    << returnReduce(nEvals_, sumOp<label>()) << nl
+                    << typeName << ": Remaining unvisited points: "
+                    << returnReduce(nUnvisitedPoints_, sumOp<label>()) << nl
+                    << typeName << ": Remaining unvisited edges : "
+                    << returnReduce(nUnvisitedEdges_, sumOp<label>()) << nl
+                    << endl;
+            }
+
+            if (nPoints == 0)
+            {
+                break;
+            }
+
+            iter++;
         }
 
-        label nEdges = pointToEdge();
 
+        // Enforce collocated points are exactly equal. This might still mean
+        // non-collocated points are not equal though. WIP.
+        label nPoints = handleCollocatedPoints();
         if (debug)
         {
-            Pout<< "Total changed edges       : " << nEdges << endl;
-        }
-
-        if (nEdges == 0)
-        {
-            break;
-        }
-
-        label nPoints = edgeToPoint();
-
-        if (debug)
-        {
-            Pout<< "Total changed points      : " << nPoints << endl;
-
-            Pout<< "Total evaluations         : " << nEvals_ << endl;
-
-            Pout<< "Remaining unvisited points: " << nUnvisitedPoints_ << endl;
-
-            Pout<< "Remaining unvisited edges : " << nUnvisitedEdges_ << endl;
-
-            Pout<< endl;
+            Info<< typeName << ": Collocated point sync     : "
+                << nPoints << nl << endl;
         }
 
         if (nPoints == 0)
         {
             break;
         }
-
-        iter++;
     }
 
     return iter;

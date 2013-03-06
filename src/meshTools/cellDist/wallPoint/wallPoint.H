@@ -58,7 +58,7 @@ Istream& operator>>(Istream&, wallPoint&);
 
 
 /*---------------------------------------------------------------------------*\
-                         Class wallPoint Declaration
+                          Class wallPoint Declaration
 \*---------------------------------------------------------------------------*/
 
 class wallPoint
@@ -70,6 +70,7 @@ class wallPoint
 
         //- normal distance (squared) from cellcenter to origin
         scalar distSqr_;
+
 
     // Private Member Functions
 

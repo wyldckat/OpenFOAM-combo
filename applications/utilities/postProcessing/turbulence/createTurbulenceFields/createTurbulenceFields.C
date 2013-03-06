@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    CreateTurbulenceFields
+    createTurbulenceFields
 
 Description
     Creates a full set of turbulence fields.

@@ -83,23 +83,22 @@
         }
     }
 
-    scalar hs0 = 0.0;
+    scalar h0 = 0.0;
     forAll(Y, i)
     {
         Y[i] = Y0[i];
-        hs0 += Y0[i]*specieData[i].Hs(T0);
+        h0 += Y0[i]*specieData[i].Hs(p[i], T0);
     }
 
-    hs = dimensionedScalar("hs", dimEnergy/dimMass, hs0);
-
+    thermo.he() = dimensionedScalar("h", dimEnergy/dimMass, h0);
     thermo.correct();
 
     rho = thermo.rho();
     scalar rho0 = rho[0];
-    scalar u0 = hs0 - p0/rho0;
+    scalar u0 = h0 - p0/rho0;
     scalar R0 = p0/(rho0*T0);
     Rspecific[0] = R0;
- 
+
     scalar integratedHeat = 0.0;
 
     Info << constProp << " will be held constant." << nl
@@ -107,5 +106,3 @@
         << " T   = " << thermo.T()[0] << " [K] " << nl
         << " rho = " << rho[0] << " [kg/m3]" << nl
         << endl;
-
-

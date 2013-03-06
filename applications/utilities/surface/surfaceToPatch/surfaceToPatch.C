@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,6 +20,9 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    surfaceToPatch
 
 Description
     Reads surface and applies surface regioning to a mesh. Uses boundaryMesh
@@ -78,7 +81,8 @@ label addPatch(polyMesh& mesh, const word& patchName)
                 0,
                 mesh.nFaces(),
                 patchI,
-                patches
+                patches,
+                polyPatch::typeName
             );
 
         mesh.removeBoundary();
@@ -159,7 +163,6 @@ bool repatchFace
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

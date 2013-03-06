@@ -23,7 +23,7 @@ fvMesh mesh
         fvMesh::defaultRegion,
         runTime.timeName(),
         runTime,
-        IOobject::MUST_READ
+        IOobject::READ_IF_PRESENT
     ),
     xferMove<Field<vector> >(points),
     faces.xfer(),
@@ -33,6 +33,14 @@ fvMesh mesh
 
 List<polyPatch*> patches(1);
 
-patches[0] = new emptyPolyPatch("boundary", 6, 0, 0, mesh.boundaryMesh());
+patches[0] = new emptyPolyPatch
+(
+    "boundary",
+    6,
+    0,
+    0,
+    mesh.boundaryMesh(),
+    emptyPolyPatch::typeName
+);
 
 mesh.addFvPatches(patches);

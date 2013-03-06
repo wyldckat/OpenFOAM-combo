@@ -37,6 +37,7 @@ SourceFiles
 
 #include "DataEntry.H"
 #include "Tuple2.H"
+#include "dimensionSet.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,6 +53,8 @@ Ostream& operator<<
     Ostream&,
     const TableBase<Type>&
 );
+
+class interpolationWeights;
 
 /*---------------------------------------------------------------------------*\
                         Class TableBase Declaration
@@ -79,16 +82,37 @@ protected:
     // Protected data
 
         //- Table name
-        word name_;
+        const word name_;
 
         //- Enumeration for handling out-of-bound values
-        boundsHandling boundsHandling_;
+        const boundsHandling boundsHandling_;
+
+        //- Interpolation type
+        const word interpolationScheme_;
 
         //- Table data
         List<Tuple2<scalar, Type> > table_;
 
+        //- The dimension set
+        dimensionSet dimensions_;
+
+        //- Extracted values
+        mutable autoPtr<scalarField> tableSamplesPtr_;
+
+        //- Interpolator method
+        mutable autoPtr<interpolationWeights> interpolatorPtr_;
+
+        //- Cached indices and weights
+        mutable labelList currentIndices_;
+
+        mutable scalarField currentWeights_;
+
 
     // Protected Member Functions
+
+
+        //- Return (demand driven) interpolator
+        const interpolationWeights& interpolator() const;
 
         //- Disallow default bitwise assignment
         void operator=(const TableBase<Type>&);
@@ -101,7 +125,7 @@ public:
         //- Construct from dictionary - note table is not populated
         TableBase(const word& name, const dictionary& dict);
 
-        //- Copy constructor
+        //- Copy constructor. Note: steals interpolator, tableSamples
         TableBase(const TableBase<Type>& tbl);
 
 
@@ -137,6 +161,16 @@ public:
 
         //- Integrate between two (scalar) values
         virtual Type integrate(const scalar x1, const scalar x2) const;
+
+        //- Return dimensioned constant value
+        virtual dimensioned<Type> dimValue(const scalar x) const;
+
+        //- Integrate between two values and return dimensioned type
+        virtual dimensioned<Type> dimIntegrate
+        (
+            const scalar x1,
+            const scalar x2
+        ) const;
 
 
     // I/O

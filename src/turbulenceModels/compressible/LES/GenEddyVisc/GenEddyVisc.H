@@ -24,6 +24,9 @@ License
 Class
     Foam::compressible::LESModels::GenEddyVisc
 
+Group
+    grpCmpLESTurbulence
+
 Description
     General base class for all compressible models that can be implemented as
     an eddy viscosity, i.e. algebraic and one-equation models.
@@ -51,7 +54,7 @@ namespace LESModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class GenEddyVisc Declaration
+                         Class GenEddyVisc Declaration
 \*---------------------------------------------------------------------------*/
 
 class GenEddyVisc
@@ -92,7 +95,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );

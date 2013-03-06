@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    adiabaticFlameT
+    equilibriumFlameT
 
 Description
     Calculates the equilibrium flame temperature for a given fuel and
@@ -38,13 +38,16 @@ Description
 #include "OSspecific.H"
 #include "IOmanip.H"
 
-#include "specieThermo.H"
-#include "janafThermo.H"
+#include "specie.H"
 #include "perfectGas.H"
+#include "thermo.H"
+#include "janafThermo.H"
+#include "absoluteEnthalpy.H"
 
 using namespace Foam;
 
-typedef specieThermo<janafThermo<perfectGas> > thermo;
+typedef species::thermo<janafThermo<perfectGas<specie> >, absoluteEnthalpy>
+    thermo;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,38 +78,39 @@ int main(int argc, char *argv[])
     scalar m(readScalar(control.lookup("m")));
 
 
-    Info<< nl << "Reading Burcat data dictionary" << endl;
+    Info<< nl << "Reading thermodynamic data dictionary" << endl;
 
-    fileName BurcatCpDataFileName(findEtcFile("thermoData/BurcatCpData"));
+    fileName thermoDataFileName(findEtcFile("thermoData/thermoData"));
 
     // Construct control dictionary
-    IFstream BurcatCpDataFile(BurcatCpDataFileName);
+    IFstream thermoDataFile(thermoDataFileName);
 
-    // Check BurcatCpData stream is OK
-    if (!BurcatCpDataFile.good())
+    // Check thermoData stream is OK
+    if (!thermoDataFile.good())
     {
         FatalErrorIn(args.executable())
-            << "Cannot read file " << BurcatCpDataFileName
+            << "Cannot read file " << thermoDataFileName
             << abort(FatalError);
     }
 
-    dictionary thermoData(BurcatCpDataFile);
+    dictionary thermoData(thermoDataFile);
 
 
-    Info<< nl << "Reading Burcat data for relevant species" << nl << endl;
+    Info<< nl << "Reading thermodynamic data for relevant species"
+        << nl << endl;
 
     // Reactants
-    thermo FUEL(thermoData.lookup(fuelName));
-    thermo O2(thermoData.lookup("O2"));
-    thermo N2(thermoData.lookup("N2"));
+    thermo FUEL(thermoData.subDict(fuelName));
+    thermo O2(thermoData.subDict("O2"));
+    thermo N2(thermoData.subDict("N2"));
 
     // Products
-    thermo CO2(thermoData.lookup("CO2"));
-    thermo H2O(thermoData.lookup("H2O"));
+    thermo CO2(thermoData.subDict("CO2"));
+    thermo H2O(thermoData.subDict("H2O"));
 
     // Product fragments
-    thermo CO(thermoData.lookup("CO"));
-    thermo H2(thermoData.lookup("H2"));
+    thermo CO(thermoData.subDict("CO"));
+    thermo H2(thermoData.subDict("H2"));
 
 
     // Product dissociation reactions
@@ -210,7 +214,7 @@ int main(int argc, char *argv[])
                 co = co2*
                     min
                     (
-                        CO2BreakUp.Kn(equilibriumFlameTemperature, P, N)
+                        CO2BreakUp.Kn(P, equilibriumFlameTemperature, N)
                        /::sqrt(max(ores, 0.001)),
                         1.0
                     );
@@ -218,7 +222,7 @@ int main(int argc, char *argv[])
                 h2 = h2o*
                     min
                     (
-                        H2OBreakUp.Kn(equilibriumFlameTemperature, P, N)
+                        H2OBreakUp.Kn(P, equilibriumFlameTemperature, N)
                        /::sqrt(max(ores, 0.001)),
                         1.0
                     );
@@ -241,7 +245,7 @@ int main(int argc, char *argv[])
 
 
             scalar equilibriumFlameTemperatureNew =
-                products.TH(reactants.H(T0), adiabaticFlameTemperature);
+                products.THa(reactants.Ha(P, T0), P, adiabaticFlameTemperature);
 
             if (j==0)
             {

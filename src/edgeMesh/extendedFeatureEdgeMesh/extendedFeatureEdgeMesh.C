@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,19 +24,57 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "extendedFeatureEdgeMesh.H"
+#include "surfaceFeatures.H"
 #include "triSurface.H"
 #include "Random.H"
 #include "Time.H"
 #include "meshTools.H"
-#include "linePointRef.H"
 #include "ListListOps.H"
 #include "OFstream.H"
 #include "IFstream.H"
 #include "unitConversion.H"
+#include "DynamicField.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::extendedFeatureEdgeMesh, 0);
+namespace Foam
+{
+    defineTypeNameAndDebug(extendedFeatureEdgeMesh, 0);
+
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::extendedFeatureEdgeMesh::pointStatus,
+        4
+    >::names[] =
+    {
+        "convex",
+        "concave",
+        "mixed",
+        "nonFeature"
+    };
+
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::extendedFeatureEdgeMesh::edgeStatus,
+        6
+    >::names[] =
+    {
+        "external",
+        "internal",
+        "flat",
+        "open",
+        "multiple",
+        "none"
+    };
+}
+
+const Foam::NamedEnum<Foam::extendedFeatureEdgeMesh::pointStatus, 4>
+    Foam::extendedFeatureEdgeMesh::pointStatusNames_;
+
+const Foam::NamedEnum<Foam::extendedFeatureEdgeMesh::edgeStatus, 6>
+    Foam::extendedFeatureEdgeMesh::edgeStatusNames_;
 
 Foam::scalar Foam::extendedFeatureEdgeMesh::cosNormalAngleTol_ =
     Foam::cos(degToRad(0.1));
@@ -71,7 +109,9 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh(const IOobject& io)
     edgeDirections_(0),
     edgeNormals_(0),
     featurePointNormals_(0),
+    featurePointEdges_(0),
     regionEdges_(0),
+    pointTree_(),
     edgeTree_(),
     edgeTreesByType_()
 {
@@ -106,6 +146,7 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh(const IOobject& io)
             >> normals_
             >> edgeNormals_
             >> featurePointNormals_
+            >> featurePointEdges_
             >> regionEdges_;
 
         close();
@@ -158,7 +199,9 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
     edgeDirections_(fem.edgeDirections()),
     edgeNormals_(fem.edgeNormals()),
     featurePointNormals_(fem.featurePointNormals()),
+    featurePointEdges_(fem.featurePointEdges()),
     regionEdges_(fem.regionEdges()),
+    pointTree_(),
     edgeTree_(),
     edgeTreesByType_()
 {}
@@ -184,7 +227,9 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
     edgeDirections_(0),
     edgeNormals_(0),
     featurePointNormals_(0),
+    featurePointEdges_(0),
     regionEdges_(0),
+    pointTree_(),
     edgeTree_(),
     edgeTreesByType_()
 {}
@@ -221,327 +266,65 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
     edgeDirections_(0),
     edgeNormals_(0),
     featurePointNormals_(0),
+    featurePointEdges_(0),
     regionEdges_(0),
+    pointTree_(),
     edgeTree_(),
     edgeTreesByType_()
 {
     // Extract and reorder the data from surfaceFeatures
+    const triSurface& surf = sFeat.surface();
+    const labelList& featureEdges = sFeat.featureEdges();
+    const labelList& featurePoints = sFeat.featurePoints();
 
-    // References to the surfaceFeatures data
-    const triSurface& surf(sFeat.surface());
-    const pointField& sFeatLocalPts(surf.localPoints());
-    const edgeList& sFeatEds(surf.edges());
+    // Get a labelList of all the featureEdges that are region edges
+    const labelList regionFeatureEdges(identity(sFeat.nRegionEdges()));
 
-    // Filling the extendedFeatureEdgeMesh with the raw geometrical data.
-
-    label nFeatEds = sFeat.featureEdges().size();
-
-    DynamicList<point> tmpPts;
-    edgeList eds(nFeatEds);
-    DynamicList<vector> norms;
-    vectorField edgeDirections(nFeatEds);
-    labelListList edgeNormals(nFeatEds);
-    DynamicList<label> regionEdges;
-
-    // Mapping between old and new indices, there is entry in the map for each
-    // of sFeatLocalPts, -1 means that this point hasn't been used (yet), >= 0
-    // corresponds to the index
-    labelList pointMap(sFeatLocalPts.size(), -1);
-
-    // Noting when the normal of a face has been used so not to duplicate
-    labelList faceMap(surf.size(), -1);
-
-    // Collecting the status of edge for subsequent sorting
-    List<edgeStatus> edStatus(nFeatEds, NONE);
-
-    forAll(sFeat.featurePoints(), i)
-    {
-        label sFPI = sFeat.featurePoints()[i];
-
-        tmpPts.append(sFeatLocalPts[sFPI]);
-
-        pointMap[sFPI] = tmpPts.size() - 1;
-    }
-
-    // All feature points have been added
-    nonFeatureStart_ = tmpPts.size();
-
-    forAll(sFeat.featureEdges(), i)
-    {
-        label sFEI = sFeat.featureEdges()[i];
-
-        const edge& fE(sFeatEds[sFEI]);
-
-        // Check to see if the points have been already used
-        if (pointMap[fE.start()] == -1)
-        {
-             tmpPts.append(sFeatLocalPts[fE.start()]);
-
-             pointMap[fE.start()] = tmpPts.size() - 1;
-        }
-
-        eds[i].start() = pointMap[fE.start()];
-
-        if (pointMap[fE.end()] == -1)
-        {
-            tmpPts.append(sFeatLocalPts[fE.end()]);
-
-            pointMap[fE.end()] = tmpPts.size() - 1;
-        }
-
-        eds[i].end() = pointMap[fE.end()];
-
-        // Pick up the faces adjacent to the feature edge
-        const labelList& eFaces = surf.edgeFaces()[sFEI];
-
-        edgeNormals[i].setSize(eFaces.size());
-
-        forAll(eFaces, j)
-        {
-            label eFI = eFaces[j];
-
-            // Check to see if the points have been already used
-            if (faceMap[eFI] == -1)
-            {
-                norms.append(surf.faceNormals()[eFI]);
-
-                faceMap[eFI] = norms.size() - 1;
-            }
-
-            edgeNormals[i][j] = faceMap[eFI];
-        }
-
-        vector fC0tofC1(vector::zero);
-
-        if (eFaces.size() == 2)
-        {
-            fC0tofC1 =
-                surf[eFaces[1]].centre(surf.points())
-              - surf[eFaces[0]].centre(surf.points());
-        }
-
-        edStatus[i] = classifyEdge(norms, edgeNormals[i], fC0tofC1);
-
-        edgeDirections[i] = fE.vec(sFeatLocalPts);
-
-        if (i < sFeat.nRegionEdges())
-        {
-            regionEdges.append(i);
-        }
-    }
-
-    // Reorder the edges by classification
-
-    List<DynamicList<label> > allEds(nEdgeTypes);
-
-    DynamicList<label>& externalEds(allEds[0]);
-    DynamicList<label>& internalEds(allEds[1]);
-    DynamicList<label>& flatEds(allEds[2]);
-    DynamicList<label>& openEds(allEds[3]);
-    DynamicList<label>& multipleEds(allEds[4]);
-
-    forAll(eds, i)
-    {
-        edgeStatus eStat = edStatus[i];
-
-        if (eStat == EXTERNAL)
-        {
-            externalEds.append(i);
-        }
-        else if (eStat == INTERNAL)
-        {
-            internalEds.append(i);
-        }
-        else if (eStat == FLAT)
-        {
-            flatEds.append(i);
-        }
-        else if (eStat == OPEN)
-        {
-            openEds.append(i);
-        }
-        else if (eStat == MULTIPLE)
-        {
-            multipleEds.append(i);
-        }
-        else if (eStat == NONE)
-        {
-            FatalErrorIn
-            (
-                "Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh"
-                "("
-                "    const surfaceFeatures& sFeat,"
-                "    const objectRegistry& obr,"
-                "    const fileName& sFeatFileName"
-                ")"
-            )
-                << nl << "classifyEdge returned NONE on edge "
-                << eds[i]
-                << ". There is a problem with definition of this edge."
-                << nl << abort(FatalError);
-        }
-    }
-
-    internalStart_ = externalEds.size();
-    flatStart_ = internalStart_ + internalEds.size();
-    openStart_ = flatStart_ + flatEds.size();
-    multipleStart_ = openStart_ + openEds.size();
-
-    labelList edMap
+    sortPointsAndEdges
     (
-        ListListOps::combine<labelList>
-        (
-            allEds,
-            accessOp<labelList>()
-        )
+        surf,
+        featureEdges,
+        regionFeatureEdges,
+        featurePoints
     );
+}
 
-    edMap = invert(edMap.size(), edMap);
 
-    inplaceReorder(edMap, eds);
-    inplaceReorder(edMap, edStatus);
-    inplaceReorder(edMap, edgeDirections);
-    inplaceReorder(edMap, edgeNormals);
-    inplaceRenumber(edMap, regionEdges);
-
-    pointField pts(tmpPts);
-
-    // Initialise the edgeMesh
-    edgeMesh::operator=(edgeMesh(pts, eds));
-
-    // Initialise sorted edge related data
-    edgeDirections_ = edgeDirections/mag(edgeDirections);
-    edgeNormals_ = edgeNormals;
-    regionEdges_ = regionEdges;
-
-    // Normals are all now found and indirectly addressed, can also be stored
-    normals_ = vectorField(norms);
-
-    // Reorder the feature points by classification
-
-    List<DynamicList<label> > allPts(3);
-
-    DynamicList<label>& convexPts(allPts[0]);
-    DynamicList<label>& concavePts(allPts[1]);
-    DynamicList<label>& mixedPts(allPts[2]);
-
-    for (label i = 0; i < nonFeatureStart_; i++)
-    {
-        pointStatus ptStatus = classifyFeaturePoint(i);
-
-        if (ptStatus == CONVEX)
-        {
-            convexPts.append(i);
-        }
-        else if (ptStatus == CONCAVE)
-        {
-            concavePts.append(i);
-        }
-        else if (ptStatus == MIXED)
-        {
-            mixedPts.append(i);
-        }
-        else if (ptStatus == NONFEATURE)
-        {
-            FatalErrorIn
-            (
-                "Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh"
-                "("
-                "    const surfaceFeatures& sFeat,"
-                "    const objectRegistry& obr,"
-                "    const fileName& sFeatFileName"
-                ")"
-            )
-                << nl << "classifyFeaturePoint returned NONFEATURE on point at "
-                << points()[i]
-                << ". There is a problem with definition of this feature point."
-                << nl << abort(FatalError);
-        }
-    }
-
-    concaveStart_ = convexPts.size();
-    mixedStart_ = concaveStart_ + concavePts.size();
-
-    labelList ftPtMap
+Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
+(
+    const IOobject& io,
+    const PrimitivePatch<face, List, pointField, point>& surf,
+    const labelList& featureEdges,
+    const labelList& regionFeatureEdges,
+    const labelList& featurePoints
+)
+:
+    regIOobject(io),
+    edgeMesh(pointField(0), edgeList(0)),
+    concaveStart_(-1),
+    mixedStart_(-1),
+    nonFeatureStart_(-1),
+    internalStart_(-1),
+    flatStart_(-1),
+    openStart_(-1),
+    multipleStart_(-1),
+    normals_(0),
+    edgeDirections_(0),
+    edgeNormals_(0),
+    featurePointNormals_(0),
+    featurePointEdges_(0),
+    regionEdges_(0),
+    pointTree_(),
+    edgeTree_(),
+    edgeTreesByType_()
+{
+    sortPointsAndEdges
     (
-        ListListOps::combine<labelList>
-        (
-            allPts,
-            accessOp<labelList>()
-        )
+        surf,
+        featureEdges,
+        regionFeatureEdges,
+        featurePoints
     );
-
-    ftPtMap = invert(ftPtMap.size(), ftPtMap);
-
-    // Creating the ptMap from the ftPtMap with identity values up to the size
-    // of pts to create an oldToNew map for inplaceReorder
-
-    labelList ptMap(identity(pts.size()));
-
-    forAll(ftPtMap, i)
-    {
-        ptMap[i] = ftPtMap[i];
-    }
-
-    inplaceReorder(ptMap, pts);
-
-    forAll(eds, i)
-    {
-        inplaceRenumber(ptMap, eds[i]);
-    }
-
-    // Reinitialise the edgeMesh with sorted feature points and
-    // renumbered edges
-    edgeMesh::operator=(edgeMesh(pts, eds));
-
-    // Generate the featurePointNormals
-
-    labelListList featurePointNormals(nonFeatureStart_);
-
-    for (label i = 0; i < nonFeatureStart_; i++)
-    {
-        DynamicList<label> tmpFtPtNorms;
-
-        const labelList& ptEds = pointEdges()[i];
-
-        forAll(ptEds, j)
-        {
-            const labelList& ptEdNorms(edgeNormals[ptEds[j]]);
-
-            forAll(ptEdNorms, k)
-            {
-                if (findIndex(tmpFtPtNorms, ptEdNorms[k]) == -1)
-                {
-                    bool addNormal = true;
-
-                    // Check that the normal direction is unique at this feature
-                    forAll(tmpFtPtNorms, q)
-                    {
-                        if
-                        (
-                            (normals_[ptEdNorms[k]] & normals_[tmpFtPtNorms[q]])
-                          > cosNormalAngleTol_
-                        )
-                        {
-                            // Parallel to an existing normal, do not add
-                            addNormal = false;
-
-                            break;
-                        }
-                    }
-
-                    if (addNormal)
-                    {
-                        tmpFtPtNorms.append(ptEdNorms[k]);
-                    }
-                }
-            }
-        }
-
-        featurePointNormals[i] = tmpFtPtNorms;
-    }
-
-    featurePointNormals_ = featurePointNormals;
 }
 
 
@@ -561,6 +344,7 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
     const vectorField& edgeDirections,
     const labelListList& edgeNormals,
     const labelListList& featurePointNormals,
+    const labelListList& featurePointEdges,
     const labelList& regionEdges
 )
 :
@@ -577,7 +361,9 @@ Foam::extendedFeatureEdgeMesh::extendedFeatureEdgeMesh
     edgeDirections_(edgeDirections),
     edgeNormals_(edgeNormals),
     featurePointNormals_(featurePointNormals),
+    featurePointEdges_(featurePointEdges),
     regionEdges_(regionEdges),
+    pointTree_(),
     edgeTree_(),
     edgeTreesByType_()
 {}
@@ -684,6 +470,21 @@ Foam::extendedFeatureEdgeMesh::classifyEdge
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
+void Foam::extendedFeatureEdgeMesh::nearestFeaturePoint
+(
+    const point& sample,
+    scalar searchDistSqr,
+    pointIndexHit& info
+) const
+{
+    info = pointTree().findNearest
+    (
+        sample,
+        searchDistSqr
+    );
+}
+
+
 void Foam::extendedFeatureEdgeMesh::nearestFeatureEdge
 (
     const point& sample,
@@ -756,6 +557,133 @@ void Foam::extendedFeatureEdgeMesh::nearestFeatureEdgeByType
 }
 
 
+void Foam::extendedFeatureEdgeMesh::allNearestFeaturePoints
+(
+    const point& sample,
+    scalar searchRadiusSqr,
+    List<pointIndexHit>& info
+) const
+{
+    // Pick up all the feature points that intersect the search sphere
+    labelList elems = pointTree().findSphere
+    (
+        sample,
+        searchRadiusSqr
+    );
+
+    DynamicList<pointIndexHit> dynPointHit(elems.size());
+
+    forAll(elems, elemI)
+    {
+        label index = elems[elemI];
+        label ptI = pointTree().shapes().pointLabels()[index];
+        const point& pt = points()[ptI];
+
+        pointIndexHit nearHit(true, pt, index);
+
+        dynPointHit.append(nearHit);
+    }
+
+    info.transfer(dynPointHit);
+}
+
+
+void Foam::extendedFeatureEdgeMesh::allNearestFeatureEdges
+(
+    const point& sample,
+    const scalar searchRadiusSqr,
+    List<pointIndexHit>& info
+) const
+{
+    const PtrList<indexedOctree<treeDataEdge> >& edgeTrees = edgeTreesByType();
+
+    info.setSize(edgeTrees.size());
+
+    labelList sliceStarts(edgeTrees.size());
+
+    sliceStarts[0] = externalStart_;
+    sliceStarts[1] = internalStart_;
+    sliceStarts[2] = flatStart_;
+    sliceStarts[3] = openStart_;
+    sliceStarts[4] = multipleStart_;
+
+    DynamicList<pointIndexHit> dynEdgeHit(edgeTrees.size()*3);
+
+    // Loop over all the feature edge types
+    forAll(edgeTrees, i)
+    {
+        // Pick up all the edges that intersect the search sphere
+        labelList elems = edgeTrees[i].findSphere
+        (
+            sample,
+            searchRadiusSqr
+        );
+
+        forAll(elems, elemI)
+        {
+            label index = elems[elemI];
+            label edgeI = edgeTrees[i].shapes().edgeLabels()[index];
+            const edge& e = edges()[edgeI];
+
+            pointHit hitPoint = e.line(points()).nearestDist(sample);
+
+            label hitIndex = index + sliceStarts[i];
+
+            pointIndexHit nearHit
+            (
+                hitPoint.hit(),
+                hitPoint.rawPoint(),
+                hitIndex
+            );
+
+            dynEdgeHit.append(nearHit);
+        }
+    }
+
+    info.transfer(dynEdgeHit);
+}
+
+
+const Foam::indexedOctree<Foam::treeDataPoint>&
+Foam::extendedFeatureEdgeMesh::pointTree() const
+{
+    if (pointTree_.empty())
+    {
+        Random rndGen(17301893);
+
+        // Slightly extended bb. Slightly off-centred just so on symmetric
+        // geometry there are less face/edge aligned items.
+        treeBoundBox bb
+        (
+            treeBoundBox(points()).extend(rndGen, 1e-4)
+        );
+
+        bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
+        bb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
+
+        const labelList featurePointLabels = identity(nonFeatureStart_);
+
+        pointTree_.reset
+        (
+            new indexedOctree<treeDataPoint>
+            (
+                treeDataPoint
+                (
+                    points(),
+                    featurePointLabels
+                ),
+                bb,     // bb
+                8,      // maxLevel
+                10,     // leafsize
+                3.0     // duplicity
+            )
+        );
+    }
+
+    return pointTree_();
+}
+
+
 const Foam::indexedOctree<Foam::treeDataEdge>&
 Foam::extendedFeatureEdgeMesh::edgeTree() const
 {
@@ -767,7 +695,7 @@ Foam::extendedFeatureEdgeMesh::edgeTree() const
         // geometry there are less face/edge aligned items.
         treeBoundBox bb
         (
-            treeBoundBox(points()).extend(rndGen, 1E-4)
+            treeBoundBox(points()).extend(rndGen, 1e-4)
         );
 
         bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
@@ -811,7 +739,7 @@ Foam::extendedFeatureEdgeMesh::edgeTreesByType() const
         // geometry there are less face/edge aligned items.
         treeBoundBox bb
         (
-            treeBoundBox(points()).extend(rndGen, 1E-4)
+            treeBoundBox(points()).extend(rndGen, 1e-4)
         );
 
         bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
@@ -863,12 +791,368 @@ Foam::extendedFeatureEdgeMesh::edgeTreesByType() const
 }
 
 
+void Foam::extendedFeatureEdgeMesh::add(const extendedFeatureEdgeMesh& fem)
+{
+    // Points
+    // ~~~~~~
+
+    // From current points into combined points
+    labelList reversePointMap(points().size());
+    labelList reverseFemPointMap(fem.points().size());
+
+    label newPointI = 0;
+    for (label i = 0; i < concaveStart(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+    for (label i = 0; i < fem.concaveStart(); i++)
+    {
+        reverseFemPointMap[i] = newPointI++;
+    }
+
+    // Concave
+    label newConcaveStart = newPointI;
+    for (label i = concaveStart(); i < mixedStart(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+    for (label i = fem.concaveStart(); i < fem.mixedStart(); i++)
+    {
+        reverseFemPointMap[i] = newPointI++;
+    }
+
+    // Mixed
+    label newMixedStart = newPointI;
+    for (label i = mixedStart(); i < nonFeatureStart(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+    for (label i = fem.mixedStart(); i < fem.nonFeatureStart(); i++)
+    {
+        reverseFemPointMap[i] = newPointI++;
+    }
+
+    // Non-feature
+    label newNonFeatureStart = newPointI;
+    for (label i = nonFeatureStart(); i < points().size(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+    for (label i = fem.nonFeatureStart(); i < fem.points().size(); i++)
+    {
+        reverseFemPointMap[i] = newPointI++;
+    }
+
+    pointField newPoints(newPointI);
+    newPoints.rmap(points(), reversePointMap);
+    newPoints.rmap(fem.points(), reverseFemPointMap);
+
+
+    // Edges
+    // ~~~~~
+
+    // From current edges into combined edges
+    labelList reverseEdgeMap(edges().size());
+    labelList reverseFemEdgeMap(fem.edges().size());
+
+    // External
+    label newEdgeI = 0;
+    for (label i = 0; i < internalStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    for (label i = 0; i < fem.internalStart(); i++)
+    {
+        reverseFemEdgeMap[i] = newEdgeI++;
+    }
+
+    // Internal
+    label newInternalStart = newEdgeI;
+    for (label i = internalStart(); i < flatStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    for (label i = fem.internalStart(); i < fem.flatStart(); i++)
+    {
+        reverseFemEdgeMap[i] = newEdgeI++;
+    }
+
+    // Flat
+    label newFlatStart = newEdgeI;
+    for (label i = flatStart(); i < openStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    for (label i = fem.flatStart(); i < fem.openStart(); i++)
+    {
+        reverseFemEdgeMap[i] = newEdgeI++;
+    }
+
+    // Open
+    label newOpenStart = newEdgeI;
+    for (label i = openStart(); i < multipleStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    for (label i = fem.openStart(); i < fem.multipleStart(); i++)
+    {
+        reverseFemEdgeMap[i] = newEdgeI++;
+    }
+
+    // Multiple
+    label newMultipleStart = newEdgeI;
+    for (label i = multipleStart(); i < edges().size(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    for (label i = fem.multipleStart(); i < fem.edges().size(); i++)
+    {
+        reverseFemEdgeMap[i] = newEdgeI++;
+    }
+
+    edgeList newEdges(newEdgeI);
+    forAll(edges(), i)
+    {
+        const edge& e = edges()[i];
+        newEdges[reverseEdgeMap[i]] = edge
+        (
+            reversePointMap[e[0]],
+            reversePointMap[e[1]]
+        );
+    }
+    forAll(fem.edges(), i)
+    {
+        const edge& e = fem.edges()[i];
+        newEdges[reverseFemEdgeMap[i]] = edge
+        (
+            reverseFemPointMap[e[0]],
+            reverseFemPointMap[e[1]]
+        );
+    }
+
+    pointField newEdgeDirections(newEdgeI);
+    newEdgeDirections.rmap(edgeDirections(), reverseEdgeMap);
+    newEdgeDirections.rmap(fem.edgeDirections(), reverseFemEdgeMap);
+
+
+
+
+    // Normals
+    // ~~~~~~~
+
+    // Combine normals
+    DynamicField<point> newNormals(normals().size()+fem.normals().size());
+    newNormals.append(normals());
+    newNormals.append(fem.normals());
+
+
+    // Combine and re-index into newNormals
+    labelListList newEdgeNormals(edgeNormals().size()+fem.edgeNormals().size());
+    UIndirectList<labelList>(newEdgeNormals, reverseEdgeMap) =
+        edgeNormals();
+    UIndirectList<labelList>(newEdgeNormals, reverseFemEdgeMap) =
+        fem.edgeNormals();
+    forAll(reverseFemEdgeMap, i)
+    {
+        label mapI = reverseFemEdgeMap[i];
+        labelList& en = newEdgeNormals[mapI];
+        forAll(en, j)
+        {
+            en[j] += normals().size();
+        }
+    }
+
+
+    // Combine and re-index into newFeaturePointNormals
+    labelListList newFeaturePointNormals
+    (
+       featurePointNormals().size()
+     + fem.featurePointNormals().size()
+    );
+
+    // Note: featurePointNormals only go up to nonFeatureStart
+    UIndirectList<labelList>
+    (
+        newFeaturePointNormals,
+        SubList<label>(reversePointMap, featurePointNormals().size())
+    ) = featurePointNormals();
+    UIndirectList<labelList>
+    (
+        newFeaturePointNormals,
+        SubList<label>(reverseFemPointMap, fem.featurePointNormals().size())
+    ) = fem.featurePointNormals();
+    forAll(fem.featurePointNormals(), i)
+    {
+        label mapI = reverseFemPointMap[i];
+        labelList& fn = newFeaturePointNormals[mapI];
+        forAll(fn, j)
+        {
+            fn[j] += normals().size();
+        }
+    }
+
+
+    // Combine regionEdges
+    DynamicList<label> newRegionEdges
+    (
+        regionEdges().size()
+      + fem.regionEdges().size()
+    );
+    forAll(regionEdges(), i)
+    {
+        newRegionEdges.append(reverseEdgeMap[regionEdges()[i]]);
+    }
+    forAll(fem.regionEdges(), i)
+    {
+        newRegionEdges.append(reverseFemEdgeMap[fem.regionEdges()[i]]);
+    }
+
+
+    // Assign
+    // ~~~~~~
+
+    // Transfer
+    concaveStart_ = newConcaveStart;
+    mixedStart_ = newMixedStart;
+    nonFeatureStart_ = newNonFeatureStart;
+
+    // Reset points and edges
+    reset(xferMove(newPoints), newEdges.xfer());
+
+    // Transfer
+    internalStart_ = newInternalStart;
+    flatStart_ = newFlatStart;
+    openStart_ = newOpenStart;
+    multipleStart_ = newMultipleStart;
+
+    edgeDirections_.transfer(newEdgeDirections);
+
+    normals_.transfer(newNormals);
+    edgeNormals_.transfer(newEdgeNormals);
+    featurePointNormals_.transfer(newFeaturePointNormals);
+
+    regionEdges_.transfer(newRegionEdges);
+
+    pointTree_.clear();
+    edgeTree_.clear();
+    edgeTreesByType_.clear();
+}
+
+
+void Foam::extendedFeatureEdgeMesh::flipNormals()
+{
+    // Points
+    // ~~~~~~
+
+    // From current points into new points
+    labelList reversePointMap(identity(points().size()));
+
+    // Flip convex and concave points
+
+    label newPointI = 0;
+    // Concave points become convex
+    for (label i = concaveStart(); i < mixedStart(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+    // Convex points become concave
+    label newConcaveStart = newPointI;
+    for (label i = 0; i < concaveStart(); i++)
+    {
+        reversePointMap[i] = newPointI++;
+    }
+
+
+    // Edges
+    // ~~~~~~
+
+    // From current edges into new edges
+    labelList reverseEdgeMap(identity(edges().size()));
+
+    // Flip external and internal edges
+
+    label newEdgeI = 0;
+    // Internal become external
+    for (label i = internalStart(); i < flatStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+    // External become internal
+    label newInternalStart = newEdgeI;
+    for (label i = 0; i < internalStart(); i++)
+    {
+        reverseEdgeMap[i] = newEdgeI++;
+    }
+
+
+    pointField newPoints(points().size());
+    newPoints.rmap(points(), reversePointMap);
+
+    edgeList newEdges(edges().size());
+    forAll(edges(), i)
+    {
+        const edge& e = edges()[i];
+        newEdges[reverseEdgeMap[i]] = edge
+        (
+            reversePointMap[e[0]],
+            reversePointMap[e[1]]
+        );
+    }
+
+
+    // Normals are flipped
+    // ~~~~~~~~~~~~~~~~~~~
+
+    pointField newEdgeDirections(edges().size());
+    newEdgeDirections.rmap(-1.0*edgeDirections(), reverseEdgeMap);
+
+    pointField newNormals(-1.0*normals());
+
+    labelListList newEdgeNormals(edgeNormals().size());
+    UIndirectList<labelList>(newEdgeNormals, reverseEdgeMap) = edgeNormals();
+
+    labelListList newFeaturePointNormals(featurePointNormals().size());
+
+    // Note: featurePointNormals only go up to nonFeatureStart
+    UIndirectList<labelList>
+    (
+        newFeaturePointNormals,
+        SubList<label>(reversePointMap, featurePointNormals().size())
+    ) = featurePointNormals();
+
+    labelList newRegionEdges(regionEdges().size());
+    forAll(regionEdges(), i)
+    {
+        newRegionEdges[i] = reverseEdgeMap[regionEdges()[i]];
+    }
+
+    // Transfer
+    concaveStart_ = newConcaveStart;
+
+    // Reset points and edges
+    reset(xferMove(newPoints), newEdges.xfer());
+
+    // Transfer
+    internalStart_ = newInternalStart;
+
+    edgeDirections_.transfer(newEdgeDirections);
+    normals_.transfer(newNormals);
+    edgeNormals_.transfer(newEdgeNormals);
+    featurePointNormals_.transfer(newFeaturePointNormals);
+    regionEdges_.transfer(newRegionEdges);
+
+    pointTree_.clear();
+    edgeTree_.clear();
+    edgeTreesByType_.clear();
+}
+//XXXXX
+
 void Foam::extendedFeatureEdgeMesh::writeObj
 (
     const fileName& prefix
 ) const
 {
-    Pout<< nl << "Writing extendedFeatureEdgeMesh components to " << prefix
+    Info<< nl << "Writing extendedFeatureEdgeMesh components to " << prefix
         << endl;
 
     label verti = 0;
@@ -876,7 +1160,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     edgeMesh::write(prefix + "_edgeMesh.obj");
 
     OFstream convexFtPtStr(prefix + "_convexFeaturePts.obj");
-    Pout<< "Writing convex feature points to " << convexFtPtStr.name() << endl;
+    Info<< "Writing convex feature points to " << convexFtPtStr.name() << endl;
 
     for(label i = 0; i < concaveStart_; i++)
     {
@@ -884,7 +1168,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream concaveFtPtStr(prefix + "_concaveFeaturePts.obj");
-    Pout<< "Writing concave feature points to "
+    Info<< "Writing concave feature points to "
         << concaveFtPtStr.name() << endl;
 
     for(label i = concaveStart_; i < mixedStart_; i++)
@@ -893,7 +1177,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream mixedFtPtStr(prefix + "_mixedFeaturePts.obj");
-    Pout<< "Writing mixed feature points to " << mixedFtPtStr.name() << endl;
+    Info<< "Writing mixed feature points to " << mixedFtPtStr.name() << endl;
 
     for(label i = mixedStart_; i < nonFeatureStart_; i++)
     {
@@ -901,7 +1185,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream mixedFtPtStructureStr(prefix + "_mixedFeaturePtsStructure.obj");
-    Pout<< "Writing mixed feature point structure to "
+    Info<< "Writing mixed feature point structure to "
         << mixedFtPtStructureStr.name() << endl;
 
     verti = 0;
@@ -920,7 +1204,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream externalStr(prefix + "_externalEdges.obj");
-    Pout<< "Writing external edges to " << externalStr.name() << endl;
+    Info<< "Writing external edges to " << externalStr.name() << endl;
 
     verti = 0;
     for (label i = externalStart_; i < internalStart_; i++)
@@ -933,7 +1217,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream internalStr(prefix + "_internalEdges.obj");
-    Pout<< "Writing internal edges to " << internalStr.name() << endl;
+    Info<< "Writing internal edges to " << internalStr.name() << endl;
 
     verti = 0;
     for (label i = internalStart_; i < flatStart_; i++)
@@ -946,7 +1230,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream flatStr(prefix + "_flatEdges.obj");
-    Pout<< "Writing flat edges to " << flatStr.name() << endl;
+    Info<< "Writing flat edges to " << flatStr.name() << endl;
 
     verti = 0;
     for (label i = flatStart_; i < openStart_; i++)
@@ -959,7 +1243,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream openStr(prefix + "_openEdges.obj");
-    Pout<< "Writing open edges to " << openStr.name() << endl;
+    Info<< "Writing open edges to " << openStr.name() << endl;
 
     verti = 0;
     for (label i = openStart_; i < multipleStart_; i++)
@@ -972,7 +1256,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream multipleStr(prefix + "_multipleEdges.obj");
-    Pout<< "Writing multiple edges to " << multipleStr.name() << endl;
+    Info<< "Writing multiple edges to " << multipleStr.name() << endl;
 
     verti = 0;
     for (label i = multipleStart_; i < edges().size(); i++)
@@ -985,7 +1269,7 @@ void Foam::extendedFeatureEdgeMesh::writeObj
     }
 
     OFstream regionStr(prefix + "_regionEdges.obj");
-    Pout<< "Writing region edges to " << regionStr.name() << endl;
+    Info<< "Writing region edges to " << regionStr.name() << endl;
 
     verti = 0;
     forAll(regionEdges_, i)
@@ -1001,23 +1285,28 @@ void Foam::extendedFeatureEdgeMesh::writeObj
 
 bool Foam::extendedFeatureEdgeMesh::writeData(Ostream& os) const
 {
-    os  << "// points, edges, concaveStart, mixedStart, nonFeatureStart, " << nl
-        << "// internalStart, flatStart, openStart, multipleStart, " << nl
-        << "// normals, edgeNormals, featurePointNormals, regionEdges" << nl
-        << endl;
-
-    os  << points() << nl
+    os  << "// points" << nl
+        << points() << nl
+        << "// edges" << nl
         << edges() << nl
+        << "// concaveStart mixedStart nonFeatureStart" << nl
         << concaveStart_ << token::SPACE
         << mixedStart_ << token::SPACE
-        << nonFeatureStart_ << token::SPACE
+        << nonFeatureStart_ << nl
+        << "// internalStart flatStart openStart multipleStart" << nl
         << internalStart_ << token::SPACE
         << flatStart_ << token::SPACE
         << openStart_ << token::SPACE
         << multipleStart_ << nl
+        << "// normals" << nl
         << normals_ << nl
+        << "// edgeNormals" << nl
         << edgeNormals_ << nl
+        << "// featurePointNormals" << nl
         << featurePointNormals_ << nl
+        << "// featurePointEdges" << nl
+        << featurePointEdges_ << nl
+        << "// regionEdges" << nl
         << regionEdges_
         << endl;
 

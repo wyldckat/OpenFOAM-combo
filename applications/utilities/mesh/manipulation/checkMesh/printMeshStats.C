@@ -8,6 +8,7 @@
 #include "pyrMatcher.H"
 #include "tetWedgeMatcher.H"
 #include "tetMatcher.H"
+#include "IOmanip.H"
 
 
 void Foam::printMeshStats(const polyMesh& mesh, const bool allTopology)
@@ -62,22 +63,20 @@ void Foam::printMeshStats(const polyMesh& mesh, const bool allTopology)
             << nInternalEdges-nInternal1Edges << nl;
     }
 
-    Info<< "    faces:            "
-        << returnReduce(mesh.faces().size(), sumOp<label>()) << nl
-        << "    internal faces:   "
-        << returnReduce(mesh.faceNeighbour().size(), sumOp<label>()) << nl
-        << "    cells:            "
-        << returnReduce(mesh.cells().size(), sumOp<label>()) << nl
-        << "    boundary patches: "
-        << mesh.boundaryMesh().size() << nl
-        << "    point zones:      "
-        << mesh.pointZones().size() << nl
-        << "    face zones:       "
-        << mesh.faceZones().size() << nl
-        << "    cell zones:       "
-        << mesh.cellZones().size() << nl
-        << endl;
+    label nFaces = returnReduce(mesh.faces().size(), sumOp<label>());
+    label nIntFaces = returnReduce(mesh.faceNeighbour().size(), sumOp<label>());
+    label nCells = returnReduce(mesh.cells().size(), sumOp<label>());
 
+    Info<< "    faces:            " << nFaces << nl
+        << "    internal faces:   " << nIntFaces << nl
+        << "    cells:            " << nCells << nl
+        << "    faces per cell:   "
+        << scalar(nFaces + nIntFaces)/max(1, nCells) << nl
+        << "    boundary patches: " << mesh.boundaryMesh().size() << nl
+        << "    point zones:      " << mesh.pointZones().size() << nl
+        << "    face zones:       " << mesh.faceZones().size() << nl
+        << "    cell zones:       " << mesh.cellZones().size() << nl
+        << endl;
 
     // Construct shape recognizers
     hexMatcher hex;
@@ -95,6 +94,8 @@ void Foam::printMeshStats(const polyMesh& mesh, const bool allTopology)
     label nTet = 0;
     label nTetWedge = 0;
     label nUnknown = 0;
+
+    Map<label> polyhedralFaces;
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
@@ -125,6 +126,7 @@ void Foam::printMeshStats(const polyMesh& mesh, const bool allTopology)
         else
         {
             nUnknown++;
+            polyhedralFaces(mesh.cells()[cellI].size())++;
         }
     }
 
@@ -144,5 +146,25 @@ void Foam::printMeshStats(const polyMesh& mesh, const bool allTopology)
         << "    tet wedges:    " << nTetWedge << nl
         << "    tetrahedra:    " << nTet << nl
         << "    polyhedra:     " << nUnknown
-        << nl << endl;
+        << endl;
+
+    if (nUnknown > 0)
+    {
+        Pstream::mapCombineGather(polyhedralFaces, plusEqOp<label>());
+
+        Info<< "    Breakdown of polyhedra by number of faces:" << nl
+            << "        faces" << "   number of cells" << endl;
+
+        const labelList sortedKeys = polyhedralFaces.sortedToc();
+
+        forAll(sortedKeys, keyI)
+        {
+            const label nFaces = sortedKeys[keyI];
+
+            Info<< setf(std::ios::right) << setw(13)
+                << nFaces << "   " << polyhedralFaces[nFaces] << nl;
+        }
+    }
+
+    Info<< endl;
 }

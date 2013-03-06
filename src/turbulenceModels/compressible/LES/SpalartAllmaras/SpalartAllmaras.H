@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,6 +24,9 @@ License
 Class
     Foam::compressible::LESModels::SpalartAllmaras
 
+Group
+    grpCmpDESTurbulence
+
 Description
     SpalartAllmaras for compressible flows
 
@@ -35,7 +38,7 @@ SourceFiles
 #ifndef compressibleSpalartAllmaras_H
 #define compressibleSpalartAllmaras_H
 
-#include "LESModel.H"
+#include "DESModel.H"
 #include "volFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -53,7 +56,7 @@ namespace LESModels
 
 class SpalartAllmaras
 :
-    public LESModel
+    public DESModel
 {
     // Private data
 
@@ -111,7 +114,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );
@@ -166,6 +169,9 @@ public:
 
         //- Read LESProperties dictionary
         virtual bool read();
+
+        //- Return the LES field indicator
+        virtual tmp<volScalarField> LESRegion() const;
 };
 
 

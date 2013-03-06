@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -62,8 +62,25 @@ Foam::fixedJumpFvPatchField<Type>::fixedJumpFvPatchField
 )
 :
     jumpCyclicFvPatchField<Type>(p, iF),
-    jump_("jump", dict, p.size())
-{}
+    jump_(p.size(), pTraits<Type>::zero)
+{
+    if (this->cyclicPatch().owner())
+    {
+        jump_ = Field<Type>("jump", dict, p.size());
+    }
+
+    if (dict.found("value"))
+    {
+        fvPatchField<Type>::operator=
+        (
+            Field<Type>("value", dict, p.size())
+        );
+    }
+    else
+    {
+        this->evaluate(Pstream::blocking);
+    }
+}
 
 
 template<class Type>
@@ -72,7 +89,6 @@ Foam::fixedJumpFvPatchField<Type>::fixedJumpFvPatchField
     const fixedJumpFvPatchField<Type>& ptf
 )
 :
-    cyclicLduInterfaceField(),
     jumpCyclicFvPatchField<Type>(ptf),
     jump_(ptf.jump_)
 {}
@@ -91,6 +107,23 @@ Foam::fixedJumpFvPatchField<Type>::fixedJumpFvPatchField
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class Type>
+Foam::tmp<Foam::Field<Type> > Foam::fixedJumpFvPatchField<Type>::jump() const
+{
+    if (this->cyclicPatch().owner())
+    {
+        return jump_;
+    }
+    else
+    {
+        return refCast<const fixedJumpFvPatchField<Type> >
+        (
+            this->neighbourPatchField()
+        ).jump();
+    }
+}
+
 
 template<class Type>
 void Foam::fixedJumpFvPatchField<Type>::autoMap
@@ -122,8 +155,15 @@ template<class Type>
 void Foam::fixedJumpFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
-    os.writeKeyword("patchType") << "cyclic" << token::END_STATEMENT << nl;
-    jump_.writeEntry("jump", os);
+    os.writeKeyword("patchType") << this->interfaceFieldType()
+        << token::END_STATEMENT << nl;
+
+    if (this->cyclicPatch().owner())
+    {
+        jump_.writeEntry("jump", os);
+    }
+
+    this->writeEntry("value", os);
 }
 
 

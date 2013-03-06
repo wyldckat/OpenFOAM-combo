@@ -3,9 +3,13 @@
     (
         fvm::div(phi, U)
       + turb.divDevRhoReff(U)
+     ==
+        fvOptions(rho, U)
     );
 
     UEqn().relax();
+
+    fvOptions.constrain(UEqn());
 
     solve
     (
@@ -19,3 +23,5 @@
             )*mesh.magSf()
         )
     );
+
+    fvOptions.correct(U);

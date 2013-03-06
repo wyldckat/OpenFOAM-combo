@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,17 +25,18 @@ Application
     reactingParcelFoam
 
 Description
-    Transient PISO solver for compressible, laminar or turbulent flow with
-    reacting Lagrangian parcels.
+    Transient PIMPLE solver for compressible, laminar or turbulent flow with
+    reacting multiphase Lagrangian parcels, including run-time selectable
+    finite volume options, e.g. sources, constraints
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
 #include "turbulenceModel.H"
-#include "basicReactingCloud.H"
-#include "psiChemistryCombustionModel.H"
-#include "IObasicSourceList.H"
+#include "basicReactingMultiphaseCloud.H"
+#include "rhoCombustionModel.H"
 #include "radiationModel.H"
+#include "fvIOoptionList.H"
 #include "SLGThermo.H"
 #include "pimpleControl.H"
 
@@ -48,15 +49,17 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
+
+    pimpleControl pimple(mesh);
+
     #include "createFields.H"
-    #include "createClouds.H"
     #include "createRadiationModel.H"
+    #include "createClouds.H"
+    #include "createFvOptions.H"
     #include "initContinuityErrs.H"
     #include "readTimeControls.H"
     #include "compressibleCourantNo.H"
     #include "setInitialDeltaT.H"
-
-    pimpleControl pimple(mesh);
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -81,7 +84,7 @@ int main(int argc, char *argv[])
         {
             #include "UEqn.H"
             #include "YEqn.H"
-            #include "hsEqn.H"
+            #include "EEqn.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())

@@ -713,7 +713,7 @@ void Foam::polyMeshAdder::mergePrimitives
         }
 
         // Copy cut face (since cutPoints are copied first no renumbering
-        // nessecary)
+        // necessary)
         allFaces[allFaceI] = cutFaces[i];
         allOwner[allFaceI] = mesh0.faceOwner()[mesh0FaceI];
         allNeighbour[allFaceI] = mesh1.faceOwner()[mesh1FaceI] + mesh0.nCells();
@@ -1866,24 +1866,22 @@ Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
             );
 
             labelList toMergedPoints;
-            pointField mergedPoints;
-            bool hasMerged = Foam::mergePoints
+            label nUnique = Foam::mergePoints
             (
                 connectedPoints,
                 mergeDist,
                 false,
-                toMergedPoints,
-                mergedPoints
+                toMergedPoints
             );
 
-            if (hasMerged)
+            if (nUnique < connectedPoints.size())
             {
                 // Invert toMergedPoints
                 const labelListList mergeSets
                 (
                     invertOneToMany
                     (
-                        mergedPoints.size(),
+                        nUnique,
                         toMergedPoints
                     )
                 );
@@ -1926,8 +1924,7 @@ Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
 
     //- Old: geometric merging. Causes problems for two close shared points.
     //labelList sharedToMerged;
-    //pointField mergedPoints;
-    //bool hasMerged = Foam::mergePoints
+    //label nUnique = Foam::mergePoints
     //(
     //    pointField
     //    (
@@ -1936,8 +1933,7 @@ Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
     //    ),
     //    mergeDist,
     //    false,
-    //    sharedToMerged,
-    //    mergedPoints
+    //    sharedToMerged
     //);
     //
     //// Find out which sets of points get merged and create a map from
@@ -1945,7 +1941,7 @@ Foam::Map<Foam::label> Foam::polyMeshAdder::findSharedPoints
     //
     //Map<label> pointToMaster(10*sharedToMerged.size());
     //
-    //if (hasMerged)
+    //if (nUnique < sharedPointLabels.size())
     //{
     //    labelListList mergeSets
     //    (

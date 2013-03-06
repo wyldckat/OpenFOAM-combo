@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,7 +46,6 @@ Foam::kineticTheoryModel::kineticTheoryModel
     draga_(draga),
 
     rho1_(phase1.rho()),
-    nu1_(phase1.nu()),
 
     kineticTheoryProperties_
     (
@@ -120,7 +119,7 @@ Foam::kineticTheoryModel::kineticTheoryModel
     (
         IOobject
         (
-            "mu1",
+            "mu" + phase1.name(),
             U1_.time().timeName(),
             U1_.mesh(),
             IOobject::NO_READ,
@@ -203,9 +202,9 @@ void Foam::kineticTheoryModel::solve(const volTensorField& gradU1t)
 
     volScalarField da_(phase1_.d());
 
-    surfaceScalarField phi(1.5*rho1_*phi1_*fvc::interpolate(alpha1_));
+    surfaceScalarField phi(1.5*phi1_*fvc::interpolate(rho1_*alpha1_));
 
-    volTensorField dU(gradU1t.T());    //fvc::grad(U1_);
+    volTensorField dU(gradU1t.T());
     volSymmTensorField D(symm(dU));
 
     // NB, drag = K*alpha1*alpha2,

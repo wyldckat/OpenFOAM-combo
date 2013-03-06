@@ -94,7 +94,7 @@ realizableKE::realizableKE
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -321,7 +321,7 @@ void realizableKE::correct()
     volScalarField eta(magS*k_/epsilon_);
     volScalarField C1(max(eta/(scalar(5) + eta), scalar(0.43)));
 
-    volScalarField G("RASModel::G", mut_*(gradU && dev(twoSymm(gradU))));
+    volScalarField G(type() + ".G", mut_*(gradU && dev(twoSymm(gradU))));
 
     // Update epsilon and G at the wall
     epsilon_.boundaryField().updateCoeffs();
@@ -331,7 +331,6 @@ void realizableKE::correct()
     (
         fvm::ddt(rho_, epsilon_)
       + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), epsilon_)
       - fvm::laplacian(DepsilonEff(), epsilon_)
      ==
         C1*rho_*magS*epsilon_
@@ -356,7 +355,6 @@ void realizableKE::correct()
     (
         fvm::ddt(rho_, k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(), k_)
      ==
         G - fvm::SuSp(2.0/3.0*rho_*divU, k_)

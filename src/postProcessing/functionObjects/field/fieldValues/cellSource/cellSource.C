@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,20 +26,14 @@ License
 #include "cellSource.H"
 #include "fvMesh.H"
 #include "volFields.H"
+#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::fieldValues::cellSource, 0);
-
 namespace Foam
 {
-
     template<>
-    const char* Foam::NamedEnum
-    <
-        Foam::fieldValues::cellSource::sourceType,
-        2
-    >::names[] =
+    const char* NamedEnum<fieldValues::cellSource::sourceType, 2>::names[] =
     {
         "cellZone",
         "all"
@@ -47,28 +41,31 @@ namespace Foam
 
 
     template<>
-    const char* Foam::NamedEnum
-    <
-        Foam::fieldValues::cellSource::operationType,
-        8
-    >::names[] =
+    const char* NamedEnum<fieldValues::cellSource::operationType, 9>::names[] =
     {
         "none",
         "sum",
+        "average",
+        "weightedAverage",
         "volAverage",
         "volIntegrate",
-        "weightedAverage",
         "min",
         "max",
         "CoV"
     };
+
+    namespace fieldValues
+    {
+        defineTypeNameAndDebug(cellSource, 0);
+        addToRunTimeSelectionTable(fieldValue, cellSource, dictionary);
+    }
 }
 
 
 const Foam::NamedEnum<Foam::fieldValues::cellSource::sourceType, 2>
     Foam::fieldValues::cellSource::sourceTypeNames_;
 
-const Foam::NamedEnum<Foam::fieldValues::cellSource::operationType, 8>
+const Foam::NamedEnum<Foam::fieldValues::cellSource::operationType, 9>
     Foam::fieldValues::cellSource::operationTypeNames_;
 
 
@@ -143,9 +140,8 @@ void Foam::fieldValues::cellSource::initialise(const dictionary& dict)
         << "    total volume = " << gSum(filterField(mesh().V()))
         << nl << endl;
 
-    if (operation_ == opWeightedAverage)
+    if (dict.readIfPresent("weightField", weightFieldName_))
     {
-        dict.lookup("weightField") >> weightFieldName_;
         Info<< "    weight field = " << weightFieldName_;
     }
 
@@ -153,24 +149,21 @@ void Foam::fieldValues::cellSource::initialise(const dictionary& dict)
 }
 
 
-void Foam::fieldValues::cellSource::writeFileHeader()
+void Foam::fieldValues::cellSource::writeFileHeader(const label i)
 {
-    if (outputFilePtr_.valid())
+    file()
+        << "# Source : " << sourceTypeNames_[source_] << " "
+        << sourceName_ <<  nl << "# Cells  : " << nCells_ << nl
+        << "# Time" << tab << "sum(V)";
+
+    forAll(fields_, i)
     {
-        outputFilePtr_()
-            << "# Source : " << sourceTypeNames_[source_] << " "
-            << sourceName_ <<  nl << "# Cells  : " << nCells_ << nl
-            << "# Time" << tab << "sum(V)";
-
-        forAll(fields_, i)
-        {
-            outputFilePtr_()
-                << tab << operationTypeNames_[operation_]
-                << "(" << fields_[i] << ")";
-        }
-
-        outputFilePtr_() << endl;
+        file()
+            << tab << operationTypeNames_[operation_]
+            << "(" << fields_[i] << ")";
     }
+
+    file() << endl;
 }
 
 
@@ -184,11 +177,12 @@ Foam::fieldValues::cellSource::cellSource
     const bool loadFromFiles
 )
 :
-    fieldValue(name, obr, dict, loadFromFiles),
+    fieldValue(name, obr, dict, typeName, loadFromFiles),
     source_(sourceTypeNames_.read(dict.lookup("source"))),
     operation_(operationTypeNames_.read(dict.lookup("operation"))),
     nCells_(0),
-    cellId_()
+    cellId_(),
+    weightFieldName_("none")
 {
     read(dict);
 }
@@ -223,7 +217,7 @@ void Foam::fieldValues::cellSource::write()
         scalar totalVolume = gSum(filterField(mesh().V()));
         if (Pstream::master())
         {
-            outputFilePtr_() << obr_.time().value() << tab << totalVolume;
+            file() << obr_.time().value() << tab << totalVolume;
         }
 
         forAll(fields_, i)
@@ -237,7 +231,7 @@ void Foam::fieldValues::cellSource::write()
 
         if (Pstream::master())
         {
-            outputFilePtr_()<< endl;
+            file()<< endl;
         }
 
         if (log_)

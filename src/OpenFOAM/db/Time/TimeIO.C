@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,11 +25,284 @@ License
 
 #include "Time.H"
 #include "Pstream.H"
+#include "simpleObjectRegistry.H"
+#include "dimensionedConstants.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 void Foam::Time::readDict()
 {
+    word application;
+    if (controlDict_.readIfPresent("application", application))
+    {
+        // Do not override if already set so external application can override
+        setEnv("FOAM_APPLICATION", application, false);
+    }
+
+
+    // Check for local switches and settings
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Debug switches
+    if (controlDict_.found("DebugSwitches"))
+    {
+        Info<< "Overriding DebugSwitches according to " << controlDict_.name()
+            << endl;
+
+        simpleObjectRegistry& objects = debug::debugObjects();
+        const dictionary& localSettings = controlDict_.subDict("DebugSwitches");
+        forAllConstIter(dictionary, localSettings, iter)
+        {
+            const word& name = iter().keyword();
+
+            simpleObjectRegistryEntry* objPtr = objects.lookupPtr(name);
+
+            if (objPtr)
+            {
+                Info<< "    " << iter() << endl;
+
+                const List<simpleRegIOobject*>& objects = *objPtr;
+
+                if (iter().isDict())
+                {
+                    forAll(objects, i)
+                    {
+                        OStringStream os(IOstream::ASCII);
+                        os  << iter().dict();
+                        IStringStream is(os.str());
+                        objects[i]->readData(is);
+                    }
+                }
+                else
+                {
+                    forAll(objects, i)
+                    {
+                        objects[i]->readData(iter().stream());
+                    }
+                }
+            }
+        }
+    }
+
+    // Optimisation Switches
+    if (controlDict_.found("OptimisationSwitches"))
+    {
+        Info<< "Overriding OptimisationSwitches according to "
+            << controlDict_.name() << endl;
+
+        simpleObjectRegistry& objects = debug::optimisationObjects();
+        const dictionary& localSettings = controlDict_.subDict
+        (
+            "OptimisationSwitches"
+        );
+        forAllConstIter(dictionary, localSettings, iter)
+        {
+            const word& name = iter().keyword();
+
+            simpleObjectRegistryEntry* objPtr = objects.lookupPtr(name);
+
+            if (objPtr)
+            {
+                Info<< "    " << iter() << endl;
+
+                const List<simpleRegIOobject*>& objects = *objPtr;
+
+                if (iter().isDict())
+                {
+                    forAll(objects, i)
+                    {
+                        OStringStream os(IOstream::ASCII);
+                        os  << iter().dict();
+                        IStringStream is(os.str());
+                        objects[i]->readData(is);
+                    }
+                }
+                else
+                {
+                    forAll(objects, i)
+                    {
+                        objects[i]->readData(iter().stream());
+                    }
+                }
+            }
+        }
+    }
+
+
+    // DimensionedConstants. Handled as a special case since both e.g.
+    // the 'unitSet' might be changed and the individual values
+    if (controlDict_.found("DimensionedConstants"))
+    {
+        Info<< "Overriding DimensionedConstants according to "
+            << controlDict_.name() << endl;
+
+        // Change in-memory
+        dimensionedConstants().merge
+        (
+            controlDict_.subDict("DimensionedConstants")
+        );
+
+
+        simpleObjectRegistry& objects = debug::dimensionedConstantObjects();
+
+        IStringStream dummyIs("");
+
+        forAllConstIter(simpleObjectRegistry, objects, iter)
+        {
+            const List<simpleRegIOobject*>& objects = *iter;
+
+            forAll(objects, i)
+            {
+                objects[i]->readData(dummyIs);
+
+                Info<< "    ";
+                objects[i]->writeData(Info);
+                Info<< endl;
+            }
+        }
+    }
+
+
+
+    //{
+    //    // fundamentalConstants.C
+    //    Info<< "constant::universal::hr:"
+    //        << Foam::constant::universal::hr
+    //        << endl;
+    //    Info<< "constant::universal::c:"
+    //        << Foam::constant::universal::c
+    //        << endl;
+    //    Info<< "constant::universal::G:"
+    //        << Foam::constant::universal::G
+    //        << endl;
+    //    Info<< "constant::universal::h:"
+    //        << Foam::constant::universal::h
+    //        << endl;
+    //    Info<< "constant::electromagnetic::e:"
+    //        << Foam::constant::electromagnetic::e
+    //        << endl;
+    //    Info<< "constant::atomic::me:"
+    //        << Foam::constant::atomic::me
+    //        << endl;
+    //    Info<< "constant::atomic::mp:"
+    //        << Foam::constant::atomic::mp
+    //        << endl;
+    //    Info<< "constant::physicoChemical::mu:"
+    //        << Foam::constant::physicoChemical::mu
+    //        << endl;
+    //    Info<< "constant::physicoChemical::NA:"
+    //        << Foam::constant::physicoChemical::NA
+    //        << endl;
+    //    Info<< "constant::physicoChemical::k:"
+    //        << Foam::constant::physicoChemical::k
+    //        << endl;
+    //    Info<< "constant::standard::Pstd:"
+    //        << Foam::constant::standard::Pstd
+    //        << endl;
+    //    Info<< "constant::standard::Tstd:"
+    //        << Foam::constant::standard::Tstd
+    //        << endl;
+    //
+    //    // universalConstants.C
+    //    Info<< "constant::universal::hr:"
+    //        << Foam::constant::universal::hr
+    //        << endl;
+    //
+    //    // electromagneticConstants.C
+    //    Info<< "constant::electromagnetic::mu0:"
+    //        << Foam::constant::electromagnetic::mu0
+    //        << endl;
+    //    Info<< "constant::electromagnetic::epsilon0:"
+    //        << Foam::constant::electromagnetic::epsilon0
+    //        << endl;
+    //    Info<< "constant::electromagnetic::Z0:"
+    //        << Foam::constant::electromagnetic::Z0
+    //        << endl;
+    //    Info<< "constant::electromagnetic::kappa:"
+    //        << Foam::constant::electromagnetic::kappa
+    //        << endl;
+    //    Info<< "constant::electromagnetic::G0:"
+    //        << Foam::constant::electromagnetic::G0
+    //        << endl;
+    //    Info<< "constant::electromagnetic::KJ:"
+    //        << Foam::constant::electromagnetic::KJ
+    //        << endl;
+    //    Info<< "constant::electromagnetic::RK:"
+    //        << Foam::constant::electromagnetic::RK
+    //        << endl;
+    //
+    //
+    //    // atomicConstants.C
+    //    Info<< "constant::atomic::alpha:"
+    //        << Foam::constant::atomic::alpha
+    //        << endl;
+    //    Info<< "constant::atomic::Rinf:"
+    //        << Foam::constant::atomic::Rinf
+    //        << endl;
+    //    Info<< "constant::atomic::a0:"
+    //        << Foam::constant::atomic::a0
+    //        << endl;
+    //    Info<< "constant::physiatomic::re:"
+    //        << Foam::constant::atomic::re
+    //        << endl;
+    //    Info<< "constant::atomic::Eh:"
+    //        << Foam::constant::atomic::Eh
+    //        << endl;
+    //
+    //
+    //    // physicoChemicalConstants.C
+    //    Info<< "constant::physicoChemical::R:"
+    //        << Foam::constant::physicoChemical::R
+    //        << endl;
+    //    Info<< "constant::physicoChemical::F:"
+    //        << Foam::constant::physicoChemical::F
+    //        << endl;
+    //    Info<< "constant::physicoChemical::sigma:"
+    //        << Foam::constant::physicoChemical::sigma
+    //        << endl;
+    //    Info<< "constant::physicoChemical::b:"
+    //        << Foam::constant::physicoChemical::b
+    //        << endl;
+    //    Info<< "constant::physicoChemical::c1:"
+    //        << Foam::constant::physicoChemical::c1
+    //        << endl;
+    //    Info<< "constant::physicoChemical::c2:"
+    //        << Foam::constant::physicoChemical::c2
+    //        << endl;
+    //}
+
+
+    // Dimension sets
+    if (controlDict_.found("DimensionSets"))
+    {
+        Info<< "Overriding DimensionSets according to "
+            << controlDict_.name() << endl;
+
+        dictionary dict(Foam::dimensionSystems());
+        dict.merge(controlDict_.subDict("DimensionSets"));
+
+        simpleObjectRegistry& objects = debug::dimensionSetObjects();
+
+        simpleObjectRegistryEntry* objPtr = objects.lookupPtr("DimensionSets");
+
+        if (objPtr)
+        {
+            Info<< controlDict_.subDict("DimensionSets") << endl;
+
+            const List<simpleRegIOobject*>& objects = *objPtr;
+
+            forAll(objects, i)
+            {
+                OStringStream os(IOstream::ASCII);
+                os  << dict;
+                IStringStream is(os.str());
+                objects[i]->readData(is);
+            }
+        }
+    }
+
+
+
     if (!deltaTchanged_)
     {
         deltaT_ = readScalar(controlDict_.lookup("deltaT"));
@@ -150,6 +423,20 @@ void Foam::Time::readDict()
                 << endl;
 
             purgeWrite_ = 0;
+        }
+    }
+
+    if (controlDict_.readIfPresent("secondaryPurgeWrite", secondaryPurgeWrite_))
+    {
+        if (secondaryPurgeWrite_ < 0)
+        {
+            WarningIn("Time::readDict()")
+                << "invalid value for secondaryPurgeWrite "
+                << secondaryPurgeWrite_
+                << ", should be >= 0, setting to 0"
+                << endl;
+
+            secondaryPurgeWrite_ = 0;
         }
     }
 
@@ -340,13 +627,45 @@ bool Foam::Time::writeObject
         timeDict.regIOobject::writeObject(fmt, ver, cmp);
         bool writeOK = objectRegistry::writeObject(fmt, ver, cmp);
 
-        if (writeOK && purgeWrite_)
+        if (writeOK)
         {
-            previousOutputTimes_.push(tmName);
-
-            while (previousOutputTimes_.size() > purgeWrite_)
+            // Does primary or secondary time trigger purging?
+            // Note that primary times can only be purged by primary
+            // purging. Secondary times can be purged by either primary
+            // or secondary purging.
+            if (primaryOutputTime_ && purgeWrite_)
             {
-                rmDir(objectRegistry::path(previousOutputTimes_.pop()));
+                previousOutputTimes_.push(tmName);
+
+                while (previousOutputTimes_.size() > purgeWrite_)
+                {
+                    rmDir(objectRegistry::path(previousOutputTimes_.pop()));
+                }
+            }
+            if
+            (
+               !primaryOutputTime_
+             && secondaryOutputTime_
+             && secondaryPurgeWrite_
+            )
+            {
+                // Writing due to secondary
+                previousSecondaryOutputTimes_.push(tmName);
+
+                while
+                (
+                    previousSecondaryOutputTimes_.size()
+                  > secondaryPurgeWrite_
+                )
+                {
+                    rmDir
+                    (
+                        objectRegistry::path
+                        (
+                            previousSecondaryOutputTimes_.pop()
+                        )
+                    );
+                }
             }
         }
 
@@ -361,6 +680,7 @@ bool Foam::Time::writeObject
 
 bool Foam::Time::writeNow()
 {
+    primaryOutputTime_ = true;
     outputTime_ = true;
     return write();
 }

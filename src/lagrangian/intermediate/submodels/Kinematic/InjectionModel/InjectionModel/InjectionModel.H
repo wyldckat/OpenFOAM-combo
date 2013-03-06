@@ -53,6 +53,7 @@ SourceFiles
 #include "runTimeSelectionTables.H"
 #include "SubModelBase.H"
 #include "vector.H"
+#include "TimeDataEntry.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,7 +61,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                         Class InjectionModel Declaration
+                       Class InjectionModel Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class CloudType>
@@ -102,6 +103,9 @@ protected:
             //- Total mass to inject [kg]
             scalar massTotal_;
 
+            //- Mass flow rate profile for steady calculations
+            TimeDataEntry<scalar> massFlowRate_;
+
             //- Total mass injected to date [kg]
             scalar massInjected_;
 
@@ -142,7 +146,6 @@ protected:
         virtual bool validInjection(const label parcelI);
 
         //- Determine properties for next time step/injection interval
-        //  Return true if leads to valid injection
         virtual bool prepareForNextTimeStep
         (
             const scalar time,
@@ -192,9 +195,10 @@ public:
         dictionary,
         (
             const dictionary& dict,
-            CloudType& owner
+            CloudType& owner,
+            const word& modelType
         ),
-        (dict, owner)
+        (dict, owner, modelType)
     );
 
 
@@ -208,7 +212,8 @@ public:
         (
             const dictionary& dict,
             CloudType& owner,
-            const word& type
+            const word& modelName,
+            const word& modelType
         );
 
         //- Construct copy
@@ -228,15 +233,32 @@ public:
     virtual ~InjectionModel();
 
 
-    //- Selector
-    static autoPtr<InjectionModel<CloudType> > New
-    (
-        const dictionary& dict,
-        CloudType& owner
-    );
+    // Selectors
+
+        //- Selector with lookup from dictionary
+        static autoPtr<InjectionModel<CloudType> > New
+        (
+            const dictionary& dict,
+            CloudType& owner
+        );
+
+        //- Selector with name and type
+        static autoPtr<InjectionModel<CloudType> > New
+        (
+            const dictionary& dict,
+            const word& modelName,
+            const word& modelType,
+            CloudType& owner
+        );
 
 
     // Member Functions
+
+        // Mapping
+
+            //- Update mesh
+            virtual void updateMesh();
+
 
         // Global information
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,6 +24,9 @@ License
 Class
     Foam::dsmcFields
 
+Group
+    grpUtilitiesFunctionObjects
+
 Description
     Calculate intensive fields:
     - UMean
@@ -41,7 +44,7 @@ SourceFiles
 #ifndef dsmcFields_H
 #define dsmcFields_H
 
-#include "pointFieldFwd.H"
+#include "typeInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,10 +54,11 @@ namespace Foam
 // Forward declaration of classes
 class objectRegistry;
 class dictionary;
+class polyMesh;
 class mapPolyMesh;
 
 /*---------------------------------------------------------------------------*\
-                           Class dsmcFields Declaration
+                         Class dsmcFields Declaration
 \*---------------------------------------------------------------------------*/
 
 class dsmcFields
@@ -68,6 +72,7 @@ class dsmcFields
 
         //- on/off switch
         bool active_;
+
 
     // Private Member Functions
 
@@ -126,7 +131,7 @@ public:
         {}
 
         //- Update for changes of mesh
-        virtual void movePoints(const pointField&)
+        virtual void movePoints(const polyMesh&)
         {}
 };
 

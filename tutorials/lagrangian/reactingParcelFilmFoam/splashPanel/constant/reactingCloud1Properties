@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,7 +29,8 @@ solution
             rho             explicit 1;
             U               explicit 1;
             Yi              explicit 1;
-            hs              explicit 1;
+            h               explicit 1;
+            radiation       explicit 1;
         }
     }
 
@@ -37,7 +38,7 @@ solution
     {
         rho             cell;
         U               cellPoint;
-        mu              cell;
+        thermo:mu       cell;
         T               cell;
         Cp              cell;
         p               cell;
@@ -52,13 +53,6 @@ solution
 
 constantProperties
 {
-    parcelTypeId    1;
-
-    rhoMin          1e-15;
-    TMin            200;
-    pMin            1000;
-    minParticleMass 1e-15;
-
     rho0            1000;
     T0              300;
     Cp0             4187;
@@ -83,7 +77,19 @@ subModels
         gravity;
     }
 
-    injectionModel  reactingLookupTableInjection;
+    injectionModels
+    {
+        model1
+        {
+            type            reactingLookupTableInjection;
+            massTotal       0.1;
+            parcelBasisType mass;
+            SOI             0.01;
+            inputFile       "parcelInjectionProperties";
+            duration        10.0;
+            parcelsPerSecond 200;
+        }
+    }
 
     dispersionModel none;
 
@@ -98,16 +104,6 @@ subModels
     surfaceFilmModel thermoSurfaceFilm;
 
     radiation       off;
-
-    reactingLookupTableInjectionCoeffs
-    {
-        massTotal       0.1;
-        parcelBasisType mass;
-        SOI             0.01;
-        inputFile       "parcelInjectionProperties";
-        duration        10.0;
-        parcelsPerSecond 200;
-    }
 
     standardWallInteractionCoeffs
     {
@@ -129,8 +125,6 @@ subModels
     {
         interactionType splashBai;
         deltaWet        0.0005;
-        dMinSplash      1e-5;
-        dMaxSplash      1e-3;
         Adry            2630;
         Awet            1320;
         Cf              0.6;
@@ -139,7 +133,24 @@ subModels
 
 
 cloudFunctions
-{}
+{
+    particleCollector
+    {
+        mode            concentricCircle;
+
+        origin          (0.05 0.025 0.005);
+        radius          (0.01 0.025 0.05);
+        nSector         10;
+        refDir          (1 0 0);
+        normal          (0 0 1);
+
+        negateParcelsOppositeNormal no;
+        removeCollected no;
+        surfaceFormat   vtk;
+        resetOnWrite    no;
+        log             yes;
+    }
+}
 
 
 // ************************************************************************* //

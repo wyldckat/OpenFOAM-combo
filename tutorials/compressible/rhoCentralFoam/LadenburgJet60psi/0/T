@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -1243,7 +1243,7 @@ boundaryField
         type            totalTemperature;
         U               U;
         phi             phi;
-        psi             psi;
+        psi             thermo:psi;
         gamma           1.4;
         T0              uniform 297;
         value           nonuniform List<scalar>

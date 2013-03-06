@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,6 +30,7 @@ License
 #include "OSspecific.H"
 #include "PstreamGlobals.H"
 #include "SubList.H"
+#include "allReduce.H"
 
 #include <cstring>
 #include <cstdlib>
@@ -40,9 +41,6 @@ License
 #elif defined(WM_DP)
 #   define MPI_SCALAR MPI_DOUBLE
 #endif
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -175,285 +173,69 @@ void Foam::UPstream::abort()
 
 void Foam::reduce(scalar& Value, const sumOp<scalar>& bop, const int tag)
 {
-    if (Pstream::debug)
-    {
-        Pout<< "Foam::reduce : value:" << Value << endl;
-    }
-
-    if (!UPstream::parRun())
-    {
-        return;
-    }
-
-    if (UPstream::nProcs() <= UPstream::nProcsSimpleSum)
-    {
-        if (UPstream::master())
-        {
-            for
-            (
-                int slave=UPstream::firstSlave();
-                slave<=UPstream::lastSlave();
-                slave++
-            )
-            {
-                scalar value;
-
-                if
-                (
-                    MPI_Recv
-                    (
-                        &value,
-                        1,
-                        MPI_SCALAR,
-                        UPstream::procID(slave),
-                        tag,
-                        MPI_COMM_WORLD,
-                        MPI_STATUS_IGNORE
-                    )
-                )
-                {
-                    FatalErrorIn
-                    (
-                        "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                    )   << "MPI_Recv failed"
-                        << Foam::abort(FatalError);
-                }
-
-                Value = bop(Value, value);
-            }
-        }
-        else
-        {
-            if
-            (
-                MPI_Send
-                (
-                    &Value,
-                    1,
-                    MPI_SCALAR,
-                    UPstream::procID(UPstream::masterNo()),
-                    tag,
-                    MPI_COMM_WORLD
-                )
-            )
-            {
-                FatalErrorIn
-                (
-                    "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                )   << "MPI_Send failed"
-                    << Foam::abort(FatalError);
-            }
-        }
+    allReduce(Value, 1, MPI_SCALAR, MPI_SUM, bop, tag);
+}
 
 
-        if (UPstream::master())
-        {
-            for
-            (
-                int slave=UPstream::firstSlave();
-                slave<=UPstream::lastSlave();
-                slave++
-            )
-            {
-                if
-                (
-                    MPI_Send
-                    (
-                        &Value,
-                        1,
-                        MPI_SCALAR,
-                        UPstream::procID(slave),
-                        tag,
-                        MPI_COMM_WORLD
-                    )
-                )
-                {
-                    FatalErrorIn
-                    (
-                        "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                    )   << "MPI_Send failed"
-                        << Foam::abort(FatalError);
-                }
-            }
-        }
-        else
-        {
-            if
-            (
-                MPI_Recv
-                (
-                    &Value,
-                    1,
-                    MPI_SCALAR,
-                    UPstream::procID(UPstream::masterNo()),
-                    tag,
-                    MPI_COMM_WORLD,
-                    MPI_STATUS_IGNORE
-                )
-            )
-            {
-                FatalErrorIn
-                (
-                    "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                )   << "MPI_Recv failed"
-                    << Foam::abort(FatalError);
-            }
-        }
-    }
-    else
-    {
-        scalar sum;
-        MPI_Allreduce(&Value, &sum, 1, MPI_SCALAR, MPI_SUM, MPI_COMM_WORLD);
-        Value = sum;
-
-        /*
-        int myProcNo = UPstream::myProcNo();
-        int nProcs = UPstream::nProcs();
-
-        //
-        // receive from children
-        //
-        int level = 1;
-        int thisLevelOffset = 2;
-        int childLevelOffset = thisLevelOffset/2;
-        int childProcId = 0;
-
-        while
-        (
-            (childLevelOffset < nProcs)
-         && (myProcNo % thisLevelOffset) == 0
-        )
-        {
-            childProcId = myProcNo + childLevelOffset;
-
-            scalar value;
-
-            if (childProcId < nProcs)
-            {
-                if
-                (
-                    MPI_Recv
-                    (
-                        &value,
-                        1,
-                        MPI_SCALAR,
-                        UPstream::procID(childProcId),
-                        tag,
-                        MPI_COMM_WORLD,
-                        MPI_STATUS_IGNORE
-                    )
-                )
-                {
-                    FatalErrorIn
-                    (
-                        "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                    )   << "MPI_Recv failed"
-                        << Foam::abort(FatalError);
-                }
-
-                Value = bop(Value, value);
-            }
-
-            level++;
-            thisLevelOffset <<= 1;
-            childLevelOffset = thisLevelOffset/2;
-        }
-
-        //
-        // send and receive from parent
-        //
-        if (!UPstream::master())
-        {
-            int parentId = myProcNo - (myProcNo % thisLevelOffset);
-
-            if
-            (
-                MPI_Send
-                (
-                    &Value,
-                    1,
-                    MPI_SCALAR,
-                    UPstream::procID(parentId),
-                    tag,
-                    MPI_COMM_WORLD
-                )
-            )
-            {
-                FatalErrorIn
-                (
-                    "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                )   << "MPI_Send failed"
-                    << Foam::abort(FatalError);
-            }
-
-            if
-            (
-                MPI_Recv
-                (
-                    &Value,
-                    1,
-                    MPI_SCALAR,
-                    UPstream::procID(parentId),
-                    tag,
-                    MPI_COMM_WORLD,
-                    MPI_STATUS_IGNORE
-                )
-            )
-            {
-                FatalErrorIn
-                (
-                    "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                )   << "MPI_Recv failed"
-                    << Foam::abort(FatalError);
-            }
-        }
+void Foam::reduce(scalar& Value, const minOp<scalar>& bop, const int tag)
+{
+    allReduce(Value, 1, MPI_SCALAR, MPI_MIN, bop, tag);
+}
 
 
-        //
-        // distribute to my children
-        //
-        level--;
-        thisLevelOffset >>= 1;
-        childLevelOffset = thisLevelOffset/2;
+void Foam::reduce(vector2D& Value, const sumOp<vector2D>& bop, const int tag)
+{
+    allReduce(Value, 2, MPI_SCALAR, MPI_SUM, bop, tag);
+}
 
-        while (level > 0)
-        {
-            childProcId = myProcNo + childLevelOffset;
 
-            if (childProcId < nProcs)
-            {
-                if
-                (
-                    MPI_Send
-                    (
-                        &Value,
-                        1,
-                        MPI_SCALAR,
-                        UPstream::procID(childProcId),
-                        tag,
-                        MPI_COMM_WORLD
-                    )
-                )
-                {
-                    FatalErrorIn
-                    (
-                        "reduce(scalar& Value, const sumOp<scalar>& sumOp)"
-                    )   << "MPI_Send failed"
-                        << Foam::abort(FatalError);
-                }
-            }
+void Foam::sumReduce
+(
+    scalar& Value,
+    label& Count,
+    const int tag
+)
+{
+    vector2D twoScalars(Value, scalar(Count));
+    reduce(twoScalars, sumOp<vector2D>());
 
-            level--;
-            thisLevelOffset >>= 1;
-            childLevelOffset = thisLevelOffset/2;
-        }
-        */
-    }
+    Value = twoScalars.x();
+    Count = twoScalars.y();
+}
 
-    if (Pstream::debug)
-    {
-        Pout<< "Foam::reduce : reduced value:" << Value << endl;
-    }
+
+void Foam::reduce
+(
+    scalar& Value,
+    const sumOp<scalar>& bop,
+    const int tag,
+    label& requestID
+)
+{
+#ifdef MPIX_COMM_TYPE_SHARED
+    // Assume mpich2 with non-blocking collectives extensions. Once mpi3
+    // is available this will change.
+    MPI_Request request;
+    scalar v = Value;
+    MPIX_Ireduce
+    (
+        &v,
+        &Value,
+        1,
+        MPI_SCALAR,
+        MPI_SUM,
+        0,              //root
+        MPI_COMM_WORLD,
+        &request
+    );
+
+    requestID = PstreamGlobals::outstandingRequests_.size();
+    PstreamGlobals::outstandingRequests_.append(request);
+#else
+    // Non-blocking not yet implemented in mpi
+    reduce(Value, bop, tag);
+    requestID = -1;
+#endif
 }
 
 
@@ -516,11 +298,54 @@ void Foam::UPstream::waitRequests(const label start)
 }
 
 
+void Foam::UPstream::waitRequest(const label i)
+{
+    if (debug)
+    {
+        Pout<< "UPstream::waitRequest : starting wait for request:" << i
+            << endl;
+    }
+
+    if (i >= PstreamGlobals::outstandingRequests_.size())
+    {
+        FatalErrorIn
+        (
+            "UPstream::waitRequest(const label)"
+        )   << "There are " << PstreamGlobals::outstandingRequests_.size()
+            << " outstanding send requests and you are asking for i=" << i
+            << nl
+            << "Maybe you are mixing blocking/non-blocking comms?"
+            << Foam::abort(FatalError);
+    }
+
+    if
+    (
+        MPI_Wait
+        (
+           &PstreamGlobals::outstandingRequests_[i],
+            MPI_STATUS_IGNORE
+        )
+    )
+    {
+        FatalErrorIn
+        (
+            "UPstream::waitRequest()"
+        )   << "MPI_Wait returned with error" << Foam::endl;
+    }
+
+    if (debug)
+    {
+        Pout<< "UPstream::waitRequest : finished wait for request:" << i
+            << endl;
+    }
+}
+
+
 bool Foam::UPstream::finishedRequest(const label i)
 {
     if (debug)
     {
-        Pout<< "UPstream::waitRequests : starting wait for request:" << i
+        Pout<< "UPstream::waitRequests : checking finishedRequest:" << i
             << endl;
     }
 
@@ -546,14 +371,12 @@ bool Foam::UPstream::finishedRequest(const label i)
 
     if (debug)
     {
-        Pout<< "UPstream::waitRequests : finished wait for request:" << i
+        Pout<< "UPstream::waitRequests : finished finishedRequest:" << i
             << endl;
     }
 
     return flag != 0;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // ************************************************************************* //

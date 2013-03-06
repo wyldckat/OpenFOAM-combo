@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,10 +65,6 @@ private:
 
 
         // Transformations
-
-            //- Type of transformation - rotational or translational
-            transformType transform_;
-
 
             // For rotation
 
@@ -141,6 +137,9 @@ protected:
         //- Update of the patch topology
         virtual void updateMesh(PstreamBuffers&);
 
+        //- Clear geometry
+        virtual void clearGeom();
+
 
 public:
 
@@ -157,7 +156,9 @@ public:
             const label size,
             const label start,
             const label index,
-            const polyBoundaryMesh& bm
+            const polyBoundaryMesh& bm,
+            const word& patchType,
+            const transformType transform = UNKNOWN
         );
 
         //- Construct from dictionary
@@ -166,7 +167,8 @@ public:
             const word& name,
             const dictionary& dict,
             const label index,
-            const polyBoundaryMesh& bm
+            const polyBoundaryMesh& bm,
+            const word& patchType
         );
 
         //- Construct as copy, resetting the boundary mesh
@@ -285,9 +287,6 @@ public:
 
             // Transformations
 
-                //- Type of transform
-                inline transformType transform() const;
-
                 //- Axis of rotation for rotational cyclic AMI
                 inline const vector& rotationAxis() const;
 
@@ -322,11 +321,11 @@ public:
                 ) const;
 
                 //- Low-level interpolate List
-                template<class Type, class BinaryOp>
+                template<class Type, class CombineOp>
                 void interpolate
                 (
                     const UList<Type>& fld,
-                    const BinaryOp& bop,
+                    const CombineOp& cop,
                     List<Type>& result
                 ) const;
 

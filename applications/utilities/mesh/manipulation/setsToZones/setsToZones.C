@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -20,6 +20,9 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    setsToZones
 
 Description
     Add pointZones/faceZones/cellZones to the mesh from similar named
@@ -48,15 +51,16 @@ Description
 #include "IFstream.H"
 #include "IOobjectList.H"
 #include "SortableList.H"
+#include "timeSelector.H"
 
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
+    timeSelector::addOptions(true, false);
     argList::addNote
     (
         "add point/face/cell Zones from similar named point/face/cell Sets"
@@ -76,15 +80,7 @@ int main(int argc, char *argv[])
     const bool noFlipMap = args.optionFound("noFlipMap");
 
     // Get times list
-    instantList Times = runTime.times();
-
-    label startTime = Times.size()-1;
-    label endTime = Times.size();
-
-    // check -time and -latestTime options
-    #include "checkTimeOption.H"
-
-    runTime.setTime(Times[startTime], startTime);
+    (void)timeSelector::selectIfPresent(runTime, args);
 
     #include "createNamedPolyMesh.H"
 

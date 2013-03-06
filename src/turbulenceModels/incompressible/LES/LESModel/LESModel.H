@@ -24,6 +24,9 @@ License
 Namespace
     Foam::incompressible::LESModels
 
+Group
+    grpIcoLESTurbulence
+
 Description
     Namespace for incompressible LES models.
 
@@ -44,11 +47,11 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef LESModel_H
-#define LESModel_H
+#ifndef incompressibleLESModel_H
+#define incompressibleLESModel_H
 
 #include "incompressible/turbulenceModel/turbulenceModel.H"
-#include "LESdelta.H"
+#include "incompressible/LES/incompressibleLESdelta/incompressibleLESdelta.H"
 #include "fvm.H"
 #include "fvc.H"
 #include "fvMatrices.H"
@@ -83,7 +86,7 @@ protected:
 
         dimensionedScalar kMin_;
 
-        autoPtr<LESdelta> delta_;
+        autoPtr<Foam::LESdelta> delta_;
 
 
     // Protected Member Functions
@@ -163,7 +166,7 @@ public:
             //- Const access to the coefficients dictionary,
             //  which provides info. about choice of models,
             //  and all related data (particularly model coefficients).
-            inline const dictionary& coeffDict() const
+            virtual const dictionary& coeffDict() const
             {
                 return coeffDict_;
             }

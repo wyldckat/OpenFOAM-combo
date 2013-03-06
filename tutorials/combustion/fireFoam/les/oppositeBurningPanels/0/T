@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -50,10 +50,10 @@ boundaryField
     {
         type            compressible::turbulentTemperatureRadCoupledMixed;
         Tnbr            T;
-        K               basicThermo;
+        kappa           fluidThermo;
         QrNbr           none;
         Qr              Qr;
-        KName           none;
+        kappaName       none;
         value           $internalField;
     }
 }

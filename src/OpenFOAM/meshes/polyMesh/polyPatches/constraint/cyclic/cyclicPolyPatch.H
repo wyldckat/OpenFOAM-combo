@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -71,9 +71,6 @@ class cyclicPolyPatch
 
         //- Index of other half
         mutable label neighbPatchID_;
-
-        //- Type of transformation - rotational or translational
-        transformType transform_;
 
         // For rotation
 
@@ -201,7 +198,9 @@ public:
             const label size,
             const label start,
             const label index,
-            const polyBoundaryMesh& bm
+            const polyBoundaryMesh& bm,
+            const word& patchType,
+            const transformType transform = UNKNOWN
         );
 
         //- Construct from components
@@ -225,7 +224,8 @@ public:
             const word& name,
             const dictionary& dict,
             const label index,
-            const polyBoundaryMesh& bm
+            const polyBoundaryMesh& bm,
+            const word& patchType
         );
 
         //- Construct as copy, resetting the boundary mesh
@@ -367,12 +367,6 @@ public:
                     << exit(FatalError);
                 return -1;
             }
-        }
-
-        //- Type of transform
-        transformType transform() const
-        {
-            return transform_;
         }
 
         //- Axis of rotation for rotational cyclics

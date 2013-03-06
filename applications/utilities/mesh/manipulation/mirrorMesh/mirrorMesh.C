@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    mirrorMesh
+
 Description
     Mirrors a mesh around a given plane.
 
@@ -33,19 +36,27 @@ Description
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {
+
+#   include "addOverwriteOption.H"
 #   include "setRootCase.H"
 #   include "createTime.H"
+
+    const bool overwrite = args.optionFound("overwrite");
+
+    if (!overwrite)
+    {
+        runTime++;
+    }
 
     mirrorFvMesh mesh
     (
         IOobject
         (
             mirrorFvMesh::defaultRegion,
-            runTime.timeName(),
+            runTime.constant(),
             runTime
         )
     );

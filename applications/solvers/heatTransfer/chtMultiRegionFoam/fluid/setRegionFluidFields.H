@@ -1,8 +1,9 @@
     fvMesh& mesh = fluidRegions[i];
 
-    basicRhoThermo& thermo = thermoFluid[i];
+    rhoThermo& thermo = thermoFluid[i];
+    thermo.validate(args.executable(), "h", "e");
+
     volScalarField& rho = rhoFluid[i];
-    volScalarField& kappa = kappaFluid[i];
     volVectorField& U = UFluid[i];
     surfaceScalarField& phi = phiFluid[i];
 
@@ -12,13 +13,14 @@
 
     volScalarField& p = thermo.p();
     const volScalarField& psi = thermo.psi();
-    volScalarField& h = thermo.h();
 
     volScalarField& p_rgh = p_rghFluid[i];
     const volScalarField& gh = ghFluid[i];
     const surfaceScalarField& ghf = ghfFluid[i];
 
     radiation::radiationModel& rad = radiation[i];
+
+    fv::IOoptionList& fvOptions = fluidFvOptions[i];
 
     const dimensionedScalar initialMass
     (

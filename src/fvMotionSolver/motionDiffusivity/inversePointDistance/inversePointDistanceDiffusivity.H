@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -53,7 +53,7 @@ class inversePointDistanceDiffusivity
     // Private data
 
         //- Patches selected to base the distance on
-        wordList patchNames_;
+        wordReList patchNames_;
 
 
     // Private Member Functions
@@ -73,12 +73,8 @@ public:
 
     // Constructors
 
-        //- Construct for the given fvMotionSolver and data Istream
-        inversePointDistanceDiffusivity
-        (
-            const fvMotionSolver& mSolver,
-            Istream& mdData
-        );
+        //- Construct for the given fvMesh and data Istream
+        inversePointDistanceDiffusivity(const fvMesh& mesh, Istream& mdData);
 
 
     //- Destructor

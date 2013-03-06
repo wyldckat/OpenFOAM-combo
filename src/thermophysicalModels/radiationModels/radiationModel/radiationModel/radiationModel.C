@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,7 +35,53 @@ namespace Foam
     namespace radiation
     {
         defineTypeNameAndDebug(radiationModel, 0);
+        defineRunTimeSelectionTable(radiationModel, T);
         defineRunTimeSelectionTable(radiationModel, dictionary);
+    }
+}
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+Foam::IOobject Foam::radiation::radiationModel::createIOobject
+(
+    const fvMesh& mesh
+) const
+{
+    IOobject io
+    (
+        "radiationProperties",
+        mesh.time().constant(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::NO_WRITE
+    );
+
+    if (io.headerOk())
+    {
+        io.readOpt() = IOobject::MUST_READ_IF_MODIFIED;
+        return io;
+    }
+    else
+    {
+        io.readOpt() = IOobject::NO_READ;
+        return io;
+    }
+}
+
+
+void Foam::radiation::radiationModel::initialise()
+{
+    if (radiation_)
+    {
+        solverFreq_ = max(1, lookupOrDefault<label>("solverFreq", 1));
+
+        absorptionEmission_.reset
+        (
+            absorptionEmissionModel::New(*this, mesh_).ptr()
+        );
+
+        scatter_.reset(scatterModel::New(*this, mesh_).ptr());
     }
 }
 
@@ -51,7 +97,7 @@ Foam::radiation::radiationModel::radiationModel(const volScalarField& T)
             "radiationProperties",
             T.time().constant(),
             T.mesh(),
-            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_READ,
             IOobject::NO_WRITE
         )
     ),
@@ -73,6 +119,33 @@ Foam::radiation::radiationModel::radiationModel
     const volScalarField& T
 )
 :
+    IOdictionary(createIOobject(T.mesh())),
+    mesh_(T.mesh()),
+    time_(T.time()),
+    T_(T),
+    radiation_(lookupOrDefault("radiation", true)),
+    coeffs_(subOrEmptyDict(type + "Coeffs")),
+    solverFreq_(1),
+    firstIter_(true),
+    absorptionEmission_(NULL),
+    scatter_(NULL)
+{
+    if (readOpt() == IOobject::NO_READ)
+    {
+        radiation_ = false;
+    }
+
+    initialise();
+}
+
+
+Foam::radiation::radiationModel::radiationModel
+(
+    const word& type,
+    const dictionary& dict,
+    const volScalarField& T
+)
+:
     IOdictionary
     (
         IOobject
@@ -80,21 +153,22 @@ Foam::radiation::radiationModel::radiationModel
             "radiationProperties",
             T.time().constant(),
             T.mesh(),
-            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_READ,
             IOobject::NO_WRITE
-        )
+        ),
+        dict
     ),
     mesh_(T.mesh()),
     time_(T.time()),
     T_(T),
-    radiation_(lookup("radiation")),
-    coeffs_(subDict(type + "Coeffs")),
-    solverFreq_(readLabel(lookup("solverFreq"))),
+    radiation_(lookupOrDefault("radiation", true)),
+    coeffs_(subOrEmptyDict(type + "Coeffs")),
+    solverFreq_(1),
     firstIter_(true),
-    absorptionEmission_(absorptionEmissionModel::New(*this, mesh_)),
-    scatter_(scatterModel::New(*this, mesh_))
+    absorptionEmission_(NULL),
+    scatter_(NULL)
 {
-    solverFreq_ = max(1, solverFreq_);
+    initialise();
 }
 
 
@@ -111,9 +185,9 @@ bool Foam::radiation::radiationModel::read()
     if (regIOobject::read())
     {
         lookup("radiation") >> radiation_;
-        coeffs_ = subDict(type() + "Coeffs");
+        coeffs_ = subOrEmptyDict(type() + "Coeffs");
 
-        lookup("solverFreq") >> solverFreq_,
+        solverFreq_ = lookupOrDefault<label>("solverFreq", 1);
         solverFreq_ = max(1, solverFreq_);
 
         return true;
@@ -142,37 +216,26 @@ void Foam::radiation::radiationModel::correct()
 
 Foam::tmp<Foam::fvScalarMatrix> Foam::radiation::radiationModel::Sh
 (
-    basicThermo& thermo
+    fluidThermo& thermo
 ) const
 {
-    volScalarField& h = thermo.h();
-    const volScalarField Cp(thermo.Cp());
+    volScalarField& he = thermo.he();
+    const volScalarField Cpv(thermo.Cpv());
     const volScalarField T3(pow3(T_));
 
     return
     (
         Ru()
-      - fvm::Sp(4.0*Rp()*T3/Cp, h)
-      - Rp()*T3*(T_ - 4.0*h/Cp)
+      - fvm::Sp(4.0*Rp()*T3/Cpv, he)
+      - Rp()*T3*(T_ - 4.0*he/Cpv)
     );
 }
 
 
-Foam::tmp<Foam::fvScalarMatrix> Foam::radiation::radiationModel::Shs
-(
-    basicThermo& thermo
-) const
+const Foam::radiation::absorptionEmissionModel&
+Foam::radiation::radiationModel::absorptionEmission() const
 {
-    volScalarField& hs = thermo.hs();
-    const volScalarField Cp(thermo.Cp());
-    const volScalarField T3(pow3(T_));
-
-    return
-    (
-        Ru()
-      - fvm::Sp(4.0*Rp()*T3/Cp, hs)
-      - Rp()*T3*(T_ - 4.0*hs/Cp)
-    );
+    return absorptionEmission_();
 }
 
 

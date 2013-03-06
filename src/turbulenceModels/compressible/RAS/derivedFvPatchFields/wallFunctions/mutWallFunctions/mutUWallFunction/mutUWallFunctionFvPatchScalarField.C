@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "mutUWallFunctionFvPatchScalarField.H"
-#include "RASModel.H"
+#include "compressible/turbulenceModel/turbulenceModel.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "addToRunTimeSelectionTable.H"
@@ -35,8 +35,6 @@ namespace Foam
 {
 namespace compressible
 {
-namespace RASModels
-{
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
@@ -45,12 +43,14 @@ tmp<scalarField> mutUWallFunctionFvPatchScalarField::calcYPlus
     const scalarField& magUp
 ) const
 {
-    const label patchI = patch().index();
+    const label patchi = patch().index();
 
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
-    const scalarField& y = rasModel.y()[patchI];
-    const fvPatchScalarField& rhow = rasModel.rho().boundaryField()[patchI];
-    const fvPatchScalarField& muw = rasModel.mu().boundaryField()[patchI];
+    const turbulenceModel& turbModel =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
+
+    const scalarField& y = turbModel.y()[patchi];
+    const fvPatchScalarField& rhow = turbModel.rho().boundaryField()[patchi];
+    const fvPatchScalarField& muw = turbModel.mu().boundaryField()[patchi];
 
     tmp<scalarField> tyPlus(new scalarField(patch().size(), 0.0));
     scalarField& yPlus = tyPlus();
@@ -81,12 +81,14 @@ tmp<scalarField> mutUWallFunctionFvPatchScalarField::calcYPlus
 
 tmp<scalarField> mutUWallFunctionFvPatchScalarField::calcMut() const
 {
-    const label patchI = patch().index();
+    const label patchi = patch().index();
 
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
-    const fvPatchVectorField& Uw = rasModel.U().boundaryField()[patchI];
+    const turbulenceModel& turbModel =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
+
+    const fvPatchVectorField& Uw = turbModel.U().boundaryField()[patchi];
     const scalarField magUp(mag(Uw.patchInternalField() - Uw));
-    const fvPatchScalarField& muw = rasModel.mu().boundaryField()[patchI];
+    const fvPatchScalarField& muw = turbModel.mu().boundaryField()[patchi];
 
     tmp<scalarField> tyPlus = calcYPlus(magUp);
     scalarField& yPlus = tyPlus();
@@ -115,7 +117,7 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mutkWallFunctionFvPatchScalarField(p, iF)
+    mutWallFunctionFvPatchScalarField(p, iF)
 {}
 
 
@@ -127,7 +129,7 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    mutkWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
+    mutWallFunctionFvPatchScalarField(ptf, p, iF, mapper)
 {}
 
 
@@ -138,7 +140,7 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
     const dictionary& dict
 )
 :
-    mutkWallFunctionFvPatchScalarField(p, iF, dict)
+    mutWallFunctionFvPatchScalarField(p, iF, dict)
 {}
 
 
@@ -147,7 +149,7 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
     const mutUWallFunctionFvPatchScalarField& sawfpsf
 )
 :
-    mutkWallFunctionFvPatchScalarField(sawfpsf)
+    mutWallFunctionFvPatchScalarField(sawfpsf)
 {}
 
 
@@ -157,7 +159,7 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mutkWallFunctionFvPatchScalarField(sawfpsf, iF)
+    mutWallFunctionFvPatchScalarField(sawfpsf, iF)
 {}
 
 
@@ -165,9 +167,10 @@ mutUWallFunctionFvPatchScalarField::mutUWallFunctionFvPatchScalarField
 
 tmp<scalarField> mutUWallFunctionFvPatchScalarField::yPlus() const
 {
-    const label patchI = patch().index();
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
-    const fvPatchVectorField& Uw = rasModel.U().boundaryField()[patchI];
+    const label patchi = patch().index();
+    const turbulenceModel& turbModel =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
+    const fvPatchVectorField& Uw = turbModel.U().boundaryField()[patchi];
     const scalarField magUp(mag(Uw.patchInternalField() - Uw));
 
     return calcYPlus(magUp);
@@ -192,7 +195,6 @@ makePatchTypeField
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

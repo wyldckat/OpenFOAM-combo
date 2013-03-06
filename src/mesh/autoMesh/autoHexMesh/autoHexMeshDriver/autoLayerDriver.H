@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -99,7 +99,10 @@ class autoLayerDriver
         meshRefinement& meshRefiner_;
 
         //- From surface region to patch
-        const labelList globalToPatch_;
+        const labelList globalToMasterPatch_;
+
+        //- From surface region to patch
+        const labelList globalToSlavePatch_;
 
 
 
@@ -192,8 +195,22 @@ class autoLayerDriver
                     const indirectPrimitivePatch& pp,
                     pointField& patchDisp,
                     labelList& patchNLayers,
-                    List<extrudeMode>& extrudeStatus
+                    List<extrudeMode>& extrudeStatus,
+                    label& nIdealAddedCells
                 ) const;
+
+                //- Helper function to make a pointVectorField with correct
+                //  bcs for layer addition:
+                //  - numLayers > 0         : fixedValue
+                //  - numLayers == 0        : fixedValue (always zero)
+                //  - processor             : calculated (so free to move)
+                //  - cyclic/wedge/symmetry : slip
+                //  - other                 : slip
+                static tmp<pointVectorField> makeLayerDisplacementField
+                (
+                    const pointMesh& pMesh,
+                    const labelList& numLayers
+                );
 
                 //- Grow no-extrusion layer.
                 void growNoExtrusion
@@ -223,12 +240,7 @@ class autoLayerDriver
                 (
                     const indirectPrimitivePatch& pp,
                     const labelList& patchIDs,
-
-                    const scalarField& patchExpansionRatio,
-                    const bool relativeSizes,
-                    const scalarField& patchFinalLayerThickness,
-                    const scalarField& patchMinThickness,
-
+                    const layerParameters& layerParams,
                     const labelList& cellLevel,
                     const labelList& patchNLayers,
                     const scalar edge0Len,
@@ -444,7 +456,6 @@ class autoLayerDriver
                     const PackedBoolList& isMasterEdge,
                     const labelList& meshEdges,
                     const scalar minCosLayerTermination,
-                    scalarField& field,
                     List<extrudeMode>& extrudeStatus,
                     pointField& patchDisp,
                     labelList& patchNLayers
@@ -457,10 +468,12 @@ class autoLayerDriver
                     const label nSmoothNormals,
                     const label nSmoothSurfaceNormals,
                     const scalar minMedianAxisAngleCos,
+                    const scalar featureAngle,
 
                     pointVectorField& dispVec,
                     pointScalarField& medialRatio,
-                    pointScalarField& medialDist
+                    pointScalarField& medialDist,
+                    pointVectorField& medialVec
                 ) const;
 
                 //- Main routine to shrink mesh
@@ -481,6 +494,7 @@ class autoLayerDriver
                     const pointVectorField& dispVec,
                     const pointScalarField& medialRatio,
                     const pointScalarField& medialDist,
+                    const pointVectorField& medialVec,
 
                     List<extrudeMode>& extrudeStatus,
                     pointField& patchDisp,
@@ -507,7 +521,8 @@ public:
         autoLayerDriver
         (
             meshRefinement& meshRefiner,
-            const labelList& globalToPatch
+            const labelList& globalToMasterPatch,
+            const labelList& globalToSlavePatch
         );
 
 

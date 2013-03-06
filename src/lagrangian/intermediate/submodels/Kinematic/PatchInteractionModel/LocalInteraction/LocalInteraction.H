@@ -55,21 +55,6 @@ class LocalInteraction
         const patchInteractionDataList patchData_;
 
 
-        // Counters for initial particle fates
-
-            //- Number of parcels escaped
-            List<label> nEscape0_;
-
-            //- Mass of parcels escaped
-            List<scalar> massEscape0_;
-
-            //- Number of parcels stuck to patches
-            List<label> nStick0_;
-
-            //- Mass of parcels stuck to patches
-            List<scalar> massStick0_;
-
-
         // Counters for particle fates
 
             //- Number of parcels escaped

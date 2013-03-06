@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,20 +31,22 @@ License
 #include "processorFvsPatchField.H"
 #include "processorCyclicPolyPatch.H"
 #include "processorCyclicFvPatchField.H"
-#include "processorCyclicFvsPatchField.H"
 #include "polyTopoChange.H"
 #include "removeCells.H"
 #include "polyModifyFace.H"
 #include "polyRemovePoint.H"
-#include "mergePoints.H"
 #include "mapDistributePolyMesh.H"
 #include "surfaceFields.H"
 #include "syncTools.H"
 #include "CompactListList.H"
+#include "fvMeshTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::fvMeshDistribute, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(fvMeshDistribute, 0);
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -275,156 +277,6 @@ Foam::label Foam::fvMeshDistribute::findNonEmptyPatch() const
 }
 
 
-//// Appends processorPolyPatch. Returns patchID.
-//Foam::label Foam::fvMeshDistribute::addProcPatch
-//(
-//    const word& patchName,
-//    const label nbrProc
-//)
-//{
-//    // Clear local fields and e.g. polyMesh globalMeshData.
-//    mesh_.clearOut();
-//
-//
-//    polyBoundaryMesh& polyPatches =
-//        const_cast<polyBoundaryMesh&>(mesh_.boundaryMesh());
-//    fvBoundaryMesh& fvPatches = const_cast<fvBoundaryMesh&>(mesh_.boundary());
-//
-//    if (polyPatches.findPatchID(patchName) != -1)
-//    {
-//        FatalErrorIn
-//        (
-//            "fvMeshDistribute::addProcPatch(const word&, const label)"
-//        )
-//            << "Cannot create patch " << patchName << " since already exists."
-//            << nl
-//            << "Current patch names:" << polyPatches.names()
-//            << exit(FatalError);
-//    }
-//
-//
-//
-//    // Add the patch
-//    // ~~~~~~~~~~~~~
-//
-//    label sz = polyPatches.size();
-//
-//    // Add polyPatch
-//    polyPatches.setSize(sz+1);
-//    polyPatches.set
-//    (
-//        sz,
-//        new processorPolyPatch
-//        (
-//            patchName,
-//            0,              // size
-//            mesh_.nFaces(),
-//            sz,
-//            mesh_.boundaryMesh(),
-//            Pstream::myProcNo(),
-//            nbrProc
-//        )
-//    );
-//    fvPatches.setSize(sz+1);
-//    fvPatches.set
-//    (
-//        sz,
-//        fvPatch::New
-//        (
-//            polyPatches[sz],  // point to newly added polyPatch
-//            mesh_.boundary()
-//        )
-//    );
-//
-//    return sz;
-//}
-
-
-// Appends polyPatch. Returns patchID.
-Foam::label Foam::fvMeshDistribute::addPatch(polyPatch* patchPtr)
-{
-    // Clear local fields and e.g. polyMesh globalMeshData.
-    mesh_.clearOut();
-
-    polyBoundaryMesh& polyPatches =
-        const_cast<polyBoundaryMesh&>(mesh_.boundaryMesh());
-    fvBoundaryMesh& fvPatches = const_cast<fvBoundaryMesh&>(mesh_.boundary());
-
-    if (polyPatches.findPatchID(patchPtr->name()) != -1)
-    {
-        FatalErrorIn("fvMeshDistribute::addPatch(polyPatch*)")
-            << "Cannot create patch " << patchPtr->name()
-            << " since already exists." << nl
-            << "Current patch names:" << polyPatches.names()
-            << exit(FatalError);
-    }
-
-
-    // Add the patch
-    // ~~~~~~~~~~~~~
-
-    label sz = polyPatches.size();
-
-    // Add polyPatch
-    polyPatches.setSize(sz+1);
-    polyPatches.set(sz, patchPtr);
-    fvPatches.setSize(sz+1);
-    fvPatches.set
-    (
-        sz,
-        fvPatch::New
-        (
-            polyPatches[sz],  // point to newly added polyPatch
-            mesh_.boundary()
-        )
-    );
-
-    return sz;
-}
-
-
-// Deletes last patch
-void Foam::fvMeshDistribute::deleteTrailingPatch()
-{
-    // Clear local fields and e.g. polyMesh globalMeshData.
-    mesh_.clearOut();
-
-    polyBoundaryMesh& polyPatches =
-        const_cast<polyBoundaryMesh&>(mesh_.boundaryMesh());
-    fvBoundaryMesh& fvPatches = const_cast<fvBoundaryMesh&>(mesh_.boundary());
-
-    if (polyPatches.empty())
-    {
-        FatalErrorIn("fvMeshDistribute::deleteTrailingPatch(fvMesh&)")
-            << "No patches in mesh"
-            << abort(FatalError);
-    }
-
-    label sz = polyPatches.size();
-
-    label nFaces = polyPatches[sz-1].size();
-
-    // Remove last polyPatch
-    if (debug)
-    {
-        Pout<< "deleteTrailingPatch : Removing patch " << sz-1
-            << " : " << polyPatches[sz-1].name() << " size:" << nFaces << endl;
-    }
-
-    if (nFaces)
-    {
-        FatalErrorIn("fvMeshDistribute::deleteTrailingPatch()")
-            << "There are still " << nFaces << " faces in patch to be deleted "
-            << sz-1 << ' ' << polyPatches[sz-1].name()
-            << abort(FatalError);
-    }
-
-    // Remove actual patch
-    polyPatches.setSize(sz-1);
-    fvPatches.setSize(sz-1);
-}
-
-
 // Delete all processor patches. Move any processor faces into the last
 // non-processor patch.
 Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::deleteProcPatches
@@ -470,25 +322,28 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::deleteProcPatches
 
 
     // Delete (now empty) processor patches.
-    forAllReverse(mesh_.boundaryMesh(), patchI)
     {
-        const polyPatch& pp = mesh_.boundaryMesh()[patchI];
-
-        if (isA<processorPolyPatch>(pp))
+        labelList oldToNew(identity(mesh_.boundaryMesh().size()));
+        label newI = 0;
+        // Non processor patches first
+        forAll(mesh_.boundaryMesh(), patchI)
         {
-            deleteTrailingPatch();
-            deleteTrailingPatchFields<volScalarField>();
-            deleteTrailingPatchFields<volVectorField>();
-            deleteTrailingPatchFields<volSphericalTensorField>();
-            deleteTrailingPatchFields<volSymmTensorField>();
-            deleteTrailingPatchFields<volTensorField>();
-
-            deleteTrailingPatchFields<surfaceScalarField>();
-            deleteTrailingPatchFields<surfaceVectorField>();
-            deleteTrailingPatchFields<surfaceSphericalTensorField>();
-            deleteTrailingPatchFields<surfaceSymmTensorField>();
-            deleteTrailingPatchFields<surfaceTensorField>();
+            if (!isA<processorPolyPatch>(mesh_.boundaryMesh()[patchI]))
+            {
+                oldToNew[patchI] = newI++;
+            }
         }
+        label nNonProcPatches = newI;
+
+        // Processor patches as last
+        forAll(mesh_.boundaryMesh(), patchI)
+        {
+            if (isA<processorPolyPatch>(mesh_.boundaryMesh()[patchI]))
+            {
+                oldToNew[patchI] = newI++;
+            }
+        }
+        fvMeshTools::reorderPatches(mesh_, oldToNew, nNonProcPatches, false);
     }
 
     return map;
@@ -554,6 +409,12 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::fvMeshDistribute::repatch
     saveBoundaryFields<tensor, surfaceMesh>(tFlds);
 
     // Change the mesh (no inflation). Note: parallel comms allowed.
+    //
+    // NOTE: there is one very particular problem with this ordering.
+    // We first create the processor patches and use these to merge out
+    // shared points (see mergeSharedPoints below). So temporarily points
+    // and edges do not match!
+
     autoPtr<mapPolyMesh> map = meshMod.changeMesh(mesh_, false, true);
 
     // Update fields. No inflation, parallel sync.
@@ -1077,73 +938,40 @@ void Foam::fvMeshDistribute::addProcPatches
                       + "to"
                       + name(procI);
 
+                    processorPolyPatch pp
+                    (
+                        patchName,
+                        0,              // size
+                        mesh_.nFaces(),
+                        mesh_.boundaryMesh().size(),
+                        mesh_.boundaryMesh(),
+                        Pstream::myProcNo(),
+                        nbrProc[bFaceI]
+                    );
+
                     procPatchID[procI].insert
                     (
                         referPatchID[bFaceI],
-                        addPatch
+                        fvMeshTools::addPatch
                         (
-                            new processorPolyPatch
-                            (
-                                patchName,
-                                0,              // size
-                                mesh_.nFaces(),
-                                mesh_.boundaryMesh().size(),
-                                mesh_.boundaryMesh(),
-                                Pstream::myProcNo(),
-                                nbrProc[bFaceI]
-                            )
+                            mesh_,
+                            pp,
+                            dictionary(),   // optional per field patchField
+                            processorFvPatchField<scalar>::typeName,
+                            false           // not parallel sync
                         )
-                    );
-
-                    addPatchFields<volScalarField>
-                    (
-                        processorFvPatchField<scalar>::typeName
-                    );
-                    addPatchFields<volVectorField>
-                    (
-                        processorFvPatchField<vector>::typeName
-                    );
-                    addPatchFields<volSphericalTensorField>
-                    (
-                        processorFvPatchField<sphericalTensor>::typeName
-                    );
-                    addPatchFields<volSymmTensorField>
-                    (
-                        processorFvPatchField<symmTensor>::typeName
-                    );
-                    addPatchFields<volTensorField>
-                    (
-                        processorFvPatchField<tensor>::typeName
-                    );
-
-                    addPatchFields<surfaceScalarField>
-                    (
-                        processorFvPatchField<scalar>::typeName
-                    );
-                    addPatchFields<surfaceVectorField>
-                    (
-                        processorFvPatchField<vector>::typeName
-                    );
-                    addPatchFields<surfaceSphericalTensorField>
-                    (
-                        processorFvPatchField<sphericalTensor>::typeName
-                    );
-                    addPatchFields<surfaceSymmTensorField>
-                    (
-                        processorFvPatchField<symmTensor>::typeName
-                    );
-                    addPatchFields<surfaceTensorField>
-                    (
-                        processorFvPatchField<tensor>::typeName
                     );
                 }
                 else
                 {
+                    const coupledPolyPatch& pcPatch
+                        = refCast<const coupledPolyPatch>
+                          (
+                              mesh_.boundaryMesh()[referPatchID[bFaceI]]
+                          );
+
                     // Processor boundary originating from cyclic
-                    const word& cycName = mesh_.boundaryMesh()
-                    [
-                        referPatchID[bFaceI]
-                    ].name();
+                    const word& cycName = pcPatch.name();
 
                     const word patchName =
                         "procBoundary"
@@ -1153,65 +981,30 @@ void Foam::fvMeshDistribute::addProcPatches
                       + "through"
                       + cycName;
 
+                    processorCyclicPolyPatch pp
+                    (
+                        patchName,
+                        0,              // size
+                        mesh_.nFaces(),
+                        mesh_.boundaryMesh().size(),
+                        mesh_.boundaryMesh(),
+                        Pstream::myProcNo(),
+                        nbrProc[bFaceI],
+                        cycName,
+                        pcPatch.transform()
+                    );
+
                     procPatchID[procI].insert
                     (
                         referPatchID[bFaceI],
-                        addPatch
+                        fvMeshTools::addPatch
                         (
-                            new processorCyclicPolyPatch
-                            (
-                                patchName,
-                                0,              // size
-                                mesh_.nFaces(),
-                                mesh_.boundaryMesh().size(),
-                                mesh_.boundaryMesh(),
-                                Pstream::myProcNo(),
-                                nbrProc[bFaceI],
-                                cycName
-                            )
+                            mesh_,
+                            pp,
+                            dictionary(),   // optional per field patchField
+                            processorCyclicFvPatchField<scalar>::typeName,
+                            false           // not parallel sync
                         )
-                    );
-
-                    addPatchFields<volScalarField>
-                    (
-                        processorCyclicFvPatchField<scalar>::typeName
-                    );
-                    addPatchFields<volVectorField>
-                    (
-                        processorCyclicFvPatchField<vector>::typeName
-                    );
-                    addPatchFields<volSphericalTensorField>
-                    (
-                        processorCyclicFvPatchField<sphericalTensor>::typeName
-                    );
-                    addPatchFields<volSymmTensorField>
-                    (
-                        processorCyclicFvPatchField<symmTensor>::typeName
-                    );
-                    addPatchFields<volTensorField>
-                    (
-                        processorCyclicFvPatchField<tensor>::typeName
-                    );
-
-                    addPatchFields<surfaceScalarField>
-                    (
-                        processorCyclicFvPatchField<scalar>::typeName
-                    );
-                    addPatchFields<surfaceVectorField>
-                    (
-                        processorCyclicFvPatchField<vector>::typeName
-                    );
-                    addPatchFields<surfaceSphericalTensorField>
-                    (
-                        processorCyclicFvPatchField<sphericalTensor>::typeName
-                    );
-                    addPatchFields<surfaceSymmTensorField>
-                    (
-                        processorCyclicFvPatchField<symmTensor>::typeName
-                    );
-                    addPatchFields<surfaceTensorField>
-                    (
-                        processorCyclicFvPatchField<tensor>::typeName
                     );
                 }
             }
@@ -2430,10 +2223,14 @@ Foam::autoPtr<Foam::mapDistributePolyMesh> Foam::fvMeshDistribute::distribute
 
     // Change patches. Since this might change ordering of coupled faces
     // we also need to adapt our constructMaps.
+    // NOTE: there is one very particular problem with this structure.
+    // We first create the processor patches and use these to merge out
+    // shared points (see mergeSharedPoints below). So temporarily points
+    // and edges do not match!
     repatch(newPatchID, constructFaceMap);
 
     // See if any geometrically shared points need to be merged. Note: does
-    // parallel comms.
+    // parallel comms. After this points and edges should again be consistent.
     mergeSharedPoints(constructPointMap);
 
     // Bit of hack: processorFvPatchField does not get reset since created
@@ -2462,6 +2259,7 @@ Foam::autoPtr<Foam::mapDistributePolyMesh> Foam::fvMeshDistribute::distribute
     (
         pTraits<tensor>::zero
     );
+
     initPatchFields<surfaceScalarField, processorFvsPatchField<scalar> >
     (
         pTraits<scalar>::zero

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class objectRegistry Declaration
+                       Class objectRegistry Declaration
 \*---------------------------------------------------------------------------*/
 
 class objectRegistry
@@ -147,12 +147,17 @@ public:
             template<class Type>
             wordList names() const;
 
-            //- Lookup and return a const sub-objectRegistry
-            const objectRegistry& subRegistry(const word& name) const;
+            //- Lookup and return a const sub-objectRegistry. Optionally create
+            //  it if it does not exist.
+            const objectRegistry& subRegistry
+            (
+                const word& name,
+                const bool forceCreate = false
+            ) const;
 
             //- Lookup and return all objects of the given Type
             template<class Type>
-            HashTable<const Type*> lookupClass() const;
+            HashTable<const Type*> lookupClass(const bool strict = false) const;
 
             //- Is the named Type found?
             template<class Type>

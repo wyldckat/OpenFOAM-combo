@@ -112,10 +112,11 @@ public:
 
             //- Post-move hook
             virtual void postMove
-            (   
-                parcelType& p,
+            (
+                const parcelType& p,
                 const label cellI,
-                const scalar dt
+                const scalar dt,
+                bool& keepParticle
             );
 };
 

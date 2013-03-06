@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,29 +94,35 @@ Foam::constTransport<Thermo>::New
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class Thermo>
-inline Foam::scalar Foam::constTransport<Thermo>::mu(const scalar) const
+inline Foam::scalar Foam::constTransport<Thermo>::mu
+(
+    const scalar p,
+    const scalar T
+) const
 {
     return mu_;
 }
 
 
 template<class Thermo>
-inline Foam::scalar Foam::constTransport<Thermo>::kappa(const scalar T) const
+inline Foam::scalar Foam::constTransport<Thermo>::kappa
+(
+    const scalar p,
+    const scalar T
+) const
 {
-    return this->Cp(T)*mu(T)*rPr_;
+    return this->Cp(p, T)*mu(p, T)*rPr_;
 }
 
 
 template<class Thermo>
-inline Foam::scalar Foam::constTransport<Thermo>::alpha(const scalar T) const
+inline Foam::scalar Foam::constTransport<Thermo>::alphah
+(
+    const scalar p,
+    const scalar T
+) const
 {
-    scalar Cp_ = this->Cp(T);
-
-    scalar deltaT = T - specie::Tstd;
-    scalar CpBar =
-        (deltaT*(this->H(T) - this->H(specie::Tstd)) + Cp_)/(sqr(deltaT) + 1);
-
-    return Cp_*mu(T)*rPr_/CpBar;
+    return mu(p, T)*rPr_;
 }
 
 
@@ -134,52 +140,6 @@ inline Foam::constTransport<Thermo>& Foam::constTransport<Thermo>::operator=
     rPr_ = ct.rPr_;
 
     return *this;
-}
-
-
-template<class Thermo>
-inline void Foam::constTransport<Thermo>::operator+=
-(
-    const constTransport<Thermo>& st
-)
-{
-    scalar molr1 = this->nMoles();
-
-    Thermo::operator+=(st);
-
-    molr1 /= this->nMoles();
-    scalar molr2 = st.nMoles()/this->nMoles();
-
-    mu_ = molr1*mu_ + molr2*st.mu_;
-    rPr_ = molr1*rPr_ + molr2*st.rPr_;
-}
-
-
-template<class Thermo>
-inline void Foam::constTransport<Thermo>::operator-=
-(
-    const constTransport<Thermo>& st
-)
-{
-    scalar molr1 = this->nMoles();
-
-    Thermo::operator-=(st);
-
-    molr1 /= this->nMoles();
-    scalar molr2 = st.nMoles()/this->nMoles();
-
-    mu_ = molr1*mu_ - molr2*st.mu_;
-    rPr_ = molr1*rPr_ - molr2*st.rPr_;
-}
-
-
-template<class Thermo>
-inline void Foam::constTransport<Thermo>::operator*=
-(
-    const scalar s
-)
-{
-    Thermo::operator*=(s);
 }
 
 

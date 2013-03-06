@@ -148,7 +148,7 @@ bool Foam::triSurfaceMesh::isSurfaceClosed() const
     // Construct pointFaces. Let's hope surface has compact point
     // numbering ...
     labelListList pointFaces;
-    invertManyToMany(points().size(), *this, pointFaces);
+    invertManyToMany(points()().size(), *this, pointFaces);
 
     // Loop over all faces surrounding point. Count edges emanating from point.
     // Every edge should be used by two faces exactly.
@@ -288,7 +288,7 @@ void Foam::triSurfaceMesh::calcBounds(boundBox& bb, label& nPoints) const
 
     const triSurface& s = static_cast<const triSurface&>(*this);
 
-    PackedBoolList pointIsUsed(points().size());
+    PackedBoolList pointIsUsed(points()().size());
 
     nPoints = 0;
     bb = boundBox::invertedBox;
@@ -302,8 +302,8 @@ void Foam::triSurfaceMesh::calcBounds(boundBox& bb, label& nPoints) const
             label pointI = f[fp];
             if (pointIsUsed.set(pointI, 1u))
             {
-                bb.min() = ::Foam::min(bb.min(), points()[pointI]);
-                bb.max() = ::Foam::max(bb.max(), points()[pointI]);
+                bb.min() = ::Foam::min(bb.min(), points()()[pointI]);
+                bb.max() = ::Foam::max(bb.max(), points()()[pointI]);
                 nPoints++;
             }
         }
@@ -487,14 +487,25 @@ void Foam::triSurfaceMesh::clearOut()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::pointField Foam::triSurfaceMesh::coordinates() const
+Foam::tmp<Foam::pointField> Foam::triSurfaceMesh::coordinates() const
 {
+    tmp<pointField> tPts(new pointField(8));
+    pointField& pt = tPts();
+
     // Use copy to calculate face centres so they don't get stored
-    return PrimitivePatch<triSurface::FaceType, SubList, const pointField&>
+    pt = PrimitivePatch<triSurface::FaceType, SubList, const pointField&>
     (
         SubList<triSurface::FaceType>(*this, triSurface::size()),
         triSurface::points()
     ).faceCentres();
+
+    return tPts;
+}
+
+
+Foam::tmp<Foam::pointField> Foam::triSurfaceMesh::points() const
+{
+    return triSurface::points();
 }
 
 
@@ -526,12 +537,12 @@ Foam::triSurfaceMesh::tree() const
         label nPoints;
         calcBounds(bb, nPoints);
 
-        if (nPoints != points().size())
+        if (nPoints != points()().size())
         {
             WarningIn("triSurfaceMesh::tree() const")
                 << "Surface " << searchableSurface::name()
                 << " does not have compact point numbering."
-                << " Of " << points().size() << " only " << nPoints
+                << " Of " << points()().size() << " only " << nPoints
                 << " are used. This might give problems in some routines."
                 << endl;
         }
@@ -542,7 +553,7 @@ Foam::triSurfaceMesh::tree() const
 
         // Slightly extended bb. Slightly off-centred just so on symmetric
         // geometry there are less face/edge aligned items.
-        bb = bb.extend(rndGen, 1E-4);
+        bb = bb.extend(rndGen, 1e-4);
         bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         bb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
 
@@ -594,7 +605,7 @@ Foam::triSurfaceMesh::edgeTree() const
         // Slightly extended bb. Slightly off-centred just so on symmetric
         // geometry there are less face/edge aligned items.
 
-        bb = bb.extend(rndGen, 1E-4);
+        bb = bb.extend(rndGen, 1e-4);
         bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
         bb.max() += point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
 
@@ -622,6 +633,12 @@ Foam::triSurfaceMesh::edgeTree() const
         indexedOctree<treeDataEdge>::perturbTol() = oldTol;
     }
     return edgeTree_();
+}
+
+
+Foam::scalar Foam::triSurfaceMesh::tolerance() const
+{
+    return tolerance_;
 }
 
 
@@ -849,14 +866,6 @@ void Foam::triSurfaceMesh::getNormal
 
                 if (qual < minQuality_)
                 {
-                    //{
-                    //    Pout<< "** for triangle:" << s[faceI].tri(points())
-                    //        << " quality:" << qual
-                    //        << " old normal:"
-                    //        << normal[i]/(mag(normal[i])+VSMALL)
-                    //        << endl;
-                    //}
-
                     // Search neighbouring triangles
                     const labelList& fFaces = faceFaces[faceI];
 
@@ -870,13 +879,6 @@ void Foam::triSurfaceMesh::getNormal
                             normal[i] = s[nbrI].normal(points());
                         }
                     }
-
-                    //{
-                    //    Pout<< "   replacement quality:" << qual
-                    //        << " replacement normal:"
-                    //        << normal[i]/(mag(normal[i])+VSMALL)
-                    //        << endl;
-                    //}
                 }
 
                 normal[i] /= mag(normal[i]) + VSMALL;

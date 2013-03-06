@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,7 +17,7 @@ FoamFile
 
 solvers
 {
-    "(Uf|hsf|deltaf\*rhof)"
+    "(Uf|hf|deltaf\*rhof)"
     {
         solver          PBiCG;
         preconditioner  DILU;
@@ -37,8 +37,7 @@ solvers
 PISO
 {
     momentumPredictor true;
-    nOuterCorr      1;
-    nCorr           2;
+    nCorr           1;
     nNonOrthCorr    0;
 }
 

@@ -53,7 +53,7 @@ class WallModel;
 
 
 /*---------------------------------------------------------------------------*\
-                        Class PairCollision Declaration
+                     Class PairCollision Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class CloudType>
@@ -61,8 +61,6 @@ class PairCollision
 :
     public CollisionModel<CloudType>
 {
-protected:
-
     // Static data
 
         //- Tolerance to determine flat wall interactions
@@ -76,7 +74,7 @@ protected:
         static scalar flatWallDuplicateExclusion;
 
 
-    // Protected data
+    // Private data
 
         //- PairModel to calculate the interaction between two parcels
         autoPtr<PairModel<CloudType> > pairModel_;
@@ -89,7 +87,7 @@ protected:
         InteractionLists<typename CloudType::parcelType> il_;
 
 
-    // Protected member functions
+    // Private member functions
 
         //- Pre collision tasks
         void preInteraction();
@@ -104,7 +102,7 @@ protected:
         void realReferredInteraction();
 
         //- Interactions with walls
-        virtual void wallInteraction();
+        void wallInteraction();
 
         bool duplicatePointInList
         (
@@ -150,12 +148,7 @@ public:
     // Constructors
 
         //- Construct from components
-        PairCollision
-        (
-            const dictionary& dict,
-            CloudType& owner,
-            const word& type = typeName
-        );
+        PairCollision(const dictionary& dict, CloudType& owner);
 
         //- Construct copy
         PairCollision(PairCollision<CloudType>& cm);

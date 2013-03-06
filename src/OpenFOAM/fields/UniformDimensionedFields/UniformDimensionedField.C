@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,24 @@ Foam::UniformDimensionedField<Type>::UniformDimensionedField
 :
     regIOobject(io),
     dimensioned<Type>(dt)
-{}
+{
+    // Read value
+    if
+    (
+        (
+            io.readOpt() == IOobject::MUST_READ
+         || io.readOpt() == IOobject::MUST_READ_IF_MODIFIED
+        )
+     || (io.readOpt() == IOobject::READ_IF_PRESENT && headerOk())
+    )
+    {
+        dictionary dict(readStream(typeName));
+        scalar multiplier;
+        this->dimensions().read(dict.lookup("dimensions"), multiplier);
+        dict.lookup("value") >> this->value();
+        this->value() *= multiplier;
+    }
+}
 
 
 template<class Type>
@@ -60,8 +77,10 @@ Foam::UniformDimensionedField<Type>::UniformDimensionedField
     dimensioned<Type>(regIOobject::name(), dimless, pTraits<Type>::zero)
 {
     dictionary dict(readStream(typeName));
-    this->dimensions().reset(dict.lookup("dimensions"));
+    scalar multiplier;
+    this->dimensions().read(dict.lookup("dimensions"), multiplier);
     dict.lookup("value") >> this->value();
+    this->value() *= multiplier;
 }
 
 
@@ -77,9 +96,11 @@ Foam::UniformDimensionedField<Type>::~UniformDimensionedField()
 template<class Type>
 bool Foam::UniformDimensionedField<Type>::writeData(Ostream& os) const
 {
-    os.writeKeyword("dimensions") << this->dimensions() << token::END_STATEMENT
+    scalar multiplier;
+    os.writeKeyword("dimensions");
+    this->dimensions().write(os, multiplier) << token::END_STATEMENT
         << nl;
-    os.writeKeyword("value") << this->value() << token::END_STATEMENT
+    os.writeKeyword("value") << this->value()/multiplier << token::END_STATEMENT
         << nl << nl;
 
     return (os.good());

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,36 +47,9 @@ bool Foam::indexedOctree<Type>::overlaps
     const point& sample
 )
 {
-    // Find out where sample is in relation to bb.
-    // Find nearest point on bb.
-    scalar distSqr = 0;
+    boundBox bb(p0, p1);
 
-    for (direction dir = 0; dir < vector::nComponents; dir++)
-    {
-        scalar d0 = p0[dir] - sample[dir];
-        scalar d1 = p1[dir] - sample[dir];
-
-        if ((d0 > 0) != (d1 > 0))
-        {
-            // sample inside both extrema. This component does not add any
-            // distance.
-        }
-        else if (mag(d0) < mag(d1))
-        {
-            distSqr += d0*d0;
-        }
-        else
-        {
-            distSqr += d1*d1;
-        }
-
-        if (distSqr > nearestDistSqr)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return bb.overlaps(sample, nearestDistSqr);
 }
 
 
@@ -539,6 +512,67 @@ Foam::indexedOctree<Type>::getSide
 // Query routines
 // ~~~~~~~~~~~~~~
 //
+
+
+//template <class Type>
+//bool Foam::indexedOctree<Type>::findAnyOverlap
+//(
+//    const label nodeI,
+//    const point& sample,
+//    const scalar nearestDistSqr
+//) const
+//{
+//    const node& nod = nodes_[nodeI];
+//
+//    // Determine order to walk through octants
+//    FixedList<direction, 8> octantOrder;
+//    nod.bb_.searchOrder(sample, octantOrder);
+//
+//    // Go into all suboctants (one containing sample first) and update
+//    // nearest.
+//    for (direction i = 0; i < 8; i++)
+//    {
+//        direction octant = octantOrder[i];
+//
+//        labelBits index = nod.subNodes_[octant];
+//
+//        if (isNode(index))
+//        {
+//            label subNodeI = getNode(index);
+//
+//            const treeBoundBox& subBb = nodes_[subNodeI].bb_;
+//
+//            if (overlaps(subBb.min(), subBb.max(), nearestDistSqr, sample))
+//            {
+//                return findAnyOverlap
+//                (
+//                    subNodeI,
+//                    sample,
+//                    nearestDistSqr
+//                );
+//            }
+//        }
+//        else if (isContent(index))
+//        {
+//            if
+//            (
+//                overlaps
+//                (
+//                    nod.bb_,
+//                    octant,
+//                    nearestDistSqr,
+//                    sample
+//                )
+//            )
+//            {
+//                return true;
+//            }
+//        }
+//    }
+//
+//    return false;
+//}
+
 
 // Find nearest point starting from nodeI
 template <class Type>
@@ -1614,7 +1648,6 @@ void Foam::indexedOctree<Type>::traverseNode
         }
     }
 
-
     const node& nod = nodes_[nodeI];
 
     labelBits index = nod.subNodes_[octant];
@@ -1781,6 +1814,11 @@ Foam::pointIndexHit Foam::indexedOctree<Type>::findLine
     label i = 0;
     for (; i < 100000; i++)
     {
+//        if (isLineInsideOrOutside(nodeI, treeStart, treeEnd))
+//        {
+//            return hitInfo;
+//        }
+
         // Ray-trace to end of current node. Updates point (either on triangle
         // in case of hit or on node bounding box in case of miss)
 
@@ -1933,6 +1971,38 @@ Foam::pointIndexHit Foam::indexedOctree<Type>::findLine
 
     return hitInfo;
 }
+
+
+//template <class Type>
+//bool Foam::indexedOctree<Type>::isLineInsideOrOutside
+//(
+//    const label nodeI,
+//    const point& start,
+//    const point& end
+//) const
+//{
+//    const node& nod = nodes_[nodeI];
+//
+//    direction startOctant = nod.bb_.subOctant(start);
+//    direction endOctant = nod.bb_.subOctant(end);
+//
+//    if (startOctant == endOctant)
+//    {
+//        volumeType startOctantType
+//            = volumeType(nodeTypes_.get((nodeI<<3) + startOctant));
+//
+//        if
+//        (
+//            startOctantType == INSIDE || startOctantType == OUTSIDE
+//        )
+//        {
+//            //Info<< nodeI << " | " << start << " " << end << endl;
+//            return true;
+//        }
+//    }
+//
+//    return false;
+//}
 
 
 // Find first intersection
@@ -2559,6 +2629,27 @@ Foam::scalar& Foam::indexedOctree<Type>::perturbTol()
 }
 
 
+//template <class Type>
+//bool Foam::indexedOctree<Type>::findAnyOverlap
+//(
+//    const point& sample,
+//    const scalar startDistSqr
+//) const
+//{
+//    if (nodes_.size())
+//    {
+//        return findAnyOverlap
+//        (
+//            0,
+//            sample,
+//            startDistSqr
+//        );
+//    }
+//
+//    return false;
+//}
+
+
 template <class Type>
 Foam::pointIndexHit Foam::indexedOctree<Type>::findNearest
 (
@@ -2596,7 +2687,7 @@ Foam::pointIndexHit Foam::indexedOctree<Type>::findNearest
 ) const
 {
     label nearestShapeI = -1;
-    point nearestPoint;
+    point nearestPoint = vector::zero;
 
     if (nodes_.size())
     {
@@ -2610,10 +2701,6 @@ Foam::pointIndexHit Foam::indexedOctree<Type>::findNearest
             linePoint,
             nearestPoint
         );
-    }
-    else
-    {
-        nearestPoint = vector::zero;
     }
 
     return pointIndexHit(nearestShapeI != -1, nearestPoint, nearestShapeI);

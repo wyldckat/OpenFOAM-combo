@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,12 +22,28 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::mutkWallFunctionFvPatchScalarField
+    Foam::compressible::mutkWallFunctionFvPatchScalarField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Boundary condition for turbulent (kinematic) viscosity when using wall
-    functions, based on turbulence kinetic energy.
+    This boundary condition provides a turbulent viscosity condition when
+    using wall functions, based on turbulence kinetic energy.
     - replicates OpenFOAM v1.5 (and earlier) behaviour
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            mutkWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::compressible::mutWallFunctionFvPatchScalarField
 
 SourceFiles
     mutkWallFunctionFvPatchScalarField.C
@@ -37,15 +53,13 @@ SourceFiles
 #ifndef compressibleMutkWallFunctionFvPatchScalarField_H
 #define compressibleMutkWallFunctionFvPatchScalarField_H
 
-#include "fixedValueFvPatchFields.H"
+#include "mutWallFunctionFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -54,38 +68,14 @@ namespace RASModels
 
 class mutkWallFunctionFvPatchScalarField
 :
-    public fixedValueFvPatchScalarField
+    public mutWallFunctionFvPatchScalarField
 {
 protected:
 
-    // Protected data
-
-        //- Cmu coefficient
-        scalar Cmu_;
-
-        //- Von Karman constant
-        scalar kappa_;
-
-        //- E coefficient
-        scalar E_;
-
-        //- Y+ at the edge of the laminar sublayer
-        scalar yPlusLam_;
-
-
     // Protected Member Functions
-
-        //- Check the type of the patch
-        virtual void checkType();
-
-        //- Calculate the Y+ at the edge of the laminar sublayer
-        virtual scalar calcYPlusLam(const scalar kappa, const scalar E) const;
 
         //- Calculate the turbulence viscosity
         virtual tmp<scalarField> calcMut() const;
-
-        //- Write local wall function variables
-        virtual void writeLocalEntries(Ostream&) const;
 
 
 public:
@@ -163,21 +153,11 @@ public:
 
             //- Calculate and return the yPlus at the boundary
             virtual tmp<scalarField> yPlus() const;
-
-            //- Update the coefficients associated with the patch field
-            virtual void updateCoeffs();
-
-
-        // I-O
-
-            //- Write
-            virtual void write(Ostream&) const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

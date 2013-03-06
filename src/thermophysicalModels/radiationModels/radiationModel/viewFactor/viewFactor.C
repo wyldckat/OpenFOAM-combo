@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "viewFactor.H"
-#include "addToRunTimeSelectionTable.H"
+#include "surfaceFields.H"
 #include "constants.H"
 #include "greyDiffusiveViewFactorFixedValueFvPatchScalarField.H"
 #include "typeInfo.H"
@@ -39,68 +39,14 @@ namespace Foam
     namespace radiation
     {
         defineTypeNameAndDebug(viewFactor, 0);
-
-        addToRunTimeSelectionTable
-        (
-            radiationModel,
-            viewFactor,
-            dictionary
-        );
+        addToRadiationRunTimeSelectionTables(viewFactor);
     }
 }
 
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-Foam::radiation::viewFactor::viewFactor(const volScalarField& T)
-:
-    radiationModel(typeName, T),
-    finalAgglom_
-    (
-        IOobject
-        (
-            "finalAgglom",
-            mesh_.facesInstance(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE,
-            false
-        )
-    ),
-    map_(),
-    coarseMesh_
-    (
-        IOobject
-        (
-            mesh_.name(),
-            mesh_.polyMesh::instance(),
-            mesh_.time(),
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        finalAgglom_
-    ),
-    Qr_
-    (
-        IOobject
-        (
-            "Qr",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_
-    ),
-    Fmatrix_(),
-    CLU_(),
-    selectedPatches_(mesh_.boundary().size(), -1),
-    totalNCoarseFaces_(0),
-    nLocalCoarseFaces_(0),
-    constEmissivity_(false),
-    iterCounter_(0),
-    pivotIndices_(0)
+void Foam::radiation::viewFactor::initialise()
 {
     const polyBoundaryMesh& coarsePatches = coarseMesh_.boundaryMesh();
     const volScalarField::GeometricBoundaryField& Qrp = Qr_.boundaryField();
@@ -281,6 +227,120 @@ Foam::radiation::viewFactor::viewFactor(const volScalarField& T)
 }
 
 
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::radiation::viewFactor::viewFactor(const volScalarField& T)
+:
+    radiationModel(typeName, T),
+    finalAgglom_
+    (
+        IOobject
+        (
+            "finalAgglom",
+            mesh_.facesInstance(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    ),
+    map_(),
+    coarseMesh_
+    (
+        IOobject
+        (
+            mesh_.name(),
+            mesh_.polyMesh::instance(),
+            mesh_.time(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        finalAgglom_
+    ),
+    Qr_
+    (
+        IOobject
+        (
+            "Qr",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_
+    ),
+    Fmatrix_(),
+    CLU_(),
+    selectedPatches_(mesh_.boundary().size(), -1),
+    totalNCoarseFaces_(0),
+    nLocalCoarseFaces_(0),
+    constEmissivity_(false),
+    iterCounter_(0),
+    pivotIndices_(0)
+{
+    initialise();
+}
+
+
+Foam::radiation::viewFactor::viewFactor
+(
+    const dictionary& dict,
+    const volScalarField& T
+)
+:
+    radiationModel(typeName, dict, T),
+    finalAgglom_
+    (
+        IOobject
+        (
+            "finalAgglom",
+            mesh_.facesInstance(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    ),
+    map_(),
+    coarseMesh_
+    (
+        IOobject
+        (
+            mesh_.name(),
+            mesh_.polyMesh::instance(),
+            mesh_.time(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        finalAgglom_
+    ),
+    Qr_
+    (
+        IOobject
+        (
+            "Qr",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_
+    ),
+    Fmatrix_(),
+    CLU_(),
+    selectedPatches_(mesh_.boundary().size(), -1),
+    totalNCoarseFaces_(0),
+    nLocalCoarseFaces_(0),
+    constEmissivity_(false),
+    iterCounter_(0),
+    pivotIndices_(0)
+{
+    initialise();
+}
+
+
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::radiation::viewFactor::~viewFactor()
@@ -357,6 +417,7 @@ void Foam::radiation::viewFactor::calculate()
             >(QrPatch);
 
         const scalarList eb = Qrp.emissivity();
+
         const scalarList& Hoi = Qrp.Qro();
 
         const polyPatch& pp = coarseMesh_.boundaryMesh()[patchID];
@@ -372,10 +433,6 @@ void Foam::radiation::viewFactor::calculate()
             label nAgglom = max(agglom) + 1;
 
             labelListList coarseToFine(invertOneToMany(nAgglom, agglom));
-
-            //scalarList Tave(pp.size(), 0.0);
-            //scalarList Eave(Tave.size(), 0.0);
-            //scalarList Hoiave(Tave.size(), 0.0);
 
             forAll(coarseToFine, coarseI)
             {
@@ -395,10 +452,6 @@ void Foam::radiation::viewFactor::calculate()
                     Eave[coarseI] += (eb[faceI]*sf[faceI])/area;
                     Hoiave[coarseI] += (Hoi[faceI]*sf[faceI])/area;
                 }
-
-                //localCoarseTave.append(Tave[coarseI]);
-                //localCoarseEave.append(Eave[coarseI]);
-                //localCoarseHoave.append(Hoiave[coarseI]);
             }
         }
 
@@ -590,9 +643,9 @@ void Foam::radiation::viewFactor::calculate()
             const scalarField& Qrp = Qr_.boundaryField()[patchID];
             const scalarField& magSf = mesh_.magSf().boundaryField()[patchID];
             scalar heatFlux = gSum(Qrp*magSf);
-            Info<< "Total heat flux at patch: "
+            Info<< "Total heat transfer rate at patch: "
                 << patchID << " "
-                << heatFlux << " [W]" << endl;
+                << heatFlux << endl;
         }
     }
 

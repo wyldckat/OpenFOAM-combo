@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,12 +16,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-combustionModel  infinitelyFastChemistry<psiCombustionModel,gasThermoPhysics>;
+combustionModel  infinitelyFastChemistry<psiThermoCombustion,gasThermoPhysics>;
 
 active  on;
 
 infinitelyFastChemistryCoeffs
 {
+    semiImplicit no;
     C       5.0;
 }
 

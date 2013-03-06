@@ -1,17 +1,20 @@
 rho = thermo.rho();
 
 volScalarField rAU(1.0/UEqn.A());
-U = UEqn.H()/UEqn.A();
+volVectorField HbyA("HbyA", U);
+HbyA = rAU*UEqn.H();
 
 surfaceScalarField phid
 (
     "phid",
     fvc::interpolate(psi)
    *(
-        (fvc::interpolate(U) & mesh.Sf())
+        (fvc::interpolate(HbyA) & mesh.Sf())
       - fvc::meshPhi(rho, U)
     )
 );
+
+volScalarField Dp("Dp", rho*rAU);
 
 for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
 {
@@ -19,7 +22,7 @@ for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
     (
         fvm::ddt(psi, p)
       + fvm::div(phid, p)
-      - fvm::laplacian(rho*rAU, p)
+      - fvm::laplacian(Dp, p)
     );
 
     pEqn.solve();
@@ -29,5 +32,5 @@ for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
 
 #include "compressibleContinuityErrs.H"
 
-U -= rAU*fvc::grad(p);
+U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();

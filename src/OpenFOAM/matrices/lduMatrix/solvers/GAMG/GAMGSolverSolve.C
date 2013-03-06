@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,9 +28,10 @@ License
 #include "BICCG.H"
 #include "SubField.H"
 
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::lduMatrix::solverPerformance Foam::GAMGSolver::solve
+Foam::solverPerformance Foam::GAMGSolver::solve
 (
     scalarField& psi,
     const scalarField& source,
@@ -38,7 +39,7 @@ Foam::lduMatrix::solverPerformance Foam::GAMGSolver::solve
 ) const
 {
     // Setup class containing solver performance data
-    lduMatrix::solverPerformance solverPerf(typeName, fieldName_);
+    solverPerformance solverPerf(typeName, fieldName_);
 
     // Calculate A.psi used to calculate the initial residual
     scalarField Apsi(psi.size());
@@ -103,7 +104,7 @@ Foam::lduMatrix::solverPerformance Foam::GAMGSolver::solve
 
             if (debug >= 2)
             {
-                solverPerf.print();
+                solverPerf.print(Info);
             }
         } while
         (
@@ -156,7 +157,11 @@ void Foam::GAMGSolver::Vcycle
                 coarseCorrFields[leveli],
                 coarseSources[leveli],
                 cmpt,
-                nPreSweeps_ + leveli
+                min
+                (
+                    nPreSweeps_ +  preSweepsLevelMultiplier_*leveli,
+                    maxPreSweeps_
+                )
             );
 
             scalarField::subField ACf
@@ -169,23 +174,16 @@ void Foam::GAMGSolver::Vcycle
             // but not on the coarsest level because it evaluates to 1
             if (scaleCorrection_ && leveli < coarsestLevel - 1)
             {
-                scalar sf = scalingFactor
+                scale
                 (
+                    coarseCorrFields[leveli],
                     const_cast<scalarField&>(ACf.operator const scalarField&()),
                     matrixLevels_[leveli],
-                    coarseCorrFields[leveli],
                     interfaceLevelsBouCoeffs_[leveli],
                     interfaceLevels_[leveli],
                     coarseSources[leveli],
                     cmpt
                 );
-
-                if (debug >= 2)
-                {
-                    Pout<< sf << " ";
-                }
-
-                coarseCorrFields[leveli] *= sf;
             }
 
             // Correct the residual with the new solution
@@ -242,7 +240,7 @@ void Foam::GAMGSolver::Vcycle
             coarseCorrFields[leveli].size()
         );
 
-        // Only store the preSmoothedCoarseCorrField is pre-smoothing is used
+        // Only store the preSmoothedCoarseCorrField if pre-smoothing is used
         if (nPreSweeps_)
         {
             preSmoothedCoarseCorrField.assign(coarseCorrFields[leveli]);
@@ -255,38 +253,47 @@ void Foam::GAMGSolver::Vcycle
             leveli + 1
         );
 
-        // Scale coarse-grid correction field
-        // but not on the coarsest level because it evaluates to 1
-        if (scaleCorrection_ && leveli < coarsestLevel - 1)
-        {
-            // Create A.psi for this coarse level as a sub-field of Apsi
-            scalarField::subField ACf
-            (
-                Apsi,
-                coarseCorrFields[leveli].size()
-            );
+        // Create A.psi for this coarse level as a sub-field of Apsi
+        scalarField::subField ACf
+        (
+            Apsi,
+            coarseCorrFields[leveli].size()
+        );
 
-            scalar sf = scalingFactor
+        scalarField& ACfRef =
+            const_cast<scalarField&>(ACf.operator const scalarField&());
+
+        if (interpolateCorrection_)
+        {
+            interpolate
             (
-                const_cast<scalarField&>(ACf.operator const scalarField&()),
-                matrixLevels_[leveli],
                 coarseCorrFields[leveli],
+                ACfRef,
+                matrixLevels_[leveli],
                 interfaceLevelsBouCoeffs_[leveli],
                 interfaceLevels_[leveli],
                 coarseSources[leveli],
                 cmpt
             );
-
-
-            if (debug >= 2)
-            {
-                Pout<< sf << " ";
-            }
-
-            coarseCorrFields[leveli] *= sf;
         }
 
-        // Only add the preSmoothedCoarseCorrField is pre-smoothing is used
+        // Scale coarse-grid correction field
+        // but not on the coarsest level because it evaluates to 1
+        if (scaleCorrection_ && leveli < coarsestLevel - 1)
+        {
+            scale
+            (
+                coarseCorrFields[leveli],
+                ACfRef,
+                matrixLevels_[leveli],
+                interfaceLevelsBouCoeffs_[leveli],
+                interfaceLevels_[leveli],
+                coarseSources[leveli],
+                cmpt
+            );
+        }
+
+        // Only add the preSmoothedCoarseCorrField if pre-smoothing is used
         if (nPreSweeps_)
         {
             coarseCorrFields[leveli] += preSmoothedCoarseCorrField;
@@ -297,7 +304,11 @@ void Foam::GAMGSolver::Vcycle
             coarseCorrFields[leveli],
             coarseSources[leveli],
             cmpt,
-            nPostSweeps_ + leveli
+            min
+            (
+                nPostSweeps_ + postSweepsLevelMultiplier_*leveli,
+                maxPostSweeps_
+            )
         );
     }
 
@@ -309,36 +320,38 @@ void Foam::GAMGSolver::Vcycle
         0
     );
 
-    if (scaleCorrection_)
+    if (interpolateCorrection_)
     {
-        // Calculate finest level scaling factor
-        scalar fsf = scalingFactor
+        interpolate
         (
+            finestCorrection,
             Apsi,
             matrix_,
-            finestCorrection,
             interfaceBouCoeffs_,
             interfaces_,
             finestResidual,
             cmpt
         );
-
-        if (debug >= 2)
-        {
-            Pout<< fsf << endl;
-        }
-
-        forAll(psi, i)
-        {
-            psi[i] += fsf*finestCorrection[i];
-        }
     }
-    else
+
+    if (scaleCorrection_)
     {
-        forAll(psi, i)
-        {
-            psi[i] += finestCorrection[i];
-        }
+        // Scale the finest level correction
+        scale
+        (
+            finestCorrection,
+            Apsi,
+            matrix_,
+            interfaceBouCoeffs_,
+            interfaces_,
+            finestResidual,
+            cmpt
+        );
+    }
+
+    forAll(psi, i)
+    {
+        psi[i] += finestCorrection[i];
     }
 
     smoothers[0].smooth
@@ -429,7 +442,7 @@ void Foam::GAMGSolver::solveCoarsestLevel
     {
         const label coarsestLevel = matrixLevels_.size() - 1;
         coarsestCorrField = 0;
-        lduMatrix::solverPerformance coarseSolverPerf;
+        solverPerformance coarseSolverPerf;
 
         if (matrixLevels_[coarsestLevel].asymmetric())
         {
@@ -468,7 +481,7 @@ void Foam::GAMGSolver::solveCoarsestLevel
 
         if (debug >= 2)
         {
-            coarseSolverPerf.print();
+            coarseSolverPerf.print(Info);
         }
     }
 }

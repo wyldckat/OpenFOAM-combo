@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -156,18 +156,20 @@ Foam::CompositionModel<CloudType>::componentNames(const label phaseI) const
 template<class CloudType>
 Foam::label Foam::CompositionModel<CloudType>::globalCarrierId
 (
-    const word& cmptName
+    const word& cmptName,
+    const bool allowNotFound
 ) const
 {
     label id = thermo_.carrierId(cmptName);
 
-    if (id < 0)
+    if (id < 0 && !allowNotFound)
     {
         FatalErrorIn
         (
             "Foam::label Foam::CompositionModel<CloudType>::globalCarrierId"
             "("
-                "const word&"
+                "const word&, "
+                "const bool"
             ") const"
         )   << "Unable to determine global id for requested component "
             << cmptName << ". Available components are " << nl
@@ -182,19 +184,21 @@ template<class CloudType>
 Foam::label Foam::CompositionModel<CloudType>::globalId
 (
     const label phaseI,
-    const word& cmptName
+    const word& cmptName,
+    const bool allowNotFound
 ) const
 {
     label id = phaseProps_[phaseI].globalId(cmptName);
 
-    if (id < 0)
+    if (id < 0 && !allowNotFound)
     {
         FatalErrorIn
         (
             "Foam::label Foam::CompositionModel<CloudType>::globalId"
             "("
                 "const label, "
-                "const word&"
+                "const word&, "
+                "const bool"
             ") const"
         )   << "Unable to determine global id for requested component "
             << cmptName << abort(FatalError);
@@ -218,19 +222,21 @@ template<class CloudType>
 Foam::label Foam::CompositionModel<CloudType>::localId
 (
     const label phaseI,
-    const word& cmptName
+    const word& cmptName,
+    const bool allowNotFound
 ) const
 {
     label id = phaseProps_[phaseI].id(cmptName);
 
-    if (id < 0)
+    if (id < 0 && !allowNotFound)
     {
         FatalErrorIn
         (
             "Foam::label Foam::CompositionModel<CloudType>::localId"
             "("
                 "const label, "
-                "const word&"
+                "const word&, "
+                "const bool"
             ") const"
         )   << "Unable to determine local id for component " << cmptName
             << abort(FatalError);
@@ -244,12 +250,13 @@ template<class CloudType>
 Foam::label Foam::CompositionModel<CloudType>::localToGlobalCarrierId
 (
     const label phaseI,
-    const label id
+    const label id,
+    const bool allowNotFound
 ) const
 {
     label gid = phaseProps_[phaseI].globalCarrierIds()[id];
 
-    if (gid < 0)
+    if (gid < 0 && !allowNotFound)
     {
         FatalErrorIn
         (
@@ -257,7 +264,8 @@ Foam::label Foam::CompositionModel<CloudType>::localToGlobalCarrierId
             "Foam::CompositionModel<CloudType>::localToGlobalCarrierId"
             "("
                 "const label, "
-                "const label"
+                "const label, "
+                "const bool"
             ") const"
         )   << "Unable to determine global carrier id for phase "
             << phaseI << " with local id " << id
@@ -396,7 +404,7 @@ Foam::scalar Foam::CompositionModel<CloudType>::H
             forAll(Y, i)
             {
                 label gid = props.globalIds()[i];
-                HMixture += Y[i]*thermo_.carrier().H(gid, T);
+                HMixture += Y[i]*thermo_.carrier().Ha(gid, p, T);
             }
             break;
         }
@@ -460,7 +468,7 @@ Foam::scalar Foam::CompositionModel<CloudType>::Hs
             forAll(Y, i)
             {
                 label gid = props.globalIds()[i];
-                HsMixture += Y[i]*thermo_.carrier().Hs(gid, T);
+                HsMixture += Y[i]*thermo_.carrier().Hs(gid, p, T);
             }
             break;
         }
@@ -584,7 +592,7 @@ Foam::scalar Foam::CompositionModel<CloudType>::Cp
             forAll(Y, i)
             {
                 label gid = props.globalIds()[i];
-                CpMixture += Y[i]*thermo_.carrier().Cp(gid, T);
+                CpMixture += Y[i]*thermo_.carrier().Cp(gid, p, T);
             }
             break;
         }

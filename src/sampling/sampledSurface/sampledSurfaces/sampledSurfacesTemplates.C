@@ -146,6 +146,7 @@ void Foam::sampledSurfaces::sampleAndWrite
 }
 
 
+
 template<class Type>
 void Foam::sampledSurfaces::sampleAndWrite
 (
@@ -158,7 +159,7 @@ void Foam::sampledSurfaces::sampleAndWrite
     forAll(*this, surfI)
     {
         const sampledSurface& s = operator[](surfI);
-        Field<Type> values = s.sample(sField);
+        Field<Type> values(s.sample(sField));
         writeSurface<Type>(values, surfI, fieldName, outputDir);
     }
 }
@@ -175,7 +176,7 @@ void Foam::sampledSurfaces::sampleAndWrite(const IOobjectList& allObjects)
         if
         (
             fieldIOPtr != NULL
-          && fieldIOPtr->headerClassName() == GeoField::typeName
+         && fieldIOPtr->headerClassName() == GeoField::typeName
         )
         {
             if (Pstream::master() && verbose_)

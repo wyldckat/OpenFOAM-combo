@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,6 +55,7 @@ License
 #include "searchableSurfaces.H"
 #include "treeBoundBox.H"
 #include "zeroGradientFvPatchFields.H"
+#include "fvMeshTools.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -254,6 +255,106 @@ void Foam::meshRefinement::updateIntersections(const labelList& changedFaces)
 
     // Set files to same time as mesh
     setInstance(mesh_.facesInstance());
+}
+
+
+void Foam::meshRefinement::testSyncPointList
+(
+    const string& msg,
+    const polyMesh& mesh,
+    const List<scalar>& fld
+)
+{
+    if (fld.size() != mesh.nPoints())
+    {
+        FatalErrorIn
+        (
+            "meshRefinement::testSyncPointList(const polyMesh&"
+            ", const List<scalar>&)"
+        )   << msg << endl
+            << "fld size:" << fld.size() << " mesh points:" << mesh.nPoints()
+            << abort(FatalError);
+    }
+
+    Pout<< "Checking field " << msg << endl;
+    scalarField minFld(fld);
+    syncTools::syncPointList
+    (
+        mesh,
+        minFld,
+        minEqOp<scalar>(),
+        GREAT
+    );
+    scalarField maxFld(fld);
+    syncTools::syncPointList
+    (
+        mesh,
+        maxFld,
+        maxEqOp<scalar>(),
+        -GREAT
+    );
+    forAll(minFld, pointI)
+    {
+        const scalar& minVal = minFld[pointI];
+        const scalar& maxVal = maxFld[pointI];
+        if (mag(minVal-maxVal) > SMALL)
+        {
+            Pout<< msg << " at:" << mesh.points()[pointI] << nl
+                << "    minFld:" << minVal << nl
+                << "    maxFld:" << maxVal << nl
+                << endl;
+        }
+    }
+}
+
+
+void Foam::meshRefinement::testSyncPointList
+(
+    const string& msg,
+    const polyMesh& mesh,
+    const List<point>& fld
+)
+{
+    if (fld.size() != mesh.nPoints())
+    {
+        FatalErrorIn
+        (
+            "meshRefinement::testSyncPointList(const polyMesh&"
+            ", const List<point>&)"
+        )   << msg << endl
+            << "fld size:" << fld.size() << " mesh points:" << mesh.nPoints()
+            << abort(FatalError);
+    }
+
+    Pout<< "Checking field " << msg << endl;
+    pointField minFld(fld);
+    syncTools::syncPointList
+    (
+        mesh,
+        minFld,
+        minMagSqrEqOp<point>(),
+        point(GREAT, GREAT, GREAT)
+    );
+    pointField maxFld(fld);
+    syncTools::syncPointList
+    (
+        mesh,
+        maxFld,
+        maxMagSqrEqOp<point>(),
+        vector::zero
+    );
+    forAll(minFld, pointI)
+    {
+        const point& minVal = minFld[pointI];
+        const point& maxVal = maxFld[pointI];
+        if (mag(minVal-maxVal) > SMALL)
+        {
+            Pout<< msg << " at:" << mesh.points()[pointI] << nl
+                << "    minFld:" << minVal << nl
+                << "    maxFld:" << maxVal << nl
+                << endl;
+        }
+    }
 }
 
 
@@ -877,49 +978,7 @@ Foam::meshRefinement::meshRefinement
     meshCutter_
     (
         mesh,
-        labelIOList
-        (
-            IOobject
-            (
-                "cellLevel",
-                mesh_.facesInstance(),
-                fvMesh::meshSubDir,
-                mesh,
-                IOobject::READ_IF_PRESENT,
-                IOobject::NO_WRITE,
-                false
-            ),
-            labelList(mesh_.nCells(), 0)
-        ),
-        labelIOList
-        (
-            IOobject
-            (
-                "pointLevel",
-                mesh_.facesInstance(),
-                fvMesh::meshSubDir,
-                mesh,
-                IOobject::READ_IF_PRESENT,
-                IOobject::NO_WRITE,
-                false
-            ),
-            labelList(mesh_.nPoints(), 0)
-        ),
-        refinementHistory
-        (
-            IOobject
-            (
-                "refinementHistory",
-                mesh_.facesInstance(),
-                fvMesh::meshSubDir,
-                mesh_,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE,
-                false
-            ),
-            List<refinementHistory::splitCell8>(0),
-            labelList(0)
-        )   // no unrefinement
+        false   // do not try to read history.
     ),
     surfaceIndex_
     (
@@ -1742,7 +1801,7 @@ Foam::label Foam::meshRefinement::addPatch
     oldToNew[addedPatchI] = insertPatchI;
 
     // Shuffle into place
-    polyPatches.reorder(oldToNew);
+    polyPatches.reorder(oldToNew, true);
     fvPatches.reorder(oldToNew);
 
     reorderPatchFields<volScalarField>(mesh, oldToNew);
@@ -1777,6 +1836,28 @@ Foam::label Foam::meshRefinement::addMeshedPatch
     {
         // Add patch
         label patchI = addPatch(mesh_, name, patchInfo);
+
+//        dictionary patchDict(patchInfo);
+//        patchDict.set("nFaces", 0);
+//        patchDict.set("startFace", 0);
+//        autoPtr<polyPatch> ppPtr
+//        (
+//            polyPatch::New
+//            (
+//                name,
+//                patchDict,
+//                0,
+//                mesh_.boundaryMesh()
+//            )
+//        );
+//        label patchI = fvMeshTools::addPatch
+//        (
+//            mesh_,
+//            ppPtr(),
+//            dictionary(),       // optional field values
+//            calculatedFvPatchField<scalar>::typeName,
+//            true
+//        );
 
         // Store
         label sz = meshedPatches_.size();
@@ -1819,6 +1900,9 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::meshRefinement::splitMeshRegions
     const point& keepPoint
 )
 {
+    // Force calculation of face decomposition (used in findCell)
+    (void)mesh_.tetBasePtIs();
+
     // Determine connected regions. regionSplit is the labelList with the
     // region per cell.
     regionSplit cellRegion(mesh_);
@@ -1920,7 +2004,7 @@ void Foam::meshRefinement::distribute(const mapDistributePolyMesh& map)
         List<treeBoundBox> meshBb(1);
         treeBoundBox& bb = meshBb[0];
         bb = treeBoundBox(mesh_.points());
-        bb = bb.extend(rndGen, 1E-4);
+        bb = bb.extend(rndGen, 1e-4);
 
         // Distribute all geometry (so refinementSurfaces and shellSurfaces)
         searchableSurfaces& geometry =
@@ -2255,28 +2339,6 @@ void Foam::meshRefinement::dumpRefinementLevel() const
 
         pointRefLevel.write();
     }
-
-    // Dump cell centres
-    {
-        for (direction i=0; i<vector::nComponents; i++)
-        {
-            volScalarField cci
-            (
-                IOobject
-                (
-                    "cc" + word(vector::componentNames[i]),
-                    mesh_.time().timeName(),
-                    mesh_,
-                    IOobject::NO_READ,
-                    IOobject::NO_WRITE,
-                    false
-                ),
-                mesh_.C().component(i)
-            );
-
-            cci.write();
-        }
-    }
 }
 
 
@@ -2355,13 +2417,6 @@ void Foam::meshRefinement::dumpIntersections(const fileName& prefix) const
             }
         }
     }
-
-    // Convert to vtk format
-    string cmd
-    (
-        "objToVTK " + prefix + "_edges.obj " + prefix + "_edges.vtk > /dev/null"
-    );
-    system(cmd.c_str());
 
     Pout<< endl;
 }

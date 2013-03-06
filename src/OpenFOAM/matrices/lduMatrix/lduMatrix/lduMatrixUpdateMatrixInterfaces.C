@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,9 +48,8 @@ void Foam::lduMatrix::initMatrixInterfaces
             {
                 interfaces[interfaceI].initInterfaceMatrixUpdate
                 (
-                    psiif,
                     result,
-                    *this,
+                    psiif,
                     coupleCoeffs[interfaceI],
                     cmpt,
                     Pstream::defaultCommsType
@@ -75,9 +74,8 @@ void Foam::lduMatrix::initMatrixInterfaces
             {
                 interfaces[interfaceI].initInterfaceMatrixUpdate
                 (
-                    psiif,
                     result,
-                    *this,
+                    psiif,
                     coupleCoeffs[interfaceI],
                     cmpt,
                     Pstream::blocking
@@ -87,7 +85,7 @@ void Foam::lduMatrix::initMatrixInterfaces
     }
     else
     {
-        FatalErrorIn("lduMatrix::initMatrixInterfaces")
+        FatalErrorIn("lduMatrix::initMatrixInterfaces(..)")
             << "Unsuported communications type "
             << Pstream::commsTypeNames[Pstream::defaultCommsType]
             << exit(FatalError);
@@ -104,31 +102,95 @@ void Foam::lduMatrix::updateMatrixInterfaces
     const direction cmpt
 ) const
 {
-    if
-    (
-        Pstream::defaultCommsType == Pstream::blocking
-     || Pstream::defaultCommsType == Pstream::nonBlocking
-    )
+    if (Pstream::defaultCommsType == Pstream::blocking)
     {
-        // Block until all sends/receives have been finished
-        if
-        (
-            Pstream::parRun()
-         && Pstream::defaultCommsType == Pstream::nonBlocking
-        )
-        {
-            UPstream::waitRequests();
-        }
-
         forAll(interfaces, interfaceI)
         {
             if (interfaces.set(interfaceI))
             {
                 interfaces[interfaceI].updateInterfaceMatrix
                 (
-                    psiif,
                     result,
-                    *this,
+                    psiif,
+                    coupleCoeffs[interfaceI],
+                    cmpt,
+                    Pstream::defaultCommsType
+                );
+            }
+        }
+    }
+    else if (Pstream::defaultCommsType == Pstream::nonBlocking)
+    {
+        // Try and consume interfaces as they become available
+        bool allUpdated = false;
+
+        for (label i = 0; i < UPstream::nPollProcInterfaces; i++)
+        {
+            allUpdated = true;
+
+            forAll(interfaces, interfaceI)
+            {
+                if (interfaces.set(interfaceI))
+                {
+                    if (!interfaces[interfaceI].updatedMatrix())
+                    {
+                        if (interfaces[interfaceI].ready())
+                        {
+                            interfaces[interfaceI].updateInterfaceMatrix
+                            (
+                                result,
+                                psiif,
+                                coupleCoeffs[interfaceI],
+                                cmpt,
+                                Pstream::defaultCommsType
+                            );
+                        }
+                        else
+                        {
+                            allUpdated = false;
+                        }
+                    }
+                }
+            }
+
+            if (allUpdated)
+            {
+                break;
+            }
+        }
+
+        // Block for everything
+        if (Pstream::parRun())
+        {
+            if (allUpdated)
+            {
+                // All received. Just remove all storage of requests
+                // Note that we don't know what starting number of requests
+                // was before start of sends and receives (since set from
+                // initMatrixInterfaces) so set to 0 and loose any in-flight
+                // requests.
+                UPstream::resetRequests(0);
+            }
+            else
+            {
+                // Block for all requests and remove storage
+                UPstream::waitRequests();
+            }
+        }
+
+        // Consume
+        forAll(interfaces, interfaceI)
+        {
+            if
+            (
+                interfaces.set(interfaceI)
+            && !interfaces[interfaceI].updatedMatrix()
+            )
+            {
+                interfaces[interfaceI].updateInterfaceMatrix
+                (
+                    result,
+                    psiif,
                     coupleCoeffs[interfaceI],
                     cmpt,
                     Pstream::defaultCommsType
@@ -151,9 +213,8 @@ void Foam::lduMatrix::updateMatrixInterfaces
                 {
                     interfaces[interfaceI].initInterfaceMatrixUpdate
                     (
-                        psiif,
                         result,
-                        *this,
+                        psiif,
                         coupleCoeffs[interfaceI],
                         cmpt,
                         Pstream::scheduled
@@ -163,9 +224,8 @@ void Foam::lduMatrix::updateMatrixInterfaces
                 {
                     interfaces[interfaceI].updateInterfaceMatrix
                     (
-                        psiif,
                         result,
-                        *this,
+                        psiif,
                         coupleCoeffs[interfaceI],
                         cmpt,
                         Pstream::scheduled
@@ -187,9 +247,8 @@ void Foam::lduMatrix::updateMatrixInterfaces
             {
                 interfaces[interfaceI].updateInterfaceMatrix
                 (
-                    psiif,
                     result,
-                    *this,
+                    psiif,
                     coupleCoeffs[interfaceI],
                     cmpt,
                     Pstream::blocking
@@ -199,7 +258,7 @@ void Foam::lduMatrix::updateMatrixInterfaces
     }
     else
     {
-        FatalErrorIn("lduMatrix::updateMatrixInterfaces")
+        FatalErrorIn("lduMatrix::updateMatrixInterfaces(..)")
             << "Unsuported communications type "
             << Pstream::commsTypeNames[Pstream::defaultCommsType]
             << exit(FatalError);

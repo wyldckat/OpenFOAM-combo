@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -97,25 +97,30 @@ int main(int argc, char *argv[])
 
                 surfaceScalarField phih0(ghrAUf*mesh.magSf()*fvc::snGrad(h0));
 
+                volVectorField HbyA("HbyA", hU);
                 if (rotating)
                 {
-                    hU = rAU*(hUEqn.H() - (F ^ hU));
+                    HbyA = rAU*(hUEqn.H() - (F ^ hU));
                 }
                 else
                 {
-                    hU = rAU*hUEqn.H();
+                    HbyA = rAU*hUEqn.H();
                 }
 
-                phi = (fvc::interpolate(hU) & mesh.Sf())
-                    + fvc::ddtPhiCorr(rAU, h, hU, phi)
-                    - phih0;
+                surfaceScalarField phiHbyA
+                (
+                    "phiHbyA",
+                    (fvc::interpolate(HbyA) & mesh.Sf())
+                  + fvc::ddtPhiCorr(rAU, h, hU, phi)
+                  - phih0
+                );
 
                 while (pimple.correctNonOrthogonal())
                 {
                     fvScalarMatrix hEqn
                     (
                         fvm::ddt(h)
-                      + fvc::div(phi)
+                      + fvc::div(phiHbyA)
                       - fvm::laplacian(ghrAUf, h)
                     );
 
@@ -123,11 +128,11 @@ int main(int argc, char *argv[])
 
                     if (pimple.finalNonOrthogonalIter())
                     {
-                        phi += hEqn.flux();
+                        phi = phiHbyA + hEqn.flux();
                     }
                 }
 
-                hU -= rAU*h*magg*fvc::grad(h + h0);
+                hU = HbyA - rAU*h*magg*fvc::grad(h + h0);
 
                 // Constrain the momentum to be in the geometry if 3D geometry
                 if (mesh.nGeometricD() == 3)

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,18 +41,20 @@ Description
         {
             type        compressible::turbulentTemperatureCoupledBaffleMixed;
             neighbourFieldName  T;
-            K                   lookup;
-            KName               K;
+            kappa               lookup;
+            kappaName           kappa;
             value               uniform 300;
         }
 
     Needs to be on underlying mapped(Wall)FvPatch.
 
-    Note: K : heat conduction at patch. Gets supplied how to lookup/calculate K:
+    Note: kappa : heat conduction at patch. Gets supplied how to lookup
+        calculate kappa:
     - 'lookup' : lookup volScalarField (or volSymmTensorField) with name
-    - 'basicThermo' : use basicThermo and compressible::RASmodel to calculate K
-    - 'solidThermo' : use basicSolidThermo K()
-    - 'directionalSolidThermo' directionalK()
+    - 'fluidThermo' : use fluidThermo and compressible::RASmodel to calculate
+        kappa
+    - 'solidThermo' : use solidThermo kappa()
+    - 'directionalSolidThermo' directionalKappa()
 
     Note: runs in parallel with arbitrary decomposition. Uses mapped
     functionality to calculate exchange.

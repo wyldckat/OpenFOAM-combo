@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -49,10 +49,26 @@ namespace Foam
         "none"
     };
 }
-
-
 const Foam::NamedEnum<Foam::refinementSurfaces::areaSelectionAlgo, 4>
     Foam::refinementSurfaces::areaSelectionAlgoNames;
+
+
+namespace Foam
+{
+    template<>
+    const char* Foam::NamedEnum
+    <
+        Foam::refinementSurfaces::faceZoneType,
+        3
+    >::names[] =
+    {
+        "internal",
+        "baffle",
+        "boundary"
+    };
+}
+const Foam::NamedEnum<Foam::refinementSurfaces::faceZoneType, 3>
+    Foam::refinementSurfaces::faceZoneTypeNames;
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -70,6 +86,7 @@ Foam::refinementSurfaces::refinementSurfaces
     cellZoneNames_(surfacesDict.size()),
     zoneInside_(surfacesDict.size(), NONE),
     zoneInsidePoints_(surfacesDict.size()),
+    faceType_(surfacesDict.size(), INTERNAL),
     regionOffset_(surfacesDict.size())
 {
     // Wilcard specification : loop over all surface, all regions
@@ -93,6 +110,7 @@ Foam::refinementSurfaces::refinementSurfaces
     faceZoneNames_.setSize(surfI);
     cellZoneNames_.setSize(surfI);
     zoneInside_.setSize(surfI, NONE);
+    faceType_.setSize(surfI, INTERNAL),
     regionOffset_.setSize(surfI);
 
     labelList globalMinLevel(surfI, 0);
@@ -183,7 +201,16 @@ Foam::refinementSurfaces::refinementSurfaces
                         << " since no cellZone specified."
                         << endl;
                 }
+
+                // How to handle faces on faceZone
+                word faceTypeMethod;
+                if (dict.readIfPresent("faceType", faceTypeMethod))
+                {
+                    faceType_[surfI] = faceZoneTypeNames[faceTypeMethod];
+                }
             }
+
+
 
             // Global perpendicular angle
             if (dict.found("patchInfo"))
@@ -488,7 +515,7 @@ void Foam::refinementSurfaces::setMinLevelFields
         if (geom.regions().size() > 1 && geom.globalSize() > 10)
         {
             // Representative local coordinates
-            const pointField ctrs = geom.coordinates();
+            const pointField ctrs(geom.coordinates());
 
             labelList minLevelField(ctrs.size(), -1);
             {
@@ -885,6 +912,127 @@ void Foam::refinementSurfaces::findNearestIntersection
             hit2[pointI] = hit1[pointI];
             surface2[pointI] = surface1[pointI];
             region2[pointI] = region1[pointI];
+        }
+    }
+}
+
+
+void Foam::refinementSurfaces::findNearestIntersection
+(
+    const labelList& surfacesToTest,
+    const pointField& start,
+    const pointField& end,
+
+    labelList& surface1,
+    List<pointIndexHit>& hit1,
+    labelList& region1,
+    vectorField& normal1,
+
+    labelList& surface2,
+    List<pointIndexHit>& hit2,
+    labelList& region2,
+    vectorField& normal2
+) const
+{
+    // 1. intersection from start to end
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Initialize arguments
+    surface1.setSize(start.size());
+    surface1 = -1;
+    hit1.setSize(start.size());
+    region1.setSize(start.size());
+    normal1.setSize(start.size());
+
+    // Current end of segment to test.
+    pointField nearest(end);
+    // Work array
+    List<pointIndexHit> nearestInfo(start.size());
+    labelList region;
+    vectorField normal;
+
+    forAll(surfacesToTest, testI)
+    {
+        label surfI = surfacesToTest[testI];
+        const searchableSurface& geom = allGeometry_[surfaces_[surfI]];
+
+        // See if any intersection between start and current nearest
+        geom.findLine(start, nearest, nearestInfo);
+        geom.getRegion(nearestInfo, region);
+        geom.getNormal(nearestInfo, normal);
+
+        forAll(nearestInfo, pointI)
+        {
+            if (nearestInfo[pointI].hit())
+            {
+                hit1[pointI] = nearestInfo[pointI];
+                surface1[pointI] = surfI;
+                region1[pointI] = region[pointI];
+                normal1[pointI] = normal[pointI];
+                nearest[pointI] = hit1[pointI].hitPoint();
+            }
+        }
+    }
+
+
+    // 2. intersection from end to last intersection
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Find the nearest intersection from end to start. Note that we initialize
+    // to the first intersection (if any).
+    surface2 = surface1;
+    hit2 = hit1;
+    region2 = region1;
+    normal2 = normal1;
+
+    // Set current end of segment to test.
+    forAll(nearest, pointI)
+    {
+        if (hit1[pointI].hit())
+        {
+            nearest[pointI] = hit1[pointI].hitPoint();
+        }
+        else
+        {
+            // Disable testing by setting to end.
+            nearest[pointI] = end[pointI];
+        }
+    }
+
+    forAll(surfacesToTest, testI)
+    {
+        label surfI = surfacesToTest[testI];
+        const searchableSurface& geom = allGeometry_[surfaces_[surfI]];
+
+        // See if any intersection between end and current nearest
+        geom.findLine(end, nearest, nearestInfo);
+        geom.getRegion(nearestInfo, region);
+        geom.getNormal(nearestInfo, normal);
+
+        forAll(nearestInfo, pointI)
+        {
+            if (nearestInfo[pointI].hit())
+            {
+                hit2[pointI] = nearestInfo[pointI];
+                surface2[pointI] = surfI;
+                region2[pointI] = region[pointI];
+                normal2[pointI] = normal[pointI];
+                nearest[pointI] = hit2[pointI].hitPoint();
+            }
+        }
+    }
+
+
+    // Make sure that if hit1 has hit something, hit2 will have at least the
+    // same point (due to tolerances it might miss its end point)
+    forAll(hit1, pointI)
+    {
+        if (hit1[pointI].hit() && !hit2[pointI].hit())
+        {
+            hit2[pointI] = hit1[pointI];
+            surface2[pointI] = surface1[pointI];
+            region2[pointI] = region1[pointI];
+            normal2[pointI] = normal1[pointI];
         }
     }
 }

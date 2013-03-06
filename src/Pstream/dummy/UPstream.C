@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,6 +59,26 @@ void Foam::reduce(scalar&, const sumOp<scalar>&, const int)
 {}
 
 
+void Foam::reduce(scalar&, const minOp<scalar>&, const int)
+{}
+
+
+void Foam::reduce(vector2D&, const sumOp<vector2D>&, const int)
+{}
+
+
+void Foam::sumReduce
+(
+    scalar& Value,
+    label& Count,
+    const int tag
+)
+{}
+
+
+void Foam::reduce(scalar&, const sumOp<scalar>&, const int, label&)
+{}
+
 
 Foam::label Foam::UPstream::nRequests()
 {
@@ -71,6 +91,10 @@ void Foam::UPstream::resetRequests(const label i)
 
 
 void Foam::UPstream::waitRequests(const label start)
+{}
+
+
+void Foam::UPstream::waitRequest(const label i)
 {}
 
 

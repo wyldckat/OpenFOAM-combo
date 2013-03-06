@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,8 +28,8 @@ License
 #include "interpolation.H"
 #include "subCycleTime.H"
 
+#include "InjectionModelList.H"
 #include "DispersionModel.H"
-#include "InjectionModel.H"
 #include "PatchInteractionModel.H"
 #include "SurfaceFilmModel.H"
 
@@ -41,15 +41,6 @@ void Foam::KinematicCloud<CloudType>::setModels()
     dispersionModel_.reset
     (
         DispersionModel<KinematicCloud<CloudType> >::New
-        (
-            subModelProperties_,
-            *this
-        ).ptr()
-    );
-
-    injectionModel_.reset
-    (
-        InjectionModel<KinematicCloud<CloudType> >::New
         (
             subModelProperties_,
             *this
@@ -70,8 +61,7 @@ void Foam::KinematicCloud<CloudType>::setModels()
         SurfaceFilmModel<KinematicCloud<CloudType> >::New
         (
             subModelProperties_,
-            *this,
-            g_
+            *this
         ).ptr()
     );
 
@@ -194,7 +184,8 @@ void Foam::KinematicCloud<CloudType>::evolveCloud(TrackData& td)
 
             preInjectionSize = this->size();
         }
-        this->injection().inject(td);
+
+        injectors_.inject(td);
 
 
         // Assume that motion will update the cellOccupancy as necessary
@@ -205,7 +196,7 @@ void Foam::KinematicCloud<CloudType>::evolveCloud(TrackData& td)
     {
 //        this->surfaceFilm().injectSteadyState(td);
 
-        this->injection().injectSteadyState(td, solution_.trackTime());
+        injectors_.injectSteadyState(td, solution_.trackTime());
 
         td.part() = TrackData::tpLinearTrack;
         CloudType::move(td,  solution_.trackTime());
@@ -254,8 +245,9 @@ void Foam::KinematicCloud<CloudType>::cloudReset(KinematicCloud<CloudType>& c)
 
     functions_.transfer(c.functions_);
 
+    injectors_.transfer(c.injectors_);
+
     dispersionModel_.reset(c.dispersionModel_.ptr());
-    injectionModel_.reset(c.injectionModel_.ptr());
     patchInteractionModel_.reset(c.patchInteractionModel_.ptr());
     surfaceFilmModel_.reset(c.surfaceFilmModel_.ptr());
 
@@ -339,8 +331,12 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         particleProperties_.subOrEmptyDict("cloudFunctions"),
         solution_.active()
     ),
+    injectors_
+    (
+        subModelProperties_.subOrEmptyDict("injectionModels"),
+        *this
+    ),
     dispersionModel_(NULL),
-    injectionModel_(NULL),
     patchInteractionModel_(NULL),
     surfaceFilmModel_(NULL),
     UIntegrator_(NULL),
@@ -350,7 +346,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         (
             IOobject
             (
-                this->name() + "UTrans",
+                this->name() + ":UTrans",
                 this->db().time().timeName(),
                 this->db(),
                 IOobject::READ_IF_PRESENT,
@@ -366,7 +362,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         (
             IOobject
             (
-                this->name() + "UCoeff",
+                this->name() + ":UCoeff",
                 this->db().time().timeName(),
                 this->db(),
                 IOobject::READ_IF_PRESENT,
@@ -419,8 +415,8 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     pAmbient_(c.pAmbient_),
     forces_(c.forces_),
     functions_(c.functions_),
+    injectors_(c.injectors_),
     dispersionModel_(c.dispersionModel_->clone()),
-    injectionModel_(c.injectionModel_->clone()),
     patchInteractionModel_(c.patchInteractionModel_->clone()),
     surfaceFilmModel_(c.surfaceFilmModel_->clone()),
     UIntegrator_(c.UIntegrator_->clone()),
@@ -430,7 +426,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         (
             IOobject
             (
-                this->name() + "UTrans",
+                this->name() + ":UTrans",
                 this->db().time().timeName(),
                 this->db(),
                 IOobject::NO_READ,
@@ -446,7 +442,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         (
             IOobject
             (
-                name + "UCoeff",
+                name + ":UCoeff",
                 this->db().time().timeName(),
                 this->db(),
                 IOobject::NO_READ,
@@ -508,8 +504,8 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     pAmbient_(c.pAmbient_),
     forces_(*this, mesh),
     functions_(*this),
+    injectors_(*this),
     dispersionModel_(NULL),
-    injectionModel_(NULL),
     patchInteractionModel_(NULL),
     surfaceFilmModel_(NULL),
     UIntegrator_(NULL),
@@ -683,7 +679,7 @@ void Foam::KinematicCloud<CloudType>::patchData
     const tetIndices& tetIs,
     vector& nw,
     vector& Up
-)
+) const
 {
     label patchI = pp.index();
     label patchFaceI = pp.whichFace(p.face());
@@ -802,9 +798,7 @@ void Foam::KinematicCloud<CloudType>::patchData
             // magOmega = sin(angle between unit normals)
             // Normalise omega vector by magOmega, then multiply by
             // angle/dt to give the correct angular velocity vector.
-            omega *=
-                Foam::asin(magOmega)
-               /(magOmega*mesh_.time().deltaTValue());
+            omega *= Foam::asin(magOmega)/(magOmega*mesh_.time().deltaTValue());
 
             // Project position onto face and calculate this position
             // relative to the face centre.
@@ -823,6 +817,13 @@ void Foam::KinematicCloud<CloudType>::patchData
 
 
 template<class CloudType>
+void Foam::KinematicCloud<CloudType>::updateMesh()
+{
+    injectors_.updateMesh();
+}
+
+
+template<class CloudType>
 void Foam::KinematicCloud<CloudType>::autoMap(const mapPolyMesh& mapper)
 {
     typedef typename particle::TrackingData<KinematicCloud<CloudType> > tdType;
@@ -830,6 +831,8 @@ void Foam::KinematicCloud<CloudType>::autoMap(const mapPolyMesh& mapper)
     tdType td(*this);
 
     Cloud<parcelType>::template autoMap<tdType>(td, mapper);
+
+    updateMesh();
 }
 
 
@@ -859,7 +862,7 @@ void Foam::KinematicCloud<CloudType>::info()
         << "    Rotational kinetic energy       = "
         << rotationalKineticEnergy << nl;
 
-    this->injection().info(Info);
+    injectors_.info(Info);
     this->surfaceFilm().info(Info);
     this->patchInteraction().info(Info);
 }

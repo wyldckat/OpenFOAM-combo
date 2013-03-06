@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    ideasUnvToFoam
+
 Description
     I-Deas unv format mesh conversion.
 
@@ -650,7 +653,6 @@ label findPatch(const List<labelHashSet>& dofGroups, const face& f)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

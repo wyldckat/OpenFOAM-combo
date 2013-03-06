@@ -98,10 +98,11 @@ template<class CloudType>
 Foam::ConeNozzleInjection<CloudType>::ConeNozzleInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName, typeName),
     injectionMethod_(imPoint),
     flowType_(ftConstantVelocity),
     outerDiameter_(readScalar(this->coeffDict().lookup("outerDiameter"))),
@@ -200,6 +201,8 @@ Foam::ConeNozzleInjection<CloudType>::ConeNozzleInjection
 
     // Set total volume to inject
     this->volumeTotal_ = flowRateProfile_.integrate(0.0, duration_);
+
+    updateMesh();
 }
 
 
@@ -242,6 +245,30 @@ Foam::ConeNozzleInjection<CloudType>::~ConeNozzleInjection()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::ConeNozzleInjection<CloudType>::updateMesh()
+{
+    // Set/cache the injector cells
+    switch (injectionMethod_)
+    {
+        case imPoint:
+        {
+            this->findCellAtPosition
+            (
+                injectorCell_,
+                tetFaceI_,
+                tetPtI_,
+                position_
+            );
+        }
+        default:
+        {
+            // do nothing
+        }
+    }
+}
+
 
 template<class CloudType>
 Foam::scalar Foam::ConeNozzleInjection<CloudType>::timeEnd() const
@@ -341,6 +368,7 @@ void Foam::ConeNozzleInjection<CloudType>::setPositionAndCell
                     "const label, "
                     "const scalar, "
                     "vector&, "
+                    "label&, "
                     "label&"
                 ")"
             )<< "Unknown injectionMethod type" << nl

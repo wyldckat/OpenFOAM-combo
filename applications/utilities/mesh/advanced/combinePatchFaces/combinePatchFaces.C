@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,10 +21,13 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    combinePatchFaces
+
 Description
-    Checks for multiple patch faces on same cell and combines them. These
-    result from e.g. refined neighbouring cells getting removed, leaving 4
-    exposed faces with same owner.
+    Checks for multiple patch faces on same cell and combines them.
+    Multiple patch faces can result from e.g. removal of refined
+    neighbouring cells, leaving 4 exposed faces with same owner.
 
     Rules for merging:
     - only boundary faces (since multiple internal faces between two cells
@@ -53,97 +56,11 @@ Description
 #include "polyMesh.H"
 #include "mapPolyMesh.H"
 #include "unitConversion.H"
+#include "motionSmoother.H"
 
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-
-// Same check as snapMesh
-void checkSnapMesh
-(
-    const Time& runTime,
-    const polyMesh& mesh,
-    labelHashSet& wrongFaces
-)
-{
-    IOdictionary snapDict
-    (
-        IOobject
-        (
-            "snapMeshDict",
-            runTime.system(),
-            mesh,
-            IOobject::MUST_READ_IF_MODIFIED,
-            IOobject::NO_WRITE
-        )
-    );
-
-    // Max nonorthogonality allowed
-    scalar maxNonOrtho(readScalar(snapDict.lookup("maxNonOrtho")));
-    // Max concaveness allowed.
-    scalar maxConcave(readScalar(snapDict.lookup("maxConcave")));
-    // Min volume allowed (factor of minimum cellVolume)
-    scalar relMinVol(readScalar(snapDict.lookup("minVol")));
-    const scalar minCellVol = min(mesh.cellVolumes());
-    const scalar minPyrVol = relMinVol*minCellVol;
-    // Min area
-    scalar minArea(readScalar(snapDict.lookup("minArea")));
-
-    if (maxNonOrtho < 180.0-SMALL)
-    {
-        Pout<< "Checking non orthogonality" << endl;
-
-        label nOldSize = wrongFaces.size();
-        mesh.setNonOrthThreshold(maxNonOrtho);
-        mesh.checkFaceOrthogonality(false, &wrongFaces);
-
-        Pout<< "Detected " << wrongFaces.size() - nOldSize
-            << " faces with non-orthogonality > " << maxNonOrtho << " degrees"
-            << endl;
-    }
-
-    if (minPyrVol > -GREAT)
-    {
-        Pout<< "Checking face pyramids" << endl;
-
-        label nOldSize = wrongFaces.size();
-        mesh.checkFacePyramids(false, minPyrVol, &wrongFaces);
-        Pout<< "Detected additional " << wrongFaces.size() - nOldSize
-            << " faces with illegal face pyramids" << endl;
-    }
-
-    if (maxConcave < 180.0-SMALL)
-    {
-        Pout<< "Checking face angles" << endl;
-
-        label nOldSize = wrongFaces.size();
-        mesh.checkFaceAngles(false, maxConcave, &wrongFaces);
-        Pout<< "Detected additional " << wrongFaces.size() - nOldSize
-            << " faces with concavity > " << maxConcave << " degrees"
-            << endl;
-    }
-
-    if (minArea > -SMALL)
-    {
-        Pout<< "Checking face areas" << endl;
-
-        label nOldSize = wrongFaces.size();
-
-        const scalarField magFaceAreas(mag(mesh.faceAreas()));
-
-        forAll(magFaceAreas, faceI)
-        {
-            if (magFaceAreas[faceI] < minArea)
-            {
-                wrongFaces.insert(faceI);
-            }
-        }
-        Pout<< "Detected additional " << wrongFaces.size() - nOldSize
-            << " faces with area < " << minArea << " m^2" << endl;
-    }
-}
-
 
 // Merge faces on the same patch (usually from exposing refinement)
 // Can undo merges if these cause problems.
@@ -151,7 +68,7 @@ label mergePatchFaces
 (
     const scalar minCos,
     const scalar concaveSin,
-    const bool snapMeshDict,
+    const autoPtr<IOdictionary>& qualDictPtr,
     const Time& runTime,
     polyMesh& mesh
 )
@@ -212,9 +129,9 @@ label mergePatchFaces
         // Faces in error.
         labelHashSet errorFaces;
 
-        if (snapMeshDict)
+        if (qualDictPtr.valid())
         {
-            checkSnapMesh(runTime, mesh, errorFaces);
+            motionSmoother::checkMesh(false, mesh, qualDictPtr(), errorFaces);
         }
         else
         {
@@ -422,7 +339,6 @@ label mergeEdges(const scalar minCos, polyMesh& mesh)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
@@ -437,8 +353,8 @@ int main(int argc, char *argv[])
     );
     argList::addBoolOption
     (
-        "snapMesh",
-        "use system/snapMeshDict"
+        "meshQuality",
+        "read user-defined mesh quality criterions from system/meshQualityDict"
     );
 
 #   include "setRootCase.H"
@@ -455,8 +371,8 @@ int main(int argc, char *argv[])
     scalar concaveAngle = args.optionLookupOrDefault("concaveAngle", 30.0);
     scalar concaveSin = Foam::sin(degToRad(concaveAngle));
 
-    const bool snapMeshDict = args.optionFound("snapMesh");
     const bool overwrite = args.optionFound("overwrite");
+    const bool meshQuality = args.optionFound("meshQuality");
 
     Info<< "Merging all faces of a cell" << nl
         << "    - which are on the same patch" << nl
@@ -468,23 +384,47 @@ int main(int argc, char *argv[])
         << "      (sin:" << concaveSin << ')' << nl
         << endl;
 
+    autoPtr<IOdictionary> qualDict;
+    if (meshQuality)
+    {
+        Info<< "Enabling user-defined geometry checks." << nl << endl;
+
+        qualDict.reset
+        (
+            new IOdictionary
+            (
+                IOobject
+                (
+                    "meshQualityDict",
+                    mesh.time().system(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+           )
+        );
+    }
+
+
     if (!overwrite)
     {
         runTime++;
     }
+
+
 
     // Merge faces on same patch
     label nChanged = mergePatchFaces
     (
         minCos,
         concaveSin,
-        snapMeshDict,
+        qualDict,
         runTime,
         mesh
     );
 
     // Merge points on straight edges and remove unused points
-    if (snapMeshDict)
+    if (qualDict.valid())
     {
         Info<< "Merging all 'loose' points on surface edges, "
             << "regardless of the angle they make." << endl;

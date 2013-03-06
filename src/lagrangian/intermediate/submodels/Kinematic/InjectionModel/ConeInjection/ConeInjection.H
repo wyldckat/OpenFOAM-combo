@@ -118,7 +118,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        ConeInjection(const dictionary& dict, CloudType& owner);
+        ConeInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         ConeInjection(const ConeInjection<CloudType>& im);
@@ -138,6 +143,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

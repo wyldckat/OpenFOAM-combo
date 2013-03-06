@@ -12,14 +12,9 @@ runApplication splitMeshRegions -cellZones -overwrite
 # remove fluid fields from solid regions (important for post-processing)
 for i in heater leftSolid rightSolid
 do
-   rm -f 0*/$i/{mut,alphat,epsilon,k,p,U,p_rgh}
+   rm -f 0*/$i/{mut,alphat,epsilon,k,U,p_rgh}
 done
 
-# remove solid fields from fluid regions (important for post-processing)
-for i in bottomAir topAir
-do
-   rm -f 0*/$i/{Ychar,Ypmma}
-done
 
 for i in bottomAir topAir heater leftSolid rightSolid
 do
@@ -31,27 +26,18 @@ done
 #runApplication `getApplication`
 
 # Decompose
-for i in bottomAir topAir heater leftSolid rightSolid
-do
-   decomposePar -region $i > log.decomposePar.$i 2>&1
-done
+runApplication decomposePar -allRegions
 
 # Run
 runParallel `getApplication` 4
 
 # Reconstruct
-for i in bottomAir topAir heater leftSolid rightSolid
-do
-   reconstructPar -region $i > log.reconstructPar.$i2 >&1
-done
+runApplication reconstructPar -allRegions
 
 
 echo
 echo "creating files for paraview post-processing"
 echo
-for i in bottomAir topAir heater leftSolid rightSolid
-do
-   paraFoam -touch -region $i
-done
+paraFoam -touchAll
 
 # ----------------------------------------------------------------- end-of-file

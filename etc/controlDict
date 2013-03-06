@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.0.0                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -46,7 +46,9 @@ InfoSwitches
 
 OptimisationSwitches
 {
-    fileModificationSkew 10;
+    // On NFS mounted file system: maximum wait for files to appear/get
+    // updated. Set to 0 on distributed case.
+    fileModificationSkew 30;
 
     //- Modification checking:
     //  - timeStamp         : use modification time on file
@@ -102,7 +104,7 @@ DebugSwitches
     ChomiakInjector     0;
     Cloud<basicKinematicParcel> 0;
     Cloud<basicReactingParcel>  0;
-    Cloud<basicThermoParcel>    0;
+    Cloud<fluidThermoParcel>    0;
     Cloud<indexedParticle>  0;
     Cloud<parcel>           0;
     Cloud<passiveParticle>  0;
@@ -170,9 +172,9 @@ DebugSwitches
     KRR4                0;
     KinematicCloud<basicKinematicParcel> 0;
     KinematicCloud<basicReactingParcel> 0;
-    KinematicCloud<basicThermoParcel>   0;
+    KinematicCloud<fluidThermoParcel>   0;
     KinematicParcel<basicReactingParcel> 0;
-    KinematicParcel<basicThermoParcel>  0;
+    KinematicParcel<fluidThermoParcel>  0;
     LESModel            0;
     LESdelta            0;
     LESfilter           0;
@@ -280,9 +282,9 @@ DebugSwitches
     TAB                 0;
     Table               0;
     ThermoCloud<basicReactingParcel>    0;
-    ThermoCloud<basicThermoParcel>      0;
+    ThermoCloud<fluidThermoParcel>      0;
     ThermoParcel<basicReactingParcel>   0;
-    ThermoParcel<basicThermoParcel>     0;
+    ThermoParcel<fluidThermoParcel>     0;
     UMIST               0;
     UMISTV              0;
     UpwindFitData<cubicUpwindFitPolynomial> 0;
@@ -321,9 +323,9 @@ DebugSwitches
     basicMixture        0;
     basicReactingCloud  0;
     basicReactingParcel 0;
-    basicThermo         0;
-    basicThermoCloud    0;
-    basicThermoParcel   0;
+    fluidThermo         0;
+    fluidThermoCloud    0;
+    fluidThermoParcel   0;
     biLinearFit         0;
     binaryAbsorptionEmission 0;
     blended             0;
@@ -510,31 +512,30 @@ DebugSwitches
     gradientUnburntEnthalpy 0;
     granularPressureModel   0;
     hCombustionThermo   0;
-    hMixtureThermo<dieselMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hMixtureThermo<homogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hMixtureThermo<homogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hMixtureThermo<inhomogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hMixtureThermo<inhomogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hMixtureThermo<multiComponentMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
+    hMixtureThermo<homogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hMixtureThermo<homogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hMixtureThermo<inhomogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hMixtureThermo<inhomogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hMixtureThermo<multiComponentMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
     hMixtureThermo<reactingMixture> 0;
-    hMixtureThermo<veryInhomogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hMixtureThermo<veryInhomogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hThermo<pureMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hThermo<pureMixture<sutherlandTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hThermo<pureMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
+    hMixtureThermo<veryInhomogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hMixtureThermo<veryInhomogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hThermo<pureMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hThermo<pureMixture<sutherlandTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hThermo<pureMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
     harmonic            0;
     heatTransferModel   0;
     hexCellLooper       0;
     hexRef8             0;
     hhuCombustionThermo 0;
-    hhuMixtureThermo<egrMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<egrMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<homogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<homogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<inhomogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<inhomogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<veryInhomogeneousMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>>> 0;
-    hhuMixtureThermo<veryInhomogeneousMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<egrMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<egrMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<homogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<homogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<inhomogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<inhomogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<veryInhomogeneousMixture<constTransport<thermo<hConstThermo<perfectGas>>>>> 0;
+    hhuMixtureThermo<veryInhomogeneousMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>>> 0;
     hierarchical        0;
     hollowConeInjector  0;
     iC3H8O              0;
@@ -712,9 +713,9 @@ DebugSwitches
     processor           0;
     processorLduInterface 0;
     processorLduInterfaceField 0;
-    pureMixture<constTransport<specieThermo<hConstThermo<perfectGas>>>> 0;
-    pureMixture<sutherlandTransport<specieThermo<hConstThermo<perfectGas>>>> 0;
-    pureMixture<sutherlandTransport<specieThermo<janafThermo<perfectGas>>>> 0;
+    pureMixture<constTransport<thermo<hConstThermo<perfectGas>>>> 0;
+    pureMixture<sutherlandTransport<thermo<hConstThermo<perfectGas>>>> 0;
+    pureMixture<sutherlandTransport<thermo<janafThermo<perfectGas>>>> 0;
     quadratic           0;
     quadraticFit        0;
     quadraticLinearFit  0;
@@ -885,6 +886,7 @@ DebugSwitches
     wallHeatTransfer    0;
     wallLayerCells      0;
     wallModel           0;
+    warnUnboundedGauss  1;
     waveTransmissive    0;
     wedge               0;
     weighted            0;
@@ -963,6 +965,66 @@ DimensionedConstants
         }
     }
 }
+
+
+DimensionSets
+{
+    unitSet             SI; // USCS
+
+    SICoeffs
+    {
+        // Basic units
+        kg  kg  [ 1 0 0 0 0 0 0 ] 1.0;
+        m   m   [ 0 1 0 0 0 0 0 ] 1.0;
+        s   s   [ 0 0 1 0 0 0 0 ] 1.0;
+        K   K   [ 0 0 0 1 0 0 0 ] 1.0;
+        mol mol [ 0 0 0 0 1 0 0 ] 1.0;
+        A   A   [ 0 0 0 0 0 1 0 ] 1.0;
+        Cd  Cd  [ 0 0 0 0 0 0 1 ] 1.0;
+
+        // Derived units
+        Hz  Hz  [ s^-1 ] 1.0;
+        N   N   [ kg m s^-2 ] 1.0;
+        Pa  Pa  [ N m^-2 ] 1.0;
+        J   J   [ N m ] 1.0;
+        W   W   [ J s^-1 ] 1.0;
+
+        // Some non-symbolic ones
+        area area [m^2] 1.0;
+        volume volume [m^3] 1.0;
+        density density [ kg m^-3 ] 1.0;
+        acceleration acceleration  [ m s^-2 ] 1.0;
+        kinematicPressure kinematicPressure [ Pa density^-1 ] 1.0;
+
+        // Scaled units. Only allowed in dimensionedType (dimensionedScalar,
+        // dimensionedVector etc.) and UniformDimensionedField, not
+        // in DimensionedField or GeometricField
+        cm  cm  [ m ] 1e-2;
+        mm  mm  [ m ] 1e-3;
+        km  km  [ m ] 1e3;
+
+        // Set of units used for printing. Can be any basic or derived
+        // but not scaled (only supported for dimensionedScalar, etc)
+        //writeUnits (kg m s K mol A Cd);
+    }
+
+    USCSCoeffs
+    {
+        // Basic units
+        lb  lb  [ 1 0 0 0 0 0 0 ] 1.0;
+        ft  ft  [ 0 1 0 0 0 0 0 ] 1.0;
+        s   s   [ 0 0 1 0 0 0 0 ] 1.0;
+        R   R   [ 0 0 0 1 0 0 0 ] 1.0;
+        mol mol [ 0 0 0 0 1 0 0 ] 1.0;
+        A   A   [ 0 0 0 0 0 1 0 ] 1.0;
+        Cd  Cd  [ 0 0 0 0 0 0 1 ] 1.0;
+
+        // Set of units used for printing. Can be any basic or derived
+        // but not scaled (only supported for dimensionedScalar, etc)
+        //writeUnits (lb ft s R mol A Cd);
+    }
+}
+
 
 
 // ************************************************************************* //

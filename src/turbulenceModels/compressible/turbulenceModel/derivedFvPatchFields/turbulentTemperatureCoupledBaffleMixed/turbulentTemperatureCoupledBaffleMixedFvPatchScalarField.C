@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,9 +36,6 @@ namespace Foam
 namespace compressible
 {
 
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 turbulentTemperatureCoupledBaffleMixedFvPatchScalarField::
@@ -68,7 +65,7 @@ turbulentTemperatureCoupledBaffleMixedFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(ptf, p, iF, mapper),
-    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.KName()),
+    temperatureCoupledBase(patch(), ptf.KMethod(), ptf.kappaName()),
     neighbourFieldName_(ptf.neighbourFieldName_)
 {}
 
@@ -131,7 +128,7 @@ turbulentTemperatureCoupledBaffleMixedFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(wtcsf, iF),
-    temperatureCoupledBase(patch(), wtcsf.KMethod(), wtcsf.KName()),
+    temperatureCoupledBase(patch(), wtcsf.KMethod(), wtcsf.kappaName()),
     neighbourFieldName_(wtcsf.neighbourFieldName_)
 {}
 
@@ -151,16 +148,12 @@ void turbulentTemperatureCoupledBaffleMixedFvPatchScalarField::updateCoeffs()
     UPstream::msgType() = oldTag+1;
 
     // Get the coupling information from the mappedPatchBase
-    const mappedPatchBase& mpp = refCast<const mappedPatchBase>
-    (
-        patch().patch()
-    );
+    const mappedPatchBase& mpp =
+        refCast<const mappedPatchBase>(patch().patch());
     const polyMesh& nbrMesh = mpp.sampleMesh();
-    const fvPatch& nbrPatch = refCast<const fvMesh>
-    (
-        nbrMesh
-    ).boundary()[mpp.samplePolyPatch().index()];
-
+    const label samplePatchI = mpp.samplePolyPatch().index();
+    const fvPatch& nbrPatch =
+        refCast<const fvMesh>(nbrMesh).boundary()[samplePatchI];
 
     tmp<scalarField> intFld = patchInternalField();
 
@@ -184,11 +177,11 @@ void turbulentTemperatureCoupledBaffleMixedFvPatchScalarField::updateCoeffs()
     scalarField nbrIntFld(nbrField.patchInternalField());
     mpp.distribute(nbrIntFld);
 
-    // Swap to obtain full local values of neighbour K*delta
-    scalarField nbrKDelta(nbrField.K(nbrField)*nbrPatch.deltaCoeffs());
+    // Swap to obtain full local values of neighbour kappa*delta
+    scalarField nbrKDelta(nbrField.kappa(nbrField)*nbrPatch.deltaCoeffs());
     mpp.distribute(nbrKDelta);
 
-    tmp<scalarField> myKDelta = K(*this)*patch().deltaCoeffs();
+    tmp<scalarField> myKDelta = kappa(*this)*patch().deltaCoeffs();
 
 
     // Both sides agree on
@@ -211,13 +204,13 @@ void turbulentTemperatureCoupledBaffleMixedFvPatchScalarField::updateCoeffs()
 
     this->refGrad() = 0.0;
 
-    this->valueFraction() = nbrKDelta / (nbrKDelta + myKDelta());
+    this->valueFraction() = nbrKDelta/(nbrKDelta + myKDelta());
 
     mixedFvPatchScalarField::updateCoeffs();
 
     if (debug)
     {
-        scalar Q = gSum(K(*this)*patch().magSf()*snGrad());
+        scalar Q = gSum(kappa(*this)*patch().magSf()*snGrad());
 
         Info<< patch().boundaryMesh().mesh().name() << ':'
             << patch().name() << ':'
@@ -225,7 +218,7 @@ void turbulentTemperatureCoupledBaffleMixedFvPatchScalarField::updateCoeffs()
             << nbrMesh.name() << ':'
             << nbrPatch.name() << ':'
             << this->dimensionedInternalField().name() << " :"
-            << " heat[W]:" << Q
+            << " heat transfer rate:" << Q
             << " walltemperature "
             << " min:" << gMin(*this)
             << " max:" << gMax(*this)

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,6 +30,9 @@ Description
 #include "dictionary.H"
 #include "IFstream.H"
 #include "OSspecific.H"
+#include "Ostream.H"
+#include "demandDrivenData.H"
+#include "simpleObjectRegistry.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,6 +47,14 @@ dictionary* debugSwitchesPtr_(NULL);
 dictionary* infoSwitchesPtr_(NULL);
 dictionary* optimisationSwitchesPtr_(NULL);
 
+// Debug switch read and write callback tables.
+simpleObjectRegistry* debugObjectsPtr_(NULL);
+simpleObjectRegistry* infoObjectsPtr_(NULL);
+simpleObjectRegistry* optimisationObjectsPtr_(NULL);
+simpleObjectRegistry* dimensionSetObjectsPtr_(NULL);
+simpleObjectRegistry* dimensionedConstantObjectsPtr_(NULL);
+
+
 // to ensure controlDictPtr_ is deleted at the end of the run
 class deleteControlDictPtr
 {
@@ -54,11 +65,16 @@ public:
 
     ~deleteControlDictPtr()
     {
-        if (controlDictPtr_)
-        {
-            delete controlDictPtr_;
-            controlDictPtr_ = 0;
-        }
+        deleteDemandDrivenData(debugObjectsPtr_);
+        deleteDemandDrivenData(infoObjectsPtr_);
+        deleteDemandDrivenData(optimisationObjectsPtr_);
+        deleteDemandDrivenData(dimensionSetObjectsPtr_);
+        deleteDemandDrivenData(dimensionedConstantObjectsPtr_);
+
+        debugSwitchesPtr_ = NULL;
+        infoSwitchesPtr_ = NULL;
+        optimisationSwitchesPtr_ = NULL;
+        deleteDemandDrivenData(controlDictPtr_);
     }
 };
 
@@ -162,6 +178,181 @@ int Foam::debug::optimisationSwitch(const char* name, const int defaultValue)
     (
         name, defaultValue, false, false
     );
+}
+
+
+void Foam::debug::addDebugObject(const char* name, simpleRegIOobject* obj)
+{
+    simpleObjectRegistryEntry* ptr = debugObjects().lookupPtr(name);
+    if (ptr)
+    {
+        ptr->append(obj);
+    }
+    else
+    {
+        debugObjects().append
+        (
+            name,
+            new simpleObjectRegistryEntry
+            (
+                List<simpleRegIOobject*>(1, obj)
+            )
+        );
+    }
+}
+
+
+void Foam::debug::addInfoObject(const char* name, simpleRegIOobject* obj)
+{
+    simpleObjectRegistryEntry* ptr = infoObjects().lookupPtr(name);
+    if (ptr)
+    {
+        ptr->append(obj);
+    }
+    else
+    {
+        infoObjects().append
+        (
+            name,
+            new simpleObjectRegistryEntry
+            (
+                List<simpleRegIOobject*>(1, obj)
+            )
+        );
+    }
+}
+
+
+void Foam::debug::addOptimisationObject
+(
+    const char* name,
+    simpleRegIOobject* obj
+)
+{
+    simpleObjectRegistryEntry* ptr = optimisationObjects().lookupPtr(name);
+    if (ptr)
+    {
+        ptr->append(obj);
+    }
+    else
+    {
+        optimisationObjects().append
+        (
+            name,
+            new simpleObjectRegistryEntry
+            (
+                List<simpleRegIOobject*>(1, obj)
+            )
+        );
+    }
+}
+
+
+void Foam::debug::addDimensionSetObject
+(
+    const char* name,
+    simpleRegIOobject* obj
+)
+{
+    simpleObjectRegistryEntry* ptr = dimensionSetObjects().lookupPtr(name);
+    if (ptr)
+    {
+        ptr->append(obj);
+    }
+    else
+    {
+        dimensionSetObjects().append
+        (
+            name,
+            new simpleObjectRegistryEntry
+            (
+                List<simpleRegIOobject*>(1, obj)
+            )
+        );
+    }
+}
+
+
+void Foam::debug::addDimensionedConstantObject
+(
+    const char* name,
+    simpleRegIOobject* obj
+)
+{
+    simpleObjectRegistryEntry* ptr = dimensionedConstantObjects().lookupPtr
+    (
+        name
+    );
+    if (ptr)
+    {
+        ptr->append(obj);
+    }
+    else
+    {
+        dimensionedConstantObjects().append
+        (
+            name,
+            new simpleObjectRegistryEntry
+            (
+                List<simpleRegIOobject*>(1, obj)
+            )
+        );
+    }
+}
+
+
+Foam::simpleObjectRegistry& Foam::debug::debugObjects()
+{
+    if (!debugObjectsPtr_)
+    {
+        debugObjectsPtr_ = new simpleObjectRegistry(1000);
+    }
+
+    return *debugObjectsPtr_;
+}
+
+
+Foam::simpleObjectRegistry& Foam::debug::infoObjects()
+{
+    if (!infoObjectsPtr_)
+    {
+        infoObjectsPtr_ = new simpleObjectRegistry(100);
+    }
+
+    return *infoObjectsPtr_;
+}
+
+
+Foam::simpleObjectRegistry& Foam::debug::optimisationObjects()
+{
+    if (!optimisationObjectsPtr_)
+    {
+        optimisationObjectsPtr_ = new simpleObjectRegistry(100);
+    }
+
+    return *optimisationObjectsPtr_;
+}
+
+
+Foam::simpleObjectRegistry& Foam::debug::dimensionSetObjects()
+{
+    if (!dimensionSetObjectsPtr_)
+    {
+        dimensionSetObjectsPtr_ = new simpleObjectRegistry(100);
+    }
+
+    return *dimensionSetObjectsPtr_;
+}
+
+
+Foam::simpleObjectRegistry& Foam::debug::dimensionedConstantObjects()
+{
+    if (!dimensionedConstantObjectsPtr_)
+    {
+        dimensionedConstantObjectsPtr_ = new simpleObjectRegistry(100);
+    }
+
+    return *dimensionedConstantObjectsPtr_;
 }
 
 

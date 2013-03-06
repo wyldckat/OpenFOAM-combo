@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,7 +48,8 @@ SourceFiles
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "fvMatricesFwd.H"
-#include "basicThermo.H"
+#include "fluidThermo.H"
+#include "nearWallDist.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
 
@@ -83,7 +84,10 @@ protected:
         const volVectorField& U_;
         const surfaceScalarField& phi_;
 
-        const basicThermo& thermophysicalModel_;
+        const fluidThermo& thermophysicalModel_;
+
+        //- Near wall distance boundary field
+        nearWallDist y_;
 
 
 private:
@@ -114,7 +118,7 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel,
+                const fluidThermo& thermoPhysicalModel,
                 const word& turbulenceModelName
             ),
             (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
@@ -129,7 +133,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = typeName
         );
 
@@ -142,7 +146,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = typeName
         );
 
@@ -153,6 +157,9 @@ public:
 
 
     // Member Functions
+
+        //- Const access to the coefficients dictionary
+        virtual const dictionary& coeffDict() const = 0;
 
         //- Access function to density field
         const volScalarField& rho() const
@@ -173,9 +180,15 @@ public:
         }
 
         //- Access function to thermophysical model
-        const basicThermo& thermo() const
+        const fluidThermo& thermo() const
         {
              return thermophysicalModel_;
+        }
+
+        //- Return the near wall distances
+        const nearWallDist& y() const
+        {
+            return y_;
         }
 
         //- Return the laminar viscosity
@@ -198,6 +211,12 @@ public:
 
         //- Return the turbulence thermal diffusivity
         virtual tmp<volScalarField> alphat() const = 0;
+
+        //- Return the effective turbulence temperature diffusivity
+        virtual tmp<volScalarField> kappaEff() const = 0;
+
+        //- Return the effective turbulence temperature diffusivity for a patch
+        virtual tmp<scalarField> kappaEff(const label patchI) const = 0;
 
         //- Return the effective turbulence thermal diffusivity
         virtual tmp<volScalarField> alphaEff() const = 0;

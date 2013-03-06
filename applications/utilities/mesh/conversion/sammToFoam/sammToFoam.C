@@ -34,7 +34,6 @@ Description
 #include "sammMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

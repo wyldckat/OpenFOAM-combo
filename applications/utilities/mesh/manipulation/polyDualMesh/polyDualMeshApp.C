@@ -21,8 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    polyDualMesh
+
 Description
-    Calculate the dual of a polyMesh. Adheres to all the feature and patch
+    Calculates the dual of a polyMesh. Adheres to all the feature and patch
     edges.
 
 Usage

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,7 @@ License
 #include "fvcGrad.H"
 #include "unitConversion.H"
 #include "fvPatchField.H"
+#include "patchDist.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -43,6 +44,35 @@ namespace surfaceFilmModels
 defineTypeNameAndDebug(contactAngleForce, 0);
 addToRunTimeSelectionTable(force, contactAngleForce, dictionary);
 
+// * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
+
+void contactAngleForce::initialise()
+{
+    const wordReList zeroForcePatches(coeffs_.lookup("zeroForcePatches"));
+
+    if (zeroForcePatches.size())
+    {
+        const polyBoundaryMesh& pbm = owner_.regionMesh().boundaryMesh();
+        scalar dLim = readScalar(coeffs_.lookup("zeroForceDistance"));
+
+        Info<< "        Assigning zero contact force within " << dLim
+            << " of patches:" << endl;
+
+        labelHashSet patchIDs = pbm.patchSet(zeroForcePatches);
+
+        forAllConstIter(labelHashSet, patchIDs, iter)
+        {
+            label patchI = iter.key();
+            Info<< "            " << pbm[patchI].name() << endl;
+        }
+
+        patchDist dist(owner_.regionMesh(), patchIDs);
+
+        mask_ = pos(dist - dimensionedScalar("dLim", dimLength, dLim));
+    }
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 contactAngleForce::contactAngleForce
@@ -52,7 +82,6 @@ contactAngleForce::contactAngleForce
 )
 :
     force(typeName, owner, dict),
-    deltaWet_(readScalar(coeffs_.lookup("deltaWet"))),
     Ccf_(readScalar(coeffs_.lookup("Ccf"))),
     rndGen_(label(0), -1),
     distribution_
@@ -62,8 +91,23 @@ contactAngleForce::contactAngleForce
             coeffs_.subDict("contactAngleDistribution"),
             rndGen_
         )
+    ),
+    mask_
+    (
+        IOobject
+        (
+            typeName + ":contactForceMask",
+            owner_.time().timeName(),
+            owner_.regionMesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        owner_.regionMesh(),
+        dimensionedScalar("mask", dimless, 1.0)
     )
-{}
+{
+    initialise();
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -82,7 +126,7 @@ tmp<fvVectorMatrix> contactAngleForce::correct(volVectorField& U)
         (
             IOobject
             (
-                "contactForce",
+                typeName + ":contactForce",
                 owner_.time().timeName(),
                 owner_.regionMesh(),
                 IOobject::NO_READ,
@@ -100,18 +144,10 @@ tmp<fvVectorMatrix> contactAngleForce::correct(volVectorField& U)
 
     const scalarField& magSf = owner_.magSf();
 
-    const volScalarField& delta = owner_.delta();
+    const volScalarField& alpha = owner_.alpha();
     const volScalarField& sigma = owner_.sigma();
 
-    volScalarField alpha
-    (
-        "alpha",
-        pos(delta - dimensionedScalar("deltaWet", dimLength, deltaWet_))
-    );
     volVectorField gradAlpha(fvc::grad(alpha));
-
-
-    scalarField nHits(owner_.regionMesh().nCells(), 0.0);
 
     forAll(nbr, faceI)
     {
@@ -119,51 +155,55 @@ tmp<fvVectorMatrix> contactAngleForce::correct(volVectorField& U)
         const label cellN = nbr[faceI];
 
         label cellI = -1;
-        if ((delta[cellO] > deltaWet_) && (delta[cellN] < deltaWet_))
+        if ((alpha[cellO] > 0.5) && (alpha[cellN] < 0.5))
         {
             cellI = cellO;
         }
-        else if ((delta[cellO] < deltaWet_) && (delta[cellN] > deltaWet_))
+        else if ((alpha[cellO] < 0.5) && (alpha[cellN] > 0.5))
         {
             cellI = cellN;
         }
 
-        if (cellI != -1)
+        if (cellI != -1 && mask_[cellI] > 0.5)
         {
-//            const scalar dx = Foam::sqrt(magSf[cellI]);
-            // bit of a cheat, but ok for regular meshes
-            const scalar dx = owner_.regionMesh().deltaCoeffs()[faceI];
+            const scalar invDx = owner_.regionMesh().deltaCoeffs()[faceI];
             const vector n =
                 gradAlpha[cellI]/(mag(gradAlpha[cellI]) + ROOTVSMALL);
             scalar theta = cos(degToRad(distribution_->sample()));
-            force[cellI] += Ccf_*n*sigma[cellI]*(1.0 - theta)/dx;
-            nHits[cellI]++;
+            force[cellI] += Ccf_*n*sigma[cellI]*(1.0 - theta)/invDx;
         }
     }
 
-    forAll(delta.boundaryField(), patchI)
+    forAll(alpha.boundaryField(), patchI)
     {
-        const fvPatchField<scalar>& df = delta.boundaryField()[patchI];
-        const scalarField& dx = df.patch().deltaCoeffs();
-        const labelUList& faceCells = df.patch().faceCells();
-
-        forAll(df, faceI)
+        if (!owner().isCoupledPatch(patchI))
         {
-            label cellO = faceCells[faceI];
+            const fvPatchField<scalar>& alphaf = alpha.boundaryField()[patchI];
+            const fvPatchField<scalar>& maskf = mask_.boundaryField()[patchI];
+            const scalarField& invDx = alphaf.patch().deltaCoeffs();
+            const labelUList& faceCells = alphaf.patch().faceCells();
 
-            if ((delta[cellO] > deltaWet_) && (df[faceI] < deltaWet_))
+            forAll(alphaf, faceI)
             {
-                const vector n =
-                    gradAlpha[cellO]/(mag(gradAlpha[cellO]) + ROOTVSMALL);
-                scalar theta = cos(degToRad(distribution_->sample()));
-                force[cellO] += Ccf_*n*sigma[cellO]*(1.0 - theta)/dx[faceI];
-                nHits[cellO]++;
+                if (maskf[faceI] > 0.5)
+                {
+                    label cellO = faceCells[faceI];
+
+                    if ((alpha[cellO] > 0.5) && (alphaf[faceI] < 0.5))
+                    {
+                        const vector n =
+                            gradAlpha[cellO]
+                           /(mag(gradAlpha[cellO]) + ROOTVSMALL);
+                        scalar theta = cos(degToRad(distribution_->sample()));
+                        force[cellO] +=
+                            Ccf_*n*sigma[cellO]*(1.0 - theta)/invDx[faceI];
+                    }
+                }
             }
         }
     }
 
-    force /= (max(nHits, scalar(1.0))*magSf);
-    tForce().correctBoundaryConditions();
+    force /= magSf;
 
     if (owner_.regionMesh().time().outputTime())
     {

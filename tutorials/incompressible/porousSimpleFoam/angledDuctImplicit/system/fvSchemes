@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,10 +29,10 @@ gradSchemes
 
 divSchemes
 {
-    div(phi,U)      Gauss upwind;
+    div(phi,U)      bounded Gauss upwind;
     div((nuEff*dev(T(grad(U))))) Gauss linear;
-    div(phi,epsilon) Gauss upwind;
-    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) bounded Gauss upwind;
+    div(phi,k)      bounded Gauss upwind;
 }
 
 laplacianSchemes

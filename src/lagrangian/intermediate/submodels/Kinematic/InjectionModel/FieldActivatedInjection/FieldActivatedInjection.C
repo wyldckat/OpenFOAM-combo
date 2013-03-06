@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,10 +35,11 @@ template<class CloudType>
 Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName, typeName),
     factor_(readScalar(this->coeffDict().lookup("factor"))),
     referenceField_
     (
@@ -95,17 +96,7 @@ Foam::FieldActivatedInjection<CloudType>::FieldActivatedInjection
     this->volumeTotal_ =
         nParcelsPerInjector_*sum(pow3(diameters_))*pi/6.0;
 
-    // Set/cache the injector cells
-    forAll(positions_, i)
-    {
-        this->findCellAtPosition
-        (
-            injectorCells_[i],
-            injectorTetFaces_[i],
-            injectorTetPts_[i],
-            positions_[i]
-        );
-    }
+    updateMesh();
 }
 
 
@@ -140,6 +131,23 @@ Foam::FieldActivatedInjection<CloudType>::~FieldActivatedInjection()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::FieldActivatedInjection<CloudType>::updateMesh()
+{
+    // Set/cache the injector cells
+    forAll(positions_, i)
+    {
+        this->findCellAtPosition
+        (
+            injectorCells_[i],
+            injectorTetFaces_[i],
+            injectorTetPts_[i],
+            positions_[i]
+        );
+    }
+}
+
 
 template<class CloudType>
 Foam::scalar Foam::FieldActivatedInjection<CloudType>::timeEnd() const

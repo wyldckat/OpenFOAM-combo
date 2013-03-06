@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    autoPatch
+
 Description
     Divides external faces into patches based on (user supplied) feature
     angle.
@@ -64,7 +67,6 @@ void collectFeatureEdges(const boundaryMesh& bMesh, labelList& markedEdges)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

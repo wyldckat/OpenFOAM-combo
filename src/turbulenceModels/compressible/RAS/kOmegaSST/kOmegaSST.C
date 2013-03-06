@@ -69,7 +69,6 @@ tmp<volScalarField> kOmegaSST::F1(const volScalarField& CDkOmega) const
     return tanh(pow4(arg1));
 }
 
-
 tmp<volScalarField> kOmegaSST::F2() const
 {
     tmp<volScalarField> arg2 = min
@@ -118,7 +117,7 @@ kOmegaSST::kOmegaSST
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -411,7 +410,7 @@ void kOmegaSST::correct()
         // Re-calculate viscosity
         mut_ =
             a1_*rho_*k_
-           /max(a1_*omega_, b1_*F23()*sqrt(2.0)*mag(symm(fvc::grad(U_))));
+           /max(a1_*omega_, F2()*sqrt(2.0)*mag(symm(fvc::grad(U_))));
         mut_.correctBoundaryConditions();
 
         // Re-calculate thermal diffusivity
@@ -438,7 +437,7 @@ void kOmegaSST::correct()
     tmp<volTensorField> tgradU = fvc::grad(U_);
     volScalarField S2(2*magSqr(symm(tgradU())));
     volScalarField GbyMu((tgradU() && dev(twoSymm(tgradU()))));
-    volScalarField G("RASModel::G", mut_*GbyMu);
+    volScalarField G(type() + ".G", mut_*GbyMu);
     tgradU.clear();
 
     // Update omega and G at the wall
@@ -457,7 +456,6 @@ void kOmegaSST::correct()
     (
         fvm::ddt(rho_, omega_)
       + fvm::div(phi_, omega_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), omega_)
       - fvm::laplacian(DomegaEff(F1), omega_)
      ==
         rhoGammaF1*GbyMu
@@ -482,7 +480,6 @@ void kOmegaSST::correct()
     (
         fvm::ddt(rho_, k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(F1), k_)
      ==
         min(G, (c1_*betaStar_)*rho_*k_*omega_)

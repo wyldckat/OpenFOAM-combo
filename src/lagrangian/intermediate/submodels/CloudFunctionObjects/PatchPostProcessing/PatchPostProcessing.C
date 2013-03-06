@@ -115,7 +115,7 @@ void Foam::PatchPostProcessing<CloudType>::write()
             labelList indices;
             sortedOrder(globalTimes, indices);
 
-            string header("# Time currentProc " + parcelType::propHeader);
+            string header("# Time currentProc " + parcelType::propertyList_);
             patchOutFile<< header.c_str() << nl;
 
             forAll(globalTimes, i)
@@ -220,7 +220,8 @@ void Foam::PatchPostProcessing<CloudType>::postPatch
     const parcelType& p,
     const polyPatch& pp,
     const scalar,
-    const tetIndices&
+    const tetIndices& tetIs,
+    bool&
 )
 {
     const label patchI = pp.index();

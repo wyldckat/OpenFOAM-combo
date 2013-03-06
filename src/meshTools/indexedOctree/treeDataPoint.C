@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,10 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::treeDataPoint, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(treeDataPoint, 0);
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -90,6 +93,25 @@ bool Foam::treeDataPoint::overlaps
 {
     label pointI = (useSubset_ ? pointLabels_[index] : index);
     return cubeBb.contains(points_[pointI]);
+}
+
+
+// Check if any point on shape is inside sphere.
+bool Foam::treeDataPoint::overlaps
+(
+    const label index,
+    const point& centre,
+    const scalar radiusSqr
+) const
+{
+    label pointI = (useSubset_ ? pointLabels_[index] : index);
+
+    if (magSqr(points_[pointI] - centre) <= radiusSqr)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 

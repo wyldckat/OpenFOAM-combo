@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -59,7 +59,8 @@ Foam::vector Foam::streamLineParticle::interpolateFields
 (
     const trackingData& td,
     const point& position,
-    const label cellI
+    const label cellI,
+    const label faceI
 )
 {
     if (cellI == -1)
@@ -76,7 +77,8 @@ Foam::vector Foam::streamLineParticle::interpolateFields
             td.vsInterp_[scalarI].interpolate
             (
                 position,
-                cellI
+                cellI,
+                faceI
             )
         );
     }
@@ -89,7 +91,8 @@ Foam::vector Foam::streamLineParticle::interpolateFields
             td.vvInterp_[vectorI].interpolate
             (
                 position,
-                cellI
+                cellI,
+                faceI
             )
         );
     }
@@ -201,7 +204,7 @@ bool Foam::streamLineParticle::move
 
             // Store current position and sampled velocity.
             sampledPositions_.append(position());
-            vector U = interpolateFields(td, position(), cell());
+            vector U = interpolateFields(td, position(), cell(), face());
 
             if (!td.trackForward_)
             {
@@ -219,7 +222,13 @@ bool Foam::streamLineParticle::move
 
             U /= magU;
 
-            if (subIter == 0 && td.nSubCycle_ > 1)
+            if (td.trackLength_ < GREAT)
+            {
+                dt = td.trackLength_;
+                //Pout<< "    subiteration " << subIter
+                //    << " : fixed length: updated dt:" << dt << endl;
+            }
+            else if (subIter == 0 && td.nSubCycle_ > 1)
             {
                 // Adapt dt to cross cell in a few steps
                 dt = calcSubCycleDeltaT(td, dt, U);
@@ -264,7 +273,8 @@ bool Foam::streamLineParticle::move
             if (debug)
             {
                 Pout<< "streamLineParticle : Removing stagnant particle:"
-                    << p << " sampled positions:" << sampledPositions_.size()
+                    << p.position()
+                    << " sampled positions:" << sampledPositions_.size()
                     << endl;
             }
             td.keepParticle = false;
@@ -273,12 +283,13 @@ bool Foam::streamLineParticle::move
         {
             // Normal exit. Store last position and fields
             sampledPositions_.append(position());
-            interpolateFields(td, position(), cell());
+            interpolateFields(td, position(), cell(), face());
 
             if (debug)
             {
                 Pout<< "streamLineParticle : Removing particle:"
-                    << p << " sampled positions:" << sampledPositions_.size()
+                    << p.position()
+                    << " sampled positions:" << sampledPositions_.size()
                     << endl;
             }
         }

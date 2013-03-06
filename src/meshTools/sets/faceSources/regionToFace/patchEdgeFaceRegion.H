@@ -153,7 +153,7 @@ public:
 
             //- Same (like operator==)
             template<class TrackingData>
-            inline bool equal(const patchEdgeFaceRegion&, TrackingData& td) const;
+            inline bool equal(const patchEdgeFaceRegion&, TrackingData&) const;
 
 
     // Member Operators

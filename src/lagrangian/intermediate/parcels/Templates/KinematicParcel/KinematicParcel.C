@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -169,14 +169,15 @@ const Foam::vector Foam::KinematicParcel<ParcelType>::calcVelocity
     const forceSuSp Fcp = forces.calcCoupled(p, dt, mass, Re, mu);
     const forceSuSp Fncp = forces.calcNonCoupled(p, dt, mass, Re, mu);
     const forceSuSp Feff = Fcp + Fncp;
+    const scalar massEff = forces.massEff(p, mass);
 
 
     // New particle velocity
     //~~~~~~~~~~~~~~~~~~~~~~
 
     // Update velocity - treat as 3-D
-    const vector abp = (Feff.Sp()*Uc_ + (Feff.Su() + Su))/mass;
-    const scalar bp = Feff.Sp()/mass;
+    const vector abp = (Feff.Sp()*Uc_ + (Feff.Su() + Su))/massEff;
+    const scalar bp = Feff.Sp()/massEff;
 
     Spu = dt*Feff.Sp();
 
@@ -325,7 +326,7 @@ bool Foam::KinematicParcel<ParcelType>::move
 
         p.age() += dt;
 
-        td.cloud().functions().postMove(p, cellI, dt);
+        td.cloud().functions().postMove(p, cellI, dt, td.keepParticle);
     }
 
     return td.keepParticle;
@@ -339,7 +340,7 @@ void Foam::KinematicParcel<ParcelType>::hitFace(TrackData& td)
     typename TrackData::cloudType::parcelType& p =
         static_cast<typename TrackData::cloudType::parcelType&>(*this);
 
-    td.cloud().functions().postFace(p, p.face());
+    td.cloud().functions().postFace(p, p.face(), td.keepParticle);
 }
 
 
@@ -368,7 +369,8 @@ bool Foam::KinematicParcel<ParcelType>::hitPatch
         p,
         pp,
         trackFraction,
-        tetIs
+        tetIs,
+        td.keepParticle
     );
 
     // Invoke surface film model

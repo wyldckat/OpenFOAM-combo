@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [m^2 s^-2];
 
 internalField   uniform 0;
 
@@ -27,12 +27,13 @@ boundaryField
         rho             none;
         psi             none;
         gamma           1;
-        p0              40;
         pressure        table
+        2
         (
             (0 10)
             (1 40)
-        );
+        )
+        ;
         value           uniform 40;
     }
     outlet1
@@ -43,26 +44,6 @@ boundaryField
     outlet2
     {
         type            fixedValue;
-        value           uniform 0;
-    }
-    baffles
-    {
-        type            zeroGradient;
-    }
-    fan_half0
-    {
-        type            fan;
-        patchType       cyclic;
-        jump            uniform 0;
-        f               2(100 -0.1);
-        value           uniform 0;
-    }
-    fan_half1
-    {
-        type            fan;
-        patchType       cyclic;
-        jump            uniform 0;
-        f               2(100 -0.1);
         value           uniform 0;
     }
     defaultFaces

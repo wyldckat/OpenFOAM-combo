@@ -104,7 +104,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        CellZoneInjection(const dictionary& dict, CloudType& owner);
+        CellZoneInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         CellZoneInjection(const CellZoneInjection<CloudType>& im);
@@ -124,6 +129,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

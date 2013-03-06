@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -32,7 +32,7 @@ solvers
         relTol          0;
     }
 
-    "(U|hs)"
+    "(U|h)"
     {
         solver          PBiCG;
         preconditioner  DILU;
@@ -40,7 +40,7 @@ solvers
         relTol          0.1;
     }
 
-    "(U|hs)Final"
+    "(U|h)Final"
     {
         $U;
         relTol          0;
@@ -69,7 +69,7 @@ solvers
 
     "(Yi|O2|N2|H2O)"
     {
-        $hsFinal;
+        $hFinal;
     }
 }
 

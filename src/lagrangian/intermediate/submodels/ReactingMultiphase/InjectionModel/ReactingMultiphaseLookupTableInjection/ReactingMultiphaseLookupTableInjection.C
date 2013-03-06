@@ -32,10 +32,11 @@ Foam::ReactingMultiphaseLookupTableInjection<CloudType>::
 ReactingMultiphaseLookupTableInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName, typeName),
     inputFileName_(this->coeffDict().lookup("inputFile")),
     duration_(readScalar(this->coeffDict().lookup("duration"))),
     parcelsPerSecond_
@@ -64,16 +65,7 @@ ReactingMultiphaseLookupTableInjection
     injectorTetFaces_.setSize(injectors_.size());
     injectorTetPts_.setSize(injectors_.size());
 
-    forAll(injectors_, i)
-    {
-        this->findCellAtPosition
-        (
-            injectorCells_[i],
-            injectorTetFaces_[i],
-            injectorTetPts_[i],
-            injectors_[i].x()
-        );
-    }
+    updateMesh();
 
     // Determine volume of particles to inject
     this->volumeTotal_ = 0.0;
@@ -112,6 +104,23 @@ Foam::ReactingMultiphaseLookupTableInjection<CloudType>::
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::ReactingMultiphaseLookupTableInjection<CloudType>::updateMesh()
+{
+    // Set/cache the injector cells
+    forAll(injectors_, i)
+    {
+        this->findCellAtPosition
+        (
+            injectorCells_[i],
+            injectorTetFaces_[i],
+            injectorTetPts_[i],
+            injectors_[i].x()
+        );
+    }
+}
+
 
 template<class CloudType>
 Foam::scalar

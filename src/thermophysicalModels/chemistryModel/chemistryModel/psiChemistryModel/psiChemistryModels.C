@@ -32,7 +32,7 @@ Description
 #include "makeChemistryModel.H"
 
 #include "psiChemistryModel.H"
-#include "ODEChemistryModel.H"
+#include "chemistryModel.H"
 #include "thermoPhysicsTypes.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -41,31 +41,35 @@ namespace Foam
 {
     makeChemistryModel
     (
-        ODEChemistryModel,
+        chemistryModel,
         psiChemistryModel,
         constGasThermoPhysics
     );
+
     makeChemistryModel
     (
-        ODEChemistryModel,
+        chemistryModel,
         psiChemistryModel,
         gasThermoPhysics
     );
+
     makeChemistryModel
     (
-        ODEChemistryModel,
+        chemistryModel,
         psiChemistryModel,
-        constIsobaricGasThermoPhysics
+        constIncompressibleGasThermoPhysics
     );
+
     makeChemistryModel
     (
-        ODEChemistryModel,
+        chemistryModel,
         psiChemistryModel,
-        isobaricGasThermoPhysics
+        incompressibleGasThermoPhysics
     );
+
     makeChemistryModel
     (
-        ODEChemistryModel,
+        chemistryModel,
         psiChemistryModel,
         icoPoly8ThermoPhysics
     );

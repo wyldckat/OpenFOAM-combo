@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,18 +24,65 @@ License
 Class
     Foam::fanFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::fanFvPatchField
+    This boundary condition provides a jump condition, using the \c cyclic
+    condition as a base.
+
+    The jump is specified as a \c DataEntry type, to enable the use of, e.g.
+    contant, polynomial, table values.
+
+    \heading Patch usage
+
+    \table
+        Property     | Description             | Required    | Default value
+        patchType    | underlying patch type should be \c cyclic| yes |
+        jumpTable    | jump data, e.g. \c csvFile | yes      |
+    \endtable
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            fan;
+        patchType       cyclic;
+        jumpTable       csvFile;
+        csvFileCoeffs
+        {
+            hasHeaderLine   1;
+            refColumn       0;
+            componentColumns 1(1);
+            separator       ",";
+            fileName        "$FOAM_CASE/constant/pressureVsU";
+        }
+        value           uniform 0;
+    }
+    \endverbatim
+
+    The above example shows the use of a comma separated (CSV) file to specify
+    the jump condition.
+
+Note
+     The underlying \c patchType should be set to \c cyclic
+
+SeeAlso
+    Foam::DataEntry
 
 SourceFiles
     fanFvPatchField.C
+    fanFvPatchFields.H
+    fanFvPatchFields.C
+    fanFvPatchFieldsFwd.H
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef fanFvPatchField_H
 #define fanFvPatchField_H
 
-#include "fixedJumpFvPatchField.H"
+#include "uniformJumpFvPatchField.H"
+#include "DataEntry.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -49,12 +96,13 @@ namespace Foam
 template<class Type>
 class fanFvPatchField
 :
-    public fixedJumpFvPatchField<Type>
+    public uniformJumpFvPatchField<Type>
 {
-    // Private data
 
-        //- Fan pressure rise polynomial coefficients
-        List<scalar> f_;
+    // Private Member Functions
+
+        //- Calculate the fan pressure jump
+        void calcFanJump();
 
 
 public:
@@ -126,29 +174,22 @@ public:
 
     // Member functions
 
-        // Access
-
-            //- Return the polynomial coefficients
-            const List<scalar>& f() const
-            {
-                return f_;
-            }
-
-
-        // Evaluation functions
-
-            //- Update the coefficients associated with the patch field
-            virtual void updateCoeffs();
-
-
-        //- Write
-        virtual void write(Ostream&) const;
+        //- Update the coefficients associated with the patch field
+        virtual void updateCoeffs();
 };
 
 
 //- Specialisation of the jump-condition for the pressure
 template<>
-void fanFvPatchField<scalar>::updateCoeffs();
+void fanFvPatchField<scalar>::calcFanJump();
+
+template<>
+fanFvPatchField<scalar>::fanFvPatchField
+(
+    const fvPatch&,
+    const DimensionedField<scalar, volMesh>&,
+    const dictionary&
+);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

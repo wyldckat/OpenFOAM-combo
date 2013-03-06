@@ -121,12 +121,6 @@ protected:
             PtrList<DimensionedField<scalar, volMesh> > rhoTrans_;
 
 
-        // Check
-
-            //- Total mass transferred to continuous phase via phase change
-            scalar dMassPhaseChange_;
-
-
     // Protected Member Functions
 
         // New parcel helper functions
@@ -303,7 +297,7 @@ public:
 
             //- Remap the cells of particles corresponding to the
             //  mesh topology change with a default tracking data object
-            void autoMap(const mapPolyMesh&);
+            virtual void autoMap(const mapPolyMesh&);
 
 
         // I-O

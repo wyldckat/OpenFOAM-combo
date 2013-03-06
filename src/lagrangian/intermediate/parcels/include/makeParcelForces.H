@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,11 +31,15 @@ License
 #include "SphereDragForce.H"
 #include "NonSphereDragForce.H"
 
+#include "SaffmanMeiLiftForce.H"
+#include "TomiyamaLiftForce.H"
+
 #include "GravityForce.H"
 #include "NonInertialFrameForce.H"
 #include "ParamagneticForce.H"
 #include "PressureGradientForce.H"
 #include "SRFForce.H"
+#include "VirtualMassForce.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,11 +48,14 @@ License
     makeParticleForceModel(CloudType);                                        \
     makeParticleForceModelType(SphereDragForce, CloudType);                   \
     makeParticleForceModelType(NonSphereDragForce, CloudType);                \
+    makeParticleForceModelType(SaffmanMeiLiftForce, CloudType);               \
+    makeParticleForceModelType(TomiyamaLiftForce, CloudType);                 \
     makeParticleForceModelType(GravityForce, CloudType);                      \
     makeParticleForceModelType(NonInertialFrameForce, CloudType);             \
     makeParticleForceModelType(ParamagneticForce, CloudType);                 \
     makeParticleForceModelType(PressureGradientForce, CloudType);             \
-    makeParticleForceModelType(SRFForce, CloudType);
+    makeParticleForceModelType(SRFForce, CloudType);                          \
+    makeParticleForceModelType(VirtualMassForce, CloudType);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

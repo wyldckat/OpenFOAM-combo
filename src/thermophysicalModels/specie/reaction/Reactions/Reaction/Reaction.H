@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,6 +66,16 @@ class Reaction
 :
     public ReactionThermo
 {
+protected:
+
+    // Protected member functions
+
+        //- Return string representation of the left of the reaction
+        void reactionStrLeft(OStringStream& reaction) const;
+
+        //- Return string representation of the right of the reaction
+        void reactionStrRight(OStringStream& reaction) const;
+
 
 public:
 
@@ -134,10 +144,7 @@ private:
     // Private Member Functions
 
         //- Return string representation of reaction
-        string reactionStr() const;
-
-        //- Construct the left- and right-hand-side reaction coefficients
-        void setLRhs(Istream&);
+        string reactionStr(OStringStream& reaction) const;
 
         //- Construct reaction thermo
         void setThermo(const HashPtrTable<ReactionThermo>& thermoDatabase);
@@ -245,7 +252,7 @@ public:
         );
 
         //- Construct and return a clone
-        virtual autoPtr<Reaction<ReactionThermo> > clone() const
+        virtual autoPtr<Reaction<ReactionThermo> > clone() const //
         {
             return autoPtr<Reaction<ReactionThermo> >
             (
@@ -297,8 +304,28 @@ public:
             inline word& name();
             inline const word& name() const;
 
+            // - Access to basic components of the reaction
             inline const List<specieCoeffs>& lhs() const;
             inline const List<specieCoeffs>& rhs() const;
+
+            // - Access to gas components of the reaction
+            virtual const List<specieCoeffs>& grhs() const;
+            virtual const List<specieCoeffs>& glhs() const;
+
+            // - Access to specie list
+            const speciesTable& species() const;
+
+            // - Access to gas specie list
+            virtual const speciesTable& gasSpecies() const;
+
+            //- Construct the left- and right-hand-side reaction coefficients
+            void setLRhs
+            (
+                Istream&,
+                const speciesTable&,
+                List<specieCoeffs>& lhs,
+                List<specieCoeffs>& rhs
+            );
 
 
         // Reaction rate coefficients
@@ -306,8 +333,8 @@ public:
             //- Forward rate constant
             virtual scalar kf
             (
-                const scalar T,
                 const scalar p,
+                const scalar T,
                 const scalarField& c
             ) const;
 
@@ -315,8 +342,8 @@ public:
             virtual scalar kr
             (
                 const scalar kfwd,
-                const scalar T,
                 const scalar p,
+                const scalar T,
                 const scalarField& c
             ) const;
 
@@ -325,8 +352,8 @@ public:
             //  equilibrium constant
             virtual scalar kr
             (
-                const scalar T,
                 const scalar p,
+                const scalar T,
                 const scalarField& c
             ) const;
 

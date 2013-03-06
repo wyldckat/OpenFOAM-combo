@@ -103,9 +103,9 @@ public:
     // Constructors
 
         //- Construct with no argument, uses default values:
-        // length  = 1nm
-        // mass = 1.660538782e-27kg (unified atomic mass unit)
-        // temperature = 1K (therefore, energy = 1*kb)
+        //  length  = 1nm
+        //  mass = 1.660538782e-27kg (unified atomic mass unit)
+        //  temperature = 1K (therefore, energy = 1*kb)
         reducedUnits();
 
         //- Construct from components

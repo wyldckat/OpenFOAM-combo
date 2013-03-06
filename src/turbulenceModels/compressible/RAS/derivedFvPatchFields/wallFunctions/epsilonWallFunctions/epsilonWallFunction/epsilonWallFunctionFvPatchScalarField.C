@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,10 +24,11 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "epsilonWallFunctionFvPatchScalarField.H"
-#include "RASModel.H"
+#include "compressible/turbulenceModel/turbulenceModel.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "addToRunTimeSelectionTable.H"
+#include "mutWallFunctionFvPatchScalarField.H"
 #include "wallFvPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -35,8 +36,6 @@ License
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -55,26 +54,8 @@ void epsilonWallFunctionFvPatchScalarField::checkType()
 }
 
 
-scalar epsilonWallFunctionFvPatchScalarField::calcYPlusLam
-(
-    const scalar kappa,
-    const scalar E
-) const
-{
-    scalar ypl = 11.0;
-
-    for (int i=0; i<10; i++)
-    {
-        ypl = log(E*ypl)/kappa;
-    }
-
-    return ypl;
-}
-
-
 void epsilonWallFunctionFvPatchScalarField::writeLocalEntries(Ostream& os) const
 {
-    writeEntryIfDifferent<word>(os, "G", "RASModel::G", GName_);
     os.writeKeyword("Cmu") << Cmu_ << token::END_STATEMENT << nl;
     os.writeKeyword("kappa") << kappa_ << token::END_STATEMENT << nl;
     os.writeKeyword("E") << E_ << token::END_STATEMENT << nl;
@@ -90,13 +71,9 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(p, iF),
-    GName_("RASModel::G"),
     Cmu_(0.09),
     kappa_(0.41),
-    E_(9.8),
-    yPlusLam_(calcYPlusLam(kappa_, E_))
-
-
+    E_(9.8)
 {
     checkType();
 }
@@ -111,12 +88,9 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ptf, p, iF, mapper),
-    GName_(ptf.GName_),
     Cmu_(ptf.Cmu_),
     kappa_(ptf.kappa_),
-    E_(ptf.E_),
-    yPlusLam_(ptf.yPlusLam_)
-
+    E_(ptf.E_)
 {
     checkType();
 }
@@ -130,12 +104,9 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(p, iF, dict),
-    GName_(dict.lookupOrDefault<word>("G", "RASModel::G")),
     Cmu_(dict.lookupOrDefault<scalar>("Cmu", 0.09)),
     kappa_(dict.lookupOrDefault<scalar>("kappa", 0.41)),
-    E_(dict.lookupOrDefault<scalar>("E", 9.8)),
-    yPlusLam_(calcYPlusLam(kappa_, E_))
-
+    E_(dict.lookupOrDefault<scalar>("E", 9.8))
 {
     checkType();
 }
@@ -147,11 +118,9 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ewfpsf),
-    GName_(ewfpsf.GName_),
     Cmu_(ewfpsf.Cmu_),
     kappa_(ewfpsf.kappa_),
-    E_(ewfpsf.E_),
-    yPlusLam_(ewfpsf.yPlusLam_)
+    E_(ewfpsf.E_)
 {
     checkType();
 }
@@ -164,11 +133,9 @@ epsilonWallFunctionFvPatchScalarField::epsilonWallFunctionFvPatchScalarField
 )
 :
     fixedInternalValueFvPatchField<scalar>(ewfpsf, iF),
-    GName_(ewfpsf.GName_),
     Cmu_(ewfpsf.Cmu_),
     kappa_(ewfpsf.kappa_),
-    E_(ewfpsf.E_),
-    yPlusLam_(ewfpsf.yPlusLam_)
+    E_(ewfpsf.E_)
 {
     checkType();
 }
@@ -185,15 +152,22 @@ void epsilonWallFunctionFvPatchScalarField::updateCoeffs()
 
     const label patchI = patch().index();
 
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
+    const turbulenceModel& turbulence =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
 
     const scalar Cmu25 = pow025(Cmu_);
     const scalar Cmu75 = pow(Cmu_, 0.75);
 
-    const scalarField& y = rasModel.y()[patchI];
+    const scalarField& y = turbulence.y()[patchI];
 
     volScalarField& G =
-        const_cast<volScalarField&>(db().lookupObject<volScalarField>(GName_));
+        const_cast<volScalarField&>
+        (
+            db().lookupObject<volScalarField>
+            (
+                turbulence.type() + ".G"
+            )
+        );
 
     DimensionedField<scalar, volMesh>& epsilon =
         const_cast<DimensionedField<scalar, volMesh>&>
@@ -201,16 +175,16 @@ void epsilonWallFunctionFvPatchScalarField::updateCoeffs()
             dimensionedInternalField()
         );
 
-    const tmp<volScalarField> tk = rasModel.k();
+    const tmp<volScalarField> tk = turbulence.k();
     const volScalarField& k = tk();
 
-    const scalarField& muw = rasModel.mu().boundaryField()[patchI];
+    const scalarField& muw = turbulence.mu().boundaryField()[patchI];
 
-    const tmp<volScalarField> tmut = rasModel.mut();
+    const tmp<volScalarField> tmut = turbulence.mut();
     const volScalarField& mut = tmut();
     const scalarField& mutw = mut.boundaryField()[patchI];
 
-    const fvPatchVectorField& Uw = rasModel.U().boundaryField()[patchI];
+    const fvPatchVectorField& Uw = turbulence.U().boundaryField()[patchI];
 
     const scalarField magGradUw(mag(Uw.snGrad()));
 
@@ -261,7 +235,6 @@ makePatchTypeField
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

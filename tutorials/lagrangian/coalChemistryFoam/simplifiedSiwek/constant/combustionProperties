@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,14 +15,14 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-combustionModel  PaSR<psiChemistryCombustionModel>;
+combustionModel  PaSR<psiChemistryCombustion>;
 
 active  true;
 
 
 PaSRCoeffs
 {
-    Cmix                Cmix [ 0 0 0 0 0 0 0 ] 1.0;
+    Cmix                1.0;
     turbulentReaction   on;
 }
 

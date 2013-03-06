@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -93,7 +93,7 @@ Linux)
             export WM_LDFLAGS='-m64'
             ;;
         *)
-            echo "Unknown WM_ARCH_OPTION '$WM_ARCH_OPTION', should be 32 or 64"
+            echo "Unknown WM_ARCH_OPTION '$WM_ARCH_OPTION', should be 32 or 64" 1>&2
             ;;
         esac
         ;;
@@ -114,6 +114,16 @@ Linux)
         export WM_LDFLAGS='-mabi=64 -G0'
         ;;
 
+    armv7l)
+        WM_ARCH=linuxARM7
+        export WM_COMPILER_LIB_ARCH=32
+        export WM_CC='gcc'
+        export WM_CXX='g++'
+        export WM_CFLAGS='-fPIC'
+        export WM_CXXFLAGS='-fPIC'
+        export WM_LDFLAGS=
+        ;;
+
     ppc64)
         WM_ARCH=linuxPPC64
         export WM_COMPILER_LIB_ARCH=64
@@ -125,7 +135,7 @@ Linux)
         ;;
 
     *)
-        echo Unknown processor type `uname -m` for Linux
+        echo Unknown processor type `uname -m` for Linux 1>&2
         ;;
     esac
     ;;
@@ -142,7 +152,7 @@ SunOS)
     ;;
 
 *)    # an unsupported operating system
-    cat <<USAGE
+    /bin/cat <<USAGE 1>&2
 
     Your "$WM_ARCH" operating system is not supported by this release
     of OpenFOAM. For further assistance, please contact www.OpenFOAM.org
@@ -169,16 +179,13 @@ export FOAM_LIBBIN=$WM_PROJECT_DIR/platforms/$WM_OPTIONS/lib
 # external (ThirdParty) libraries
 export FOAM_EXT_LIBBIN=$WM_THIRD_PARTY_DIR/platforms/$WM_OPTIONS/lib
 
+# site-specific directory
+siteDir="${WM_PROJECT_SITE:-$WM_PROJECT_INST_DIR/site}"
+
 # shared site executables/libraries
 # similar naming convention as ~OpenFOAM expansion
-if [ -n "$WM_PROJECT_SITE" ]
-then
-    export FOAM_SITE_APPBIN=$WM_PROJECT_SITE/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
-    export FOAM_SITE_LIBBIN=$WM_PROJECT_SITE/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
-else
-    export FOAM_SITE_APPBIN=$WM_PROJECT_INST_DIR/site/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
-    export FOAM_SITE_LIBBIN=$WM_PROJECT_INST_DIR/site/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
-fi
+export FOAM_SITE_APPBIN=$siteDir/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
+export FOAM_SITE_LIBBIN=$siteDir/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
 
 # user executables/libraries
 export FOAM_USER_APPBIN=$WM_PROJECT_USER_DIR/platforms/$WM_OPTIONS/bin
@@ -200,6 +207,17 @@ export FOAM_RUN=$WM_PROJECT_USER_DIR/run
 [ -d "$WM_DIR" ] && PATH=$WM_DIR:$PATH
 # add OpenFOAM scripts to the path
 export PATH=$WM_PROJECT_DIR/bin:$PATH
+
+# add site-specific scripts to path - only if they exist
+if [ -d "$siteDir/bin" ]                        # generic
+then
+    _foamAddPath "$siteDir/bin"
+fi
+if [ -d "$siteDir/$WM_PROJECT_VERSION/bin" ]    # version-specific
+then
+    _foamAddPath "$siteDir/$WM_PROJECT_VERSION/bin"
+fi
+unset siteDir
 
 _foamAddPath $FOAM_USER_APPBIN:$FOAM_SITE_APPBIN:$FOAM_APPBIN
 # Make sure to pick up dummy versions of external libraries last
@@ -224,17 +242,15 @@ OpenFOAM | ThirdParty)
     case "$WM_COMPILER" in
     Gcc | Gcc++0x | Gcc46 | Gcc46++0x)
         gcc_version=gcc-4.6.1
-        gmp_version=gmp-5.0.2
-        mpfr_version=mpfr-3.0.1
+        gmp_version=gmp-5.0.4
+        mpfr_version=mpfr-3.1.0
         mpc_version=mpc-0.9
-        gmpPACKAGE=gmp-5.0.2
         ;;
     Gcc47 | Gcc47++0x)
         gcc_version=gcc-4.7.0
-        gmp_version=gmp-5.0.2
-        mpfr_version=mpfr-3.0.1
+        gmp_version=gmp-5.0.4
+        mpfr_version=mpfr-3.1.0
         mpc_version=mpc-0.9
-        gmpPACKAGE=gmp-5.0.2
         ;;
     Gcc45 | Gcc45++0x)
         gcc_version=gcc-4.5.2
@@ -242,29 +258,19 @@ OpenFOAM | ThirdParty)
         mpfr_version=mpfr-2.4.2
         mpc_version=mpc-0.8.1
         ;;
-    Gcc44 | Gcc44++0x)
-        gcc_version=gcc-4.4.3
-        gmp_version=gmp-5.0.1
-        mpfr_version=mpfr-2.4.2
-        ;;
-    Gcc43)
-        gcc_version=gcc-4.3.3
-        gmp_version=gmp-4.2.4
-        mpfr_version=mpfr-2.4.1
-        ;;
     Clang)
         # using clang - not gcc
         export WM_CC='clang'
         export WM_CXX='clang++'
-        #clang_version=llvm-2.9
-        clang_version=llvm-svn
+        clang_version=llvm-3.1
+        #clang_version=llvm-svn
         ;;
     *)
-        echo
-        echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:"
-        echo "    Unknown OpenFOAM compiler type '$WM_COMPILER'"
-        echo "    Please check your settings"
-        echo
+        echo 1>&2
+        echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:" 1>&2
+        echo "    Unknown OpenFOAM compiler type '$WM_COMPILER'" 1>&2
+        echo "    Please check your settings" 1>&2
+        echo 1>&2
         ;;
     esac
 
@@ -280,11 +286,11 @@ OpenFOAM | ThirdParty)
 
         # Check that the compiler directory can be found
         [ -d "$gccDir" ] || {
-            echo
-            echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:"
-            echo "    Cannot find $gccDir installation."
-            echo "    Please install this compiler version or if you wish to use the system compiler,"
-            echo "    change the 'foamCompiler' setting to 'system'"
+            echo 1>&2
+            echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:" 1>&2
+            echo "    Cannot find $gccDir installation." 1>&2
+            echo "    Please install this compiler version or if you wish to use the system compiler," 1>&2
+            echo "    change the 'foamCompiler' setting to 'system'" 1>&2
             echo
         }
 
@@ -317,12 +323,12 @@ OpenFOAM | ThirdParty)
 
         # Check that the compiler directory can be found
         [ -d "$clangDir" ] || {
-            echo
-            echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:"
-            echo "    Cannot find $clangDir installation."
-            echo "    Please install this compiler version or if you wish to use the system compiler,"
-            echo "    change the 'foamCompiler' setting to 'system'"
-            echo
+            echo 1>&2
+            echo "Warning in $WM_PROJECT_DIR/etc/config/settings.sh:" 1>&2
+            echo "    Cannot find $clangDir installation." 1>&2
+            echo "    Please install this compiler version or if you wish to use the system compiler," 1>&2
+            echo "    change the 'foamCompiler' setting to 'system'" 1>&2
+            echo 1>&2
         }
 
         _foamAddMan     $clangDir/share/man
@@ -357,7 +363,7 @@ fi
 # ~~~~~~~~~~~~~~
 
 boost_version=boost_1_45_0
-cgal_version=CGAL-3.8
+cgal_version=CGAL-4.0
 
 export BOOST_ARCH_PATH=$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$boost_version
 export CGAL_ARCH_PATH=$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$cgal_version
@@ -407,7 +413,7 @@ SYSTEMOPENMPI)
     ;;
 
 OPENMPI)
-    export FOAM_MPI=openmpi-1.5.3
+    export FOAM_MPI=openmpi-1.6.3
     # optional configuration tweaks:
     _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/openmpi.sh`
 
@@ -422,7 +428,7 @@ OPENMPI)
     _foamAddLib     $MPI_ARCH_PATH/lib$WM_COMPILER_LIB_ARCH
     _foamAddLib     $MPI_ARCH_PATH/lib
 
-    _foamAddMan     $MPI_ARCH_PATH/man
+    _foamAddMan     $MPI_ARCH_PATH/share/man
     ;;
 
 MPICH)
@@ -473,7 +479,7 @@ HPMPI)
         _foamAddLib $MPI_ARCH_PATH/lib/linux_ia64
         ;;
     *)
-        echo Unknown processor type `uname -m` for Linux
+        echo Unknown processor type `uname -m` 1>&2
         ;;
     esac
     ;;
@@ -507,13 +513,10 @@ QSMPI)
     ;;
 
 SGIMPI)
-    lastCharID=$(( ${#MPI_ROOT} - 1 ))
-    if [ "${MPI_ROOT:$lastCharID:1}" == '/' ]
-    then
-        MPI_ROOT=${MPI_ROOT:0:$lastCharID}
-    fi
+    # no trailing slash
+    [ "${MPI_ROOT%/}" = "${MPI_ROOT}" ] || MPI_ROOT="${MPI_ROOT%/}"
 
-    export FOAM_MPI=${MPI_ROOT##*/}
+    export FOAM_MPI="${MPI_ROOT##*/}"
     export MPI_ARCH_PATH=$MPI_ROOT
 
     if [ ! -d "$MPI_ROOT" -o -z "$MPI_ARCH_PATH" ]
@@ -526,9 +529,9 @@ SGIMPI)
 
     if [ "$FOAM_VERBOSE" -a "$PS1" ]
     then
-        echo "Using SGI MPT:"
-        echo "    MPI_ROOT : $MPI_ROOT"
-        echo "    FOAM_MPI : $FOAM_MPI"
+        echo "Using SGI MPT:" 1>&2
+        echo "    MPI_ROOT : $MPI_ROOT" 1>&2
+        echo "    FOAM_MPI : $FOAM_MPI" 1>&2
     fi
 
     _foamAddPath    $MPI_ARCH_PATH/bin
@@ -536,13 +539,10 @@ SGIMPI)
     ;;
 
 INTELMPI)
-    lastCharID=$(( ${#MPI_ROOT} - 1 ))
-    if [ "${MPI_ROOT:$lastCharID:1}" == '/' ]
-    then
-        MPI_ROOT=${MPI_ROOT:0:$lastCharID}
-    fi
+    # no trailing slash
+    [ "${MPI_ROOT%/}" = "${MPI_ROOT}" ] || MPI_ROOT="${MPI_ROOT%/}"
 
-    export FOAM_MPI=${MPI_ROOT##*/}
+    export FOAM_MPI="${MPI_ROOT##*/}"
     export MPI_ARCH_PATH=$MPI_ROOT
 
     if [ ! -d "$MPI_ROOT" -o -z "$MPI_ARCH_PATH" ]
@@ -555,9 +555,9 @@ INTELMPI)
 
     if [ "$FOAM_VERBOSE" -a "$PS1" ]
     then
-        echo "Using INTEL MPI:"
-        echo "    MPI_ROOT : $MPI_ROOT"
-        echo "    FOAM_MPI : $FOAM_MPI"
+        echo "Using INTEL MPI:" 1>&2
+        echo "    MPI_ROOT : $MPI_ROOT" 1>&2
+        echo "    FOAM_MPI : $FOAM_MPI" 1>&2
     fi
 
     _foamAddPath    $MPI_ARCH_PATH/bin64

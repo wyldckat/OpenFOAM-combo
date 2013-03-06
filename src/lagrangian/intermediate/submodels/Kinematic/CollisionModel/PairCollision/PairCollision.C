@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -285,7 +285,7 @@ void Foam::PairCollision<CloudType>::wallInteraction()
                             );
 
                             flatSiteData.append(wSD);
- 
+
                             particleHit = true;
                         }
                     }
@@ -302,13 +302,15 @@ void Foam::PairCollision<CloudType>::wallInteraction()
 
                     if (particleHit)
                     {
-                        this->owner().functions().postFace(p, realFaceI);
+                        bool keep = true;
+                        this->owner().functions().postFace(p, realFaceI, keep);
                         this->owner().functions().postPatch
                         (
                             p,
                             mesh.boundaryMesh()[patchI],
                             1.0,
-                            p.currentTetIndices()
+                            p.currentTetIndices(),
+                            keep
                         );
                      }
                 }
@@ -557,11 +559,10 @@ template<class CloudType>
 Foam::PairCollision<CloudType>::PairCollision
 (
     const dictionary& dict,
-    CloudType& owner,
-    const word& type
+    CloudType& owner
 )
 :
-    CollisionModel<CloudType>(dict, owner, type),
+    CollisionModel<CloudType>(dict, owner, typeName),
     pairModel_
     (
         PairModel<CloudType>::New

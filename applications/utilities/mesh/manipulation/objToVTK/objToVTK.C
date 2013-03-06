@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    objToVTK
+
 Description
     Read obj line (not surface!) file and convert into vtk.
 
@@ -105,7 +108,6 @@ labelList parseVertices(const string& line)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
@@ -127,6 +129,7 @@ int main(int argc, char *argv[])
 
     // Points and lines
     DynamicList<point> points;
+    DynamicList<vector> pointNormals;
     DynamicList<labelList> polyLines;
     DynamicList<labelList> polygons;
 
@@ -150,6 +153,14 @@ int main(int argc, char *argv[])
             lineStream >> x >> y >> z;
 
             points.append(point(x, y, z));
+        }
+        else if (cmd == "vn")
+        {
+            scalar x, y, z;
+
+            lineStream >> x >> y >> z;
+
+            pointNormals.append(vector(x, y, z));
         }
         else if (cmd == "l")
         {
@@ -261,6 +272,18 @@ int main(int argc, char *argv[])
         else
         {
             outFile << ' ';
+        }
+    }
+
+    if (!pointNormals.empty())
+    {
+        outFile << nl << "NORMALS pointNormals float\n";
+
+        forAll(pointNormals, i)
+        {
+            const vector& n = pointNormals[i];
+
+            outFile << n.x() << ' ' << n.y() << ' ' << n.z() << nl;
         }
     }
 

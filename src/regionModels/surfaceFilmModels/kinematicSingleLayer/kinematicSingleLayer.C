@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -61,7 +61,7 @@ bool kinematicSingleLayer::read()
     {
         const dictionary& solution = this->solution().subDict("PISO");
         solution.lookup("momentumPredictor") >> momentumPredictor_;
-        solution.lookup("nOuterCorr") >> nOuterCorr_;
+        solution.readIfPresent("nOuterCorr", nOuterCorr_);
         solution.lookup("nCorr") >> nCorr_;
         solution.lookup("nNonOrthCorr") >> nNonOrthCorr_;
 
@@ -197,6 +197,12 @@ tmp<volScalarField> kinematicSingleLayer::pp()
 }
 
 
+void kinematicSingleLayer::correctAlpha()
+{
+    alpha_ == pos(delta_ - dimensionedScalar("SMALL", dimLength, SMALL));
+}
+
+
 void kinematicSingleLayer::updateSubmodels()
 {
     if (debug)
@@ -276,8 +282,8 @@ void kinematicSingleLayer::updateSurfaceVelocities()
     Uw_ -= nHat()*(Uw_ & nHat());
     Uw_.correctBoundaryConditions();
 
-    // TODO: apply quadratic profile to determine surface velocity
-    Us_ = U_;
+    // apply quadratic profile to surface velocity (scale by sqrt(2))
+    Us_ = 1.414*U_;
     Us_.correctBoundaryConditions();
 }
 
@@ -293,8 +299,6 @@ tmp<Foam::fvVectorMatrix> kinematicSingleLayer::solveMomentum
         Info<< "kinematicSingleLayer::solveMomentum()" << endl;
     }
 
-    updateSurfaceVelocities();
-
     // Momentum
     tmp<fvVectorMatrix> tUEqn
     (
@@ -302,7 +306,8 @@ tmp<Foam::fvVectorMatrix> kinematicSingleLayer::solveMomentum
       + fvm::div(phi_, U_)
      ==
       - USp_
-      - fvm::SuSp(rhoSp_, U_)
+//      - fvm::SuSp(rhoSp_, U_)
+      - rhoSp_*U_
       + forces_.correct(U_)
     );
 
@@ -439,7 +444,7 @@ kinematicSingleLayer::kinematicSingleLayer
     surfaceFilmModel(modelType, mesh, g),
 
     momentumPredictor_(solution().subDict("PISO").lookup("momentumPredictor")),
-    nOuterCorr_(readLabel(solution().subDict("PISO").lookup("nOuterCorr"))),
+    nOuterCorr_(solution().subDict("PISO").lookupOrDefault("nOuterCorr", 1)),
     nCorr_(readLabel(solution().subDict("PISO").lookup("nCorr"))),
     nNonOrthCorr_
     (
@@ -502,6 +507,20 @@ kinematicSingleLayer::kinematicSingleLayer
             IOobject::AUTO_WRITE
         ),
         regionMesh()
+    ),
+    alpha_
+    (
+        IOobject
+        (
+            "alpha",
+            time().timeName(),
+            regionMesh(),
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        regionMesh(),
+        dimensionedScalar("zero", dimless, 0.0),
+        zeroGradientFvPatchScalarField::typeName
     ),
     U_
     (
@@ -745,7 +764,7 @@ kinematicSingleLayer::kinematicSingleLayer
     (
         IOobject
         (
-            "mu", // must have same name as mu to enable mapping
+            "thermo:mu", // must have same name as mu to enable mapping
             time().timeName(),
             regionMesh(),
             IOobject::NO_READ,
@@ -817,6 +836,8 @@ void kinematicSingleLayer::preEvolveRegion()
         Info<< "kinematicSingleLayer::preEvolveRegion()" << endl;
     }
 
+    surfaceFilmModel::preEvolveRegion();
+
     transferPrimaryRegionThermoFields();
 
     correctThermoFields();
@@ -838,6 +859,13 @@ void kinematicSingleLayer::evolveRegion()
         Info<< "kinematicSingleLayer::evolveRegion()" << endl;
     }
 
+    // Update film coverage indicator
+    correctAlpha();
+
+    // Update film wall and surface velocities
+    updateSurfaceVelocities();
+
+    // Update sub-models to provide updated source contributions
     updateSubmodels();
 
     // Solve continuity for deltaRho_
@@ -846,7 +874,7 @@ void kinematicSingleLayer::evolveRegion()
     // Implicit pressure source coefficient - constant
     tmp<volScalarField> tpp(this->pp());
 
-    for (int oCorr=0; oCorr<nOuterCorr_; oCorr++)
+    for (int oCorr=1; oCorr<=nOuterCorr_; oCorr++)
     {
         // Explicit pressure source contribution - varies with delta_
         tmp<volScalarField> tpu(this->pu());
@@ -865,9 +893,6 @@ void kinematicSingleLayer::evolveRegion()
     // Update deltaRho_ with new delta_
     deltaRho_ == delta_*rho_;
 
-    // Update film wall and surface velocities
-    updateSurfaceVelocities();
-
     // Reset source terms for next time integration
     resetPrimaryRegionSourceTerms();
 }
@@ -879,22 +904,19 @@ scalar kinematicSingleLayer::CourantNumber() const
 
     if (regionMesh().nInternalFaces() > 0)
     {
-        const scalar deltaT = time_.deltaTValue();
+        const scalarField sumPhi(fvc::surfaceSum(mag(phi_)));
 
-        const surfaceScalarField SfUfbyDelta
-        (
-            regionMesh().surfaceInterpolation::deltaCoeffs()*mag(phi_)
-        );
-        const surfaceScalarField rhoDelta(fvc::interpolate(rho_*delta_));
-        const surfaceScalarField& magSf = regionMesh().magSf();
+        const scalarField& V = regionMesh().V();
 
-        forAll(rhoDelta, i)
+        forAll(deltaRho_, i)
         {
-            if (rhoDelta[i] > ROOTVSMALL)
+            if (deltaRho_[i] > SMALL)
             {
-                CoNum = max(CoNum, SfUfbyDelta[i]/rhoDelta[i]/magSf[i]*deltaT);
+                CoNum = max(CoNum, sumPhi[i]/deltaRho_[i]/V[i]);
             }
         }
+
+        CoNum *= 0.5*time_.deltaTValue();
     }
 
     reduce(CoNum, maxOp<scalar>());
@@ -1028,14 +1050,18 @@ void kinematicSingleLayer::info() const
 {
     Info<< "\nSurface film: " << type() << endl;
 
+    const vectorField& Uinternal = U_.internalField();
+
     Info<< indent << "added mass         = "
         << returnReduce<scalar>(addedMassTotal_, sumOp<scalar>()) << nl
         << indent << "current mass       = "
         << gSum((deltaRho_*magSf())()) << nl
-        << indent << "min/max(mag(U))    = " << min(mag(U_)).value() << ", "
-        << max(mag(U_)).value() << nl
+        << indent << "min/max(mag(U))    = " << gMin(mag(Uinternal)) << ", "
+        << gMax(mag(Uinternal)) << nl
         << indent << "min/max(delta)     = " << min(delta_).value() << ", "
-        << max(delta_).value() << nl;
+        << max(delta_).value() << nl
+        << indent << "coverage           = "
+        << gSum(alpha_.internalField()*magSf())/gSum(magSf()) <<  nl;
 
     injection_.info(Info);
 }

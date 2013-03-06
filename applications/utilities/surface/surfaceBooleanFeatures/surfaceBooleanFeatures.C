@@ -71,6 +71,7 @@ Description
 #include "triSurface.H"
 #include "argList.H"
 #include "Time.H"
+#include "featureEdgeMesh.H"
 #include "extendedFeatureEdgeMesh.H"
 #include "triSurfaceSearch.H"
 #include "OFstream.H"
@@ -445,12 +446,37 @@ int main(int argc, char *argv[])
         edgeDirections,
         edgeNormals,
         labelListList(0),   // featurePointNormals,
+        labelListList(0),   // featurePointEdges,
         labelList(0)        // regionEdges
     );
 
     feMesh.write();
 
     feMesh.writeObj(sFeatFileName);
+
+    {
+        // Write a featureEdgeMesh for backwards compatibility
+        featureEdgeMesh bfeMesh
+        (
+            IOobject
+            (
+                sFeatFileName + ".eMesh",   // name
+                runTime.constant(),                         // instance
+                "triSurface",
+                runTime,                                    // registry
+                IOobject::NO_READ,
+                IOobject::NO_WRITE,
+                false
+            ),
+            feMesh.points(),
+            feMesh.edges()
+        );
+
+        Info<< nl << "Writing featureEdgeMesh to "
+            << bfeMesh.objectPath() << endl;
+
+        bfeMesh.regIOobject::write();
+    }
 
     Info << "End\n" << endl;
 

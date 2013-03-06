@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,6 @@ License
 
 #include "rhoChemistryModel.H"
 #include "fvMesh.H"
-#include "Time.H"
 
 /* * * * * * * * * * * * * * * private static data * * * * * * * * * * * * * */
 
@@ -35,17 +34,28 @@ namespace Foam
     defineRunTimeSelectionTable(rhoChemistryModel, fvMesh);
 }
 
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::rhoChemistryModel::rhoChemistryModel
 (
-    const fvMesh& mesh,
-    const word& thermoTypeName
+    const fvMesh& mesh
 )
 :
     basicChemistryModel(mesh),
-    thermo_(hsReactionThermo::NewType(mesh, thermoTypeName))
+    thermo_(rhoReactionThermo::New(mesh))
 {}
+
+
+// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
+
+Foam::autoPtr<Foam::rhoChemistryModel> Foam::rhoChemistryModel::New
+(
+    const fvMesh& mesh
+)
+{
+    return basicChemistryModel::New<rhoChemistryModel>(mesh);
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //

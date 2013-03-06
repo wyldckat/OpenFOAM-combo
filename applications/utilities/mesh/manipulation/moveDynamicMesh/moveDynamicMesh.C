@@ -103,7 +103,6 @@ void writeWeights(const polyMesh& mesh)
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {
@@ -119,6 +118,11 @@ int main(int argc, char *argv[])
 #   include "createNamedDynamicFvMesh.H"
 
     const bool checkAMI  = args.optionFound("checkAMI");
+
+    if (checkAMI)
+    {
+        Info<< "Writing VTK files with weights of AMI patches." << nl << endl;
+    }
 
     while (runTime.loop())
     {

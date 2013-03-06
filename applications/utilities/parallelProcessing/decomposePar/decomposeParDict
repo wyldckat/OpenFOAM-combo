@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -119,10 +119,14 @@ structuredCoeffs
 {
     // Patches to do 2D decomposition on. Structured mesh only; cells have
     // to be in 'columns' on top of patches.
-    patches     (bottomPatch);
+    patches     (movingWall);
+
+    // Method to use on the 2D subset
+    method      scotch;
 }
 
-//// Is the case distributed
+//// Is the case distributed? Note: command-line argument -roots takes
+//// precedence
 //distributed     yes;
 //// Per slave (so nProcs-1 entries) the directory above the case.
 //roots

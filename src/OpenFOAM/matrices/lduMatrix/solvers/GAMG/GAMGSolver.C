@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,8 +65,13 @@ Foam::GAMGSolver::GAMGSolver
     // which may be overridden by those in controlDict
     cacheAgglomeration_(false),
     nPreSweeps_(0),
+    preSweepsLevelMultiplier_(1),
+    maxPreSweeps_(4),
     nPostSweeps_(2),
+    postSweepsLevelMultiplier_(1),
+    maxPostSweeps_(4),
     nFinestSweeps_(2),
+    interpolateCorrection_(false),
     scaleCorrection_(matrix.symmetric()),
     directSolveCoarsest_(false),
     agglomeration_(GAMGAgglomeration::New(matrix_, controlDict_)),
@@ -156,8 +161,21 @@ void Foam::GAMGSolver::readControls()
     // we could also consider supplying defaults here too
     controlDict_.readIfPresent("cacheAgglomeration", cacheAgglomeration_);
     controlDict_.readIfPresent("nPreSweeps", nPreSweeps_);
+    controlDict_.readIfPresent
+    (
+        "preSweepsLevelMultiplier",
+        preSweepsLevelMultiplier_
+    );
+    controlDict_.readIfPresent("maxPreSweeps", maxPreSweeps_);
     controlDict_.readIfPresent("nPostSweeps", nPostSweeps_);
+    controlDict_.readIfPresent
+    (
+        "postSweepsLevelMultiplier",
+        postSweepsLevelMultiplier_
+    );
+    controlDict_.readIfPresent("maxPostSweeps", maxPostSweeps_);
     controlDict_.readIfPresent("nFinestSweeps", nFinestSweeps_);
+    controlDict_.readIfPresent("interpolateCorrection", interpolateCorrection_);
     controlDict_.readIfPresent("scaleCorrection", scaleCorrection_);
     controlDict_.readIfPresent("directSolveCoarsest", directSolveCoarsest_);
 }

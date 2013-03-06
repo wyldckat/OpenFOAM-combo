@@ -102,7 +102,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        ThermoLookupTableInjection(const dictionary& dict, CloudType& owner);
+        ThermoLookupTableInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy from owner cloud and injection model
         ThermoLookupTableInjection
@@ -126,6 +131,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,10 +27,14 @@ License
 #include "dictionary.H"
 #include "Time.H"
 #include "Pstream.H"
+#include "IOmanip.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::forceCoeffs, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(forceCoeffs, 0);
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -84,13 +88,11 @@ void Foam::forceCoeffs::read(const dictionary& dict)
 }
 
 
-void Foam::forceCoeffs::writeFileHeader()
+void Foam::forceCoeffs::writeFileHeader(const label i)
 {
-    if (forcesFilePtr_.valid())
-    {
-        forcesFilePtr_()
-            << "# Time" << tab << "Cd" << tab << "Cl" << tab << "Cm" << endl;
-    }
+    file()
+        << "# Time" << tab << "Cm" << tab << "Cd" << tab << "Cl" << tab
+        << "Cl(f)" << "Cl(r)" << endl;
 }
 
 
@@ -110,39 +112,89 @@ void Foam::forceCoeffs::write()
 {
     if (active_)
     {
-        // Create the forces file if not already created
-        makeFile();
-
-        forcesMoments fm = forces::calcForcesMoment();
-
-        scalar pDyn = 0.5*rhoRef_*magUInf_*magUInf_;
-
-        vector totForce = fm.first().first() + fm.first().second();
-        vector totMoment = fm.second().first() + fm.second().second();
-
-        scalar liftForce = totForce & liftDir_;
-        scalar dragForce = totForce & dragDir_;
-        scalar pitchMoment = totMoment & pitchAxis_;
-
-        scalar Cl = liftForce/(Aref_*pDyn);
-        scalar Cd = dragForce/(Aref_*pDyn);
-        scalar Cm = pitchMoment/(Aref_*lRef_*pDyn);
+        forces::calcForcesMoment();
 
         if (Pstream::master())
         {
-            forcesFilePtr_()
+            functionObjectFile::write();
+
+            scalar pDyn = 0.5*rhoRef_*magUInf_*magUInf_;
+
+            Field<vector> totForce(force_[0] + force_[1]);
+            Field<vector> totMoment(moment_[0] + moment_[1]);
+
+            List<Field<scalar> > coeffs(3);
+            coeffs[0].setSize(nBin_);
+            coeffs[1].setSize(nBin_);
+            coeffs[2].setSize(nBin_);
+
+            // lift, drag and moment
+            coeffs[0] = (totForce & liftDir_)/(Aref_*pDyn);
+            coeffs[1] = (totForce & dragDir_)/(Aref_*pDyn);
+            coeffs[2] = (totMoment & pitchAxis_)/(Aref_*lRef_*pDyn);
+
+            scalar Cl = sum(coeffs[0]);
+            scalar Cd = sum(coeffs[1]);
+            scalar Cm = sum(coeffs[2]);
+
+            scalar Clf = Cl/2.0 + Cm;
+            scalar Clr = Cl/2.0 - Cm;
+
+            file()
                 << obr_.time().value() << tab
-                << Cd << tab << Cl << tab << Cm << endl;
+                << Cm << tab << Cd << tab << Cl << tab << Clf << tab << Clr
+                << endl;
 
             if (log_)
             {
-                Info<< "forceCoeffs output:" << nl
-                    << "    Cd = " << Cd << nl
-                    << "    Cl = " << Cl << nl
-                    << "    Cm = " << Cm << nl
-                    << "    Cl(f) = " << Cl/2.0 - Cm << nl
-                    << "    Cl(r) = " << Cl/2.0 + Cm << nl
-                    << endl;
+                Info<< type() << " output:" << nl
+                    << "    Cm    = " << Cm << nl
+                    << "    Cd    = " << Cd << nl
+                    << "    Cl    = " << Cl << nl
+                    << "    Cl(f) = " << Clf << nl
+                    << "    Cl(r) = " << Clr << endl;
+            }
+
+            if (nBin_ > 1)
+            {
+                autoPtr<writer<scalar> >
+                    binWriterPtr(writer<scalar>::New(binFormat_));
+                wordList fieldNames(IStringStream("(lift drag moment)")());
+
+                coordSet axis
+                (
+                    "forceCoeffs",
+                    "distance",
+                    binPoints_,
+                    mag(binPoints_)
+                );
+
+                fileName forcesDir = baseTimeDir();
+                mkDir(forcesDir);
+
+                if (log_)
+                {
+                    Info<< "    Writing bins to " << forcesDir << endl;
+                }
+
+                OFstream osCoeffs(forcesDir/"forceCoeffs_bins");
+
+                if (binCumulative_)
+                {
+                    for (label i = 1; i < coeffs[0].size(); i++)
+                    {
+                        coeffs[0][i] += coeffs[0][i-1];
+                        coeffs[1][i] += coeffs[1][i-1];
+                        coeffs[2][i] += coeffs[2][i-1];
+                    }
+                }
+
+                binWriterPtr->write(axis, fieldNames, coeffs, osCoeffs);
+            }
+
+            if (log_)
+            {
+                Info<< endl;
             }
         }
     }

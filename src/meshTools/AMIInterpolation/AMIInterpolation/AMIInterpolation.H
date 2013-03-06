@@ -38,11 +38,6 @@ Description
     orientations (opposite normals).  The 'reverseTarget' flag can be used to
     reverse the orientation of the target patch.
 
-    It requires all the faces covering any source face to be reachable through
-    a face-edge-face walk. In exceptional cases local intersection tolerances
-    might interfere with this walk and one will see the minimum sum of weights
-    become much less than one. There is some experimental functionality
-    (by setting debug to 1) to re start the walk on these faces.
 
 SourceFiles
     AMIInterpolation.C
@@ -87,33 +82,7 @@ class AMIInterpolation
     public AMIInterpolationName
 {
     //- local typedef to octree tree-type
-    typedef treeDataPrimitivePatch<face, SubList, const pointField&> treeType;
-
-    //- Helper class for list
-    template<class T>
-    class ListPlusEqOp
-    {
-        public:
-        void operator()(List<T>& x, const List<T> y) const
-        {
-            if (y.size())
-            {
-                if (x.size())
-                {
-                    label sz = x.size();
-                    x.setSize(sz + y.size());
-                    forAll(y, i)
-                    {
-                        x[sz++] = y[i];
-                    }
-                }
-                else
-                {
-                    x = y;
-                }
-            }
-        }
-    };
+    typedef treeDataPrimitivePatch<TargetPatch> treeType;
 
 
     // Private data
@@ -140,6 +109,10 @@ class AMIInterpolation
             //- Sum of weights of target faces per source face
             scalarField srcWeightsSum_;
 
+            //- Labels of faces that are not overlapped by any target faces
+            //  (should be empty for correct functioning)
+            labelList srcNonOverlap_;
+
 
         // Target patch
 
@@ -158,9 +131,6 @@ class AMIInterpolation
 
         //- Octree used to find face seeds
         autoPtr<indexedOctree<treeType> > treePtr_;
-
-        //- Starting face seed index
-        label startSeedI_;
 
         //- Face triangulation mode
         const faceAreaIntersect::triangulationMode triMode_;
@@ -196,12 +166,12 @@ class AMIInterpolation
             //- Check that patches are valid
             void checkPatches
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch
-            );
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch
+            ) const;
 
             //- Reset the octree for the traget patch face search
-            void resetTree(const primitivePatch& tgtPatch);
+            void resetTree(const TargetPatch& tgtPatch);
 
 
 
@@ -210,42 +180,42 @@ class AMIInterpolation
             //- Calculate if patches are on multiple processors
             label calcDistribution
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch
-            );
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch
+            ) const;
 
             label calcOverlappingProcs
             (
                 const List<treeBoundBoxList>& procBb,
                 const treeBoundBox& bb,
                 boolList& overlaps
-            );
+            ) const;
 
             void distributePatches
             (
                 const mapDistribute& map,
-                const primitivePatch& pp,
+                const TargetPatch& pp,
                 const globalIndex& gi,
                 List<faceList>& faces,
                 List<pointField>& points,
                 List<labelList>& tgtFaceIDs
-            );
+            ) const;
 
             void distributeAndMergePatches
             (
                 const mapDistribute& map,
-                const primitivePatch& tgtPatch,
+                const TargetPatch& tgtPatch,
                 const globalIndex& gi,
                 faceList& tgtFaces,
                 pointField& tgtPoints,
                 labelList& tgtFaceIDs
-            );
+            ) const;
 
             autoPtr<mapDistribute> calcProcMap
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch
-            );
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch
+            ) const;
 
 
         // Initialisation
@@ -264,28 +234,37 @@ class AMIInterpolation
             label findTargetFace
             (
                 const label srcFaceI,
-                const primitivePatch& srcPatch
+                const SourcePatch& srcPatch
             ) const;
 
             //- Add faces neighbouring faceI to the ID list
             void appendNbrFaces
             (
                 const label faceI,
-                const primitivePatch& patch,
+                const TargetPatch& patch,
                 const DynamicList<label>& visitedFaces,
                 DynamicList<label>& faceIDs
             ) const;
 
-            //- Do all (marching front) for single source face srcFaceI,
-            //  starting from target tgtFaceI. Finishes if front exhausted.
             bool processSourceFace
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch,
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch,
                 const label srcFaceI,
-                const label tgtFaceI,
+                const label tgtStartFaceI,
+
                 DynamicList<label>& nbrFaces,
                 DynamicList<label>& visitedFaces,
+                List<DynamicList<label> >& srcAddr,
+                List<DynamicList<scalar> >& srcWght,
+                List<DynamicList<label> >& tgtAddr,
+                List<DynamicList<scalar> >& tgtWght
+            );
+
+            void restartUncoveredSourceFace
+            (
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch,
                 List<DynamicList<label> >& srcAddr,
                 List<DynamicList<scalar> >& srcWght,
                 List<DynamicList<label> >& tgtAddr,
@@ -295,27 +274,16 @@ class AMIInterpolation
             //- Set the source and target seed faces
             void setNextFaces
             (
+                label& startSeedI,
                 label& srcFaceI,
                 label& tgtFaceI,
-                const primitivePatch& srcPatch0,
-                const primitivePatch& tgtPatch0,
+                const SourcePatch& srcPatch0,
+                const TargetPatch& tgtPatch0,
                 const boolList& mapFlag,
                 labelList& seedFaces,
                 const DynamicList<label>& visitedFaces
-            );
+            ) const;
 
-            //- Restart any source faces that have low weight sum. This might
-            //  indicate that advancing front has not walked all over face which
-            //  might happen in due to tolerances. Not enabled by default.
-            void restartUncoveredSourceFace
-            (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch,
-                List<DynamicList<label> >& srcAddr,
-                List<DynamicList<scalar> >& srcWght,
-                List<DynamicList<label> >& tgtAddr,
-                List<DynamicList<scalar> >& tgtWght
-            );
 
         // Evaluation
 
@@ -324,16 +292,15 @@ class AMIInterpolation
             (
                 const label srcFaceI,
                 const label tgtFaceI,
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch
             ) const;
-
 
             //- Calculate addressing
             void calcAddressing
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch,
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch,
                 label srcFaceI = -1,
                 label tgtFaceI = -1
             );
@@ -353,6 +320,7 @@ class AMIInterpolation
                 const bool output
             );
 
+
         // Constructor helper
 
             static void agglomerate
@@ -371,6 +339,7 @@ class AMIInterpolation
                 scalarField& srcWeightsSum,
                 autoPtr<mapDistribute>& tgtMap
             );
+
 
 public:
 
@@ -433,9 +402,12 @@ public:
                 //  patch weights (i.e. the sum before normalisation)
                 inline const scalarField& srcWeightsSum() const;
 
-                //- Source map pointer - valid only if singlePatchProc=-1.
-                //  This gets
-                //  source data into a form to be consumed by
+                //- Labels of faces that are not overlapped by any target faces
+                //  (should be empty for correct functioning)
+                inline const labelList& srcNonOverlap() const;
+
+                //- Source map pointer - valid only if singlePatchProc = -1
+                //  This gets source data into a form to be consumed by
                 //  tgtAddress, tgtWeights
                 inline const mapDistribute& srcMap() const;
 
@@ -456,8 +428,7 @@ public:
                 inline const scalarField& tgtWeightsSum() const;
 
                 //- Target map pointer -  valid only if singlePatchProc=-1.
-                //  This gets
-                //  target data into a form to be consumed by
+                //  This gets target data into a form to be consumed by
                 //  srcAddress, srcWeights
                 inline const mapDistribute& tgtMap() const;
 
@@ -467,8 +438,8 @@ public:
             //- Update addressing and weights
             void update
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch
             );
 
 
@@ -482,7 +453,7 @@ public:
                 void interpolateToSource
                 (
                     const UList<Type>& fld,
-                    const CombineOp& bop,
+                    const CombineOp& cop,
                     List<Type>& result
                 ) const;
 
@@ -492,7 +463,7 @@ public:
                 void interpolateToTarget
                 (
                     const UList<Type>& fld,
-                    const CombineOp& bop,
+                    const CombineOp& cop,
                     List<Type>& result
                 ) const;
 
@@ -564,8 +535,8 @@ public:
             //- Write face connectivity as OBJ file
             void writeFaceConnectivity
             (
-                const primitivePatch& srcPatch,
-                const primitivePatch& tgtPatch,
+                const SourcePatch& srcPatch,
+                const TargetPatch& tgtPatch,
                 const labelListList& srcAddress
             ) const;
 };
@@ -583,6 +554,7 @@ public:
 
 #ifdef NoRepository
 #   include "AMIInterpolation.C"
+#   include "AMIInterpolationParallelOps.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

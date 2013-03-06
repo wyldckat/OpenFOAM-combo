@@ -1,16 +1,12 @@
-Info<< "Creating combustion model\n" << endl;
+Info<< "Creating reaction model\n" << endl;
 
-autoPtr<combustionModels::psiChemistryCombustionModel> combustion
+autoPtr<combustionModels::psiCombustionModel> reaction
 (
-    combustionModels::psiChemistryCombustionModel::New
-    (
-        mesh
-    )
+    combustionModels::psiCombustionModel::New(mesh)
 );
 
-psiChemistryModel& chemistry = combustion->pChemistry();
-
-hsCombustionThermo& thermo = chemistry.thermo();
+psiReactionThermo& thermo = reaction->thermo();
+thermo.validate(args.executable(), "h", "e");
 
 basicMultiComponentMixture& composition = thermo.composition();
 PtrList<volScalarField>& Y = composition.Y();
@@ -45,7 +41,6 @@ volVectorField U
 
 volScalarField& p = thermo.p();
 const volScalarField& psi = thermo.psi();
-volScalarField& hs = thermo.hs();
 const volScalarField& T = thermo.T();
 
 #include "compressibleCreatePhi.H"
@@ -62,12 +57,22 @@ autoPtr<compressible::turbulenceModel> turbulence
     )
 );
 
-// Set the turbulence into the combustion model
-combustion->setTurbulence(turbulence());
+// Set the turbulence into the reaction model
+reaction->setTurbulence(turbulence());
 
 
 Info<< "Creating field dpdt\n" << endl;
-volScalarField dpdt("dpdt", fvc::ddt(p));
+volScalarField dpdt
+(
+    IOobject
+    (
+        "dpdt",
+        runTime.timeName(),
+        mesh
+    ),
+    mesh,
+    dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
+);
 
 Info<< "Creating field kinetic energy K\n" << endl;
 volScalarField K("K", 0.5*magSqr(U));
@@ -79,7 +84,7 @@ forAll(Y, i)
 {
     fields.add(Y[i]);
 }
-fields.add(hs);
+fields.add(thermo.he());
 
 volScalarField dQ
 (

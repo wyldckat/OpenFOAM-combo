@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ namespace Foam
 Foam::XiEqModel::XiEqModel
 (
     const dictionary& XiEqProperties,
-    const hhuCombustionThermo& thermo,
+    const psiuReactionThermo& thermo,
     const compressible::RASModel& turbulence,
     const volScalarField& Su
 )
@@ -181,7 +181,7 @@ Foam::XiEqModel::calculateSchelkinEffect(const scalar uPrimeCoef) const
 
     const scalarField upLocal(uPrimeCoef*sqrt((U & CT & U)*cellWidth));
 
-    //const scalarField deltaUp(upLocal*(max(scalar(1.0), pow(nr, 0.5)) - 1.0));
+    const scalarField deltaUp(upLocal*(max(scalar(1.0), pow(nr, 0.5)) - 1.0));
 
     //Re use tN
     N.internalField() = upLocal*(max(scalar(1.0), pow(nr, 0.5)) - 1.0);

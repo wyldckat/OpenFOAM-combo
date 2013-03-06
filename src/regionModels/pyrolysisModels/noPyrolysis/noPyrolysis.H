@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,6 +37,8 @@ SourceFiles
 
 #include "pyrolysisModel.H"
 #include "volFieldsFwd.H"
+#include "solidChemistryModel.H"
+#include "radiationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -76,14 +78,17 @@ protected:
         //- Read control parameters from dictionary
         virtual bool read(const dictionary& dict);
 
-        //- Reset solidChemistryModel and basicSolidThermo pointers
+        //- Reset solidChemistryModel and solidThermo pointers
         void constructThermoChemistry();
 
         //- Reference to the solid chemistry model
         autoPtr<solidChemistryModel> solidChemistry_;
 
         //- Reference to solid thermo
-        autoPtr<basicSolidThermo> solidThermo_;
+        autoPtr<solidReactionThermo> solidThermo_;
+
+         //- Pointer to radiation model
+        autoPtr<radiation::radiationModel> radiation_;
 
 
 public:
@@ -124,10 +129,10 @@ public:
             virtual const tmp<volScalarField> Cp() const;
 
             //- Return the region absorptivity [1/m]
-            virtual const volScalarField& kappa() const;
+            virtual tmp<volScalarField> kappaRad() const;
 
             //- Return the region thermal conductivity [W/m/k]
-            virtual const volScalarField& K() const;
+            virtual tmp<volScalarField> kappa() const;
 
             //- Return the total gas mass flux to primary region [kg/m2/s]
             virtual const surfaceScalarField& phiGas() const;

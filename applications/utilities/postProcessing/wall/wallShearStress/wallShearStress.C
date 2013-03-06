@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,7 +38,7 @@ Description
 #include "incompressible/singlePhaseTransportModel/singlePhaseTransportModel.H"
 #include "incompressible/RAS/RASModel/RASModel.H"
 
-#include "basicThermo.H"
+#include "fluidThermo.H"
 #include "compressible/RAS/RASModel/RASModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -101,8 +101,8 @@ void calcCompressible
 
     #include "compressibleCreatePhi.H"
 
-    autoPtr<basicThermo> pThermo(basicThermo::New(mesh));
-    basicThermo& thermo = pThermo();
+    autoPtr<fluidThermo> pThermo(fluidThermo::New(mesh));
+    fluidThermo& thermo = pThermo();
 
     autoPtr<compressible::RASModel> model
     (

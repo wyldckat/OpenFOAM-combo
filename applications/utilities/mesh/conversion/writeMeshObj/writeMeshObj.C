@@ -21,6 +21,9 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    writeMeshObj
+
 Description
     For mesh debugging: writes mesh as three separate OBJ files which can
     be viewed with e.g. javaview.
@@ -368,7 +371,6 @@ void writePointCells
 }
 
 
-// Main program:
 
 int main(int argc, char *argv[])
 {

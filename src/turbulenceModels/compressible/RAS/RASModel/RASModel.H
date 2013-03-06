@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,7 +27,6 @@ Namespace
 Description
     Namespace for compressible RAS turbulence models.
 
-
 Class
     Foam::compressible::RASModel
 
@@ -46,11 +45,10 @@ SourceFiles
 #include "compressible/turbulenceModel/turbulenceModel.H"
 #include "volFields.H"
 #include "surfaceFields.H"
-#include "nearWallDist.H"
 #include "fvm.H"
 #include "fvc.H"
 #include "fvMatrices.H"
-#include "basicThermo.H"
+#include "fluidThermo.H"
 #include "IOdictionary.H"
 #include "Switch.H"
 #include "bound.H"
@@ -96,9 +94,6 @@ protected:
         //- Lower limit for omega
         dimensionedScalar omegaMin_;
 
-        //- Near wall distance boundary field
-        nearWallDist y_;
-
 
     // Protected Member Functions
 
@@ -134,7 +129,7 @@ public:
                 const volScalarField& rho,
                 const volVectorField& U,
                 const surfaceScalarField& phi,
-                const basicThermo& thermoPhysicalModel,
+                const fluidThermo& thermoPhysicalModel,
                 const word& turbulenceModelName
             ),
             (rho, U, phi, thermoPhysicalModel, turbulenceModelName)
@@ -150,7 +145,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName
         );
 
@@ -163,7 +158,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName
         );
 
@@ -213,17 +208,8 @@ public:
                 return omegaMin_;
             }
 
-            //- Return the near wall distances
-            const nearWallDist& y() const
-            {
-                return y_;
-            }
-
-            //- Calculate y+ at the edge of the laminar sublayer
-            scalar yPlusLam(const scalar kappa, const scalar E) const;
-
             //- Const access to the coefficients dictionary
-            const dictionary& coeffDict() const
+            virtual const dictionary& coeffDict() const
             {
                 return coeffDict_;
             }
@@ -238,29 +224,31 @@ public:
             );
         }
 
+        //- Return the effective turbulent temperature diffusivity
+        virtual tmp<volScalarField> kappaEff() const
+        {
+            return thermo().kappaEff(alphat());
+        }
+
+        //- Return the effective turbulent temperature diffusivity for a patch
+        virtual tmp<scalarField> kappaEff(const label patchI) const
+        {
+            return
+                thermo().kappaEff(alphat()().boundaryField()[patchI], patchI);
+        }
+
         //- Return the effective turbulent thermal diffusivity
         virtual tmp<volScalarField> alphaEff() const
         {
-            return tmp<volScalarField>
-            (
-                new volScalarField("alphaEff", alphat() + alpha())
-            );
+            return thermo().alphaEff(alphat());
         }
 
         //- Return the effective turbulent thermal diffusivity for a patch
         virtual tmp<scalarField> alphaEff(const label patchI) const
         {
             return
-                alphat()().boundaryField()[patchI]
-              + alpha().boundaryField()[patchI];
+                thermo().alphaEff(alphat()().boundaryField()[patchI], patchI);
         }
-
-        //- Return yPlus for the given patch
-        virtual tmp<scalarField> yPlus
-        (
-            const label patchI,
-            const scalar Cmu
-        ) const;
 
         //- Solve the turbulence equations and correct the turbulence viscosity
         virtual void correct();

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,11 +27,15 @@ License
 #include "processorFvPatch.H"
 #include "demandDrivenData.H"
 
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::meshToMesh, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(meshToMesh, 0);
+}
+
 const Foam::scalar Foam::meshToMesh::directHitTol = 1e-5;
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -48,7 +52,10 @@ Foam::meshToMesh::meshToMesh
     patchMap_(patchMap),
     cellAddressing_(toMesh_.nCells()),
     boundaryAddressing_(toMesh_.boundaryMesh().size()),
-    inverseDistanceWeightsPtr_(NULL)
+    inverseDistanceWeightsPtr_(NULL),
+    inverseVolumeWeightsPtr_(NULL),
+    cellToCellAddressingPtr_(NULL),
+    V_(0.0)
 {
     forAll(fromMesh_.boundaryMesh(), patchi)
     {
@@ -118,7 +125,10 @@ Foam::meshToMesh::meshToMesh
     toMesh_(meshTo),
     cellAddressing_(toMesh_.nCells()),
     boundaryAddressing_(toMesh_.boundaryMesh().size()),
-    inverseDistanceWeightsPtr_(NULL)
+    inverseDistanceWeightsPtr_(NULL),
+    inverseVolumeWeightsPtr_(NULL),
+    cellToCellAddressingPtr_(NULL),
+    V_(0.0)
 {
     // check whether both meshes have got the same number
     // of boundary patches
@@ -198,6 +208,8 @@ Foam::meshToMesh::meshToMesh
 Foam::meshToMesh::~meshToMesh()
 {
     deleteDemandDrivenData(inverseDistanceWeightsPtr_);
+    deleteDemandDrivenData(inverseVolumeWeightsPtr_);
+    deleteDemandDrivenData(cellToCellAddressingPtr_);
 }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,7 @@ License
 
 #include "Pstream.H"
 #include "ops.H"
+#include "vector2D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -95,12 +96,69 @@ T returnReduce
 }
 
 
-// Insist there is a specialisation for the reduction of a scalar
+// Reduce with sum of both value and count (for averaging)
+template <class T>
+void sumReduce
+(
+    T& Value,
+    label& Count,
+    const int tag = Pstream::msgType()
+)
+{
+    reduce(Value, sumOp<T>(), tag);
+    reduce(Count, sumOp<label>(), tag);
+}
+
+
+// Non-blocking version of reduce. Sets request.
+template <class T, class BinaryOp>
+void reduce
+(
+    T& Value,
+    const BinaryOp& bop,
+    const int tag,
+    label& request
+)
+{
+    notImplemented("reduce(T&, const BinaryOp&, const int, label&");
+}
+
+
+// Insist there are specialisations for the common reductions of scalar(s)
 void reduce
 (
     scalar& Value,
     const sumOp<scalar>& bop,
     const int tag = Pstream::msgType()
+);
+
+void reduce
+(
+    scalar& Value,
+    const minOp<scalar>& bop,
+    const int tag = Pstream::msgType()
+);
+
+void reduce
+(
+    vector2D& Value,
+    const sumOp<vector2D>& bop,
+    const int tag = Pstream::msgType()
+);
+
+void sumReduce
+(
+    scalar& Value,
+    label& Count,
+    const int tag = Pstream::msgType()
+);
+
+void reduce
+(
+    scalar& Value,
+    const sumOp<scalar>& bop,
+    const int tag,
+    label& request
 );
 
 

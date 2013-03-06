@@ -22,11 +22,11 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    dsmcFoam
+    dsmcInitialise
 
 Description
     Initialise a case for dsmcFoam by reading the initialisation dictionary
-    system/dsmcInitialise
+    system/dsmcInitialise.
 
 \*---------------------------------------------------------------------------*/
 

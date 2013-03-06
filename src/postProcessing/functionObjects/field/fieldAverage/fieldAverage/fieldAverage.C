@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,10 +31,13 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::fieldAverage, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(fieldAverage, 0);
 
-const Foam::word Foam::fieldAverage::EXT_MEAN = "Mean";
-const Foam::word Foam::fieldAverage::EXT_PRIME2MEAN = "Prime2Mean";
+const word fieldAverage::EXT_MEAN = "Mean";
+const word fieldAverage::EXT_PRIME2MEAN = "Prime2Mean";
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -166,11 +169,6 @@ void Foam::fieldAverage::calcAverages()
 
 
     Info<< "Calculating averages" << nl << endl;
-    forAll(faItems_, fieldI)
-    {
-        totalIter_[fieldI]++;
-        totalTime_[fieldI] += obr_.time().deltaTValue();
-    }
 
     addMeanSqrToPrime2Mean<scalar, scalar>
     (
@@ -199,6 +197,12 @@ void Foam::fieldAverage::calcAverages()
         meanVectorFields_,
         prime2MeanSymmTensorFields_
     );
+
+    forAll(faItems_, fieldI)
+    {
+        totalIter_[fieldI]++;
+        totalTime_[fieldI] += obr_.time().deltaTValue();
+    }
 }
 
 
@@ -245,7 +249,7 @@ void Foam::fieldAverage::writeAveragingProperties() const
 
 void Foam::fieldAverage::readAveragingProperties()
 {
-    if (cleanRestart_)
+    if (resetOnRestart_)
     {
         Info<< "fieldAverage: starting averaging at time "
             << obr_.time().timeName() << nl << endl;
@@ -306,7 +310,7 @@ Foam::fieldAverage::fieldAverage
     obr_(obr),
     active_(true),
     prevTimeIndex_(-1),
-    cleanRestart_(false),
+    resetOnRestart_(false),
     resetOnOutput_(false),
     faItems_(),
     meanScalarFields_(),
@@ -354,7 +358,7 @@ void Foam::fieldAverage::read(const dictionary& dict)
 {
     if (active_)
     {
-        dict.readIfPresent("cleanRestart", cleanRestart_);
+        dict.readIfPresent("resetOnRestart", resetOnRestart_);
         dict.readIfPresent("resetOnOutput", resetOnOutput_);
         dict.lookup("fields") >> faItems_;
 
@@ -408,7 +412,7 @@ void Foam::fieldAverage::updateMesh(const mapPolyMesh&)
 }
 
 
-void Foam::fieldAverage::movePoints(const pointField&)
+void Foam::fieldAverage::movePoints(const polyMesh&)
 {
     // Do nothing
 }

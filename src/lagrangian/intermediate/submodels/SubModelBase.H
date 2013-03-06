@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -61,16 +61,25 @@ protected:
         CloudType& owner_;
 
         //- Reference to the cloud dictionary
-        const dictionary& dict_;
+        const dictionary dict_;
 
-        //- Name of the sub-model bas class
+        //- Name of the sub-model base class
         const word baseName_;
 
+        //- Type of the sub-model
+        const word modelType_;
+
         //- Name of the sub-model
-        const word name_;
+        const word modelName_;
 
         //- Coefficients dictionary
-        const dictionary& coeffDict_;
+        const dictionary coeffDict_;
+
+
+    // Protected Member Functions
+
+        //- Flag to indicate whether data is/was read in-line
+        bool inLine() const;
 
 
 public:
@@ -86,8 +95,18 @@ public:
             CloudType& owner,
             const dictionary& dict,
             const word& baseName,
-            const word& name,
+            const word& modelType,
             const word& dictExt = "Coeffs"
+        );
+
+        //- Construct from owner cloud, dictionary, and model type name
+        SubModelBase
+        (
+            const word& modelName,
+            CloudType& owner,
+            const dictionary& dict,
+            const word& baseName,
+            const word& modelType
         );
 
         //- Construct as copy
@@ -111,11 +130,14 @@ public:
             //- Return const access to the cloud dictionary
             const dictionary& dict() const;
 
+            //- Return const access to the sub-model type
+            const word& modelType() const;
+
             //- Return const access to the base name of the sub-model
             const word& baseName() const;
 
             //- Return const access to the name of the sub-model
-            const word& name() const;
+            const word& modelName() const;
 
             //- Return const access to the coefficients dictionary
             const dictionary& coeffDict() const;
@@ -132,31 +154,51 @@ public:
             //- Cache dependant sub-model fields
             virtual void cacheFields(const bool store);
 
+            //- Flag to indicate when to write a property
+            bool outputTime() const;
+
 
         // Edit
 
             //- Return non-const access to the owner cloud for manipulation
             CloudType& owner();
 
-            //- Retrieve generic property from sub-model
-            template<class Type>
-            Type getModelProperty(const word& entryName) const;
+            // Base properties
 
-            //- Retrieve generic property from sub-model
-            template<class Type>
-            void getModelProperty(const word& entryName, Type& value) const;
+                //- Retrieve generic property from the base model
+                template<class Type>
+                Type getBaseProperty
+                (
+                    const word& entryName,
+                    const Type& defaultValue = pTraits<Type>::zero
+                ) const;
 
-            //- Add generic property from sub-model
-            template<class Type>
-            void setModelProperty(const word& entryName, const Type& value);
+                //- Retrieve generic property from the base model
+                template<class Type>
+                void getBaseProperty(const word& entryName, Type& value) const;
 
-            //- Retrieve generic property from base model
-            template<class Type>
-            Type getBaseProperty(const word& entryName) const;
+                //- Add generic property to the base model
+                template<class Type>
+                void setBaseProperty(const word& entryName, const Type& value);
 
-            //- Add generic property from base model
-            template<class Type>
-            void setBaseProperty(const word& entryName, const Type& value);
+
+            // Model properties
+
+                //- Retrieve generic property from the sub-model
+                template<class Type>
+                Type getModelProperty
+                (
+                    const word& entryName,
+                    const Type& defaultValue = pTraits<Type>::zero
+                ) const;
+
+                //- Retrieve generic property from the sub-model
+                template<class Type>
+                void getModelProperty(const word& entryName, Type& value) const;
+
+                //- Add generic property to the sub-model
+                template<class Type>
+                void setModelProperty(const word& entryName, const Type& value);
 
 
         // I-O

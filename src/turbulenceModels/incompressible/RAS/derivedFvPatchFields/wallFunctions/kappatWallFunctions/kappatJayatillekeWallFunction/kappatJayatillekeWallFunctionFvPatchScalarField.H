@@ -2,34 +2,58 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    OpenFOAM is free software: you can redistribute it and/or modify it under
+    the terms of the GNU General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-    for more details.
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+    FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+    details.
 
-    You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License along with
+    OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::incompressible::RASModels::
-    kappatJayatillekeWallFunctionFvPatchScalarField
+    Foam::incompressible::kappatJayatillekeWallFunctionFvPatchScalarField
+
+Group
+    grpIcoWallFunctions
 
 Description
-    Boundary condition for (kinematic) turbulent thermal conductivity when
-    using wall functions, using Jayatilleke P function.
+    This boundary condition provides a kinematic turbulent thermal conductivity
+    for using wall functions, using the Jayatilleke 'P' function.
 
-    Units of m2/s
+    \heading Patch usage
+
+    \table
+        Property     | Description             | Required    | Default value
+        Prt          | turbulent Prandtl number | no         | 0.85
+        Cmu          | model coefficient       | no          | 0.09
+        kappa        | Von Karman constant     | no          | 0.41
+        E            | model coefficient       | no          | 9.8
+    \endtable
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            kappatJayatillekeWallFunction;
+    }
+    \endverbatim
+
+Note
+    The units of kinematic turbulent thermal conductivity are [m2/s]
+
+SeeAlso
+    Foam::fixedValueFvPatchField
 
 SourceFiles
     kappatJayatillekeWallFunctionFvPatchScalarField.C
@@ -46,8 +70,6 @@ SourceFiles
 namespace Foam
 {
 namespace incompressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -183,7 +205,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace incompressible
 } // End namespace Foam
 

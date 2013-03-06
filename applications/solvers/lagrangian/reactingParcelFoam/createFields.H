@@ -1,16 +1,12 @@
     Info<< "Creating combustion model\n" << endl;
 
-    autoPtr<combustionModels::psiChemistryCombustionModel> combustion
+    autoPtr<combustionModels::rhoCombustionModel> combustion
     (
-        combustionModels::psiChemistryCombustionModel::New
-        (
-            mesh
-        )
+        combustionModels::rhoCombustionModel::New(mesh)
     );
 
-    psiChemistryModel& chemistry = combustion->pChemistry();
-
-    hsCombustionThermo& thermo = chemistry.thermo();
+    rhoReactionThermo& thermo = combustion->thermo();
+    thermo.validate(args.executable(), "h", "e");
 
     SLGThermo slgThermo(mesh, thermo);
 
@@ -28,7 +24,6 @@
     }
 
     volScalarField& p = thermo.p();
-    volScalarField& hs = thermo.hs();
     const volScalarField& T = thermo.T();
     const volScalarField& psi = thermo.psi();
 
@@ -61,6 +56,22 @@
 
     #include "compressibleCreatePhi.H"
 
+    dimensionedScalar rhoMax
+    (
+        "rhoMax",
+        dimDensity,
+        mesh.solutionDict().subDict("PIMPLE")
+       .lookupOrDefault<scalar>("rhoMax", GREAT)
+    );
+
+    dimensionedScalar rhoMin
+    (
+        "rhoMin",
+        dimDensity,
+        mesh.solutionDict().subDict("PIMPLE")
+       .lookupOrDefault<scalar>("rhoMin", -GREAT)
+    );
+
     Info<< "Creating turbulence model\n" << endl;
     autoPtr<compressible::turbulenceModel> turbulence
     (
@@ -77,21 +88,29 @@
     combustion->setTurbulence(turbulence());
 
     Info<< "Creating field dpdt\n" << endl;
-    volScalarField dpdt("dpdt", fvc::ddt(p));
+    volScalarField dpdt
+    (
+        IOobject
+        (
+            "dpdt",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
+    );
 
     Info<< "Creating field kinetic energy K\n" << endl;
     volScalarField K("K", 0.5*magSqr(U));
 
-    Info<< "\nConstructing sources" << endl;
-    IObasicSourceList sources(mesh);
-
+    Info<< "Creating multi-variate interpolation scheme\n" << endl;
     multivariateSurfaceInterpolationScheme<scalar>::fieldTable fields;
 
     forAll(Y, i)
     {
         fields.add(Y[i]);
     }
-    fields.add(hs);
+    fields.add(thermo.he());
 
     volScalarField dQ
     (

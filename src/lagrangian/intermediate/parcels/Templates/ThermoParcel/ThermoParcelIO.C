@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,10 +29,8 @@ License
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 template<class ParcelType>
-Foam::string Foam::ThermoParcel<ParcelType>::propHeader =
-    ParcelType::propHeader
-  + " T"
-  + " Cp";
+Foam::string Foam::ThermoParcel<ParcelType>::propertyList_ =
+    Foam::ThermoParcel<ParcelType>::propertyList();
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -113,7 +111,7 @@ void Foam::ThermoParcel<ParcelType>::writeFields(const CloudType& c)
 {
     ParcelType::writeFields(c);
 
-    label np =  c.size();
+    label np = c.size();
 
     IOField<scalar> T(c.fieldIOobject("T", IOobject::NO_READ), np);
     IOField<scalar> Cp(c.fieldIOobject("Cp", IOobject::NO_READ), np);

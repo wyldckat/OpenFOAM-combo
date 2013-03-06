@@ -6,27 +6,31 @@
     rho = thermo.rho();
 
     volScalarField rAU(1.0/UEqn().A());
-    surfaceScalarField rhorAUf("(rho*(1|A(U)))", fvc::interpolate(rho*rAU));
+    surfaceScalarField rhorAUf("Dp", fvc::interpolate(rho*rAU));
 
-    p_rgh.boundaryField().updateCoeffs();
-    U = rAU*UEqn().H();
+    volVectorField HbyA("HbyA", U);
+    HbyA = rAU*UEqn().H();
 
-    surfaceScalarField phiU
+    surfaceScalarField phig(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
+
+    surfaceScalarField phiHbyA
     (
+        "phiHbyA",
         fvc::interpolate(rho)
        *(
-            (fvc::interpolate(U) & mesh.Sf())
+            (fvc::interpolate(HbyA) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
         )
+      + phig
     );
 
-    phi = phiU - rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf();
+    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
 
     {
         fvScalarMatrix p_rghDDtEqn
         (
             fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
-          + fvc::div(phi)
+          + fvc::div(phiHbyA)
         );
 
         // Thermodynamic density needs to be updated by psi*d(p) after the
@@ -58,7 +62,12 @@
 
             if (nonOrth == nNonOrthCorr)
             {
-                phi += p_rghEqn.flux();
+                phi = phiHbyA + p_rghEqn.flux();
+                U = HbyA
+                  + rAU*fvc::reconstruct((phig + p_rghEqn.flux())/rhorAUf);
+                U.correctBoundaryConditions();
+                fvOptions.correct(U);
+                K = 0.5*magSqr(U);
             }
         }
 
@@ -66,16 +75,13 @@
         thermo.rho() += psi*p_rgh;
     }
 
-    // Correct velocity field
-    U += rAU*fvc::reconstruct((phi - phiU)/rhorAUf);
-    U.correctBoundaryConditions();
-    K = 0.5*magSqr(U);
-
     p = p_rgh + rho*gh;
 
-    // Update pressure time derivative
-    dpdt = fvc::ddt(p);
-
+    // Update pressure time derivative if needed
+    if (thermo.dpdt())
+    {
+        dpdt = fvc::ddt(p);
+    }
 
     // Solve continuity
     #include "rhoEqn.H"
@@ -92,7 +98,4 @@
         rho = thermo.rho();
         p_rgh = p - rho*gh;
     }
-
-    // Update thermal conductivity
-    kappa = thermoFluid[i].Cp()*turb.alphaEff();
 }

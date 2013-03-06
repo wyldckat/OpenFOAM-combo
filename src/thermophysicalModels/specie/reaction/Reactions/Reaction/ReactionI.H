@@ -67,57 +67,9 @@ Reaction<ReactionThermo>::rhs() const
 template<class ReactionThermo>
 inline Ostream& operator<<(Ostream& os, const Reaction<ReactionThermo>& r)
 {
-    os << r.type() << nl << "    ";
-
-    forAll(r.lhs_, i)
-    {
-        const typename Reaction<ReactionThermo>::specieCoeffs& sc = r.lhs_[i];
-
-        if (sc.stoichCoeff != 1)
-        {
-            os << sc.stoichCoeff;
-        }
-
-        os << r.species_[sc.index];
-
-        if (sc.exponent != sc.stoichCoeff)
-        {
-            os << '^' << sc.exponent;
-        }
-
-        if (i < r.lhs_.size() - 1)
-        {
-            os << " + ";
-        }
-    }
-
-    os << " = ";
-
-    forAll(r.rhs_, i)
-    {
-        const typename Reaction<ReactionThermo>::specieCoeffs& sc = r.rhs_[i];
-
-        if (sc.stoichCoeff != 1)
-        {
-            os << sc.stoichCoeff;
-        }
-
-        os << r.species_[sc.index];
-
-        if (sc.exponent != sc.stoichCoeff)
-        {
-            os << '^' << sc.exponent;
-        }
-
-        if (i < r.rhs_.size() - 1)
-        {
-            os << " + ";
-        }
-    }
-
-    os  << endl << "   ";
-
-    return os;
+    OStringStream reaction;
+    os << r.reactionStr(reaction)<< token::END_STATEMENT <<nl;
+   return os;
 }
 
 

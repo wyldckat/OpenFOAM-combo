@@ -25,7 +25,7 @@ Application
     cfx4ToFoam
 
 Description
-    Converts a CFX 4 mesh to OpenFOAM format
+    Converts a CFX 4 mesh to OpenFOAM format.
 
 \*---------------------------------------------------------------------------*/
 
@@ -43,7 +43,6 @@ Description
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

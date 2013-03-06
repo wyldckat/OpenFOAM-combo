@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ SourceFiles
     vtkPV3FoamFields.C
     vtkPV3FoamMesh.C
     vtkPV3FoamMeshLagrangian.C
-    vtkPV3FoamMeshPatch.C
+    vtkPV3FoamTemplates.C
     vtkPV3FoamMeshSet.C
     vtkPV3FoamMeshVolume.C
     vtkPV3FoamMeshZone.C
@@ -347,7 +347,7 @@ class vtkPV3Foam
             void updateInfoLagrangian(vtkDataArraySelection*);
 
             //- Patch info
-            void updateInfoPatches(vtkDataArraySelection*);
+            void updateInfoPatches(vtkDataArraySelection*, stringList&);
 
             //- Set info
             void updateInfoSets(vtkDataArraySelection*);
@@ -443,14 +443,8 @@ class vtkPV3Foam
             );
 
             //- Add patch mesh
-            vtkPolyData* patchVTKMesh(const polyPatch&);
-
-            //- Add face zone mesh
-            vtkPolyData* faceZoneVTKMesh
-            (
-                const fvMesh&,
-                const labelList& faceLabels
-            );
+            template<class PatchType>
+            vtkPolyData* patchVTKMesh(const word& name, const PatchType&);
 
             //- Add point zone
             vtkPolyData* pointZoneVTKMesh
@@ -552,18 +546,6 @@ class vtkPV3Foam
                 const label datasetNo,
                 const fvMesh&,
                 const labelList& faceLabels
-            );
-
-            //- face set/zone field
-            template<class Type>
-            void convertFaceField
-            (
-                const GeometricField<Type, fvPatchField, volMesh>&,
-                vtkMultiBlockDataSet* output,
-                const arrayRange&,
-                const label datasetNo,
-                const fvMesh&,
-                const faceSet&
             );
 
             //- Lagrangian fields - all types
@@ -745,6 +727,12 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+#   include "vtkPV3FoamTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

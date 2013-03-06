@@ -34,7 +34,10 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::triSurface, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(triSurface, 0);
+}
 
 
 Foam::fileName Foam::triSurface::triSurfInstance(const Time& d)
@@ -83,7 +86,7 @@ Foam::fileName Foam::triSurface::triSurfInstance(const Time& d)
             << "reading " << foamName
             << " from constant/" << endl;
     }
-    return "constant";
+    return d.constant();
 }
 
 
@@ -412,6 +415,10 @@ bool Foam::triSurface::read
     {
         return readNAS(name);
     }
+    else if (ext == "vtk")
+    {
+        return readVTK(name);
+    }
     else
     {
         FatalErrorIn
@@ -419,7 +426,7 @@ bool Foam::triSurface::read
             "triSurface::read(const fileName&, const word&)"
         )   << "unknown file extension " << ext
             << ". Supported extensions are '.ftr', '.stl', '.stlb', '.gts'"
-            << ", '.obj', '.ac', '.off', '.nas' and '.tri'"
+            << ", '.obj', '.ac', '.off', '.nas', '.tri' and '.vtk'"
             << exit(FatalError);
 
         return false;
@@ -633,6 +640,20 @@ Foam::triSurface::triSurface
 )
 :
     ParentType(triangles, points, reUse),
+    patches_(patches),
+    sortedEdgeFacesPtr_(NULL),
+    edgeOwnerPtr_(NULL)
+{}
+
+
+Foam::triSurface::triSurface
+(
+    const Xfer<List<labelledTri> >& triangles,
+    const geometricSurfacePatchList& patches,
+    const Xfer<List<point> >& points
+)
+:
+    ParentType(triangles, points),
     patches_(patches),
     sortedEdgeFacesPtr_(NULL),
     edgeOwnerPtr_(NULL)

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,11 +35,11 @@ Description
 #include "engineMesh.H"
 #include "turbulenceModel.H"
 #include "basicSprayCloud.H"
-#include "psiChemistryCombustionModel.H"
-#include "IObasicSourceList.H"
+#include "psiCombustionModel.H"
 #include "radiationModel.H"
 #include "SLGThermo.H"
 #include "pimpleControl.H"
+#include "fvIOoptionList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     #include "createEngineMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
+    #include "createFvOptions.H"
     #include "createClouds.H"
     #include "createRadiationModel.H"
     #include "initContinuityErrs.H"
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
         {
             #include "UEqn.H"
             #include "YEqn.H"
-            #include "hsEqn.H"
+            #include "EEqn.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
 
         if (runTime.write())
         {
-            chemistry.dQ()().write();
+            combustion->dQ()().write();
         }
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

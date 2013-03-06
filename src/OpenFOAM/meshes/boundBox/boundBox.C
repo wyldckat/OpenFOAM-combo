@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,6 +65,7 @@ void Foam::boundBox::calculate(const UList<point>& points, const bool doReduce)
     {
         min_ = points[0];
         max_ = points[0];
+
 
         for (label i = 1; i < points.size(); i++)
         {
@@ -163,6 +164,49 @@ Foam::tmp<Foam::pointField> Foam::boundBox::points() const
 }
 
 
+Foam::faceList Foam::boundBox::faces()
+{
+    faceList faces(6);
+
+    forAll(faces, fI)
+    {
+        faces[fI].setSize(4);
+    }
+
+    faces[0][0] = 0;
+    faces[0][1] = 1;
+    faces[0][2] = 2;
+    faces[0][3] = 3;
+
+    faces[1][0] = 2;
+    faces[1][1] = 6;
+    faces[1][2] = 7;
+    faces[1][3] = 3;
+
+    faces[2][0] = 0;
+    faces[2][1] = 4;
+    faces[2][2] = 5;
+    faces[2][3] = 1;
+
+    faces[3][0] = 4;
+    faces[3][1] = 7;
+    faces[3][2] = 6;
+    faces[3][3] = 5;
+
+    faces[4][0] = 3;
+    faces[4][1] = 7;
+    faces[4][2] = 4;
+    faces[4][3] = 0;
+
+    faces[5][0] = 1;
+    faces[5][1] = 5;
+    faces[5][2] = 6;
+    faces[5][3] = 2;
+
+    return faces;
+}
+
+
 void Foam::boundBox::inflate(const scalar s)
 {
     vector ext = vector::one*s*mag();
@@ -253,6 +297,17 @@ bool Foam::boundBox::containsAny
     }
 
     return false;
+}
+
+
+Foam::point Foam::boundBox::nearest(const point& pt) const
+{
+    // Clip the point to the range of the bounding box
+    const scalar surfPtx = Foam::max(Foam::min(pt.x(), max_.x()), min_.x());
+    const scalar surfPty = Foam::max(Foam::min(pt.y(), max_.y()), min_.y());
+    const scalar surfPtz = Foam::max(Foam::min(pt.z(), max_.z()), min_.z());
+
+    return point(surfPtx, surfPty, surfPtz);
 }
 
 

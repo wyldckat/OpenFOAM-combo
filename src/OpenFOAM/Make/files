@@ -45,6 +45,9 @@ primitives/Tensor/lists/symmTensorList.C
 primitives/Tensor/lists/tensorList.C
 
 primitives/Vector/complexVector/complexVector.C
+#if !defined(WM_SP)
+primitives/Vector/floatVector/floatVector.C
+#endif
 primitives/Vector/labelVector/labelVector.C
 primitives/Vector/vector/vector.C
 primitives/Vector/lists/vectorList.C
@@ -60,6 +63,7 @@ primitives/globalIndexAndTransform/globalIndexAndTransform.C
 primitives/globalIndexAndTransform/vectorTensorTransform/vectorTensorTransform.C
 primitives/quaternion/quaternion.C
 primitives/septernion/septernion.C
+primitives/triad/triad.C
 
 /* functions, data entries */
 primitives/functions/DataEntry/makeDataEntries.C
@@ -71,8 +75,10 @@ primitives/functions/Polynomial/polynomialFunction.C
 strings = primitives/strings
 $(strings)/string/string.C
 $(strings)/string/stringIO.C
+$(strings)/string/stringIOList.C
 $(strings)/word/word.C
 $(strings)/word/wordIO.C
+$(strings)/word/wordIOList.C
 $(strings)/fileName/fileName.C
 $(strings)/fileName/fileNameIO.C
 $(strings)/keyType/keyType.C
@@ -197,6 +203,7 @@ $(dll)/codedBase/codedBase.C
 
 db/functionObjects/functionObject/functionObject.C
 db/functionObjects/functionObjectList/functionObjectList.C
+db/functionObjects/functionObjectFile/functionObjectFile.C
 db/functionObjects/outputFilterOutputControl/outputFilterOutputControl.C
 
 
@@ -235,7 +242,6 @@ lduMatrix = matrices/lduMatrix
 $(lduMatrix)/lduMatrix/lduMatrix.C
 $(lduMatrix)/lduMatrix/lduMatrixOperations.C
 $(lduMatrix)/lduMatrix/lduMatrixATmul.C
-$(lduMatrix)/lduMatrix/lduMatrixTests.C
 $(lduMatrix)/lduMatrix/lduMatrixUpdateMatrixInterfaces.C
 $(lduMatrix)/lduMatrix/lduMatrixSolver.C
 $(lduMatrix)/lduMatrix/lduMatrixSmoother.C
@@ -249,7 +255,10 @@ $(lduMatrix)/solvers/ICCG/ICCG.C
 $(lduMatrix)/solvers/BICCG/BICCG.C
 
 $(lduMatrix)/smoothers/GaussSeidel/GaussSeidelSmoother.C
+$(lduMatrix)/smoothers/symGaussSeidel/symGaussSeidelSmoother.C
+$(lduMatrix)/smoothers/nonBlockingGaussSeidel/nonBlockingGaussSeidelSmoother.C
 $(lduMatrix)/smoothers/DIC/DICSmoother.C
+$(lduMatrix)/smoothers/FDIC/FDICSmoother.C
 $(lduMatrix)/smoothers/DICGaussSeidel/DICGaussSeidelSmoother.C
 $(lduMatrix)/smoothers/DILU/DILUSmoother.C
 $(lduMatrix)/smoothers/DILUGaussSeidel/DILUGaussSeidelSmoother.C
@@ -275,7 +284,8 @@ $(lduInterfaceFields)/cyclicLduInterfaceField/cyclicLduInterfaceField.C
 GAMG = $(lduMatrix)/solvers/GAMG
 $(GAMG)/GAMGSolver.C
 $(GAMG)/GAMGSolverAgglomerateMatrix.C
-$(GAMG)/GAMGSolverScalingFactor.C
+$(GAMG)/GAMGSolverInterpolate.C
+$(GAMG)/GAMGSolverScale.C
 $(GAMG)/GAMGSolverSolve.C
 
 GAMGInterfaces = $(GAMG)/interfaces
@@ -307,6 +317,14 @@ algebraicPairGAMGAgglomeration = $(GAMGAgglomerations)/algebraicPairGAMGAgglomer
 $(algebraicPairGAMGAgglomeration)/algebraicPairGAMGAgglomeration.C
 
 meshes/lduMesh/lduMesh.C
+
+LduMatrix = matrices/LduMatrix
+$(LduMatrix)/LduMatrix/lduMatrices.C
+$(LduMatrix)/LduMatrix/solverPerformance.C
+$(LduMatrix)/LduMatrix/LduInterfaceField/LduInterfaceFields.C
+$(LduMatrix)/Smoothers/lduSmoothers.C
+$(LduMatrix)/Preconditioners/lduPreconditioners.C
+$(LduMatrix)/Solvers/lduSolvers.C
 
 primitiveShapes = meshes/primitiveShapes
 
@@ -410,6 +428,10 @@ $(polyMesh)/polyMeshInitMesh.C
 $(polyMesh)/polyMeshClear.C
 $(polyMesh)/polyMeshUpdate.C
 
+polyMeshCheck = $(polyMesh)/polyMeshCheck
+$(polyMeshCheck)/polyMeshCheck.C
+$(polyMeshCheck)/polyMeshTools.C
+
 primitiveMesh = meshes/primitiveMesh
 $(primitiveMesh)/primitiveMesh.C
 $(primitiveMesh)/primitiveMeshCellCells.C
@@ -430,9 +452,9 @@ $(primitiveMesh)/primitiveMeshCalcCellShapes.C
 
 primitiveMeshCheck = $(primitiveMesh)/primitiveMeshCheck
 $(primitiveMeshCheck)/primitiveMeshCheck.C
-$(primitiveMeshCheck)/primitiveMeshCheckMotion.C
 $(primitiveMeshCheck)/primitiveMeshCheckPointNearness.C
 $(primitiveMeshCheck)/primitiveMeshCheckEdgeLength.C
+$(primitiveMeshCheck)/primitiveMeshTools.C
 
 primitivePatch = $(primitiveMesh)/primitivePatch
 $(primitivePatch)/patchZones.C
@@ -498,7 +520,6 @@ meshes/treeBoundBox/treeBoundBox.C
 
 meshTools = meshes/meshTools
 $(meshTools)/matchPoints.C
-$(meshTools)/mergePoints.C
 
 fields/UniformDimensionedFields/uniformDimensionedFields.C
 fields/cloud/cloud.C
@@ -511,9 +532,10 @@ $(Fields)/sphericalTensorField/sphericalTensorField.C
 $(Fields)/diagTensorField/diagTensorField.C
 $(Fields)/symmTensorField/symmTensorField.C
 $(Fields)/tensorField/tensorField.C
+$(Fields)/triadField/triadField.C
 $(Fields)/complexFields/complexFields.C
 
-$(Fields)/labelField/labelIOField.
+$(Fields)/labelField/labelIOField.C
 $(Fields)/labelField/labelFieldIOField.C
 $(Fields)/scalarField/scalarIOField.C
 $(Fields)/scalarField/scalarFieldIOField.C
@@ -529,6 +551,7 @@ $(Fields)/symmTensorField/symmTensorIOField.C
 $(Fields)/symmTensorField/symmTensorFieldIOField.C
 $(Fields)/tensorField/tensorIOField.C
 $(Fields)/tensorField/tensorFieldIOField.C
+$(Fields)/triadField/triadIOField.C
 $(Fields)/transformField/transformField.C
 
 pointPatchFields = fields/pointPatchFields
@@ -540,7 +563,6 @@ $(basicPointPatchFields)/coupled/coupledPointPatchFields.C
 $(basicPointPatchFields)/value/valuePointPatchFields.C
 $(basicPointPatchFields)/fixedValue/fixedValuePointPatchFields.C
 $(basicPointPatchFields)/zeroGradient/zeroGradientPointPatchFields.C
-$(basicPointPatchFields)/mixed/mixedPointPatchFields.C
 
 constraintPointPatchFields = $(pointPatchFields)/constraint
 $(constraintPointPatchFields)/cyclic/cyclicPointPatchFields.C
@@ -572,10 +594,19 @@ $(interpolations)/interpolationTable/tableReaders/tableReaders.C
 $(interpolations)/interpolationTable/tableReaders/openFoam/openFoamTableReaders.C
 $(interpolations)/interpolationTable/tableReaders/csv/csvTableReaders.C
 
+interpolationWeights = $(interpolations)/interpolationWeights
+$(interpolationWeights)/interpolationWeights/interpolationWeights.C
+$(interpolationWeights)/linearInterpolationWeights/linearInterpolationWeights.C
+$(interpolationWeights)/splineInterpolationWeights/splineInterpolationWeights.C
+
+
+
 algorithms/indexedOctree/indexedOctreeName.C
 algorithms/indexedOctree/treeDataCell.C
 
 
+algorithms/dynamicIndexedOctree/dynamicIndexedOctreeName.C
+algorithms/dynamicIndexedOctree/dynamicTreeDataPoint.C
 
 graph/curve/curve.C
 graph/graph.C

@@ -109,7 +109,8 @@ public:
         ReactingMultiphaseLookupTableInjection
         (
             const dictionary& dict,
-            CloudType& owner
+            CloudType& owner,
+            const word& modelName
         );
 
         //- Construct copy
@@ -133,6 +134,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

@@ -43,8 +43,7 @@
         if (pimple.finalNonOrthogonalIter())
         {
             phiv += (phiGradp + pEqn.flux())/rhof;
-            phivAbs = phiv;
-            fvc::makeAbsolute(phivAbs, U);
+            phivAbs = fvc::absolute(phiv, U);
         }
     }
 

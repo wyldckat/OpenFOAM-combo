@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,9 +31,11 @@ License
 
 /* * * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * * */
 
-defineTypeNameAndDebug(Foam::dictionary, 0);
-
-const Foam::dictionary Foam::dictionary::null;
+namespace Foam
+{
+defineTypeNameAndDebug(dictionary, 0);
+const dictionary dictionary::null;
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -189,7 +191,7 @@ Foam::dictionary::dictionary
     parent_(parentDict)
 {
     transfer(dict());
-    name() = parentDict.name() + "::" + name();
+    name() = parentDict.name() + '.' + name();
 }
 
 
@@ -417,6 +419,151 @@ Foam::ITstream& Foam::dictionary::lookup
 }
 
 
+const Foam::entry* Foam::dictionary::lookupScopedEntryPtr
+(
+    const word& keyword,
+    bool recursive,
+    bool patternMatch
+) const
+{
+    if (keyword[0] == ':')
+    {
+        // Go up to top level
+        const dictionary* dictPtr = this;
+        while (&dictPtr->parent_ != &dictionary::null)
+        {
+            dictPtr = &dictPtr->parent_;
+        }
+
+        // At top. Recurse to find entries
+        return dictPtr->lookupScopedEntryPtr
+        (
+            keyword.substr(1, keyword.size()-1),
+            false,
+            patternMatch
+        );
+    }
+    else
+    {
+        string::size_type dotPos = keyword.find('.');
+
+        if (dotPos == string::npos)
+        {
+            // Non-scoped lookup
+            return lookupEntryPtr(keyword, recursive, patternMatch);
+        }
+        else
+        {
+            if (dotPos == 0)
+            {
+                // Starting with a '.'. Go up for every 2nd '.' found
+
+                const dictionary* dictPtr = this;
+
+                string::size_type begVar = dotPos + 1;
+                string::const_iterator iter = keyword.begin() + begVar;
+                string::size_type endVar = begVar;
+                while
+                (
+                    iter != keyword.end()
+                 && *iter == '.'
+                )
+                {
+                    ++iter;
+                    ++endVar;
+
+                    // Go to parent
+                    if (&dictPtr->parent_ == &dictionary::null)
+                    {
+                        FatalIOErrorIn
+                        (
+                            "dictionary::lookupScopedEntryPtr"
+                            "(const word&, bool, bool)",
+                            *this
+                        )   << "No parent of current dictionary"
+                            << " when searching for "
+                            << keyword.substr(begVar, keyword.size()-begVar)
+                            << exit(FatalIOError);
+                    }
+                    dictPtr = &dictPtr->parent_;
+                }
+
+                return dictPtr->lookupScopedEntryPtr
+                (
+                    keyword.substr(endVar),
+                    false,
+                    patternMatch
+                );
+            }
+            else
+            {
+                // Extract the first word
+                word firstWord = keyword.substr(0, dotPos);
+
+                const entry* entPtr = lookupScopedEntryPtr
+                (
+                    firstWord,
+                    false,          //recursive
+                    patternMatch
+                );
+
+                if (!entPtr)
+                {
+                    FatalIOErrorIn
+                    (
+                        "dictionary::lookupScopedEntryPtr"
+                        "(const word&, bool, bool)",
+                        *this
+                    )   << "keyword " << firstWord
+                        << " is undefined in dictionary "
+                        << name() << endl
+                        << "Valid keywords are " << keys()
+                        << exit(FatalIOError);
+                }
+
+                if (entPtr->isDict())
+                {
+                    return entPtr->dict().lookupScopedEntryPtr
+                    (
+                        keyword.substr(dotPos, keyword.size()-dotPos),
+                        false,
+                        patternMatch
+                    );
+                }
+                else
+                {
+                    return NULL;
+                }
+            }
+        }
+    }
+}
+
+
+bool Foam::dictionary::substituteScopedKeyword(const word& keyword)
+{
+    word varName = keyword(1, keyword.size()-1);
+
+    // lookup the variable name in the given dictionary
+    const entry* ePtr = lookupScopedEntryPtr(varName, true, true);
+
+    // if defined insert its entries into this dictionary
+    if (ePtr != NULL)
+    {
+        const dictionary& addDict = ePtr->dict();
+
+        forAllConstIter(IDLList<entry>, addDict, iter)
+        {
+            add(iter());
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+
 bool Foam::dictionary::isDict(const word& keyword) const
 {
     // Find non-recursive with patterns
@@ -507,7 +654,7 @@ Foam::dictionary Foam::dictionary::subOrEmptyDict
         }
         else
         {
-            return dictionary(*this, dictionary(name() + "::" + keyword));
+            return dictionary(*this, dictionary(name() + '.' + keyword));
         }
     }
     else
@@ -575,7 +722,7 @@ bool Foam::dictionary::add(entry* entryPtr, bool mergeEntry)
 
             if (hashedEntries_.insert(entryPtr->keyword(), entryPtr))
             {
-                entryPtr->name() = name() + "::" + entryPtr->keyword();
+                entryPtr->name() = name() + '.' + entryPtr->keyword();
 
                 if (entryPtr->keyword().isPattern())
                 {
@@ -603,7 +750,7 @@ bool Foam::dictionary::add(entry* entryPtr, bool mergeEntry)
 
     if (hashedEntries_.insert(entryPtr->keyword(), entryPtr))
     {
-        entryPtr->name() = name() + "::" + entryPtr->keyword();
+        entryPtr->name() = name() + '.' + entryPtr->keyword();
         IDLList<entry>::append(entryPtr);
 
         if (entryPtr->keyword().isPattern())
@@ -810,7 +957,7 @@ bool Foam::dictionary::changeKeyword
 
     // change name and HashTable, but leave DL-List untouched
     iter()->keyword() = newKeyword;
-    iter()->name() = name() + "::" + newKeyword;
+    iter()->name() = name() + '.' + newKeyword;
     hashedEntries_.erase(oldKeyword);
     hashedEntries_.insert(newKeyword, iter());
 

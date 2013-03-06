@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    boxTurb3D
+    boxTurb
 
 Description
     Makes a box of turbulence which conforms to a given energy

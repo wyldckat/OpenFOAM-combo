@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,65 +51,6 @@ void Foam::fvMeshDistribute::printFieldInfo(const fvMesh& mesh)
                 << ' ' << fld.boundaryField()[patchI].size()
                 << endl;
         }
-    }
-}
-
-
-template<class GeoField>
-void Foam::fvMeshDistribute::addPatchFields(const word& patchFieldType)
-{
-    HashTable<const GeoField*> flds
-    (
-        mesh_.objectRegistry::lookupClass<GeoField>()
-    );
-
-    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
-    {
-        const GeoField& fld = *iter();
-
-        typename GeoField::GeometricBoundaryField& bfld =
-            const_cast<typename GeoField::GeometricBoundaryField&>
-            (
-                fld.boundaryField()
-            );
-
-        label sz = bfld.size();
-        bfld.setSize(sz + 1);
-        bfld.set
-        (
-            sz,
-            GeoField::PatchFieldType::New
-            (
-                patchFieldType,
-                mesh_.boundary()[sz],
-                fld.dimensionedInternalField()
-            )
-        );
-    }
-}
-
-
-// Delete trailing patch fields
-template<class GeoField>
-void Foam::fvMeshDistribute::deleteTrailingPatchFields()
-{
-    HashTable<const GeoField*> flds
-    (
-        mesh_.objectRegistry::lookupClass<GeoField>()
-    );
-
-    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
-    {
-        const GeoField& fld = *iter();
-
-        typename GeoField::GeometricBoundaryField& bfld =
-            const_cast<typename GeoField::GeometricBoundaryField&>
-            (
-                fld.boundaryField()
-            );
-
-        // Shrink patchFields
-        bfld.setSize(bfld.size() - 1);
     }
 }
 
@@ -237,6 +178,24 @@ void Foam::fvMeshDistribute::initPatchFields
                 bfld[patchI] == initVal;
             }
         }
+    }
+}
+
+
+// correctBoundaryConditions patch fields of certain type
+template<class GeoField>
+void Foam::fvMeshDistribute::correctBoundaryConditions()
+{
+    HashTable<const GeoField*> flds
+    (
+        mesh_.objectRegistry::lookupClass<GeoField>()
+    );
+
+    forAllConstIter(typename HashTable<const GeoField*>, flds, iter)
+    {
+        const GeoField& fld = *iter();
+
+        const_cast<GeoField&>(fld).correctBoundaryConditions();
     }
 }
 

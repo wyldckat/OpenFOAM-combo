@@ -24,6 +24,9 @@ License
 Class
     Foam::compressible::LESModels::oneEqEddy
 
+Group
+    grpCmpLESTurbulence
+
 Description
     One Equation Eddy Viscosity Model for compressible flows
 
@@ -104,7 +107,7 @@ public:
             const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const basicThermo& thermoPhysicalModel,
+            const fluidThermo& thermoPhysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );

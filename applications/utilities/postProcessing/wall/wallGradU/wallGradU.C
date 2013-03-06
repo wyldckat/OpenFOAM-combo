@@ -25,7 +25,7 @@ Application
     wallGradU
 
 Description
-    Calculates and writes the gradient of U at the wall
+    Calculates and writes the gradient of U at the wall.
 
 \*---------------------------------------------------------------------------*/
 

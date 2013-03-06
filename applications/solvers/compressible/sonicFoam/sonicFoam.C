@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,8 +31,9 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "basicPsiThermo.H"
+#include "psiThermo.H"
 #include "turbulenceModel.H"
+#include "pimpleControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
     #include "createFields.H"
     #include "initContinuityErrs.H"
 
+    pimpleControl pimple(mesh);
+
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
@@ -52,24 +55,28 @@ int main(int argc, char *argv[])
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        #include "readPISOControls.H"
+        #include "readTimeControls.H"
         #include "compressibleCourantNo.H"
 
         #include "rhoEqn.H"
 
-        #include "UEqn.H"
-
-        #include "eEqn.H"
-
-
-        // --- PISO loop
-
-        for (int corr=0; corr<nCorr; corr++)
+        // --- Pressure-velocity PIMPLE corrector loop
+        while (pimple.loop())
         {
-            #include "pEqn.H"
-        }
+            #include "UEqn.H"
+            #include "EEqn.H"
 
-        turbulence->correct();
+            // --- Pressure corrector loop
+            while (pimple.correct())
+            {
+                #include "pEqn.H"
+            }
+
+            if (pimple.turbCorr())
+            {
+                turbulence->correct();
+            }
+        }
 
         rho = thermo.rho();
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -367,7 +367,8 @@ public:
         );
 
         //- Construct from reverse addressing: per data item the send
-        //  processor and the receive processor. All processors get same data.
+        //  processor and the receive processor. (note: data is not stored
+        //  sorted per processor so cannot use printLayout).
         mapDistribute
         (
             const labelList& sendProcs,
@@ -558,6 +559,15 @@ public:
             template<class T>
             void distribute
             (
+                DynamicList<T>& fld,
+                const bool dummyTransform = true,
+                const int tag = UPstream::msgType()
+            ) const;
+
+            //- Distribute data using default commsType.
+            template<class T>
+            void distribute
+            (
                 List<T>& fld,
                 const bool dummyTransform = true,
                 const int tag = UPstream::msgType()
@@ -626,7 +636,8 @@ public:
             template<class T>
             void receive(PstreamBuffers&, List<T>&) const;
 
-            //- Debug: print layout
+            //- Debug: print layout. Can only be used on maps with sorted
+            //  storage (local data first, then non-local data)
             void printLayout(Ostream& os) const;
 
             //- Correct for topo change.

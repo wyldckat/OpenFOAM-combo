@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ SourceFiles
 
 #include "pointField.H"
 #include "edgeList.H"
-#include "edgeFormatsCore.H"
+#include "edgeMeshFormatsCore.H"
 #include "runTimeSelectionTables.H"
 #include "memberFunctionSelectionTables.H"
 #include "HashSet.H"
@@ -65,7 +65,7 @@ Ostream& operator<<(Ostream&, const edgeMesh&);
 
 class edgeMesh
 :
-    public fileFormats::edgeFormatsCore
+    public fileFormats::edgeMeshFormatsCore
 {
     // Private data
 
@@ -245,6 +245,9 @@ public:
 
         //- Merge common points (points within mergeDist)
         void mergePoints(const scalar mergeDist);
+
+        //- Merge similar edges
+        void mergeEdges();
 
 
     // Write

@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -151,15 +151,17 @@ setenv FOAM_LIBBIN $WM_PROJECT_DIR/platforms/$WM_OPTIONS/lib
 # external (ThirdParty) libraries
 setenv FOAM_EXT_LIBBIN $WM_THIRD_PARTY_DIR/platforms/$WM_OPTIONS/lib
 
+# site-specific directory
+if ( $?WM_PROJECT_SITE ) then
+    set siteDir=$WM_PROJECT_SITE
+else
+    set siteDir=$WM_PROJECT_INST_DIR/site
+endif
+
 # shared site executables/libraries
 # similar naming convention as ~OpenFOAM expansion
-if ( $?WM_PROJECT_SITE ) then
-    setenv FOAM_SITE_APPBIN $WM_PROJECT_SITE/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
-    setenv FOAM_SITE_LIBBIN $WM_PROJECT_SITE/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
-else
-    setenv FOAM_SITE_APPBIN $WM_PROJECT_INST_DIR/site/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
-    setenv FOAM_SITE_LIBBIN $WM_PROJECT_INST_DIR/site/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
-endif
+setenv FOAM_SITE_APPBIN $siteDir/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/bin
+setenv FOAM_SITE_LIBBIN $siteDir/$WM_PROJECT_VERSION/platforms/$WM_OPTIONS/lib
 
 # user executables/libraries
 setenv FOAM_USER_APPBIN $WM_PROJECT_USER_DIR/platforms/$WM_OPTIONS/bin
@@ -181,6 +183,15 @@ setenv FOAM_RUN $WM_PROJECT_USER_DIR/run
 if ( -d "${WM_DIR}" ) setenv PATH ${WM_DIR}:${PATH}
 # add OpenFOAM scripts to the path
 setenv PATH ${WM_PROJECT_DIR}/bin:${PATH}
+
+# add site-specific scripts to path - only if they exist
+if ( -d "$siteDir/bin" ) then                       # generic
+    _foamAddPath "$siteDir/bin"
+endif
+if ( -d "$siteDir/$WM_PROJECT_VERSION/bin" ) then   # version-specific
+    _foamAddPath "$siteDir/$WM_PROJECT_VERSION/bin"
+endif
+unset siteDir
 
 _foamAddPath ${FOAM_USER_APPBIN}:${FOAM_SITE_APPBIN}:${FOAM_APPBIN}
 # Make sure to pick up dummy versions of external libraries last
@@ -209,15 +220,15 @@ case ThirdParty:
     case Gcc46:
     case Gcc46++0x:
         set gcc_version=gcc-4.6.1
-        set gmp_version=gmp-5.0.2
-        set mpfr_version=mpfr-3.0.1
+        set gmp_version=gmp-5.0.4
+        set mpfr_version=mpfr-3.1.0
         set mpc_version=mpc-0.9
         breaksw
     case Gcc47:
     case Gcc47++0x:
         set gcc_version=gcc-4.7.0
-        set gmp_version=gmp-5.0.2
-        set mpfr_version=mpfr-3.0.1
+        set gmp_version=gmp-5.0.4
+        set mpfr_version=mpfr-3.1.0
         set mpc_version=mpc-0.9
         breaksw
     case Gcc45:
@@ -227,23 +238,12 @@ case ThirdParty:
         set mpfr_version=mpfr-2.4.2
         set mpc_version=mpc-0.8.1
         breaksw
-    case Gcc44:
-    case Gcc44++0x:
-        set gcc_version=gcc-4.4.3
-        set gmp_version=gmp-5.0.1
-        set mpfr_version=mpfr-2.4.2
-        breaksw
-    case Gcc43:
-        set gcc_version=gcc-4.3.3
-        set gmp_version=gmp-4.2.4
-        set mpfr_version=mpfr-2.4.1
-        breaksw
     case Clang:
         # using clang - not gcc
         setenv WM_CC 'clang'
         setenv WM_CXX 'clang++'
-        #set clang_version=llvm-2.9
-        set clang_version=llvm-svn
+        set clang_version=llvm-3.1
+        #set clang_version=llvm-svn
         breaksw
     default:
         echo
@@ -344,7 +344,7 @@ endif
 # ~~~~~~~~~~~~~~
 
 set boost_version=boost_1_45_0
-set cgal_version=CGAL-3.8
+set cgal_version=CGAL-4.0
 
 setenv BOOST_ARCH_PATH $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$boost_version
 setenv CGAL_ARCH_PATH  $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$cgal_version
@@ -391,7 +391,7 @@ case SYSTEMOPENMPI:
     breaksw
 
 case OPENMPI:
-    setenv FOAM_MPI openmpi-1.5.3
+    setenv FOAM_MPI openmpi-1.6.3
     # optional configuration tweaks:
     _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/openmpi.csh`
 
@@ -406,7 +406,7 @@ case OPENMPI:
     _foamAddLib     $MPI_ARCH_PATH/lib$WM_COMPILER_LIB_ARCH
     _foamAddLib     $MPI_ARCH_PATH/lib
 
-    _foamAddMan     $MPI_ARCH_PATH/man
+    _foamAddMan     $MPI_ARCH_PATH/share/man
     breaksw
 
 case MPICH:

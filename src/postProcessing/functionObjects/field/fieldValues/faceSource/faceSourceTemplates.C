@@ -153,14 +153,14 @@ Type Foam::fieldValues::faceSource::processSameTypeValues
         }
         case opAreaAverage:
         {
-            const scalarField magSf = mag(Sf);
+            const scalarField magSf(mag(Sf));
 
             result = sum(values*magSf)/sum(magSf);
             break;
         }
         case opAreaIntegrate:
         {
-            const scalarField magSf = mag(Sf);
+            const scalarField magSf(mag(Sf));
 
             result = sum(values*magSf);
             break;
@@ -177,7 +177,7 @@ Type Foam::fieldValues::faceSource::processSameTypeValues
         }
         case opCoV:
         {
-            const scalarField magSf = mag(Sf);
+            const scalarField magSf(mag(Sf));
 
             Type meanValue = sum(values*magSf)/sum(magSf);
 
@@ -254,32 +254,47 @@ bool Foam::fieldValues::faceSource::writeValues(const word& fieldName)
         combineFields(Sf);
         combineFields(weightField);
 
+        // Write raw values on surface if specified
+        if (surfaceWriterPtr_.valid())
+        {
+            faceList faces;
+            pointField points;
+
+            if (surfacePtr_.valid())
+            {
+                combineSurfaceGeometry(faces, points);
+            }
+            else
+            {
+                combineMeshGeometry(faces, points);
+            }
+
+            fileName outputDir =
+                baseFileDir()/name_/"surface"/obr_.time().timeName();
+
+            surfaceWriterPtr_->write
+            (
+                outputDir,
+                word(sourceTypeNames_[source_]) + "_" + sourceName_,
+                points,
+                faces,
+                fieldName,
+                values,
+                false
+            );
+        }
+
         // apply weight field
         values *= weightField;
-
 
         if (Pstream::master())
         {
             Type result = processValues(values, Sf, weightField);
 
-            if (valueOutput_)
-            {
-                IOField<Type>
-                (
-                    IOobject
-                    (
-                        fieldName + "_" + sourceTypeNames_[source_] + "-"
-                            + sourceName_,
-                        obr_.time().timeName(),
-                        obr_,
-                        IOobject::NO_READ,
-                        IOobject::NO_WRITE
-                    ),
-                    values
-                ).write();
-            }
+            // add to result dictionary, over-writing any previous entry
+            resultDict_.add(fieldName, result, true);
 
-            outputFilePtr_()<< tab << result;
+            file()<< tab << result;
 
             if (log_)
             {

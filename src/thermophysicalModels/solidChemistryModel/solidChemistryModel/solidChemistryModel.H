@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ SourceFiles
 #include "basicChemistryModel.H"
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
-#include "basicSolidThermo.H"
+#include "solidReactionThermo.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -73,13 +73,13 @@ protected:
     // Protected data
 
         //- Solid thermo package
-        autoPtr<basicSolidThermo> solidThermo_;
+        autoPtr<solidReactionThermo> solidThermo_;
 
 
 public:
 
     //- Runtime type information
-    TypeName("solidChemistryModel");
+    TypeName("solid");
 
 
     //- Declare run-time constructor selection tables
@@ -88,23 +88,15 @@ public:
         autoPtr,
         solidChemistryModel,
         fvMesh,
-        (
-            const fvMesh& mesh,
-            const word& compTypeName,
-            const word& solidThermoTypeName
-        ),
-        (mesh, compTypeName, solidThermoTypeName)
+        (const fvMesh& mesh),
+        (mesh)
     );
 
 
     // Constructors
 
-        //- Construct from mesh and thermo type name
-        solidChemistryModel
-        (
-            const fvMesh& mesh,
-            const word& solidThermoTypeName
-        );
+        //- Construct from mesh
+        solidChemistryModel(const fvMesh& mesh);
 
 
     //- Selector
@@ -118,26 +110,33 @@ public:
     // Member Functions
 
         //- Return access to the solid thermo package
-        inline basicSolidThermo& solidThermo();
+        inline solidReactionThermo& solidThermo();
 
         //- Return const access to the solid thermo package
-        inline const basicSolidThermo& solidThermo() const;
+        inline const solidReactionThermo& solidThermo() const;
 
         //- Return total gases mass source term [kg/m3/s]
-        virtual tmp<volScalarField> RRg() const = 0;
+        virtual tmp<DimensionedField<scalar, volMesh> > RRg() const = 0;
 
         //- Return total solids mass source term [kg/m3/s]
-        virtual tmp<volScalarField> RRs() const = 0;
+        virtual tmp<DimensionedField<scalar, volMesh> > RRs() const = 0;
 
         //- Return chemical source terms for solids [kg/m3/s]
-        virtual tmp<volScalarField> RRs(const label i) const = 0;
+        virtual const DimensionedField<scalar, volMesh>& RRs
+        (
+            const label i
+        ) const = 0;
 
         //- Return chemical source terms for gases [kg/m3/s]
-        virtual tmp<volScalarField> RRg(const label i) const = 0;
+        virtual const DimensionedField<scalar, volMesh>& RRg
+        (
+            const label i
+        ) const = 0;
 
         //- Return sensible enthalpy for gas i [J/Kg]
         virtual tmp<volScalarField> gasHs
         (
+            const volScalarField& p,
             const volScalarField& T,
             const label i
         ) const = 0;

@@ -1,8 +1,9 @@
 EXE_INC = \
-    -I$(FOAM_SOLVERS)/lagrangian/sprayFoam \
-    -I$(FOAM_SOLVERS)/lagrangian/reactingParcelFoam \
+    -I.. \
+    -I../../reactingParcelFoam \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I${LIB_SRC}/meshTools/lnInclude \
+    -I${LIB_SRC}/sampling/lnInclude \
     -I$(LIB_SRC)/turbulenceModels/compressible/turbulenceModel \
     -I$(LIB_SRC)/lagrangian/basic/lnInclude \
     -I$(LIB_SRC)/lagrangian/intermediate/lnInclude \
@@ -23,12 +24,14 @@ EXE_INC = \
     -I$(LIB_SRC)/engine/lnInclude \
     -I$(LIB_SRC)/regionModels/regionModel/lnInclude \
     -I$(LIB_SRC)/regionModels/surfaceFilmModels/lnInclude \
+    -I$(LIB_SRC)/fvOptions/lnInclude \
     -I$(LIB_SRC)/combustionModels/lnInclude
 
 
 EXE_LIBS = \
     -lfiniteVolume \
     -lmeshTools \
+    -lsampling \
     -lcompressibleTurbulenceModel \
     -lcompressibleRASModels \
     -lcompressibleLESModels \
@@ -36,7 +39,7 @@ EXE_LIBS = \
     -llagrangianIntermediate \
     -llagrangianSpray \
     -lspecie \
-    -lbasicThermophysicalModels \
+    -lfluidThermophysicalModels \
     -lliquidProperties \
     -lliquidMixtureProperties \
     -lsolidProperties \
@@ -50,4 +53,5 @@ EXE_LIBS = \
     -lengine \
     -lregionModels \
     -lsurfaceFilmModels \
+    -lfvOptions \
     -lcombustionModels

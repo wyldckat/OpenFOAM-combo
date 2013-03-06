@@ -1,7 +1,8 @@
 rho = thermo.rho();
 
 volScalarField rAU(1.0/UEqn.A());
-U = rAU*(UEqn == sources(rho, U))().H();
+volVectorField HbyA("HbyA", U);
+HbyA = rAU*UEqn.H();
 
 if (pimple.transonic())
 {
@@ -10,10 +11,12 @@ if (pimple.transonic())
         "phid",
         fvc::interpolate(psi)
        *(
-            (fvc::interpolate(U) & mesh.Sf())
+            (fvc::interpolate(HbyA) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
         )
     );
+
+    fvOptions.relativeFlux(fvc::interpolate(psi), phid);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -24,10 +27,10 @@ if (pimple.transonic())
           - fvm::laplacian(rho*rAU, p)
          ==
             coalParcels.Srho()
-          + sources(psi, p, rho.name())
+          + fvOptions(psi, p, rho.name())
         );
 
-        sources.constrain(pEqn, rho.name());
+        fvOptions.constrain(pEqn);
 
         pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
 
@@ -39,32 +42,37 @@ if (pimple.transonic())
 }
 else
 {
-    phi =
+    surfaceScalarField phiHbyA
+    (
+        "phiHbyA",
         fvc::interpolate(rho)
        *(
-            (fvc::interpolate(U) & mesh.Sf())
+            (fvc::interpolate(HbyA) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
-        );
+        )
+    );
+
+    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
 
     while (pimple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
             fvm::ddt(psi, p)
-          + fvc::div(phi)
+          + fvc::div(phiHbyA)
           - fvm::laplacian(rho*rAU, p)
          ==
             coalParcels.Srho()
-          + sources(psi, p, rho.name())
+          + fvOptions(psi, p, rho.name())
         );
 
-        sources.constrain(pEqn, rho.name());
+        fvOptions.constrain(pEqn);
 
         pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
 
         if (pimple.finalNonOrthogonalIter())
         {
-            phi += pEqn.flux();
+            phi = phiHbyA + pEqn.flux();
         }
     }
 }
@@ -72,10 +80,13 @@ else
 #include "rhoEqn.H"
 #include "compressibleContinuityErrs.H"
 
-U -= rAU*fvc::grad(p);
+U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
-sources.correct(U);
+fvOptions.correct(U);
 
 K = 0.5*magSqr(U);
 
-dpdt = fvc::ddt(p);
+if (thermo.dpdt())
+{
+    dpdt = fvc::ddt(p);
+}

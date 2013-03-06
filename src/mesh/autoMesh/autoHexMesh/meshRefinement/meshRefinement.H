@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -70,6 +70,7 @@ class searchableSurface;
 class regionSplit;
 class globalIndex;
 class removePoints;
+class localPointRegion;
 
 /*---------------------------------------------------------------------------*\
                            Class meshRefinement Declaration
@@ -87,7 +88,9 @@ public:
         {
             MESH = 1,
             SCALARLEVELS = 2,
-            OBJINTERSECTIONS = 4
+            OBJINTERSECTIONS = 4,
+            FEATURESEEDS = 8,
+            LAYERINFO = 16
         };
 
 
@@ -140,15 +143,6 @@ private:
 
 
     // Private Member Functions
-
-        //- Reorder list according to map.
-        template<class T>
-        static void updateList
-        (
-            const labelList& newToOld,
-            const T& nullValue,
-            List<T>& elems
-        );
 
         //- Add patchfield of given type to all fields on mesh
         template<class GeoField>
@@ -270,6 +264,14 @@ private:
                 label& nRefine
             ) const;
 
+            //- Mark cells for distance-to-feature based refinement.
+            label markInternalDistanceToFeatureRefinement
+            (
+                const label nAllowRefine,
+                labelList& refineCell,
+                label& nRefine
+            ) const;
+
             //- Mark cells for refinement-shells based refinement.
             label markInternalRefinement
             (
@@ -328,16 +330,27 @@ private:
         // Baffle handling
 
             //- Get faces to repatch. Returns map from face to patch.
-            Map<label> getZoneBafflePatches
+            Map<labelPair> getZoneBafflePatches
             (
                 const bool allowBoundary,
-                const labelList& globalToPatch
+                const labelList& globalToMasterPatch,
+                const labelList& globalToSlavePatch
+            ) const;
+
+            //- Geometric test on see whether face needs to be baffled:
+            //  is face boundary face and perpendicular to surface normal?
+            bool validBaffleTopology
+            (
+                const label faceI,
+                const vector& n1,
+                const vector& n2,
+                const vector& testDir
             ) const;
 
             //- Determine patches for baffles
             void getBafflePatches
             (
-                const labelList& globalToPatch,
+                const labelList& globalToMasterPatch,
                 const labelList& neiLevel,
                 const pointField& neiCc,
                 labelList& ownPatch,
@@ -414,7 +427,7 @@ private:
                 const dictionary& motionDict,
                 const bool removeEdgeConnectedCells,
                 const scalarField& perpendicularAngle,
-                const labelList& globalToPatch
+                const labelList& globalToMasterPatch
             ) const;
 
 
@@ -422,7 +435,7 @@ private:
 
             //- Extract those baffles (duplicate) faces that are on the edge
             //  of a baffle region. These are candidates for merging.
-            List<labelPair> filterDuplicateFaces(const List<labelPair>&) const;
+            List<labelPair> freeStandingBaffles(const List<labelPair>&) const;
 
 
         // Zone handling
@@ -652,6 +665,7 @@ public:
                 const scalar curvature,
 
                 const bool featureRefinement,
+                const bool featureDistanceRefinement,
                 const bool internalRefinement,
                 const bool surfaceRefinement,
                 const bool curvatureRefinement,
@@ -694,7 +708,8 @@ public:
                 const bool mergeFreeStanding,
                 const dictionary& motionDict,
                 Time& runTime,
-                const labelList& globalToPatch,
+                const labelList& globalToMasterPatch,
+                const labelList& globalToSlavePatch,
                 const point& keepPoint
             );
 
@@ -703,9 +718,14 @@ public:
             autoPtr<mapPolyMesh> splitMesh
             (
                 const label nBufferLayers,
-                const labelList& globalToPatch,
+                const labelList& globalToMasterPatch,
+                const labelList& globalToSlavePatch,
                 const point& keepPoint
             );
+
+            //- Find boundary points that connect to more than one cell
+            //  region and split them.
+            autoPtr<mapPolyMesh> dupNonManifoldPoints(const localPointRegion&);
 
             //- Find boundary points that connect to more than one cell
             //  region and split them.
@@ -724,7 +744,8 @@ public:
             //  baffles.
             autoPtr<mapPolyMesh> createZoneBaffles
             (
-                const labelList& globalToPatch,
+                const labelList& globalToMasterPatch,
+                const labelList& globalToSlavePatch,
                 List<labelPair>&
             );
 
@@ -778,6 +799,15 @@ public:
             (
                 const mapPolyMesh&,
                 const labelList& changedFaces
+            );
+
+            //- Helper: reorder list according to map.
+            template<class T>
+            static void updateList
+            (
+                const labelList& newToOld,
+                const T& nullValue,
+                List<T>& elems
             );
 
 
@@ -848,6 +878,20 @@ public:
 
             //- Debugging: check that all faces still obey start()>end()
             void checkData();
+
+            static void testSyncPointList
+            (
+                const string& msg,
+                const polyMesh& mesh,
+                const List<scalar>& fld
+            );
+
+            static void testSyncPointList
+            (
+                const string& msg,
+                const polyMesh& mesh,
+                const List<point>& fld
+            );
 
             //- Compare two lists over all boundary faces
             template<class T>

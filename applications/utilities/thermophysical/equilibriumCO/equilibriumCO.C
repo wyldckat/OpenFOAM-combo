@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,9 +22,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
+    equilibriumCO
 
 Description
-    Calculates the equilibrium level of carbon monoxide
+    Calculates the equilibrium level of carbon monoxide.
 
 \*---------------------------------------------------------------------------*/
 
@@ -35,31 +36,33 @@ Description
 #include "OSspecific.H"
 #include "IOmanip.H"
 
-#include "specieThermo.H"
-#include "janafThermo.H"
+#include "specie.H"
 #include "perfectGas.H"
+#include "thermo.H"
+#include "janafThermo.H"
+#include "absoluteEnthalpy.H"
+
 #include "SLPtrList.H"
 
 using namespace Foam;
 
-typedef specieThermo<janafThermo<perfectGas> > thermo;
+typedef species::thermo<janafThermo<perfectGas<specie> >, absoluteEnthalpy>
+    thermo;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {
+    #include "setRootCase.H"
+    #include "createTime.H"
 
-#   include "setRootCase.H"
-#   include "createTime.H"
+    Info<< nl << "Reading thermodynamic data IOdictionary" << endl;
 
-    Info<< nl << "Reading Burcat data IOdictionary" << endl;
-
-    IOdictionary CpData
+    IOdictionary thermoData
     (
         IOobject
         (
-            "BurcatCpData",
+            "thermoData",
             runTime.constant(),
             runTime,
             IOobject::MUST_READ_IF_MODIFIED,
@@ -70,6 +73,7 @@ int main(int argc, char *argv[])
 
 
 
+    scalar P = 1e5;
     scalar T = 3000.0;
 
     SLPtrList<thermo> EQreactions;
@@ -78,10 +82,10 @@ int main(int argc, char *argv[])
     (
         new thermo
         (
-            thermo(CpData.lookup("CO2"))
+            thermo(thermoData.subDict("CO2"))
          ==
-            thermo(CpData.lookup("CO"))
-          + 0.5*thermo(CpData.lookup("O2"))
+            thermo(thermoData.subDict("CO"))
+          + 0.5*thermo(thermoData.subDict("O2"))
         )
     );
 
@@ -89,9 +93,9 @@ int main(int argc, char *argv[])
     (
         new thermo
         (
-            thermo(CpData.lookup("O2"))
+            thermo(thermoData.subDict("O2"))
          ==
-            2.0*thermo(CpData.lookup("O"))
+            2.0*thermo(thermoData.subDict("O"))
         )
     );
 
@@ -99,10 +103,10 @@ int main(int argc, char *argv[])
     (
         new thermo
         (
-            thermo(CpData.lookup("H2O"))
+            thermo(thermoData.subDict("H2O"))
          ==
-            thermo(CpData.lookup("H2"))
-          + 0.5*thermo(CpData.lookup("O2"))
+            thermo(thermoData.subDict("H2"))
+          + 0.5*thermo(thermoData.subDict("O2"))
         )
     );
 
@@ -110,17 +114,17 @@ int main(int argc, char *argv[])
     (
         new thermo
         (
-            thermo(CpData.lookup("H2O"))
+            thermo(thermoData.subDict("H2O"))
          ==
-            thermo(CpData.lookup("H"))
-          + thermo(CpData.lookup("OH"))
+            thermo(thermoData.subDict("H"))
+          + thermo(thermoData.subDict("OH"))
         )
     );
 
 
     forAllConstIter(SLPtrList<thermo>, EQreactions, iter)
     {
-        Info<< "Kc(EQreactions) = " << iter().Kc(T) << endl;
+        Info<< "Kc(EQreactions) = " << iter().Kc(P, T) << endl;
     }
 
     Info<< nl << "end" << endl;
@@ -130,4 +134,3 @@ int main(int argc, char *argv[])
 
 
 // ************************************************************************* //
-

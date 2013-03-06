@@ -16,12 +16,12 @@ fvVectorMatrix U2Eqn(U2, U2.dimensions()*dimVol/dimTime);
         }
         else // If not using kinetic theory is using Ct model
         {
-            nuEff1 = sqr(Ct)*nut2 + nu1;
+            nuEff1 = sqr(Ct)*nut2 + thermo1.mu()/rho1;
         }
 
         volTensorField Rc1
         (
-            "Rc1",
+            "Rc",
             (((2.0/3.0)*I)*nuEff1)*tr(gradU1T) - nuEff1*gradU1T
         );
 
@@ -34,6 +34,8 @@ fvVectorMatrix U2Eqn(U2, U2.dimensions()*dimVol/dimTime);
         (
             fvm::ddt(alpha1, U1)
           + fvm::div(alphaPhi1, U1)
+
+            // Compressibity correction
           - fvm::Sp(fvc::ddt(alpha1) + fvc::div(alphaPhi1), U1)
 
           + Cvm*rho2*alpha1*alpha2/rho1*
@@ -57,7 +59,7 @@ fvVectorMatrix U2Eqn(U2, U2.dimensions()*dimVol/dimTime);
         volTensorField gradU2T(fvc::grad(U2)().T());
         volTensorField Rc2
         (
-            "Rc2",
+            "Rc",
             (((2.0/3.0)*I)*nuEff2)*tr(gradU2T) - nuEff2*gradU2T
         );
 
@@ -65,6 +67,8 @@ fvVectorMatrix U2Eqn(U2, U2.dimensions()*dimVol/dimTime);
         (
             fvm::ddt(alpha2, U2)
           + fvm::div(alphaPhi2, U2)
+
+            // Compressibity correction
           - fvm::Sp(fvc::ddt(alpha2) + fvc::div(alphaPhi2), U2)
 
           + Cvm*rho2*alpha1*alpha2/rho2*

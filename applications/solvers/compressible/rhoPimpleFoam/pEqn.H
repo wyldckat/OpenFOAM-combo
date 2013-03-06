@@ -3,7 +3,9 @@ rho = max(rho, rhoMin);
 rho = min(rho, rhoMax);
 rho.relax();
 
-U = rAU*UEqn().H();
+volScalarField rAU(1.0/UEqn().A());
+volVectorField HbyA("HbyA", U);
+HbyA = rAU*UEqn().H();
 
 if (pimple.nCorrPISO() <= 1)
 {
@@ -17,10 +19,14 @@ if (pimple.transonic())
         "phid",
         fvc::interpolate(psi)
        *(
-            (fvc::interpolate(U) & mesh.Sf())
+            (fvc::interpolate(HbyA) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
         )
     );
+
+    fvOptions.relativeFlux(fvc::interpolate(psi), phid);
+
+    volScalarField Dp("Dp", rho*rAU);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -28,8 +34,12 @@ if (pimple.transonic())
         (
             fvm::ddt(psi, p)
           + fvm::div(phid, p)
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(Dp, p)
+          ==
+            fvOptions(psi, p, rho.name())
         );
+
+        fvOptions.constrain(pEqn);
 
         pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
 
@@ -41,12 +51,19 @@ if (pimple.transonic())
 }
 else
 {
-    phi =
-        fvc::interpolate(rho)*
-        (
-            (fvc::interpolate(U) & mesh.Sf())
+    surfaceScalarField phiHbyA
+    (
+        "phiHbyA",
+        fvc::interpolate(rho)
+       *(
+            (fvc::interpolate(HbyA) & mesh.Sf())
           + fvc::ddtPhiCorr(rAU, rho, U, phi)
-        );
+        )
+    );
+
+    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+
+    volScalarField Dp("Dp", rho*rAU);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -54,15 +71,19 @@ else
         fvScalarMatrix pEqn
         (
             fvm::ddt(psi, p)
-          + fvc::div(phi)
-          - fvm::laplacian(rho*rAU, p)
+          + fvc::div(phiHbyA)
+          - fvm::laplacian(Dp, p)
+          ==
+            fvOptions(psi, p, rho.name())
         );
+
+        fvOptions.constrain(pEqn);
 
         pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
 
         if (pimple.finalNonOrthogonalIter())
         {
-            phi += pEqn.flux();
+            phi = phiHbyA + pEqn.flux();
         }
     }
 }
@@ -81,8 +102,12 @@ rho.relax();
 Info<< "rho max/min : " << max(rho).value()
     << " " << min(rho).value() << endl;
 
-U -= rAU*fvc::grad(p);
+U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
+fvOptions.correct(U);
 K = 0.5*magSqr(U);
 
-dpdt = fvc::ddt(p);
+if (thermo.dpdt())
+{
+    dpdt = fvc::ddt(p);
+}

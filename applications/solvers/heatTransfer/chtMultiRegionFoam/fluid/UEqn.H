@@ -4,16 +4,19 @@
         fvm::ddt(rho, U)
       + fvm::div(phi, U)
       + turb.divDevRhoReff(U)
+      + fvOptions(rho, U)
     );
 
     UEqn().relax();
 
+    fvOptions.constrain(UEqn());
+
     if (momentumPredictor)
     {
-         solve
-         (
+        solve
+        (
             UEqn()
-         ==
+          ==
             fvc::reconstruct
             (
                 (
@@ -22,6 +25,8 @@
                 )*mesh.magSf()
             ),
             mesh.solver(U.select(finalIter))
-         );
-         K = 0.5*magSqr(U);
+        );
+
+        fvOptions.correct(U);
+        K = 0.5*magSqr(U);
     }

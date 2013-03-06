@@ -21,8 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    mergeMeshes
+
 Description
-    Merge two meshes.
+    Merges two meshes.
 
 \*---------------------------------------------------------------------------*/
 
@@ -51,7 +54,6 @@ void getRootCase(fileName& casePath)
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

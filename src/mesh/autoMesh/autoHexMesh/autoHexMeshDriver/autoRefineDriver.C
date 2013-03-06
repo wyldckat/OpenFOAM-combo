@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -57,13 +57,15 @@ Foam::autoRefineDriver::autoRefineDriver
     meshRefinement& meshRefiner,
     decompositionMethod& decomposer,
     fvMeshDistribute& distributor,
-    const labelList& globalToPatch
+    const labelList& globalToMasterPatch,
+    const labelList& globalToSlavePatch
 )
 :
     meshRefiner_(meshRefiner),
     decomposer_(decomposer),
     distributor_(distributor),
-    globalToPatch_(globalToPatch)
+    globalToMasterPatch_(globalToMasterPatch),
+    globalToSlavePatch_(globalToSlavePatch)
 {}
 
 
@@ -97,6 +99,7 @@ Foam::label Foam::autoRefineDriver::featureEdgeRefine
                     refineParams.curvature(),
 
                     true,               // featureRefinement
+                    false,              // featureDistanceRefinement
                     false,              // internalRefinement
                     false,              // surfaceRefinement
                     false,              // curvatureRefinement
@@ -207,6 +210,7 @@ Foam::label Foam::autoRefineDriver::surfaceOnlyRefine
                 refineParams.curvature(),
 
                 false,              // featureRefinement
+                false,              // featureDistanceRefinement
                 false,              // internalRefinement
                 true,               // surfaceRefinement
                 true,               // curvatureRefinement
@@ -233,7 +237,7 @@ Foam::label Foam::autoRefineDriver::surfaceOnlyRefine
             << " cells (out of " << mesh.globalData().nTotalCells()
             << ')' << endl;
 
-        // Stop when no cells to refine or have done minimum nessecary
+        // Stop when no cells to refine or have done minimum necessary
         // iterations and not enough cells to refine.
         if
         (
@@ -311,11 +315,12 @@ void Foam::autoRefineDriver::removeInsideCells
     meshRefiner_.splitMesh
     (
         nBufferLayers,                  // nBufferLayers
-        globalToPatch_,
+        globalToMasterPatch_,
+        globalToSlavePatch_,
         refineParams.keepPoints()[0]
     );
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         Pout<< "Writing subsetted mesh to time "
             << meshRefiner_.timeName() << '.' << endl;
@@ -368,6 +373,7 @@ Foam::label Foam::autoRefineDriver::shellRefine
                 refineParams.curvature(),
 
                 false,              // featureRefinement
+                true,               // featureDistanceRefinement
                 true,               // internalRefinement
                 false,              // surfaceRefinement
                 false,              // curvatureRefinement
@@ -376,7 +382,7 @@ Foam::label Foam::autoRefineDriver::shellRefine
             )
         );
 
-        if (debug)
+        if (debug&meshRefinement::MESH)
         {
             Pout<< "Dumping " << candidateCells.size()
                 << " cells to cellSet candidateCellsFromShells." << endl;
@@ -435,7 +441,7 @@ Foam::label Foam::autoRefineDriver::shellRefine
             << " cells (out of " << mesh.globalData().nTotalCells()
             << ')' << endl;
 
-        // Stop when no cells to refine or have done minimum nessecary
+        // Stop when no cells to refine or have done minimum necessary
         // iterations and not enough cells to refine.
         if
         (
@@ -518,7 +524,8 @@ void Foam::autoRefineDriver::baffleAndSplitMesh
         !handleSnapProblems,            // merge free standing baffles?
         motionDict,
         const_cast<Time&>(mesh.time()),
-        globalToPatch_,
+        globalToMasterPatch_,
+        globalToSlavePatch_,
         refineParams.keepPoints()[0]
     );
 }
@@ -555,7 +562,7 @@ void Foam::autoRefineDriver::zonify
             refineParams.allowFreeStandingZoneFaces()
         );
 
-        if (debug)
+        if (debug&meshRefinement::MESH)
         {
             Pout<< "Writing zoned mesh to time "
                 << meshRefiner_.timeName() << '.' << endl;
@@ -603,7 +610,8 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
         //true,                               // merge free standing baffles?
         motionDict,
         const_cast<Time&>(mesh.time()),
-        globalToPatch_,
+        globalToMasterPatch_,
+        globalToSlavePatch_,
         refineParams.keepPoints()[0]
     );
 
@@ -648,7 +656,7 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
             << mesh.time().cpuTimeIncrement() << " s." << endl;
     }
 
-    if (debug)
+    if (debug&meshRefinement::MESH)
     {
         Pout<< "Writing handleProblemCells mesh to time "
             << meshRefiner_.timeName() << '.' << endl;
@@ -663,17 +671,10 @@ void Foam::autoRefineDriver::mergePatchFaces
     const dictionary& motionDict
 )
 {
-    const fvMesh& mesh = meshRefiner_.mesh();
-
     Info<< nl
         << "Merge refined boundary faces" << nl
         << "----------------------------" << nl
         << endl;
-
-    if (debug)
-    {
-        const_cast<Time&>(mesh.time())++;
-    }
 
     meshRefiner_.mergePatchFacesUndo
     (

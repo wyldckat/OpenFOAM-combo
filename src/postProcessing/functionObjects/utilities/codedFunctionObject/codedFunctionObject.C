@@ -47,9 +47,6 @@ namespace Foam
     );
 }
 
-// * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
-
-
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 void Foam::codedFunctionObject::prepare
@@ -267,6 +264,14 @@ bool Foam::codedFunctionObject::read(const dictionary& dict)
     updateLibrary(redirectType_);
     return redirectFunctionObject().read(dict);
 }
+
+
+void Foam::codedFunctionObject::updateMesh(const mapPolyMesh&)
+{}
+
+
+void Foam::codedFunctionObject::movePoints(const polyMesh&)
+{}
 
 
 // ************************************************************************* //

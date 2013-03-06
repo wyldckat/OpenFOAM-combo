@@ -25,7 +25,8 @@ Application
     streamFunction
 
 Description
-    Calculates and writes the stream function of velocity field U at each time
+    Calculates and writes the stream function of velocity field U at each
+    time.
 
 \*---------------------------------------------------------------------------*/
 
@@ -37,7 +38,6 @@ Description
 #include "OSspecific.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

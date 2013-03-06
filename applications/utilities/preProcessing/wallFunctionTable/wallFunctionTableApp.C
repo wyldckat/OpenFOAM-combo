@@ -25,7 +25,7 @@ Application
     wallFunctionTable
 
 Description
-    Generates a table suitable for use by tabulated wall functions
+    Generates a table suitable for use by tabulated wall functions.
 
 \*---------------------------------------------------------------------------*/
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,9 +39,9 @@ Description
 #include "incompressible/RAS/RASModel/RASModel.H"
 #include "nutWallFunction/nutWallFunctionFvPatchScalarField.H"
 
-#include "basicThermo.H"
+#include "fluidThermo.H"
 #include "compressible/RAS/RASModel/RASModel.H"
-#include "mutkWallFunction/mutkWallFunctionFvPatchScalarField.H"
+#include "mutWallFunction/mutWallFunctionFvPatchScalarField.H"
 
 #include "wallDist.H"
 
@@ -55,7 +55,7 @@ void calcIncompressibleYPlus
     volScalarField& yPlus
 )
 {
-    typedef incompressible::RASModels::nutWallFunctionFvPatchScalarField
+    typedef incompressible::nutWallFunctionFvPatchScalarField
         wallFunctionPatchField;
 
     #include "createPhi.H"
@@ -107,7 +107,7 @@ void calcCompressibleYPlus
     volScalarField& yPlus
 )
 {
-    typedef compressible::RASModels::mutkWallFunctionFvPatchScalarField
+    typedef compressible::mutWallFunctionFvPatchScalarField
         wallFunctionPatchField;
 
     IOobject rhoHeader
@@ -130,11 +130,11 @@ void calcCompressibleYPlus
 
     #include "compressibleCreatePhi.H"
 
-    autoPtr<basicThermo> pThermo
+    autoPtr<fluidThermo> pThermo
     (
-        basicThermo::New(mesh)
+        fluidThermo::New(mesh)
     );
-    basicThermo& thermo = pThermo();
+    fluidThermo& thermo = pThermo();
 
     autoPtr<compressible::RASModel> RASModel
     (

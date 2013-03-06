@@ -12,9 +12,10 @@ EXE_INC = \
 
 EXE_LIBS = \
     -lfiniteVolume \
+    -lcompressibleTurbulenceModel \
     -lcompressibleRASModels \
     -lreactionThermophysicalModels \
-    -lbasicThermophysicalModels \
+    -lfluidThermophysicalModels \
     -lchemistryModel \
     -lODE \
     -lthermophysicalFunctions \

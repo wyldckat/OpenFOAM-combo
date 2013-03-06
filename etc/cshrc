@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -31,7 +31,7 @@
 #------------------------------------------------------------------------------
 
 setenv WM_PROJECT OpenFOAM
-setenv WM_PROJECT_VERSION 2.1.x 
+setenv WM_PROJECT_VERSION 2.2.x
 
 ################################################################################
 # USER EDITABLE PART: Changes made here may be lost with the next upgrade
@@ -80,7 +80,7 @@ setenv WM_COMPILE_OPTION Opt
 
 #- MPI implementation:
 #    WM_MPLIB = SYSTEMOPENMPI | OPENMPI | MPICH | MPICH-GM | HPMPI
-#               | GAMMA | MPI | QSMPI
+#               | GAMMA | MPI | QSMPI | SGIMPI
 setenv WM_MPLIB OPENMPI
 
 #- Operating System:

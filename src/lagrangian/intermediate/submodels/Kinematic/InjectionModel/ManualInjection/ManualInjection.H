@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,6 +43,7 @@ SourceFiles
 
 #include "InjectionModel.H"
 #include "distributionModel.H"
+#include "Switch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -50,7 +51,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class ManualInjection Declaration
+                       Class ManualInjection Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class CloudType>
@@ -84,6 +85,9 @@ class ManualInjection
         //- Parcel size distribution model
         const autoPtr<distributionModels::distributionModel> sizeDistribution_;
 
+        //- Flag to suppress errors if particle injection site is out-of-bounds
+        Switch ignoreOutOfBounds_;
+
 
 public:
 
@@ -94,7 +98,12 @@ public:
     // Constructors
 
         //- Construct from dictionary
-        ManualInjection(const dictionary& dict, CloudType& owner);
+        ManualInjection
+        (
+            const dictionary& dict,
+            CloudType& owner,
+            const word& modelName
+        );
 
         //- Construct copy
         ManualInjection(const ManualInjection<CloudType>& im);
@@ -114,6 +123,9 @@ public:
 
 
     // Member Functions
+
+        //- Set injector locations when mesh is updated
+        virtual void updateMesh();
 
         //- Return the end-of-injection time
         scalar timeEnd() const;

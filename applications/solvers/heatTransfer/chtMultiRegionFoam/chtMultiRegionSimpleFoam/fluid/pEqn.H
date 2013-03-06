@@ -5,26 +5,35 @@
     rho.relax();
 
     volScalarField rAU(1.0/UEqn().A());
-    surfaceScalarField rhorAUf("(rho*(1|A(U)))", fvc::interpolate(rho*rAU));
+    surfaceScalarField rhorAUf("Dp", fvc::interpolate(rho*rAU));
 
-    p_rgh.boundaryField().updateCoeffs();
-    U = rAU*UEqn().H();
+    volVectorField HbyA("HbyA", U);
+    HbyA = rAU*UEqn().H();
     UEqn.clear();
 
-    phi = fvc::interpolate(rho)*(fvc::interpolate(U) & mesh.Sf());
-    bool closedVolume = adjustPhi(phi, U, p_rgh);
+    surfaceScalarField phig(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
+
+    surfaceScalarField phiHbyA
+    (
+        "phiHbyA",
+        fvc::interpolate(rho)*(fvc::interpolate(HbyA) & mesh.Sf())
+    );
+
+    bool closedVolume = adjustPhi(phiHbyA, U, p_rgh);
+
+    phiHbyA += phig;
+
+    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+
     dimensionedScalar compressibility = fvc::domainIntegrate(psi);
     bool compressible = (compressibility.value() > SMALL);
-
-    surfaceScalarField buoyancyPhi(rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
-    phi -= buoyancyPhi;
 
     // Solve pressure
     for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
     {
         fvScalarMatrix p_rghEqn
         (
-            fvm::laplacian(rhorAUf, p_rgh) == fvc::div(phi)
+            fvm::laplacian(rhorAUf, p_rgh) == fvc::div(phiHbyA)
         );
 
         p_rghEqn.setReference
@@ -38,15 +47,16 @@
         if (nonOrth == nNonOrthCorr)
         {
             // Calculate the conservative fluxes
-            phi -= p_rghEqn.flux();
+            phi = phiHbyA - p_rghEqn.flux();
 
             // Explicitly relax pressure for momentum corrector
             p_rgh.relax();
 
             // Correct the momentum source with the pressure gradient flux
             // calculated from the relaxed pressure
-            U -= rAU*fvc::reconstruct((buoyancyPhi + p_rghEqn.flux())/rhorAUf);
+            U = HbyA + rAU*fvc::reconstruct((phig - p_rghEqn.flux())/rhorAUf);
             U.correctBoundaryConditions();
+            fvOptions.correct(U);
         }
     }
 
@@ -70,7 +80,4 @@
 
     Info<< "Min/max rho:" << min(rho).value() << ' '
         << max(rho).value() << endl;
-
-    // Update thermal conductivity
-    kappa = thermo.Cp()*turb.alphaEff();
 }

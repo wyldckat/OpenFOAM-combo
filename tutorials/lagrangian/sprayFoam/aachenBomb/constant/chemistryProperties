@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,11 +15,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-psiChemistryModel ODEChemistryModel<gasThermoPhysics>;
+chemistryType
+{
+    chemistrySolver   ode;
+    chemistryThermo   psi;
+}
 
-chemistry       off;
-
-chemistrySolver ode;
+chemistry       on;
 
 initialChemicalTimeStep 1e-07;
 

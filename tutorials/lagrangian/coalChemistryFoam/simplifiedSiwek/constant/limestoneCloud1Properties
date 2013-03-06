@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.1.x                                 |
+|  \\    /   O peration     | Version:  2.2.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -27,14 +27,15 @@ solution
         schemes
         {
             U               explicit 1;
-            hs              explicit 1;
+            h               explicit 1;
+            radiation       explicit 1;
         }
     }
 
     interpolationSchemes
     {
         rho             cell;
-        mu              cell;
+        thermo:mu       cell;
         U               cellPoint;
         Cp              cell;
         T               cell;
@@ -51,10 +52,6 @@ solution
 constantProperties
 {
     parcelTypeId    2;
-
-    rhoMin          1e-15;
-    TMin            200;
-    minParticleMass 1e-15;
 
     rho0            2500;
     T0              300;
@@ -77,7 +74,29 @@ subModels
         gravity;
     }
 
-    injectionModel  manualInjection;
+    injectionModels
+    {
+        model1
+        {
+            type            manualInjection;
+            massTotal       0.0001;
+            parcelBasisType mass;
+            SOI             0;
+            positionsFile   "limestonePositions";
+            U0              ( 0 0 0 );
+            sizeDistribution
+            {
+                type        RosinRammler;
+                RosinRammlerDistribution
+                {
+                    minValue        5e-06;
+                    maxValue        0.000565;
+                    d               4.8e-05;
+                    n               0.5;
+                }
+            }
+        }
+    }
 
     dispersionModel stochasticDispersionRAS;
 
@@ -88,26 +107,6 @@ subModels
     surfaceFilmModel none;
 
     radiation       on;
-
-    manualInjectionCoeffs
-    {
-        massTotal       0.0001;
-        parcelBasisType mass;
-        SOI             0;
-        positionsFile   "limestonePositions";
-        U0              ( 0 0 0 );
-        sizeDistribution
-        {
-            type        RosinRammler;
-            RosinRammlerDistribution
-            {
-                minValue        5e-06;
-                maxValue        0.000565;
-                d               4.8e-05;
-                n               0.5;
-            }
-        }
-    }
 
     standardWallInteractionCoeffs
     {

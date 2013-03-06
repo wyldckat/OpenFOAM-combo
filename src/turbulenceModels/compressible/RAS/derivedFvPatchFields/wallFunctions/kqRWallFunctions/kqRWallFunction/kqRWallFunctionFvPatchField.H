@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,11 +22,27 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::kqRWallFunctionFvPatchField
+    Foam::compressible::kqRWallFunctionFvPatchField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Boundary condition for turbulence k, Q, and R when using wall functions.
-    Simply acts as a zero gradient condition.
+    This boundary condition is applied to turbulence \c k, \c q, and \c R
+    when using wall functions, and simply enforces a zero-gradient condition.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            compressible::kqRWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::zeroGradientFvPatchField
 
 SourceFiles
     kqRWallFunctionFvPatchField.C
@@ -43,8 +59,6 @@ SourceFiles
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -152,7 +166,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

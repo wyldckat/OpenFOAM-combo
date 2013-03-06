@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -133,6 +133,8 @@ void fvMesh::makeC() const
             << abort(FatalError);
     }
 
+    // Construct as slices. Only preserve processor (not e.g. cyclic)
+
     CPtr_ = new slicedVolVectorField
     (
         IOobject
@@ -148,33 +150,10 @@ void fvMesh::makeC() const
         *this,
         dimLength,
         cellCentres(),
-        faceCentres()
+        faceCentres(),
+        true,               //preserveCouples
+        true                //preserveProcOnly
     );
-
-
-    // Need to correct for cyclics transformation since absolute quantity.
-    // Ok on processor patches since hold opposite cell centre (no
-    // transformation)
-    slicedVolVectorField& C = *CPtr_;
-
-    forAll(C.boundaryField(), patchi)
-    {
-        if
-        (
-            isA<cyclicFvPatchVectorField>(C.boundaryField()[patchi])
-         || isA<cyclicAMIFvPatchVectorField>(C.boundaryField()[patchi])
-        )
-        {
-            // Note: cyclic is not slice but proper field
-            C.boundaryField()[patchi] == static_cast<const vectorField&>
-            (
-                static_cast<const List<vector>&>
-                (
-                    boundary_[patchi].patchSlice(faceCentres())
-                )
-            );
-        }
-    }
 }
 
 
@@ -445,7 +424,7 @@ const surfaceScalarField& fvMesh::phi() const
     if (!phiPtr_)
     {
         FatalErrorIn("fvMesh::phi()")
-            << "mesh flux field does not exists, is the mesh actually moving?"
+            << "mesh flux field does not exist, is the mesh actually moving?"
             << exit(FatalError);
     }
 
@@ -465,7 +444,7 @@ surfaceScalarField& fvMesh::setPhi()
     if (!phiPtr_)
     {
         FatalErrorIn("fvMesh::setPhi()")
-            << "mesh flux field does not exists, is the mesh actually moving?"
+            << "mesh flux field does not exist, is the mesh actually moving?"
             << exit(FatalError);
     }
 

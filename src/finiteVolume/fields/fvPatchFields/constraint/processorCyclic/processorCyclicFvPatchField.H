@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,11 +24,31 @@ License
 Class
     Foam::processorCyclicFvPatchField
 
+Group
+    grpCoupledBoundaryConditions
+
 Description
-    Foam::processorCyclicFvPatchField
+    This boundary condition enables processor communication across cyclic
+    patches.
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            processor;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::processorFvPatchField
 
 SourceFiles
     processorCyclicFvPatchField.C
+    processorCyclicFvPatchFields.H
+    processorCyclicFvPatchFields.C
+    processorCyclicFvPatchFieldsFwd.H
 
 \*---------------------------------------------------------------------------*/
 
@@ -44,7 +64,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class processorCyclicFvPatch Declaration
+                 Class processorCyclicFvPatchField Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
@@ -150,8 +170,6 @@ public:
             {
                 return procPatch_.forwardT();
             }
-
-
 };
 
 

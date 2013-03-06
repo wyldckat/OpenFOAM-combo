@@ -39,7 +39,6 @@ License
 #include "PatchInjection.H"
 #include "PatchFlowRateInjection.H"
 
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #define makeParcelInjectionModels(CloudType)                                  \

@@ -49,7 +49,7 @@ kEpsilon::kEpsilon
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -281,7 +281,7 @@ void kEpsilon::correct()
     }
 
     tmp<volTensorField> tgradU = fvc::grad(U_);
-    volScalarField G("RASModel::G", mut_*(tgradU() && dev(twoSymm(tgradU()))));
+    volScalarField G(type() + ".G", mut_*(tgradU() && dev(twoSymm(tgradU()))));
     tgradU.clear();
 
     // Update epsilon and G at the wall
@@ -292,7 +292,6 @@ void kEpsilon::correct()
     (
         fvm::ddt(rho_, epsilon_)
       + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), epsilon_)
       - fvm::laplacian(DepsilonEff(), epsilon_)
      ==
         C1_*G*epsilon_/k_
@@ -314,7 +313,6 @@ void kEpsilon::correct()
     (
         fvm::ddt(rho_, k_)
       + fvm::div(phi_, k_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), k_)
       - fvm::laplacian(DkEff(), k_)
      ==
         G

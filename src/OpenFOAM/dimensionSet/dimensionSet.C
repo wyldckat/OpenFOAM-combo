@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,8 +29,11 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::dimensionSet, 1);
-const Foam::scalar Foam::dimensionSet::smallExponent = SMALL;
+namespace Foam
+{
+defineTypeNameAndDebug(dimensionSet, 1);
+const scalar dimensionSet::smallExponent = SMALL;
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -105,83 +108,6 @@ void Foam::dimensionSet::reset(const dimensionSet& ds)
 }
 
 
-Foam::string Foam::dimensionSet::asText() const
-{
-    OStringStream buf;
-
-    bool Dimensionless = true;
-
-    for (int Dimension=0; Dimension < dimensionSet::nDimensions-1; ++Dimension)
-    {
-        const scalar& expt = exponents_[Dimension];
-
-        if (expt < smallExponent && expt > -smallExponent)
-        {
-            continue;
-        }
-
-        if (Dimensionless)
-        {
-            Dimensionless = false;
-        }
-        else
-        {
-            buf << ' ';
-        }
-
-        // note: currently only handle SI
-        switch (Dimension)
-        {
-            case MASS:
-                buf << "kg";
-                break;
-
-            case LENGTH:
-                buf << "m";
-                break;
-
-            case TIME:
-                buf << "s";
-                break;
-
-            case TEMPERATURE:
-                buf << "K";
-                break;
-
-            case MOLES:
-                buf << "mol";
-                break;
-
-            case CURRENT:
-                buf << "A";
-                break;
-
-            case LUMINOUS_INTENSITY:
-                buf << "Cd";
-                break;
-
-            default:
-                buf << "??";  // this shouldn't be - flag as being weird
-                break;
-        }
-
-        if (expt != 1)
-        {
-            buf << '^' << expt;
-        }
-    }
-
-    if (Dimensionless)
-    {
-        return "none";
-    }
-    else
-    {
-        return buf.str();
-    }
-}
-
-
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
 Foam::scalar Foam::dimensionSet::operator[](const dimensionType type) const
@@ -191,6 +117,18 @@ Foam::scalar Foam::dimensionSet::operator[](const dimensionType type) const
 
 
 Foam::scalar& Foam::dimensionSet::operator[](const dimensionType type)
+{
+    return exponents_[type];
+}
+
+
+Foam::scalar Foam::dimensionSet::operator[](const label type) const
+{
+    return exponents_[type];
+}
+
+
+Foam::scalar& Foam::dimensionSet::operator[](const label type)
 {
     return exponents_[type];
 }
@@ -434,6 +372,12 @@ Foam::dimensionSet Foam::pow025(const dimensionSet& ds)
 Foam::dimensionSet Foam::sqrt(const dimensionSet& ds)
 {
     return pow(ds, 0.5);
+}
+
+
+Foam::dimensionSet Foam::cbrt(const dimensionSet& ds)
+{
+    return pow(ds, 1.0/3.0);
 }
 
 

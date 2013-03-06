@@ -21,8 +21,11 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+Application
+    foamDebugSwitches
+
 Description
-    Write out all library debug switches
+    Write out all library debug switches.
 
 \*---------------------------------------------------------------------------*/
 
@@ -35,7 +38,6 @@ Description
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Main program:
 
 int main(int argc, char *argv[])
 {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,7 +43,7 @@ namespace XiEqModels
 Foam::XiEqModels::SCOPEXiEq::SCOPEXiEq
 (
     const dictionary& XiEqProperties,
-    const hhuCombustionThermo& thermo,
+    const psiuReactionThermo& thermo,
     const compressible::RASModel& turbulence,
     const volScalarField& Su
 )
@@ -88,7 +88,7 @@ Foam::tmp<Foam::volScalarField> Foam::XiEqModels::SCOPEXiEq::XiEq() const
     const volScalarField& k = turbulence_.k();
     const volScalarField& epsilon = turbulence_.epsilon();
 
-    volScalarField up("up", sqrt((2.0/3.0)*k));
+    volScalarField up(sqrt((2.0/3.0)*k));
     if (subGridSchelkin_)
     {
         up.internalField() += calculateSchelkinEffect(uPrimeCoef_);

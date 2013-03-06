@@ -6,23 +6,32 @@
     thermo.rho() -= psi*p_rgh;
 
     volScalarField rAU(1.0/UEqn.A());
-    surfaceScalarField rhorAUf("(rho*(1|A(U)))", fvc::interpolate(rho*rAU));
+    surfaceScalarField rhorAUf("Dp", fvc::interpolate(rho*rAU));
 
-    U = rAU*UEqn.H();
+    volVectorField HbyA("HbyA", U);
+    HbyA = rAU*UEqn.H();
 
-    phi = fvc::interpolate(rho)*
+    surfaceScalarField phig(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
+
+    surfaceScalarField phiHbyA
     (
-        (fvc::interpolate(U) & mesh.Sf())
-      + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        "phiHbyA",
+        fvc::interpolate(rho)
+       *(
+            (fvc::interpolate(U) & mesh.Sf())
+          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        )
+      + phig
     );
 
-    surfaceScalarField buoyancyPhi(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
-    phi += buoyancyPhi;
+    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
 
     fvScalarMatrix p_rghDDtEqn
     (
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
-      + fvc::div(phi)
+      + fvc::div(phiHbyA)
+      ==
+        fvOptions(psi, p_rgh, rho.name())
     );
 
     while (pimple.correctNonOrthogonal())
@@ -33,20 +42,23 @@
           - fvm::laplacian(rhorAUf, p_rgh)
         );
 
+        fvOptions.constrain(p_rghEqn);
+
         p_rghEqn.solve(mesh.solver(p_rgh.select(pimple.finalInnerIter())));
 
         if (pimple.finalNonOrthogonalIter())
         {
             // Calculate the conservative fluxes
-            phi += p_rghEqn.flux();
+            phi = phiHbyA + p_rghEqn.flux();
 
             // Explicitly relax pressure for momentum corrector
             p_rgh.relax();
 
             // Correct the momentum source with the pressure gradient flux
             // calculated from the relaxed pressure
-            U += rAU*fvc::reconstruct((buoyancyPhi + p_rghEqn.flux())/rhorAUf);
+            U = HbyA + rAU*fvc::reconstruct((phig + p_rghEqn.flux())/rhorAUf);
             U.correctBoundaryConditions();
+            fvOptions.correct(U);
             K = 0.5*magSqr(U);
         }
     }
@@ -56,7 +68,10 @@
     // Second part of thermodynamic density update
     thermo.rho() += psi*p_rgh;
 
-    dpdt = fvc::ddt(p);
+    if (thermo.dpdt())
+    {
+        dpdt = fvc::ddt(p);
+    }
 
     #include "rhoEqn.H"
     #include "compressibleContinuityErrs.H"

@@ -35,16 +35,25 @@ namespace Foam
     addToRunTimeSelectionTable(scalarDataEntry, polynomial, dictionary);
 }
 
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::polynomial::polynomial(const word& entryName, const dictionary& dict)
 :
     scalarDataEntry(entryName),
     coeffs_(),
-    canIntegrate_(true)
+    canIntegrate_(true),
+    dimensions_(dimless)
 {
     Istream& is(dict.lookup(entryName));
     word entryType(is);
+
+    token firstToken(is);
+    is.putBack(firstToken);
+    if (firstToken == token::BEGIN_SQR)
+    {
+        is  >> this->dimensions_;
+    }
 
     is  >> coeffs_;
 
@@ -80,11 +89,57 @@ Foam::polynomial::polynomial(const word& entryName, const dictionary& dict)
 }
 
 
+Foam::polynomial::polynomial
+(
+    const word& entryName,
+    const List<Tuple2<scalar, scalar> >& coeffs
+)
+:
+    scalarDataEntry(entryName),
+    coeffs_(coeffs),
+    canIntegrate_(true),
+    dimensions_(dimless)
+{
+    if (!coeffs_.size())
+    {
+        FatalErrorIn
+        (
+            "Foam::polynomial::polynomial"
+            "(const word&, const List<Tuple2<scalar, scalar> >&)"
+        )   << "polynomial coefficients for entry " << this->name_
+            << " are invalid (empty)" << nl << exit(FatalError);
+    }
+
+    forAll(coeffs_, i)
+    {
+        if (mag(coeffs_[i].second() + 1) < ROOTVSMALL)
+        {
+            canIntegrate_ = false;
+            break;
+        }
+    }
+
+    if (debug)
+    {
+        if (!canIntegrate_)
+        {
+            WarningIn
+            (
+                "Foam::polynomial::polynomial"
+                "(const word&, const List<Tuple2<scalar, scalar> >&)"
+            )   << "Polynomial " << this->name_ << " cannot be integrated"
+                << endl;
+        }
+    }
+}
+
+
 Foam::polynomial::polynomial(const polynomial& poly)
 :
     scalarDataEntry(poly),
     coeffs_(poly.coeffs_),
-    canIntegrate_(poly.canIntegrate_)
+    canIntegrate_(poly.canIntegrate_),
+    dimensions_(poly.dimensions_)
 {}
 
 
@@ -136,6 +191,30 @@ Foam::scalar Foam::polynomial::integrate(const scalar x1, const scalar x2) const
     }
 
     return intx;
+}
+
+
+Foam::dimensioned<Foam::scalar> Foam::polynomial::dimValue
+(
+    const scalar x
+) const
+{
+    return dimensioned<scalar>("dimensionedValue", dimensions_, value(x));
+}
+
+
+Foam::dimensioned<Foam::scalar> Foam::polynomial::dimIntegrate
+(
+    const scalar x1,
+    const scalar x2
+) const
+{
+    return dimensioned<scalar>
+    (
+        "dimensionedValue",
+        dimensions_,
+        integrate(x1, x2)
+    );
 }
 
 

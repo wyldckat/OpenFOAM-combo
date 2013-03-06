@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -37,13 +37,16 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(Foam::boundaryMesh, 0);
+namespace Foam
+{
+defineTypeNameAndDebug(boundaryMesh, 0);
 
 // Normal along which to divide faces into categories (used in getNearest)
-const Foam::vector Foam::boundaryMesh::splitNormal_(3, 2, 1);
+const vector boundaryMesh::splitNormal_(3, 2, 1);
 
 // Distance to face tolerance for getNearest
-const Foam::scalar Foam::boundaryMesh::distanceTol_ = 1E-2;
+const scalar boundaryMesh::distanceTol_ = 1e-2;
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -871,11 +874,11 @@ Foam::labelList Foam::boundaryMesh::getNearest
     {
         scalar sign = mesh().faceNormals()[bFaceI] & splitNormal_;
 
-        if (sign > -1E-5)
+        if (sign > -1e-5)
         {
             rightFaces.append(bFaceI);
         }
-        if (sign < 1E-5)
+        if (sign < 1e-5)
         {
             leftFaces.append(bFaceI);
         }
@@ -909,7 +912,7 @@ Foam::labelList Foam::boundaryMesh::getNearest
 
     // Extend domain slightly (also makes it 3D if was 2D)
     // Note asymmetry to avoid having faces align with octree cubes.
-    scalar tol = 1E-6 * overallBb.avgDim();
+    scalar tol = 1e-6 * overallBb.avgDim();
 
     point& bbMin = overallBb.min();
     bbMin.x() -= tol;
@@ -924,10 +927,10 @@ Foam::labelList Foam::boundaryMesh::getNearest
     // Create the octrees
     indexedOctree
     <
-        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+        treeDataPrimitivePatch<uindirectPrimitivePatch>
     > leftTree
     (
-        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+        treeDataPrimitivePatch<uindirectPrimitivePatch>
         (
             false,          // cacheBb
             leftPatch
@@ -939,10 +942,10 @@ Foam::labelList Foam::boundaryMesh::getNearest
     );
     indexedOctree
     <
-        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+        treeDataPrimitivePatch<uindirectPrimitivePatch>
     > rightTree
     (
-        treeDataPrimitivePatch<face, UIndirectList, const pointField&>
+        treeDataPrimitivePatch<uindirectPrimitivePatch>
         (
             false,          // cacheBb
             rightPatch

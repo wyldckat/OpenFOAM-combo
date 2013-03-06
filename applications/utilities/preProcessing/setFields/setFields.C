@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,6 +54,7 @@ bool setCellFieldType
 
     word fieldName(fieldValueStream);
 
+    // Check the current time directory
     IOobject fieldHeader
     (
         fieldName,
@@ -61,6 +62,18 @@ bool setCellFieldType
         mesh,
         IOobject::MUST_READ
     );
+
+    // Check the "constant" directory
+    if (!fieldHeader.headerOk())
+    {
+        fieldHeader = IOobject
+        (
+            fieldName,
+            mesh.time().constant(),
+            mesh,
+            IOobject::MUST_READ
+        );
+    }
 
     // Check field exists
     if (fieldHeader.headerOk())
@@ -91,7 +104,15 @@ bool setCellFieldType
                 field.boundaryField()[patchi].patchInternalField();
         }
 
-        field.write();
+        if (!field.write())
+        {
+            FatalErrorIn
+            (
+                "void setCellFieldType"
+                "(const fvMesh& mesh, const labelList& selectedCells,"
+                "Istream& fieldValueStream)"
+            ) << "Failed writing field " << fieldName << endl;
+        }
     }
     else
     {
@@ -101,6 +122,9 @@ bool setCellFieldType
             "(const fvMesh& mesh, const labelList& selectedCells,"
             "Istream& fieldValueStream)"
         ) << "Field " << fieldName << " not found" << endl;
+
+        // Consume value
+        (void)pTraits<Type>(fieldValueStream);
     }
 
     return true;
@@ -182,6 +206,7 @@ bool setFaceFieldType
 
     word fieldName(fieldValueStream);
 
+    // Check the current time directory
     IOobject fieldHeader
     (
         fieldName,
@@ -189,6 +214,18 @@ bool setFaceFieldType
         mesh,
         IOobject::MUST_READ
     );
+
+    // Check the "constant" directory
+    if (!fieldHeader.headerOk())
+    {
+        fieldHeader = IOobject
+        (
+            fieldName,
+            mesh.time().constant(),
+            mesh,
+            IOobject::MUST_READ
+        );
+    }
 
     // Check field exists
     if (fieldHeader.headerOk())
@@ -215,6 +252,7 @@ bool setFaceFieldType
         }
 
         // Override
+        bool hasWarned = false;
         labelList nChanged
         (
             returnReduce(field.boundaryField().size(), maxOp<label>()),
@@ -225,8 +263,13 @@ bool setFaceFieldType
             label facei = selectedFaces[i];
             if (mesh.isInternalFace(facei))
             {
-                WarningIn("setFaceFieldType(..)")
-                    << "Ignoring internal face " << facei << endl;
+                if (!hasWarned)
+                {
+                    hasWarned = true;
+                    WarningIn("setFaceFieldType(..)")
+                        << "Ignoring internal face " << facei
+                        << ". Suppressing further warnings." << endl;
+                }
             }
             else
             {
@@ -257,7 +300,15 @@ bool setFaceFieldType
             }
         }
 
-        field.write();
+        if (!field.write())
+        {
+            FatalErrorIn
+            (
+                "void setFaceFieldType"
+                "(const fvMesh& mesh, const labelList& selectedFaces,"
+                "Istream& fieldValueStream)"
+            )   << "Failed writing field " << field.name() << exit(FatalError);
+        }
     }
     else
     {
@@ -267,6 +318,9 @@ bool setFaceFieldType
             "(const fvMesh& mesh, const labelList& selectedFaces,"
             "Istream& fieldValueStream)"
         ) << "Field " << fieldName << " not found" << endl;
+
+        // Consume value
+        (void)pTraits<Type>(fieldValueStream);
     }
 
     return true;

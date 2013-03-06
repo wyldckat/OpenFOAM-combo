@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,6 +22,139 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 \*---------------------------------------------------------------------------*/
+
+template<class Type>
+Foam::tmp<Foam::Field<Type> >
+Foam::regionModels::regionModel::mapRegionPatchField
+(
+    const regionModel& nbrRegion,
+    const label regionPatchI,
+    const label nbrPatchI,
+    const Field<Type>& nbrField,
+    const bool flip
+)
+{
+    int oldTag = UPstream::msgType();
+    UPstream::msgType() = oldTag + 1;
+
+    const AMIPatchToPatchInterpolation& ami =
+        interRegionAMI(nbrRegion, regionPatchI, nbrPatchI, flip);
+
+    tmp<Field<Type> > tresult(ami.interpolateToSource(nbrField));
+
+    UPstream::msgType() = oldTag;
+
+    return tresult;
+}
+
+
+template<class Type>
+Foam::tmp<Foam::Field<Type> >
+Foam::regionModels::regionModel::mapRegionPatchField
+(
+    const regionModel& nbrRegion,
+    const word& fieldName,
+    const label regionPatchI,
+    const bool flip
+)
+{
+    typedef GeometricField<Type, fvPatchField, volMesh> fieldType;
+
+    const fvMesh& nbrRegionMesh = nbrRegion.regionMesh();
+
+    if (nbrRegionMesh.foundObject<fieldType>(fieldName))
+    {
+        const label nbrPatchI = nbrCoupledPatchID(nbrRegion, regionPatchI);
+
+        int oldTag = UPstream::msgType();
+        UPstream::msgType() = oldTag + 1;
+
+        const AMIPatchToPatchInterpolation& ami =
+            interRegionAMI(nbrRegion, regionPatchI, nbrPatchI, flip);
+
+        const fieldType& nbrField =
+            nbrRegionMesh.lookupObject<fieldType>(fieldName);
+
+        const Field<Type>& nbrFieldp = nbrField.boundaryField()[nbrPatchI];
+
+        tmp<Field<Type> > tresult(ami.interpolateToSource(nbrFieldp));
+
+        UPstream::msgType() = oldTag;
+
+        return tresult;
+    }
+    else
+    {
+        const polyPatch& p = regionMesh().boundaryMesh()[regionPatchI];
+
+        return
+            tmp<Field<Type> >
+            (
+                new Field<Type>
+                (
+                    p.size(),
+                    pTraits<Type>::zero
+                )
+            );
+    }
+}
+
+
+template<class Type>
+Foam::tmp<Foam::Field<Type> >
+Foam::regionModels::regionModel::mapRegionPatchInternalField
+(
+    const regionModel& nbrRegion,
+    const word& fieldName,
+    const label regionPatchI,
+    const bool flip
+)
+{
+    typedef GeometricField<Type, fvPatchField, volMesh> fieldType;
+
+    const fvMesh& nbrRegionMesh = nbrRegion.regionMesh();
+
+    if (nbrRegionMesh.foundObject<fieldType>(fieldName))
+    {
+        const label nbrPatchI = nbrCoupledPatchID(nbrRegion, regionPatchI);
+
+        int oldTag = UPstream::msgType();
+        UPstream::msgType() = oldTag + 1;
+
+        const AMIPatchToPatchInterpolation& ami =
+            interRegionAMI(nbrRegion, regionPatchI, nbrPatchI, flip);
+
+        const fieldType& nbrField =
+            nbrRegionMesh.lookupObject<fieldType>(fieldName);
+
+        const fvPatchField<Type>& nbrFieldp =
+            nbrField.boundaryField()[nbrPatchI];
+
+        tmp<Field<Type> > tresult
+        (
+            ami.interpolateToSource(nbrFieldp.patchInternalField())
+        );
+
+        UPstream::msgType() = oldTag;
+
+        return tresult;
+    }
+    else
+    {
+        const polyPatch& p = regionMesh().boundaryMesh()[regionPatchI];
+
+        return
+            tmp<Field<Type> >
+            (
+                new Field<Type>
+                (
+                    p.size(),
+                    pTraits<Type>::zero
+                )
+            );
+    }
+}
+
 
 template<class Type>
 void Foam::regionModels::regionModel::toPrimary

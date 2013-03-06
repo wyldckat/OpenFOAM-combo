@@ -25,7 +25,7 @@ Application
     postChannel
 
 Description
-    Post-processes data from channel flow calculations
+    Post-processes data from channel flow calculations.
 
     For each time: calculate: txx, txy,tyy, txy,
     eps, prod, vorticity, enstrophy and helicity. Assuming that the mesh
@@ -42,7 +42,6 @@ Description
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//  Main program:
 
 int main(int argc, char *argv[])
 {

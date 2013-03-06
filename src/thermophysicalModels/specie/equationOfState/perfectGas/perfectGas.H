@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,7 +36,6 @@ SourceFiles
 #ifndef perfectGas_H
 #define perfectGas_H
 
-#include "specie.H"
 #include "autoPtr.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -44,13 +43,54 @@ SourceFiles
 namespace Foam
 {
 
+// Forward declaration of friend functions and operators
+
+template<class Specie> class perfectGas;
+
+template<class Specie>
+inline perfectGas<Specie> operator+
+(
+    const perfectGas<Specie>&,
+    const perfectGas<Specie>&
+);
+
+template<class Specie>
+inline perfectGas<Specie> operator-
+(
+    const perfectGas<Specie>&,
+    const perfectGas<Specie>&
+);
+
+template<class Specie>
+inline perfectGas<Specie> operator*
+(
+    const scalar,
+    const perfectGas<Specie>&
+);
+
+template<class Specie>
+inline perfectGas<Specie> operator==
+(
+    const perfectGas<Specie>&,
+    const perfectGas<Specie>&
+);
+
+template<class Specie>
+Ostream& operator<<
+(
+    Ostream&,
+    const perfectGas<Specie>&
+);
+
+
 /*---------------------------------------------------------------------------*\
                            Class perfectGas Declaration
 \*---------------------------------------------------------------------------*/
 
+template<class Specie>
 class perfectGas
 :
-    public specie
+    public Specie
 {
 
 public:
@@ -58,7 +98,7 @@ public:
     // Constructors
 
         //- Construct from components
-        inline perfectGas(const specie& sp);
+        inline perfectGas(const Specie& sp);
 
         //- Construct from Istream
         perfectGas(Istream&);
@@ -81,7 +121,20 @@ public:
 
     // Member functions
 
+        //- Return the instantiated type name
+        static word typeName()
+        {
+            return "perfectGas<" + word(Specie::typeName_()) + '>';
+        }
+
+
         // Fundamental properties
+
+            //- Is the equation of state is incompressible i.e. rho != f(p)
+            static const bool incompressible = false;
+
+            //- Is the equation of state is isochoric i.e. rho = const
+            static const bool isochoric = false;
 
             //- Return density [kg/m^3]
             inline scalar rho(scalar p, scalar T) const;
@@ -92,8 +145,11 @@ public:
             //- Return compression factor []
             inline scalar Z(scalar p, scalar T) const;
 
+            //- Return (cp - cv) [J/(kmol K]
+            inline scalar cpMcv(scalar p, scalar T) const;
 
-        // I-O
+
+        // IO
 
             //- Write to Ostream
             void write(Ostream& os) const;
@@ -109,25 +165,25 @@ public:
 
     // Friend operators
 
-        inline friend perfectGas operator+
+        friend perfectGas operator+ <Specie>
         (
             const perfectGas&,
             const perfectGas&
         );
 
-        inline friend perfectGas operator-
+        friend perfectGas operator- <Specie>
         (
             const perfectGas&,
             const perfectGas&
         );
 
-        inline friend perfectGas operator*
+        friend perfectGas operator* <Specie>
         (
             const scalar s,
             const perfectGas&
         );
 
-        inline friend perfectGas operator==
+        friend perfectGas operator== <Specie>
         (
             const perfectGas&,
             const perfectGas&
@@ -136,7 +192,11 @@ public:
 
     // Ostream Operator
 
-        friend Ostream& operator<<(Ostream&, const perfectGas&);
+        friend Ostream& operator<< <Specie>
+        (
+            Ostream&,
+            const perfectGas&
+        );
 };
 
 
@@ -147,6 +207,10 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "perfectGasI.H"
+
+#ifdef NoRepository
+#   include "perfectGas.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -118,8 +118,18 @@ void Foam::primitiveMesh::makeFaceCentresAndAreas
                 sumAc += a*c;
             }
 
-            fCtrs[facei] = (1.0/3.0)*sumAc/(sumA + VSMALL);
-            fAreas[facei] = 0.5*sumN;
+            // This is to deal with zero-area faces. Mark very small faces
+            // to be detected in e.g., processorPolyPatch.
+            if (sumA < ROOTVSMALL)
+            {
+                fCtrs[facei] = fCentre;
+                fAreas[facei] = vector::zero;
+            }
+            else
+            {
+                fCtrs[facei] = (1.0/3.0)*sumAc/sumA;
+                fAreas[facei] = 0.5*sumN;
+            }
         }
     }
 }

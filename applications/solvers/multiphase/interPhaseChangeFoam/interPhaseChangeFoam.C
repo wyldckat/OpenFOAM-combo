@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -80,10 +80,14 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        twoPhaseProperties->correct();
-
         #include "alphaEqnSubCycle.H"
-        interface.correct();
+
+        if (pimple.nCorrPIMPLE() == 1)
+        {
+            interface.correct();
+        }
+
+        turbulence->correct();
 
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
@@ -95,12 +99,9 @@ int main(int argc, char *argv[])
             {
                 #include "pEqn.H"
             }
-
-            if (pimple.turbCorr())
-            {
-                turbulence->correct();
-            }
         }
+
+        twoPhaseProperties->correct();
 
         runTime.write();
 

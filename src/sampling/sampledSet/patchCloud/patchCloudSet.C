@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,7 +94,7 @@ void Foam::patchCloudSet::calcSamples
     // Not very random
     Random rndGen(123456);
     // Make bb asymetric just to avoid problems on symmetric meshes
-    bb = bb.extend(rndGen, 1E-4);
+    bb = bb.extend(rndGen, 1e-4);
 
     // Make sure bb is 3D.
     bb.min() -= point(ROOTVSMALL, ROOTVSMALL, ROOTVSMALL);
@@ -114,6 +114,8 @@ void Foam::patchCloudSet::calcSamples
         10,             // leafsize
         3.0             // duplicity
     );
+
+    // Force calculation of face-diagonal decomposition
     (void)mesh().tetBasePtIs();
 
 
@@ -266,7 +268,7 @@ Foam::patchCloudSet::patchCloudSet
 (
     const word& name,
     const polyMesh& mesh,
-    meshSearch& searchEngine,
+    const meshSearch& searchEngine,
     const word& axis,
     const List<point>& sampleCoords,
     const labelHashSet& patchSet,
@@ -291,7 +293,7 @@ Foam::patchCloudSet::patchCloudSet
 (
     const word& name,
     const polyMesh& mesh,
-    meshSearch& searchEngine,
+    const meshSearch& searchEngine,
     const dictionary& dict
 )
 :

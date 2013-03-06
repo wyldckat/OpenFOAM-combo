@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -32,7 +32,7 @@
 #------------------------------------------------------------------------------
 
 export WM_PROJECT=OpenFOAM
-export WM_PROJECT_VERSION=2.1.x
+export WM_PROJECT_VERSION=2.2.x
 
 ################################################################################
 # USER EDITABLE PART: Changes made here may be lost with the next upgrade
@@ -80,7 +80,7 @@ export WM_COMPILE_OPTION=Opt
 
 #- MPI implementation:
 #    WM_MPLIB = SYSTEMOPENMPI | OPENMPI | MPICH | MPICH-GM | HPMPI
-#               | GAMMA | MPI | QSMPI
+#               | GAMMA | MPI | QSMPI | SGIMPI
 export WM_MPLIB=OPENMPI
 
 #- Operating System:
@@ -137,7 +137,7 @@ _foamSource()
 {
     while [ $# -ge 1 ]
     do
-        [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "Sourcing: $1"
+        [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "Sourcing: $1" 1>&2
         . $1
        shift
     done
@@ -155,12 +155,12 @@ _foamEval()
             ;;
         *=)
             # name=       -> unset name
-            [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "unset ${1%=}"
+            [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "unset ${1%=}" 1>&2
             eval "unset ${1%=}"
             ;;
         *=*)
             # name=value  -> export name=value
-            [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "export $1"
+            [ "$FOAM_VERBOSE" -a "$PS1" ] && echo "export $1" 1>&2
             eval "export $1"
             ;;
         *)
@@ -213,6 +213,7 @@ _foamSource $WM_PROJECT_DIR/etc/config/aliases.sh
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/paraview.sh`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/ensight.sh`
+_foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/gperftools.sh`
 
 
 # Clean environment paths again. Only remove duplicates

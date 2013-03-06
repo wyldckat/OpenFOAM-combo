@@ -24,6 +24,9 @@ License
 Namespace
     Foam::incompressible::RASModels
 
+Group
+    grpIcoRASTurbulence
+
 Description
     Namespace for incompressible RAS turbulence models.
 
@@ -205,7 +208,7 @@ public:
             }
 
             //- Const access to the coefficients dictionary
-            const dictionary& coeffDict() const
+            virtual const dictionary& coeffDict() const
             {
                 return coeffDict_;
             }

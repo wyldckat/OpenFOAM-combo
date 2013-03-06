@@ -135,9 +135,10 @@ public:
             //- Post-move hook
             virtual void postMove
             (
-                typename CloudType::parcelType& p,
+                const typename CloudType::parcelType& p,
                 const label cellI,
-                const scalar dt
+                const scalar dt,
+                bool& keepParticle
             );
 
             //- Post-patch hook
@@ -146,14 +147,16 @@ public:
                 const typename CloudType::parcelType& p,
                 const polyPatch& pp,
                 const scalar trackFraction,
-                const tetIndices& tetIs
+                const tetIndices& testIs,
+                bool& keepParticle
             );
 
             //- Post-face hook
             virtual void postFace
             (
                 const typename CloudType::parcelType& p,
-                const label faceI
+                const label faceI,
+                bool& keepParticle
             );
 };
 

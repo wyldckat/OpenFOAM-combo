@@ -34,10 +34,11 @@ template<class CloudType>
 Foam::PatchFlowRateInjection<CloudType>::PatchFlowRateInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName,typeName),
     patchName_(this->coeffDict().lookup("patchName")),
     patchId_(owner.mesh().boundaryMesh().findPatchID(patchName_)),
     patchArea_(0.0),
@@ -81,7 +82,7 @@ Foam::PatchFlowRateInjection<CloudType>::PatchFlowRateInjection
 
     duration_ = owner.db().time().userTimeToTime(duration_);
 
-    cellOwners_ = patch.faceCells();
+    updateMesh();
 
     // TODO: retrieve mean diameter from distrution model
     scalar pMeanDiameter =
@@ -137,6 +138,15 @@ Foam::PatchFlowRateInjection<CloudType>::~PatchFlowRateInjection()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::PatchFlowRateInjection<CloudType>::updateMesh()
+{
+    // Set/cache the injector cells
+    const polyPatch& patch = this->owner().mesh().boundaryMesh()[patchId_];
+    cellOwners_ = patch.faceCells();
+}
+
 
 template<class CloudType>
 Foam::scalar Foam::PatchFlowRateInjection<CloudType>::timeEnd() const

@@ -163,6 +163,17 @@ public:
         bool readIfPresent(const dictionary&);
 
 
+    // I/O
+
+        //- Read using provided units. Only used during startup.
+        Istream& read(Istream& is, const dictionary&);
+
+        //- Read using provided units
+        Istream& read(Istream& is, const HashTable<dimensionedScalar>&);
+
+        //- Read using system units
+        Istream& read(Istream& is);
+
     // Member operators
 
         //- Return a component as a dimensioned<cmptType>

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -333,7 +333,7 @@ tmp<FieldField<fvsPatchField, Type> > interpolate
     const tmp<FieldField<fvPatchField, Type> >& tfvpff
 )
 {
-    tmp<FieldField<fvPatchField, Type> > tfvspff = interpolate(tfvpff());
+    tmp<FieldField<fvsPatchField, Type> > tfvspff = interpolate(tfvpff());
     tfvpff.clear();
     return tfvspff;
 }

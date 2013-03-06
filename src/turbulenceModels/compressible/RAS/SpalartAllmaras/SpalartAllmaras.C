@@ -116,7 +116,7 @@ SpalartAllmaras::SpalartAllmaras
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& phi,
-    const basicThermo& thermophysicalModel,
+    const fluidThermo& thermophysicalModel,
     const word& turbulenceModelName,
     const word& modelName
 )
@@ -416,7 +416,6 @@ void SpalartAllmaras::correct()
     (
         fvm::ddt(rho_, nuTilda_)
       + fvm::div(phi_, nuTilda_)
-      - fvm::Sp(fvc::ddt(rho_) + fvc::div(phi_), nuTilda_)
       - fvm::laplacian(DnuTildaEff(), nuTilda_)
       - Cb2_/sigmaNut_*rho_*magSqr(fvc::grad(nuTilda_))
      ==

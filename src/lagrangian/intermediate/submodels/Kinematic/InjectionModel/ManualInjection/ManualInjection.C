@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,7 +26,6 @@ License
 #include "ManualInjection.H"
 #include "mathematicalConstants.H"
 #include "PackedBoolList.H"
-#include "Switch.H"
 
 using namespace Foam::constant::mathematical;
 
@@ -36,10 +35,11 @@ template<class CloudType>
 Foam::ManualInjection<CloudType>::ManualInjection
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    InjectionModel<CloudType>(dict, owner, typeName),
+    InjectionModel<CloudType>(dict, owner, modelName, typeName),
     positionsFile_(this->coeffDict().lookup("positionsFile")),
     positions_
     (
@@ -64,48 +64,13 @@ Foam::ManualInjection<CloudType>::ManualInjection
             this->coeffDict().subDict("sizeDistribution"),
             owner.rndGen()
         )
-    )
-{
-    Switch ignoreOutOfBounds
+    ),
+    ignoreOutOfBounds_
     (
         this->coeffDict().lookupOrDefault("ignoreOutOfBounds", false)
-    );
-
-    label nRejected = 0;
-
-    PackedBoolList keep(positions_.size(), true);
-
-    forAll(positions_, pI)
-    {
-        if
-        (
-            !this->findCellAtPosition
-            (
-                injectorCells_[pI],
-                injectorTetFaces_[pI],
-                injectorTetPts_[pI],
-                positions_[pI],
-                !ignoreOutOfBounds
-            )
-        )
-        {
-            keep[pI] = false;
-
-            nRejected++;
-        }
-    }
-
-    if (nRejected > 0)
-    {
-        inplaceSubset(keep, positions_);
-        inplaceSubset(keep, diameters_);
-        inplaceSubset(keep, injectorCells_);
-        inplaceSubset(keep, injectorTetFaces_);
-        inplaceSubset(keep, injectorTetPts_);
-
-        Info<< "    " << nRejected
-            << " particles ignored, out of bounds." << endl;
-    }
+    )
+{
+    updateMesh();
 
     // Construct parcel diameters
     forAll(diameters_, i)
@@ -132,7 +97,8 @@ Foam::ManualInjection<CloudType>::ManualInjection
     injectorTetFaces_(im.injectorTetFaces_),
     injectorTetPts_(im.injectorTetPts_),
     U0_(im.U0_),
-    sizeDistribution_(im.sizeDistribution_().clone().ptr())
+    sizeDistribution_(im.sizeDistribution_().clone().ptr()),
+    ignoreOutOfBounds_(im.ignoreOutOfBounds_)
 {}
 
 
@@ -144,6 +110,46 @@ Foam::ManualInjection<CloudType>::~ManualInjection()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class CloudType>
+void Foam::ManualInjection<CloudType>::updateMesh()
+{
+    label nRejected = 0;
+
+    PackedBoolList keep(positions_.size(), true);
+
+    forAll(positions_, pI)
+    {
+        if
+        (
+            !this->findCellAtPosition
+            (
+                injectorCells_[pI],
+                injectorTetFaces_[pI],
+                injectorTetPts_[pI],
+                positions_[pI],
+                !ignoreOutOfBounds_
+            )
+        )
+        {
+            keep[pI] = false;
+            nRejected++;
+        }
+    }
+
+    if (nRejected > 0)
+    {
+        inplaceSubset(keep, positions_);
+        inplaceSubset(keep, diameters_);
+        inplaceSubset(keep, injectorCells_);
+        inplaceSubset(keep, injectorTetFaces_);
+        inplaceSubset(keep, injectorTetPts_);
+
+        Info<< "    " << nRejected
+            << " particles ignored, out of bounds" << endl;
+    }
+}
+
 
 template<class CloudType>
 Foam::scalar Foam::ManualInjection<CloudType>::timeEnd() const

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,9 @@ Class
 
 Description
     mesh to mesh interpolation class.
+
+Note
+    This class is due to be deprecated in favour of meshToMeshNew
 
 SourceFiles
     meshToMesh.C
@@ -88,6 +91,15 @@ class meshToMesh
         //- Inverse-distance interpolation weights
         mutable scalarListList* inverseDistanceWeightsPtr_;
 
+        //- Inverse-volume interpolation weights
+        mutable scalarListList* inverseVolumeWeightsPtr_;
+
+        //- Cell to cell overlap addressing
+        mutable labelListList* cellToCellAddressingPtr_;
+
+        //- Overlap volume
+        mutable scalar V_;
+
 
     // Private Member Functions
 
@@ -104,7 +116,15 @@ class meshToMesh
 
         void calculateInverseDistanceWeights() const;
 
+        void calculateInverseVolumeWeights() const;
+
+        void calculateCellToCellAddressing() const;
+
         const scalarListList& inverseDistanceWeights() const;
+
+        const scalarListList& inverseVolumeWeights() const;
+
+        const labelListList& cellToCellAddressing() const;
 
 
     // Private static data members
@@ -124,7 +144,8 @@ public:
     {
         MAP,
         INTERPOLATE,
-        CELL_POINT_INTERPOLATE
+        CELL_POINT_INTERPOLATE,
+        CELL_VOLUME_WEIGHT
     };
 
 
@@ -216,87 +237,115 @@ public:
                 return cellAddressing_;
             }
 
+            //- Overlap volume
+            scalar V() const
+            {
+                return V_;
+            }
+
+
         // Interpolation
 
             //- Map field
-            template<class Type>
+            template<class Type, class CombineOp>
             void mapField
             (
                 Field<Type>&,
                 const Field<Type>&,
-                const labelList& adr
+                const labelList& adr,
+                const CombineOp& cop
             ) const;
 
             //- Interpolate field using inverse-distance weights
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolateField
             (
                 Field<Type>&,
                 const GeometricField<Type, fvPatchField, volMesh>&,
                 const labelList& adr,
-                const scalarListList& weights
+                const scalarListList& weights,
+                const CombineOp& cop
             ) const;
 
+            //- Interpolate field using inverse-volume weights
+            template<class Type, class CombineOp>
+            void interpolateField
+            (
+                Field<Type>&,
+                const GeometricField<Type, fvPatchField, volMesh>&,
+                const labelListList& adr,
+                const scalarListList& weights,
+                const CombineOp& cop
+            ) const;
+
+
             //- Interpolate field using cell-point interpolation
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolateField
             (
                 Field<Type>&,
                 const GeometricField<Type, fvPatchField, volMesh>&,
                 const labelList& adr,
-                const vectorField& centres
-            ) const;
+                const vectorField& centres,
+                const CombineOp& cop
+            )const;
 
 
             //- Interpolate internal volume field
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolateInternalField
             (
                 Field<Type>&,
                 const GeometricField<Type, fvPatchField, volMesh>&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolateInternalField
             (
                 Field<Type>&,
                 const tmp<GeometricField<Type, fvPatchField, volMesh> >&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 
 
             //- Interpolate volume field
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolate
             (
                 GeometricField<Type, fvPatchField, volMesh>&,
                 const GeometricField<Type, fvPatchField, volMesh>&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 
-            template<class Type>
+            template<class Type, class CombineOp>
             void interpolate
             (
                 GeometricField<Type, fvPatchField, volMesh>&,
                 const tmp<GeometricField<Type, fvPatchField, volMesh> >&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 
 
             //- Interpolate volume field
-            template<class Type>
+            template<class Type, class CombineOp>
             tmp<GeometricField<Type, fvPatchField, volMesh> > interpolate
             (
                 const GeometricField<Type, fvPatchField, volMesh>&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 
-            template<class Type>
+            template<class Type, class CombineOp>
             tmp<GeometricField<Type, fvPatchField, volMesh> > interpolate
             (
                 const tmp<GeometricField<Type, fvPatchField, volMesh> >&,
-                order=INTERPOLATE
+                order=INTERPOLATE,
+                const CombineOp& cop = eqOp<Type>()
             ) const;
 };
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,18 +22,25 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::omegaWallFunctionFvPatchScalarField
+    Foam::compressible::omegaWallFunctionFvPatchScalarField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Provides a wall function boundary condition/constraint on omega
+    This boundary condition provides a wall function constraint on turbulnce
+    specific dissipation, omega.  The values are computed using:
 
-    Computed value is:
-
-        omega = sqrt(omega_vis^2 + omega_log^2)
+        \f[
+            \omega = sqrt(\omega_{vis}^2 + \omega_{log}^2)
+        \f]
 
     where
-        omega_vis = omega in viscous region
-        omega_log = omega in logarithmic region
+
+    \vartable
+        \omega_{vis} | omega in viscous region
+        \omega_{log} | omega in logarithmic region
+    \endvartable
 
     Model described by Eq.(15) of:
     \verbatim
@@ -41,6 +48,24 @@ Description
         "Elements of Industrial Heat Transfer Prediction"
         16th Brazilian Congress of Mechanical Engineering (COBEM),
         Nov. 2001
+    \endverbatim
+
+    \heading Patch usage
+
+    \table
+        Property     | Description             | Required    | Default value
+        Cmu          | model coefficient       | no          | 0.09
+        kappa        | Von Karman constant     | no          | 0.41
+        E            | model coefficient       | no          | 9.8
+        beta1        | model coefficient       | no          | 0.075
+    \endtable
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            compressible::omegaWallFunction;
+    }
     \endverbatim
 
 SourceFiles
@@ -59,8 +84,6 @@ namespace Foam
 {
 namespace compressible
 {
-namespace RASModels
-{
 
 /*---------------------------------------------------------------------------*\
            Class omegaWallFunctionFvPatchScalarField Declaration
@@ -73,9 +96,6 @@ class omegaWallFunctionFvPatchScalarField
 protected:
 
     // Protected data
-
-        //- Name of turbulence generation field
-        word GName_;
 
         //- Cmu coefficient
         scalar Cmu_;
@@ -97,9 +117,6 @@ protected:
 
         //- Check the type of the patch
         virtual void checkType();
-
-        //- Calculate the Y+ at the edge of the laminar sublayer
-        virtual scalar calcYPlusLam(const scalar kappa, const scalar E) const;
 
         //- Write local wall function variables
         virtual void writeLocalEntries(Ostream&) const;
@@ -191,7 +208,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,10 +22,41 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::compressible::RASModels::mutUSpaldingWallFunctionFvPatchScalarField
+    Foam::compressible::mutUSpaldingWallFunctionFvPatchScalarField
+
+Group
+    grpCmpWallFunctions
 
 Description
-    Wall function boundary condition for walls
+    This boundary condition provides a turbulent viscosity condition when
+    using wall functions for rough walls, based on velocity,  using  Spalding's
+    law to give a continuous nut profile to the wall (y+ = 0)
+
+        \f[
+            y^+ = u^+ + \frac{1}{E} \left[exp(\kappa u^+) - 1 - \kappa u^+\,
+                - 0.5 (\kappa u^+)^2 - \frac{1}{6} (\kappa u^+)^3\right]
+        \f]
+
+    where
+    \vartable
+        y^+     | non-dimensional position
+        u^+     | non-dimensional velocity
+        \kappa  | Von Karman constant
+    \endvartable
+
+
+    \heading Patch usage
+
+    Example of the boundary condition specification:
+    \verbatim
+    myPatch
+    {
+        type            mutUSpaldingWallFunction;
+    }
+    \endverbatim
+
+SeeAlso
+    Foam::compressible::mutWallFunctionFvPatchScalarField
 
 SourceFiles
     mutUSpaldingWallFunctionFvPatchScalarField.C
@@ -35,15 +66,13 @@ SourceFiles
 #ifndef compressibleMutUSpaldingWallFunctionFvPatchScalarField_H
 #define compressibleMutUSpaldingWallFunctionFvPatchScalarField_H
 
-#include "mutkWallFunctionFvPatchScalarField.H"
+#include "mutWallFunctionFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
@@ -52,7 +81,7 @@ namespace RASModels
 
 class mutUSpaldingWallFunctionFvPatchScalarField
 :
-    public mutkWallFunctionFvPatchScalarField
+    public mutWallFunctionFvPatchScalarField
 {
 protected:
 
@@ -151,7 +180,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

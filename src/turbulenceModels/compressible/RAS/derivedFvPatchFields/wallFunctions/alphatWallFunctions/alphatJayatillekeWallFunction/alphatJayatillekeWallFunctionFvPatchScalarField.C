@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,7 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "alphatJayatillekeWallFunctionFvPatchScalarField.H"
-#include "RASModel.H"
+#include "compressible/turbulenceModel/turbulenceModel.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "addToRunTimeSelectionTable.H"
@@ -35,8 +35,6 @@ License
 namespace Foam
 {
 namespace compressible
-{
-namespace RASModels
 {
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -199,32 +197,36 @@ void alphatJayatillekeWallFunctionFvPatchScalarField::updateCoeffs()
         return;
     }
 
-    const label patchI = patch().index();
+    const label patchi = patch().index();
 
-    const RASModel& rasModel = db().lookupObject<RASModel>("RASProperties");
+    const turbulenceModel& turbModel =
+        db().lookupObject<turbulenceModel>("turbulenceModel");
 
     const scalar Cmu25 = pow025(Cmu_);
 
-    const scalarField& y = rasModel.y()[patchI];
+    const scalarField& y = turbModel.y()[patchi];
 
-    const scalarField& muw = rasModel.mu().boundaryField()[patchI];
+    const scalarField& muw = turbModel.mu().boundaryField()[patchi];
 
-    const scalarField& alphaw = rasModel.alpha().boundaryField()[patchI];
+    const scalarField& alphaw = turbModel.alpha().boundaryField()[patchi];
     scalarField& alphatw = *this;
 
-    const tmp<volScalarField> tk = rasModel.k();
+    const tmp<volScalarField> tk = turbModel.k();
     const volScalarField& k = tk();
 
-    const fvPatchVectorField& Uw = rasModel.U().boundaryField()[patchI];
+    const fvPatchVectorField& Uw = turbModel.U().boundaryField()[patchi];
     const scalarField magUp(mag(Uw.patchInternalField() - Uw));
     const scalarField magGradUw(mag(Uw.snGrad()));
 
-    const scalarField& rhow = rasModel.rho().boundaryField()[patchI];
-    const fvPatchScalarField& hw =
-        rasModel.thermo().h().boundaryField()[patchI];
+    const scalarField& rhow = turbModel.rho().boundaryField()[patchi];
+    const fvPatchScalarField& hew =
+        turbModel.thermo().he().boundaryField()[patchi];
 
     // Heat flux [W/m2] - lagging alphatw
-    const scalarField qDot((alphaw + alphatw)*hw.snGrad());
+    const scalarField qDot
+    (
+        turbModel.thermo().alphaEff(alphatw, patchi)*hew.snGrad()
+    );
 
     // Populate boundary values
     forAll(alphatw, faceI)
@@ -308,7 +310,6 @@ makePatchTypeField
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace RASModels
 } // End namespace compressible
 } // End namespace Foam
 

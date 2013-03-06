@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -72,44 +72,105 @@ Foam::processorGAMGInterfaceField::~processorGAMGInterfaceField()
 
 void Foam::processorGAMGInterfaceField::initInterfaceMatrixUpdate
 (
-    const scalarField& psiInternal,
     scalarField&,
-    const lduMatrix&,
+    const scalarField& psiInternal,
     const scalarField&,
     const direction,
     const Pstream::commsTypes commsType
 ) const
 {
-    procInterface_.compressedSend
-    (
-        commsType,
-        procInterface_.interfaceInternalField(psiInternal)()
-    );
+    procInterface_.interfaceInternalField(psiInternal, scalarSendBuf_);
+
+    if (commsType == Pstream::nonBlocking && !Pstream::floatTransfer)
+    {
+        // Fast path.
+        scalarReceiveBuf_.setSize(scalarSendBuf_.size());
+        outstandingRecvRequest_ = UPstream::nRequests();
+        IPstream::read
+        (
+            Pstream::nonBlocking,
+            procInterface_.neighbProcNo(),
+            reinterpret_cast<char*>(scalarReceiveBuf_.begin()),
+            scalarReceiveBuf_.byteSize(),
+            procInterface_.tag()
+        );
+
+        outstandingSendRequest_ = UPstream::nRequests();
+        OPstream::write
+        (
+            Pstream::nonBlocking,
+            procInterface_.neighbProcNo(),
+            reinterpret_cast<const char*>(scalarSendBuf_.begin()),
+            scalarSendBuf_.byteSize(),
+            procInterface_.tag()
+        );
+    }
+    else
+    {
+        procInterface_.compressedSend(commsType, scalarSendBuf_);
+    }
+
+    const_cast<processorGAMGInterfaceField&>(*this).updatedMatrix() = false;
 }
 
 
 void Foam::processorGAMGInterfaceField::updateInterfaceMatrix
 (
-    const scalarField&,
     scalarField& result,
-    const lduMatrix&,
+    const scalarField&,
     const scalarField& coeffs,
     const direction cmpt,
     const Pstream::commsTypes commsType
 ) const
 {
-    scalarField pnf
-    (
-        procInterface_.compressedReceive<scalar>(commsType, coeffs.size())
-    );
-    transformCoupleField(pnf, cmpt);
+    if (updatedMatrix())
+    {
+        return;
+    }
 
     const labelUList& faceCells = procInterface_.faceCells();
 
-    forAll(faceCells, elemI)
+    if (commsType == Pstream::nonBlocking && !Pstream::floatTransfer)
     {
-        result[faceCells[elemI]] -= coeffs[elemI]*pnf[elemI];
+        // Fast path.
+        if
+        (
+            outstandingRecvRequest_ >= 0
+         && outstandingRecvRequest_ < Pstream::nRequests()
+        )
+        {
+            UPstream::waitRequest(outstandingRecvRequest_);
+        }
+        // Recv finished so assume sending finished as well.
+        outstandingSendRequest_ = -1;
+        outstandingRecvRequest_ = -1;
+
+        // Consume straight from scalarReceiveBuf_
+
+        // Transform according to the transformation tensor
+        transformCoupleField(scalarReceiveBuf_, cmpt);
+
+        // Multiply the field by coefficients and add into the result
+        forAll(faceCells, elemI)
+        {
+            result[faceCells[elemI]] -= coeffs[elemI]*scalarReceiveBuf_[elemI];
+        }
     }
+    else
+    {
+        scalarField pnf
+        (
+            procInterface_.compressedReceive<scalar>(commsType, coeffs.size())
+        );
+        transformCoupleField(pnf, cmpt);
+
+        forAll(faceCells, elemI)
+        {
+            result[faceCells[elemI]] -= coeffs[elemI]*pnf[elemI];
+        }
+    }
+
+    const_cast<processorGAMGInterfaceField&>(*this).updatedMatrix() = true;
 }
 
 
