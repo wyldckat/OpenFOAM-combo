@@ -1,0 +1,29 @@
+= Introduction =
+This OpenFOAM-combo repository was created following the instructions written by Mark Olsen here: [http://olesenm.github.io/2009/11/24/merging-OpenFOAM-versions/ Merging OpenFOAM versions in git]
+
+The objective is to have a single repository where all official OpenFOAM git repositories are tracked in a single repository, since this allows one to make it easier to keep track of changes made between versions.
+
+= Disclaimer =
+* This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
+* This offering is also not approved or endorsed by [https://github.com/olesenm Mark Olesen].
+
+= Creating a repository similar to this one =
+In a nutshell, run these commands:
+  cd ~
+  cd OpenFOAM
+  mkdir OpenFOAM-combo
+  cd OpenFOAM-combo/
+
+  git init
+  git remote add of15x git://repo.or.cz/OpenFOAM-1.5.x.git
+  git remote add of16x git://repo.or.cz/OpenFOAM-1.6.x.git
+  git remote add of17x git://github.com/OpenCFD/OpenFOAM-1.7.x
+  git remote add of20x git://github.com/OpenFOAM/OpenFOAM-2.0.x.git
+  git remote add of21x git://github.com/OpenFOAM/OpenFOAM-2.1.x.git
+  git remote add of22x git://github.com/OpenFOAM/OpenFOAM-2.2.x.git
+
+  git remote | while read line; do git fetch $line; done
+
+  #create a README file and commit it.
+
+TODO
