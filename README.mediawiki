@@ -26,4 +26,10 @@ In a nutshell, run these commands:
 
   #create a README file and commit it.
 
+  git checkout -b master22x of22x/master
+  git checkout -b master22x of22x/master
+  git checkout -b master22x of22x/master
+  git checkout -b master22x of22x/master
+  git checkout -b master22x of22x/master
+  git checkout -b master22x of22x/master
 TODO
