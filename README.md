@@ -5,13 +5,22 @@ This OpenFOAM-combo repository was originally started by following the instructi
 
 The objective is to have a single repository where all official OpenFOAM git repositories are tracked in a single repository, since this allows one to make it easier to keep track of changes made between versions.
 
-Nonetheless, further changes were needed to those instructions, since they did not take into account a proper adaptation from version to version and wrere only a quick way to merge all of the history into a single repository. Reference sources for the changes made to the original instructions:
+Nonetheless, further changes were needed to those instructions, since they did not take into account a proper adaptation from version to version and were only a quick way to merge all of the history into a single repository. Reference sources for the changes made to the original instructions:
  * How to use `git replace` for stitching up the connections between two unconnected branches: http://stackoverflow.com/a/19860058
 
-Disclaimer
+*Disclaimer*: This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
+
+How to use
 ==========
 
-This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
+In order to only browse online, have a look into the [`combo` branch](https://github.com/wyldckat/OpenFOAM-combo/tree/combo).
+
+In order to have your own local copy, run these commands:
+```
+git clone https://github.com/wyldckat/OpenFOAM-combo.git
+cd OpenFOAM-combo
+git checkout combo
+```
 
 Creating a repository similar to this one
 =========================================
