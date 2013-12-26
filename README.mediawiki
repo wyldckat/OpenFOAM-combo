@@ -8,6 +8,8 @@ The objective is to have a single repository where all official OpenFOAM git rep
 * This offering is also not approved or endorsed by [https://github.com/olesenm Mark Olesen].
 
 = Creating a repository similar to this one =
+'''Note:''' The repository for 1.6.x is omitted because the full history from 1.6.x is preserved in 1.7.x.
+
 In a nutshell, run these commands:
   cd ~
   cd OpenFOAM
@@ -16,7 +18,6 @@ In a nutshell, run these commands:
 
   git init
   git remote add of15x git://repo.or.cz/OpenFOAM-1.5.x.git
-  git remote add of16x git://repo.or.cz/OpenFOAM-1.6.x.git
   git remote add of17x git://github.com/OpenCFD/OpenFOAM-1.7.x
   git remote add of20x git://github.com/OpenFOAM/OpenFOAM-2.0.x.git
   git remote add of21x git://github.com/OpenFOAM/OpenFOAM-2.1.x.git
@@ -27,11 +28,12 @@ In a nutshell, run these commands:
   #create a README file and commit it.
 
   git checkout -b master15x of15x/master
-  git checkout -b master16x of16x/master
   git checkout -b master17x of17x/master
   git checkout -b master20x of20x/master
   git checkout -b master21x of21x/master
   git checkout -b master22x of22x/master
+  
+  git branch -m master15x combo
 
 Here things get a bit tricky:
 # First we need to checkout the next version on the list;
@@ -40,26 +42,60 @@ Here things get a bit tricky:
 # Then checkout the previous version.
 # Remove all files with git, except the '''.git''' folder.
 # Then checkout all of the files from the first commit on the next version.
-# Commit the changes.
+# Commit the changes, using the original commit message for the next version.
 # And '''git replace''' the first commit on the next version for this lastest commit.
 # Now switch to the next version and rebase towards the previous version.
 # Now switch to the previous version and merge with the next version.
 # And it's done for this group. Now go back to the start of this list and do again for the next version and this one.
 
-Code-wise, for 1.5.x->1.6.x:
+Code-wise, for 1.5.x->1.7.x:
 
-  git checkout master15x
+  git checkout combo
   git tag 15x-end
-  git checkout master16x
+  git checkout master17x
   git checkout $(git rev-list --max-parents=0 HEAD)
-  git tag 16x-start
-  git checkout master15x
+  git tag 17x-start
+  git checkout combo
   git rm -rf * .gitignore
-  git checkout 16x-start -- .
-  git commit -m "Melding 1.5.x with 1.6.x."
-  git replace 16x-start HEAD
-  git checkout master16x
-  git rebase master15x
-  git checkout master15x
-  git merge master16x
-  git branch -d master16x
+  git checkout 17x-start -- .
+  git commit -c 17x-start
+
+  git replace 17x-start HEAD
+  git checkout master17x
+  git rebase combo
+  git checkout combo
+  git merge master17x
+  git branch -D master17x
+
+The generic code is therefore:
+  
+  git checkout combo
+  git tag $versionA-end
+  git checkout master$versionB
+  git checkout $(git rev-list --max-parents=0 HEAD)
+  git tag $versionB-start
+  git checkout combo
+  git rm -rf * .gitignore
+  git checkout $versionB-start -- .
+  git commit -c $versionB-start
+
+  git replace $versionB-start HEAD
+  git checkout master$versionB
+  git rebase combo
+  git checkout combo
+  git merge master$versionB
+  git branch -D master$versionB
+
+Where the variable combinations are:
+
+  versionA=15x
+  versionB=17x
+
+  versionA=17x
+  versionB=20x
+
+  versionA=20x
+  versionB=21x
+
+  versionA=21x
+  versionB=22x
