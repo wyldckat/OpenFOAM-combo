@@ -1,15 +1,17 @@
 Introduction
 ============
 
-This OpenFOAM-combo repository was created following the instructions written by Mark Olsen here: [Merging OpenFOAM versions in git](http://olesenm.github.io/2009/11/24/merging-OpenFOAM-versions/)
+This OpenFOAM-combo repository was originally started by following the instructions written by Mark Olsen here: [Merging OpenFOAM versions in git](http://olesenm.github.io/2009/11/24/merging-OpenFOAM-versions/)
 
 The objective is to have a single repository where all official OpenFOAM git repositories are tracked in a single repository, since this allows one to make it easier to keep track of changes made between versions.
+
+Nonetheless, further changes were needed to those instructions, since they did not take into account a proper adaptation from version to version and wrere only a quick way to merge all of the history into a single repository. Reference sources for the changes made to the original instructions:
+ * How to use `git replace` for stitching up the connections between two unconnected branches: http://stackoverflow.com/a/19860058
 
 Disclaimer
 ==========
 
-* This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
-* This offering is also not approved or endorsed by [Mark Olesen](https://github.com/olesenm).
+This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
 
 Creating a repository similar to this one
 =========================================
