@@ -69,27 +69,28 @@ Code-wise, for 1.5.x->1.7.x:
 
 The generic code is therefore:
 
-  versionA=15x
-  for versionB in 17x 20x 21x 22x; do
+```versionA=15x
+  for versionB in 17x 20x 21x 22x
+  do
   
-  git checkout combo
-  git tag $versionA-end
-  git checkout master$versionB
-  git checkout $(git rev-list --max-parents=0 HEAD)
-  git tag $versionB-start
-  git checkout combo
-  git rm -rf * .gitignore
-  git checkout $versionB-start -- .
-  git commit -c $versionB-start
+    git checkout combo
+    git tag $versionA-end
+    git checkout master$versionB
+    git checkout $(git rev-list --max-parents=0 HEAD)
+    git tag $versionB-start
+    git checkout combo
+    git rm -rf * .gitignore
+    git checkout $versionB-start -- .
+    git commit -c $versionB-start
 
-  git replace $versionB-start HEAD
-  git checkout master$versionB
-  git rebase combo
-  git checkout combo
-  git merge master$versionB
-  git branch -D master$versionB
+    git replace $versionB-start HEAD
+    git checkout master$versionB
+    git rebase combo
+    git checkout combo
+    git merge master$versionB
+    git branch -D master$versionB
   
-  versionA=$versionB
+    versionA=$versionB
   
   done
-
+```
