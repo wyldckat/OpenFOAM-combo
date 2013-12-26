@@ -79,30 +79,54 @@ git merge master17x
 git branch -D master17x
 ```
 
-The generic code is therefore:
+The full code is actually this:
 
 ```
 versionA=15x
-for versionB in 17x 20x 21x 22x; do
+versionB=17x
 
-  git checkout combo
-  git tag $versionA-end
-  git checkout master$versionB
-  git checkout $(git rev-list --max-parents=0 HEAD)
-  git tag $versionB-start
-  git checkout combo
-  git rm -rf * .gitignore
-  git checkout $versionB-start -- .
-  git commit -c $versionB-start
+git checkout combo
+git tag $versionA-end
+git checkout master$versionB
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag $versionB-start
+git checkout combo
+git rm -rf * .gitignore
+git checkout $versionB-start -- .
+git commit -c $versionB-start
 
-  git replace $versionB-start HEAD
-  git checkout master$versionB
-  git rebase combo
-  git checkout combo
-  git merge master$versionB
-  git branch -D master$versionB
-  
-  versionA=$versionB
-  
-done
+git replace $versionB-start HEAD
+git checkout master$versionB
+git rebase combo
+
+#needed to manually repair the merge a few times, by using:
+git mergetool
+git rebase --continue
+
+#once the rebase is complete:
+git checkout combo
+git merge master$versionB
+git branch -D master$versionB
+
+
+versionA=17x
+versionB=20x
+
+git checkout combo
+git tag $versionA-end
+git checkout master$versionB
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag $versionB-start
+git checkout combo
+git rm -rf * .gitignore
+git checkout $versionB-start -- .
+git commit -c $versionB-start
+
+git replace $versionB-start HEAD
+git checkout master$versionB
+git rebase combo
+git checkout combo
+git merge master$versionB
+git branch -D master$versionB
+
 ```
