@@ -22,6 +22,11 @@ cd OpenFOAM-combo
 git checkout combo
 ```
 
+Now, locally, if you want to checkout how `simpleFoam` has evolved over the versions, you can use `gitk` like this:
+```
+gitk applications/solvers/incompressible/simpleFoam/
+```
+
 Creating a repository similar to this one
 =========================================
 
