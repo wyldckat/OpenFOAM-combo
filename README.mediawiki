@@ -26,10 +26,40 @@ In a nutshell, run these commands:
 
   #create a README file and commit it.
 
+  git checkout -b master15x of15x/master
+  git checkout -b master16x of16x/master
+  git checkout -b master17x of17x/master
+  git checkout -b master20x of20x/master
+  git checkout -b master21x of21x/master
   git checkout -b master22x of22x/master
-  git checkout -b master22x of22x/master
-  git checkout -b master22x of22x/master
-  git checkout -b master22x of22x/master
-  git checkout -b master22x of22x/master
-  git checkout -b master22x of22x/master
-TODO
+
+Here things get a bit tricky:
+# First we need to checkout the next version on the list;
+# then go back to the first commit on that branch;
+# tag that commit.
+# Then checkout the previous version.
+# Remove all files with git, except the '''.git''' folder.
+# Then checkout all of the files from the first commit on the next version.
+# Commit the changes.
+# And '''git replace''' the first commit on the next version for this lastest commit.
+# Now switch to the next version and rebase towards the previous version.
+# Now switch to the previous version and merge with the next version.
+# And it's done for this group. Now go back to the start of this list and do again for the next version and this one.
+
+Code-wise, for 1.5.x->1.6.x:
+
+  git checkout master15x
+  git tag 15x-end
+  git checkout master16x
+  git checkout $(git rev-list --max-parents=0 HEAD)
+  git tag 16x-start
+  git checkout master15x
+  git rm -rf * .gitignore
+  git checkout 16x-start -- .
+  git commit -m "Melding 1.5.x with 1.6.x."
+  git replace 16x-start HEAD
+  git checkout master16x
+  git rebase master15x
+  git checkout master15x
+  git merge master16x
+  git branch -d master16x
