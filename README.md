@@ -1,96 +1,106 @@
-= Introduction =
-This OpenFOAM-combo repository was created following the instructions written by Mark Olsen here: [http://olesenm.github.io/2009/11/24/merging-OpenFOAM-versions/ Merging OpenFOAM versions in git]
+Introduction
+============
+
+This OpenFOAM-combo repository was created following the instructions written by Mark Olsen here: [Merging OpenFOAM versions in git](http://olesenm.github.io/2009/11/24/merging-OpenFOAM-versions/)
 
 The objective is to have a single repository where all official OpenFOAM git repositories are tracked in a single repository, since this allows one to make it easier to keep track of changes made between versions.
 
-= Disclaimer =
-* This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
-* This offering is also not approved or endorsed by [https://github.com/olesenm Mark Olesen].
+Disclaimer
+==========
 
-= Creating a repository similar to this one =
-'''Note:''' The repository for 1.6.x is omitted because the full history from 1.6.x is preserved in 1.7.x.
+* This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
+* This offering is also not approved or endorsed by [Mark Olesen](https://github.com/olesenm).
+
+Creating a repository similar to this one
+=========================================
+
+*Note:* The repository for 1.6.x is omitted because the full history from 1.6.x is preserved in 1.7.x.
 
 In a nutshell, run these commands:
-  cd ~
-  cd OpenFOAM
-  mkdir OpenFOAM-combo
-  cd OpenFOAM-combo/
+```
+cd ~
+cd OpenFOAM
+mkdir OpenFOAM-combo
+cd OpenFOAM-combo/
 
-  git init
-  git remote add of15x git://repo.or.cz/OpenFOAM-1.5.x.git
-  git remote add of17x git://github.com/OpenCFD/OpenFOAM-1.7.x
-  git remote add of20x git://github.com/OpenFOAM/OpenFOAM-2.0.x.git
-  git remote add of21x git://github.com/OpenFOAM/OpenFOAM-2.1.x.git
-  git remote add of22x git://github.com/OpenFOAM/OpenFOAM-2.2.x.git
+git init
+git remote add of15x git://repo.or.cz/OpenFOAM-1.5.x.git
+git remote add of17x git://github.com/OpenCFD/OpenFOAM-1.7.x
+git remote add of20x git://github.com/OpenFOAM/OpenFOAM-2.0.x.git
+git remote add of21x git://github.com/OpenFOAM/OpenFOAM-2.1.x.git
+git remote add of22x git://github.com/OpenFOAM/OpenFOAM-2.2.x.git
 
-  git remote | while read line; do git fetch $line; done
+git remote | while read line; do git fetch $line; done
 
-  #create a README file and commit it.
+#create a README file and commit it.
 
-  git checkout -b master15x of15x/master
-  git checkout -b master17x of17x/master
-  git checkout -b master20x of20x/master
-  git checkout -b master21x of21x/master
-  git checkout -b master22x of22x/master
-  
-  git branch -m master15x combo
+git checkout -b master15x of15x/master
+git checkout -b master17x of17x/master
+git checkout -b master20x of20x/master
+git checkout -b master21x of21x/master
+git checkout -b master22x of22x/master
+
+git branch -m master15x combo
+```
 
 Here things get a bit tricky:
-# First we need to checkout the next version on the list;
-# then go back to the first commit on that branch;
-# tag that commit.
-# Then checkout the previous version.
-# Remove all files with git, except the '''.git''' folder.
-# Then checkout all of the files from the first commit on the next version.
-# Commit the changes, using the original commit message for the next version.
-# And '''git replace''' the first commit on the next version for this lastest commit.
-# Now switch to the next version and rebase towards the previous version.
-# Now switch to the previous version and merge with the next version.
-# And it's done for this group. Now go back to the start of this list and do again for the next version and this one.
+ 1. First we need to checkout the next version on the list;
+ 2. then go back to the first commit on that branch;
+ 3. tag that commit.
+ 4. Then checkout the previous version.
+ 5. Remove all files with git, except the `.git` folder.
+ 6. Then checkout all of the files from the first commit on the next version.
+ 7. Commit the changes, using the original commit message for the next version.
+ 8. And `git replace` the first commit on the next version for this lastest commit.
+ 9. Now switch to the next version and rebase towards the previous version.
+ 10. Now switch to the previous version and merge with the next version.
+ 11. And it's done for this group. Now go back to the start of this list and do again for the next version and this one.
 
 Code-wise, for 1.5.x->1.7.x:
 
-  git checkout combo
-  git tag 15x-end
-  git checkout master17x
-  git checkout $(git rev-list --max-parents=0 HEAD)
-  git tag 17x-start
-  git checkout combo
-  git rm -rf * .gitignore
-  git checkout 17x-start -- .
-  git commit -c 17x-start
+```
+git checkout combo
+git tag 15x-end
+git checkout master17x
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag 17x-start
+git checkout combo
+git rm -rf * .gitignore
+git checkout 17x-start -- .
+git commit -c 17x-start
 
-  git replace 17x-start HEAD
-  git checkout master17x
-  git rebase combo
-  git checkout combo
-  git merge master17x
-  git branch -D master17x
+git replace 17x-start HEAD
+git checkout master17x
+git rebase combo
+git checkout combo
+git merge master17x
+git branch -D master17x
+```
 
 The generic code is therefore:
 
-```versionA=15x
-  for versionB in 17x 20x 21x 22x
-  do
-  
-    git checkout combo
-    git tag $versionA-end
-    git checkout master$versionB
-    git checkout $(git rev-list --max-parents=0 HEAD)
-    git tag $versionB-start
-    git checkout combo
-    git rm -rf * .gitignore
-    git checkout $versionB-start -- .
-    git commit -c $versionB-start
+```
+versionA=15x
+for versionB in 17x 20x 21x 22x; do
 
-    git replace $versionB-start HEAD
-    git checkout master$versionB
-    git rebase combo
-    git checkout combo
-    git merge master$versionB
-    git branch -D master$versionB
+  git checkout combo
+  git tag $versionA-end
+  git checkout master$versionB
+  git checkout $(git rev-list --max-parents=0 HEAD)
+  git tag $versionB-start
+  git checkout combo
+  git rm -rf * .gitignore
+  git checkout $versionB-start -- .
+  git commit -c $versionB-start
+
+  git replace $versionB-start HEAD
+  git checkout master$versionB
+  git rebase combo
+  git checkout combo
+  git merge master$versionB
+  git branch -D master$versionB
   
-    versionA=$versionB
+  versionA=$versionB
   
-  done
+done
 ```
