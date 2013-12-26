@@ -119,14 +119,71 @@ git checkout $(git rev-list --max-parents=0 HEAD)
 git tag $versionB-start
 git checkout combo
 git rm -rf * .gitignore
+rm -rf *
 git checkout $versionB-start -- .
 git commit -c $versionB-start
 
 git replace $versionB-start HEAD
 git checkout master$versionB
 git rebase combo
+
+#needed to manually repair the merge a few times, by using:
+git mergetool
+git rebase --continue
+
 git checkout combo
 git merge master$versionB
 git branch -D master$versionB
 
+
+versionA=20x
+versionB=21x
+
+git checkout combo
+git tag $versionA-end
+git checkout master$versionB
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag $versionB-start
+git checkout combo
+git rm -rf * .gitignore
+rm -rf *
+git checkout $versionB-start -- .
+git commit -c $versionB-start
+
+git replace $versionB-start HEAD
+git checkout master$versionB
+git rebase combo
+
+git checkout combo
+git merge master$versionB
+git branch -D master$versionB
+
+
+versionA=21x
+versionB=22x
+
+git checkout combo
+git tag $versionA-end
+git checkout master$versionB
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag $versionB-start
+git checkout combo
+git rm -rf * .gitignore
+rm -rf *
+git checkout $versionB-start -- .
+git commit -c $versionB-start
+
+git replace $versionB-start HEAD
+git checkout master$versionB
+git rebase combo
+
+#needed to manually repair the merge a few times, by using:
+git mergetool
+git rebase --continue
+
+git checkout combo
+git merge master$versionB
+git branch -D master$versionB
 ```
+
+As for tags, those have to be reconstructed manually, because this rebasing strategy will redo all git commits!
