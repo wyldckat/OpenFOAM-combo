@@ -68,6 +68,9 @@ Code-wise, for 1.5.x->1.7.x:
   git branch -D master17x
 
 The generic code is therefore:
+
+  versionA=15x
+  for versionB in 17x 20x 21x 22x; do
   
   git checkout combo
   git tag $versionA-end
@@ -85,17 +88,8 @@ The generic code is therefore:
   git checkout combo
   git merge master$versionB
   git branch -D master$versionB
+  
+  versionA=$versionB
+  
+  done
 
-Where the variable combinations are:
-
-  versionA=15x
-  versionB=17x
-
-  versionA=17x
-  versionB=20x
-
-  versionA=20x
-  versionB=21x
-
-  versionA=21x
-  versionB=22x
