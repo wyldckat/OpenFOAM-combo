@@ -58,7 +58,9 @@ class layerParameters;
 
 class autoLayerDriver
 {
-    // Static data members
+public:
+
+    // Public data types
 
         //- Extrusion controls
         enum extrudeMode
@@ -69,6 +71,7 @@ class autoLayerDriver
                             /*!< faces locally */
         };
 
+private:
 
     // Private classes
 
@@ -118,6 +121,13 @@ class autoLayerDriver
                 const indirectPrimitivePatch&,
                 const vectorField&,
                 const List<extrudeMode>&
+            );
+
+            //- Average point wise data to face wise
+            static tmp<scalarField> avgPointData
+            (
+                const indirectPrimitivePatch&,
+                const scalarField& pointFld
             );
 
             //- Check that primitivePatch is not multiply connected.
@@ -257,7 +267,7 @@ class autoLayerDriver
                 //- Synchronize displacement among coupled patches.
                 void syncPatchDisplacement
                 (
-                    const motionSmoother& meshMover,
+                    const indirectPrimitivePatch& pp,
                     const scalarField& minThickness,
                     pointField& patchDisp,
                     labelList& patchNLayers,
@@ -267,7 +277,7 @@ class autoLayerDriver
                 //- Get nearest point on surface to snap to
                 void getPatchDisplacement
                 (
-                    const motionSmoother& meshMover,
+                    const indirectPrimitivePatch& pp,
                     const scalarField& thickness,
                     const scalarField& minThickness,
                     pointField& patchDisp,
@@ -305,7 +315,7 @@ class autoLayerDriver
                 (
                     const globalIndex& globalFaces,
                     const labelListList& edgeGlobalFaces,
-                    const motionSmoother& meshMover,
+                    const indirectPrimitivePatch& pp,
                     const scalarField& minThickness,
                     const faceSet& illegalPatchFaces,
                     pointField& patchDisp,
@@ -321,7 +331,7 @@ class autoLayerDriver
                 //  to go into the actual layer addition engine.
                 void setupLayerInfoTruncation
                 (
-                    const motionSmoother& meshMover,
+                    const indirectPrimitivePatch& pp,
                     const labelList& patchNLayers,
                     const List<extrudeMode>& extrudeStatus,
                     const label nBufferCellsNoExtrude,
@@ -367,9 +377,32 @@ class autoLayerDriver
                 (
                     const polyMesh&,
                     const addPatchCellLayer&,
-                    boolList&,
-                    boolList&
+                    const scalarField& oldRealThickness,
+
+                    labelList& cellStatus,
+                    scalarField& faceRealThickness
                 );
+
+                //- Print layer coverage table
+                void printLayerData
+                (
+                    const fvMesh& mesh,
+                    const labelList& patchIDs,
+                    const labelList& cellNLayers,
+                    const scalarField& faceWantedThickness,
+                    const scalarField& faceRealThickness
+                ) const;
+
+                //- Write cellSet,faceSet for layers
+                bool writeLayerData
+                (
+                    const fvMesh& mesh,
+                    const labelList& patchIDs,
+                    const labelList& cellNLayers,
+                    const scalarField& faceWantedThickness,
+                    const scalarField& faceRealThickness
+                ) const;
+
 
             // Mesh shrinking (to create space for layers)
 
@@ -403,6 +436,7 @@ class autoLayerDriver
                 void smoothField
                 (
                     const motionSmoother& meshMover,
+                    const PackedBoolList& isMasterPoint,
                     const PackedBoolList& isMasterEdge,
                     const labelList& meshEdges,
                     const scalarField& fieldMin,
@@ -414,6 +448,7 @@ class autoLayerDriver
                 void smoothPatchNormals
                 (
                     const motionSmoother& meshMover,
+                    const PackedBoolList& isMasterPoint,
                     const PackedBoolList& isMasterEdge,
                     const labelList& meshEdges,
                     const label nSmoothDisp,
@@ -424,6 +459,7 @@ class autoLayerDriver
                 void smoothNormals
                 (
                     const label nSmoothDisp,
+                    const PackedBoolList& isMasterPoint,
                     const PackedBoolList& isMasterEdge,
                     const labelList& fixedPoints,
                     pointVectorField& normals
@@ -440,8 +476,11 @@ class autoLayerDriver
                 //  large feature angle
                 void handleFeatureAngleLayerTerminations
                 (
-                    const indirectPrimitivePatch& pp,
                     const scalar minCos,
+                    const PackedBoolList& isMasterPoint,
+                    const indirectPrimitivePatch& pp,
+                    const labelList& meshEdges,
+
                     List<extrudeMode>& extrudeStatus,
                     pointField& patchDisp,
                     labelList& patchNLayers,
@@ -453,10 +492,13 @@ class autoLayerDriver
                 // in the layer mesh and stop any layer growth at these points.
                 void findIsolatedRegions
                 (
-                    const indirectPrimitivePatch& pp,
-                    const PackedBoolList& isMasterEdge,
-                    const labelList& meshEdges,
                     const scalar minCosLayerTermination,
+                    const PackedBoolList& isMasterPoint,
+                    const PackedBoolList& isMasterEdge,
+                    const indirectPrimitivePatch& pp,
+                    const labelList& meshEdges,
+                    const scalarField& minThickness,
+
                     List<extrudeMode>& extrudeStatus,
                     pointField& patchDisp,
                     labelList& patchNLayers
@@ -468,7 +510,7 @@ class autoLayerDriver
                     const motionSmoother& meshMover,
                     const label nSmoothNormals,
                     const label nSmoothSurfaceNormals,
-                    const scalar minMedianAxisAngleCos,
+                    const scalar minMedialAxisAngleCos,
                     const scalar featureAngle,
 
                     pointVectorField& dispVec,
@@ -483,7 +525,8 @@ class autoLayerDriver
                     motionSmoother& meshMover,
                     const dictionary& meshQualityDict,
                     const List<labelPair>& baffles,
-                    const label nSmoothThickness,
+                    const label nSmoothPatchThickness,
+                    const label nSmoothDisplacement,
                     const scalar maxThicknessToMedialRatio,
                     const label nAllowableErrors,
                     const label nSnap,

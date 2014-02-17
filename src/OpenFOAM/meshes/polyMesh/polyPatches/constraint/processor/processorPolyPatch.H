@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -42,6 +42,7 @@ SourceFiles
 #include "coupledPolyPatch.H"
 #include "polyBoundaryMesh.H"
 #include "faceListFwd.H"
+#include "polyMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -296,6 +297,12 @@ public:
         virtual int tag() const
         {
             return Pstream::msgType();
+        }
+
+        //- Return communicator used for communication
+        virtual label comm() const
+        {
+            return boundaryMesh().mesh().comm();
         }
 
         //- Transform a patch-based position from other side to this side

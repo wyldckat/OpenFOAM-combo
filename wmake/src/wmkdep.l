@@ -3,7 +3,7 @@
  =========                   |
  \\      /   F ield          | OpenFOAM: The Open Source CFD Toolbox
   \\    /    O peration      |
-   \\  /     A nd            | Copyright (C) 2011 OpenFOAM Foundation
+   \\  /     A nd            | Copyright (C) 2011-2013 OpenFOAM Foundation
     \\/      M anipulation   |
 ------------------------------------------------------------------------------
 License
@@ -46,6 +46,7 @@ Usage
 #include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <errno.h>
 
 void nextFile(const char* fileName);
 void importFile(const char* fileName);
@@ -333,12 +334,24 @@ void nextFile(const char* fileName)
             free(pathName);
         }
 
-        fprintf
-        (
-            stderr,
-            "could not open file %s for source file %s\n",
-            fileName, sourceFile
-        );
+        if (nDirectories == 0)
+        {
+            fprintf
+            (
+                stderr,
+                "could not open file %s for source file %s\n",
+                fileName, sourceFile
+            );
+        }
+        else
+        {
+            fprintf
+            (
+                stderr,
+                "could not open file %s for source file %s due to %s\n",
+                fileName, sourceFile, strerror(errno)
+            );
+        }
 
         fflush(stdout);
         fflush(stderr);

@@ -29,7 +29,6 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
-#include "fvMatrix.H"
 #include "fvCFD.H"
 #include "LduMatrix.H"
 #include "diagTensorField.H"
@@ -87,7 +86,7 @@ int main(int argc, char *argv[])
                     IStringStream
                     (
                         "{"
-                        "    solver           PBiCCCG;"
+                        "    solver           PBiCG;"
                         "    preconditioner   DILU;"
                         "    tolerance        (1e-5 1e-5 1);"
                         "    relTol           (0 0 0);"
@@ -106,7 +105,7 @@ int main(int argc, char *argv[])
 
             U = rAU*UEqn.H();
             phi = (fvc::interpolate(U) & mesh.Sf())
-                + fvc::ddtPhiCorr(rAU, U, phi);
+                + fvc::ddtCorr(rAU, U, phi);
 
             adjustPhi(phi, U, p);
 

@@ -26,13 +26,12 @@ License
 #include "outputFilterOutputControl.H"
 #include "PstreamReduceOps.H"
 
-
 // * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * * * //
 
 namespace Foam
 {
     template<>
-    const char* NamedEnum<outputFilterOutputControl::outputControls, 6>::
+    const char* NamedEnum<outputFilterOutputControl::outputControls, 7>::
     names[] =
     {
         "timeStep",
@@ -40,11 +39,12 @@ namespace Foam
         "adjustableTime",
         "runTime",
         "clockTime",
-        "cpuTime"
+        "cpuTime",
+        "none"
     };
 }
 
-const Foam::NamedEnum<Foam::outputFilterOutputControl::outputControls, 6>
+const Foam::NamedEnum<Foam::outputFilterOutputControl::outputControls, 7>
     Foam::outputFilterOutputControl::outputControlNames_;
 
 
@@ -53,10 +53,12 @@ const Foam::NamedEnum<Foam::outputFilterOutputControl::outputControls, 6>
 Foam::outputFilterOutputControl::outputFilterOutputControl
 (
     const Time& t,
-    const dictionary& dict
+    const dictionary& dict,
+    const word& prefix
 )
 :
     time_(t),
+    prefix_(prefix),
     outputControl_(ocTimeStep),
     outputInterval_(0),
     outputTimeLastDump_(0),
@@ -76,9 +78,12 @@ Foam::outputFilterOutputControl::~outputFilterOutputControl()
 
 void Foam::outputFilterOutputControl::read(const dictionary& dict)
 {
-    if (dict.found("outputControl"))
+    const word controlName(prefix_ + "Control");
+    const word intervalName(prefix_ + "Interval");
+
+    if (dict.found(controlName))
     {
-        outputControl_ = outputControlNames_.read(dict.lookup("outputControl"));
+        outputControl_ = outputControlNames_.read(dict.lookup(controlName));
     }
     else
     {
@@ -89,14 +94,13 @@ void Foam::outputFilterOutputControl::read(const dictionary& dict)
     {
         case ocTimeStep:
         {
-            outputInterval_ = dict.lookupOrDefault<label>("outputInterval", 0);
+            outputInterval_ = dict.lookupOrDefault<label>(intervalName, 0);
             break;
         }
 
-
         case ocOutputTime:
         {
-            outputInterval_ = dict.lookupOrDefault<label>("outputInterval", 1);
+            outputInterval_ = dict.lookupOrDefault<label>(intervalName, 1);
             break;
         }
 
@@ -190,6 +194,11 @@ bool Foam::outputFilterOutputControl::output()
                 return true;
             }
             break;
+        }
+
+        case ocNone:
+        {
+            return false;
         }
 
         default:

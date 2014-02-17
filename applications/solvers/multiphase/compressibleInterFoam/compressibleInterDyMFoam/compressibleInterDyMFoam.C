@@ -46,6 +46,7 @@ Description
 #include "twoPhaseMixtureThermo.H"
 #include "turbulenceModel.H"
 #include "pimpleControl.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -55,19 +56,16 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "readGravitationalAcceleration.H"
+    #include "initContinuityErrs.H"
 
     pimpleControl pimple(mesh);
 
-    #include "readControls.H"
-    #include "initContinuityErrs.H"
     #include "createFields.H"
-    #include "createPcorrTypes.H"
+    #include "createUf.H"
+    #include "readControls.H"
+    #include "createPrghCorrTypes.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
-
-    // Create old-time absolute flux for ddtPhiCorr
-    surfaceScalarField phiAbs("phiAbs", phi);
-
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     Info<< "\nStarting time loop\n" << endl;
@@ -75,14 +73,7 @@ int main(int argc, char *argv[])
     while (runTime.run())
     {
         #include "readControls.H"
-        #include "alphaCourantNo.H"
         #include "CourantNo.H"
-
-        // Make the fluxes absolute
-        fvc::makeAbsolute(phi, U);
-
-        // Update absolute flux for ddtPhiCorr
-        phiAbs = phi;
 
         #include "setDeltaT.H"
 
@@ -92,7 +83,7 @@ int main(int argc, char *argv[])
 
         {
             // Store divU from the previous mesh for the correctPhi
-            volScalarField divU(fvc::div(phi));
+            volScalarField divU(fvc::div(fvc::absolute(phi, U)));
 
             scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();
 
@@ -111,12 +102,15 @@ int main(int argc, char *argv[])
 
             if (mesh.changing() && correctPhi)
             {
+                // Calculate absolute flux from the mapped surface velocity
+                phi = mesh.Sf() & Uf;
+
                 #include "correctPhi.H"
+
+                // Make the fluxes relative to the mesh motion
+                fvc::makeRelative(phi, U);
             }
         }
-
-        // Make the fluxes relative to the mesh motion
-        fvc::makeRelative(phi, U);
 
         if (mesh.changing() && checkMeshCourantNo)
         {
@@ -152,9 +146,9 @@ int main(int argc, char *argv[])
 
         runTime.write();
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        Info<< "ExecutionTime = "
+            << runTime.elapsedCpuTime()
+            << " s\n\n" << endl;
     }
 
     Info<< "End\n" << endl;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -269,7 +269,7 @@ void Foam::topoSet::writeDebug
     boundBox bb(pointField(coords, toc()), true);
 
     os  << "Set bounding box: min = "
-        << bb.min() << "    max = " << bb.max() << " meters. " << endl << endl;
+        << bb.min() << "    max = " << bb.max() << " metres. " << endl << endl;
 
     label n = 0;
 
@@ -344,7 +344,7 @@ Foam::topoSet::topoSet
             (
                 mesh.dbDir()/polyMesh::meshSubDir/"sets",
                 word::null,
-                IOobject::MUST_READ,
+                r,  //IOobject::MUST_READ,
                 mesh.facesInstance()
             ),
             polyMesh::meshSubDir/"sets",
@@ -472,7 +472,6 @@ void Foam::topoSet::invert(const label maxLen)
             insert(cellI);
         }
     }
-
 }
 
 
@@ -550,20 +549,6 @@ void Foam::topoSet::writeDebug(Ostream& os, const label maxLen) const
 }
 
 
-//void Foam::topoSet::writeDebug
-//(
-//    Ostream&,
-//    const primitiveMesh&,
-//    const label
-//) const
-//{
-//    notImplemented
-//    (
-//        "topoSet::writeDebug(Ostream&, const primitiveMesh&, const label)"
-//    );
-//}
-
-
 bool Foam::topoSet::writeData(Ostream& os) const
 {
     return (os << *this).good();
@@ -575,14 +560,6 @@ void Foam::topoSet::updateMesh(const mapPolyMesh&)
     notImplemented("topoSet::updateMesh(const mapPolyMesh&)");
 }
 
-
-////- Return max index+1.
-//label topoSet::maxSize(const polyMesh&) const
-//{
-//    notImplemented("topoSet::maxSize(const polyMesh&)");
-//
-//    return -1;
-//}
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 

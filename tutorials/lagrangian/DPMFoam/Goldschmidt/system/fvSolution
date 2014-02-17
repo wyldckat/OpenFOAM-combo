@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.x                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,7 +17,7 @@ FoamFile
 
 solvers
 {
-    p
+    "(p|kinematicCloud:theta)"
     {
         solver          GAMG;
         tolerance       1e-06;
@@ -29,7 +29,7 @@ solvers
         mergeLevels     1;
     }
 
-    pFinal
+    "(p|kinematicCloud:theta)Final"
     {
         solver          GAMG;
         tolerance       1e-06;
@@ -41,18 +41,18 @@ solvers
         mergeLevels     1;
     }
 
-    "(Uc|k|omega)"
+    "(U.air|k|omega)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0.1;
     }
 
-    "(Uc|k|omega)Final"
+    "(U.air|k|omega)Final"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0;
     }
@@ -66,6 +66,10 @@ PIMPLE
     nNonOrthogonalCorrectors 0;
     pRefCell        0;
     pRefValue       0;
+}
+
+relaxationFactors
+{
 }
 
 

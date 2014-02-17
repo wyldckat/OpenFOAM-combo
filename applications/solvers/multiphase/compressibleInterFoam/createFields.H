@@ -34,7 +34,7 @@
     volScalarField& alpha1(twoPhaseProperties.alpha1());
     volScalarField& alpha2(twoPhaseProperties.alpha2());
 
-    Info<< "Setting thermophysical properties\n" << endl;
+    Info<< "Reading thermophysical properties\n" << endl;
 
     volScalarField& p = twoPhaseProperties.p();
     volScalarField& T = twoPhaseProperties.T();
@@ -70,7 +70,7 @@
     (
         IOobject
         (
-            "rho*phi",
+            "rhoPhi",
             runTime.timeName(),
             mesh,
             IOobject::NO_READ,

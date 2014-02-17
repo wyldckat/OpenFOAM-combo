@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,7 +41,7 @@ Description
 #include "mapPolyMesh.H"
 #include "addPatchCellLayer.H"
 #include "mapDistributePolyMesh.H"
-#include "OFstream.H"
+#include "OBJstream.H"
 #include "layerParameters.H"
 #include "combineFaces.H"
 #include "IOmanip.H"
@@ -52,6 +52,12 @@ Description
 #include "fixedValuePointPatchFields.H"
 #include "calculatedPointPatchFields.H"
 #include "cyclicSlipPointPatchFields.H"
+#include "fixedValueFvPatchFields.H"
+#include "localPointRegion.H"
+
+#include "externalDisplacementMeshMover.H"
+#include "medialAxisMeshMover.H"
+#include "scalarIOField.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -74,39 +80,52 @@ void Foam::autoLayerDriver::dumpDisplacement
     const List<extrudeMode>& extrudeStatus
 )
 {
-    OFstream dispStr(prefix + "_disp.obj");
+    OBJstream dispStr(prefix + "_disp.obj");
     Info<< "Writing all displacements to " << dispStr.name() << endl;
-
-    label vertI = 0;
 
     forAll(patchDisp, patchPointI)
     {
         const point& pt = pp.localPoints()[patchPointI];
-
-        meshTools::writeOBJ(dispStr, pt); vertI++;
-        meshTools::writeOBJ(dispStr, pt + patchDisp[patchPointI]); vertI++;
-
-        dispStr << "l " << vertI-1 << ' ' << vertI << nl;
+        dispStr.write(linePointRef(pt, pt + patchDisp[patchPointI]));
     }
 
 
-    OFstream illStr(prefix + "_illegal.obj");
+    OBJstream illStr(prefix + "_illegal.obj");
     Info<< "Writing invalid displacements to " << illStr.name() << endl;
-
-    vertI = 0;
 
     forAll(patchDisp, patchPointI)
     {
         if (extrudeStatus[patchPointI] != EXTRUDE)
         {
             const point& pt = pp.localPoints()[patchPointI];
-
-            meshTools::writeOBJ(illStr, pt); vertI++;
-            meshTools::writeOBJ(illStr, pt + patchDisp[patchPointI]); vertI++;
-
-            illStr << "l " << vertI-1 << ' ' << vertI << nl;
+            illStr.write(linePointRef(pt, pt + patchDisp[patchPointI]));
         }
     }
+}
+
+
+Foam::tmp<Foam::scalarField> Foam::autoLayerDriver::avgPointData
+(
+    const indirectPrimitivePatch& pp,
+    const scalarField& pointFld
+)
+{
+    tmp<scalarField> tfaceFld(new scalarField(pp.size(), 0.0));
+    scalarField& faceFld = tfaceFld();
+
+    forAll(pp.localFaces(), faceI)
+    {
+        const face& f = pp.localFaces()[faceI];
+        if (f.size())
+        {
+            forAll(f, fp)
+            {
+                faceFld[faceI] += pointFld[f[fp]];
+            }
+            faceFld[faceI] /= f.size();
+        }
+    }
+    return tfaceFld;
 }
 
 
@@ -179,12 +198,13 @@ void Foam::autoLayerDriver::checkMeshManifold() const
             << " points." << nl
             << "This is not a fatal error but might cause some unexpected"
             << " behaviour." << nl
-            << "Writing " << nNonManif
-            << " points where this happens to pointSet "
-            << nonManifoldPoints.name() << endl;
+            //<< "Writing " << nNonManif
+            //<< " points where this happens to pointSet "
+            //<< nonManifoldPoints.name()
+            << endl;
 
-        nonManifoldPoints.instance() = meshRefiner_.timeName();
-        nonManifoldPoints.write();
+        //nonManifoldPoints.instance() = meshRefiner_.timeName();
+        //nonManifoldPoints.write();
     }
     Info<< endl;
 }
@@ -409,13 +429,12 @@ void Foam::autoLayerDriver::handleFeatureAngle
             point::max          // null value
         );
 
-        label vertI = 0;
-        autoPtr<OFstream> str;
+        autoPtr<OBJstream> str;
         if (debug&meshRefinement::MESH)
         {
             str.reset
             (
-                new OFstream
+                new OBJstream
                 (
                     mesh.time().path()
                   / "featureEdges_"
@@ -465,11 +484,9 @@ void Foam::autoLayerDriver::handleFeatureAngle
 
                     if (str.valid())
                     {
-                        meshTools::writeOBJ(str(), pp.localPoints()[e[0]]);
-                        vertI++;
-                        meshTools::writeOBJ(str(), pp.localPoints()[e[1]]);
-                        vertI++;
-                        str()<< "l " << vertI-1 << ' ' << vertI << nl;
+                        const point& p0 = pp.localPoints()[e[0]];
+                        const point& p1 = pp.localPoints()[e[1]];
+                        str().write(linePointRef(p0, p1));
                     }
                 }
             }
@@ -807,7 +824,7 @@ Foam::autoLayerDriver::makeLayerDisplacementField
 
     forAll(numLayers, patchI)
     {
-        //  0 layers: do not allow lslip so fixedValue 0
+        //  0 layers: do not allow slip so fixedValue 0
         // >0 layers: fixedValue which gets adapted
         if (numLayers[patchI] >= 0)
         {
@@ -1245,6 +1262,8 @@ void Foam::autoLayerDriver::calculateLayerThickness
     {
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
+        int oldPrecision = Info().precision();
+
         // Find maximum length of a patch name, for a nicer output
         label maxPatchNameLen = 0;
         forAll(patchIDs, i)
@@ -1262,6 +1281,9 @@ void Foam::autoLayerDriver::calculateLayerThickness
             << setf(ios_base::left) << setw(maxPatchNameLen) << "-----"
             << setw(0) << " -----    ------ --------- -------" << endl;
 
+
+        const PackedBoolList isMasterPoint(syncTools::getMasterPoints(mesh));
+
         forAll(patchIDs, i)
         {
             label patchI = patchIDs[i];
@@ -1270,23 +1292,29 @@ void Foam::autoLayerDriver::calculateLayerThickness
 
             scalar sumThickness = 0;
             scalar sumNearWallThickness = 0;
+            label nMasterPoints = 0;
 
             forAll(meshPoints, patchPointI)
             {
-                label ppPointI = pp.meshPointMap()[meshPoints[patchPointI]];
+                label meshPointI = meshPoints[patchPointI];
+                if (isMasterPoint[meshPointI])
+                {
+                    label ppPointI = pp.meshPointMap()[meshPointI];
 
-                sumThickness += thickness[ppPointI];
-                sumNearWallThickness += layerParams.firstLayerThickness
-                (
-                    patchNLayers[ppPointI],
-                    firstLayerThickness[ppPointI],
-                    finalLayerThickness[ppPointI],
-                    thickness[ppPointI],
-                    expansionRatio[ppPointI]
-                );
+                    sumThickness += thickness[ppPointI];
+                    sumNearWallThickness += layerParams.firstLayerThickness
+                    (
+                        patchNLayers[ppPointI],
+                        firstLayerThickness[ppPointI],
+                        finalLayerThickness[ppPointI],
+                        thickness[ppPointI],
+                        expansionRatio[ppPointI]
+                    );
+                    nMasterPoints++;
+                }
             }
 
-            label totNPoints = returnReduce(meshPoints.size(), sumOp<label>());
+            label totNPoints = returnReduce(nMasterPoints, sumOp<label>());
 
             // For empty patches, totNPoints is 0.
             scalar avgThickness = 0;
@@ -1311,7 +1339,7 @@ void Foam::autoLayerDriver::calculateLayerThickness
                 << "  " << setw(8) << avgThickness
                 << endl;
         }
-        Info<< endl;
+        Info<< setprecision(oldPrecision) << endl;
     }
 }
 
@@ -1319,7 +1347,7 @@ void Foam::autoLayerDriver::calculateLayerThickness
 // Synchronize displacement among coupled patches.
 void Foam::autoLayerDriver::syncPatchDisplacement
 (
-    const motionSmoother& meshMover,
+    const indirectPrimitivePatch& pp,
     const scalarField& minThickness,
     pointField& patchDisp,
     labelList& patchNLayers,
@@ -1327,7 +1355,7 @@ void Foam::autoLayerDriver::syncPatchDisplacement
 ) const
 {
     const fvMesh& mesh = meshRefiner_.mesh();
-    const labelList& meshPoints = meshMover.patch().meshPoints();
+    const labelList& meshPoints = pp.meshPoints();
 
     label nChangedTotal = 0;
 
@@ -1341,8 +1369,8 @@ void Foam::autoLayerDriver::syncPatchDisplacement
             mesh,
             meshPoints,
             patchDisp,
-            minEqOp<vector>(),
-            point::max           // null value
+            minMagSqrEqOp<vector>(),
+            point::rootMax      // null value
         );
 
         // Unmark if displacement too small
@@ -1437,9 +1465,9 @@ void Foam::autoLayerDriver::syncPatchDisplacement
         }
     }
 
-    Info<< "Prevented extrusion on "
-        << returnReduce(nChangedTotal, sumOp<label>())
-        << " coupled patch points during syncPatchDisplacement." << endl;
+    //Info<< "Prevented extrusion on "
+    //    << returnReduce(nChangedTotal, sumOp<label>())
+    //    << " coupled patch points during syncPatchDisplacement." << endl;
 }
 
 
@@ -1450,7 +1478,7 @@ void Foam::autoLayerDriver::syncPatchDisplacement
 // patch point.
 void Foam::autoLayerDriver::getPatchDisplacement
 (
-    const motionSmoother& meshMover,
+    const indirectPrimitivePatch& pp,
     const scalarField& thickness,
     const scalarField& minThickness,
     pointField& patchDisp,
@@ -1462,7 +1490,6 @@ void Foam::autoLayerDriver::getPatchDisplacement
         << " according to pointNormal ..." << endl;
 
     const fvMesh& mesh = meshRefiner_.mesh();
-    const indirectPrimitivePatch& pp = meshMover.patch();
     const vectorField& faceNormals = pp.faceNormals();
     const labelListList& pointFaces = pp.pointFaces();
     const pointField& localPoints = pp.localPoints();
@@ -1478,6 +1505,11 @@ void Foam::autoLayerDriver::getPatchDisplacement
 
     // Start off from same thickness everywhere (except where no extrusion)
     patchDisp = thickness*pointNormals;
+
+
+    label nNoVisNormal = 0;
+    label nExtrudeRemove = 0;
+
 
     // Check if no extrude possible.
     forAll(pointNormals, patchPointI)
@@ -1497,12 +1529,17 @@ void Foam::autoLayerDriver::getPatchDisplacement
 
             if (!meshTools::visNormal(n, faceNormals, pointFaces[patchPointI]))
             {
-                Pout<< "No valid normal for point " << meshPointI
-                    << ' ' << pp.points()[meshPointI]
-                    << "; setting displacement to " << patchDisp[patchPointI]
-                    << endl;
+                if (debug&meshRefinement::ATTRACTION)
+                {
+                    Pout<< "No valid normal for point " << meshPointI
+                        << ' ' << pp.points()[meshPointI]
+                        << "; setting displacement to "
+                        << patchDisp[patchPointI]
+                        << endl;
+                }
 
                 extrudeStatus[patchPointI] = EXTRUDEREMOVE;
+                nNoVisNormal++;
             }
         }
     }
@@ -1532,22 +1569,39 @@ void Foam::autoLayerDriver::getPatchDisplacement
 
             if (nPoints > 0)
             {
-                Pout<< "Displacement at illegal point "
-                    << localPoints[patchPointI]
-                    << " set to " << (avg / nPoints - localPoints[patchPointI])
-                    << endl;
+                if (debug&meshRefinement::ATTRACTION)
+                {
+                    Pout<< "Displacement at illegal point "
+                        << localPoints[patchPointI]
+                        << " set to "
+                        << (avg / nPoints - localPoints[patchPointI])
+                        << endl;
+                }
 
                 patchDisp[patchPointI] =
                     avg / nPoints
                   - localPoints[patchPointI];
+
+                nExtrudeRemove++;
+            }
+            else
+            {
+                // All surrounding points are not extruded. Leave patchDisp
+                // intact.
             }
         }
     }
 
+    Info<< "Detected " << returnReduce(nNoVisNormal, sumOp<label>())
+        << " points with point normal pointing through faces." << nl
+        << "Reset displacement at "
+        << returnReduce(nExtrudeRemove, sumOp<label>())
+        << " points to average of surrounding points." << endl;
+
     // Make sure displacement is equal on both sides of coupled patches.
     syncPatchDisplacement
     (
-        meshMover,
+        pp,
         minThickness,
         patchDisp,
         patchNLayers,
@@ -1661,7 +1715,7 @@ Foam::label Foam::autoLayerDriver::truncateDisplacement
 (
     const globalIndex& globalFaces,
     const labelListList& edgeGlobalFaces,
-    const motionSmoother& meshMover,
+    const indirectPrimitivePatch& pp,
     const scalarField& minThickness,
     const faceSet& illegalPatchFaces,
     pointField& patchDisp,
@@ -1669,8 +1723,7 @@ Foam::label Foam::autoLayerDriver::truncateDisplacement
     List<extrudeMode>& extrudeStatus
 ) const
 {
-    const polyMesh& mesh = meshMover.mesh();
-    const indirectPrimitivePatch& pp = meshMover.patch();
+    const fvMesh& mesh = meshRefiner_.mesh();
 
     label nChanged = 0;
 
@@ -1745,7 +1798,7 @@ Foam::label Foam::autoLayerDriver::truncateDisplacement
     {
         syncPatchDisplacement
         (
-            meshMover,
+            pp,
             minThickness,
             patchDisp,
             patchNLayers,
@@ -1975,7 +2028,7 @@ Foam::label Foam::autoLayerDriver::truncateDisplacement
 // regions where layer mesh terminates.
 void Foam::autoLayerDriver::setupLayerInfoTruncation
 (
-    const motionSmoother& meshMover,
+    const indirectPrimitivePatch& pp,
     const labelList& patchNLayers,
     const List<extrudeMode>& extrudeStatus,
     const label nBufferCellsNoExtrude,
@@ -1985,8 +2038,7 @@ void Foam::autoLayerDriver::setupLayerInfoTruncation
 {
     Info<< nl << "Setting up information for layer truncation ..." << endl;
 
-    const indirectPrimitivePatch& pp = meshMover.patch();
-    const polyMesh& mesh = meshMover.mesh();
+    const fvMesh& mesh = meshRefiner_.mesh();
 
     if (nBufferCellsNoExtrude < 0)
     {
@@ -2360,19 +2412,21 @@ Foam::label Foam::autoLayerDriver::countExtrusion
 }
 
 
-// Collect layer faces and layer cells into bools for ease of handling
+// Collect layer faces and layer cells into mesh fields for ease of handling
 void Foam::autoLayerDriver::getLayerCellsFaces
 (
     const polyMesh& mesh,
     const addPatchCellLayer& addLayer,
-    boolList& flaggedCells,
-    boolList& flaggedFaces
+    const scalarField& oldRealThickness,
+
+    labelList& cellNLayers,
+    scalarField& faceRealThickness
 )
 {
-    flaggedCells.setSize(mesh.nCells());
-    flaggedCells = false;
-    flaggedFaces.setSize(mesh.nFaces());
-    flaggedFaces = false;
+    cellNLayers.setSize(mesh.nCells());
+    cellNLayers = 0;
+    faceRealThickness.setSize(mesh.nFaces());
+    faceRealThickness = 0;
 
     // Mark all faces in the layer
     const labelListList& layerFaces = addLayer.layerFaces();
@@ -2384,24 +2438,328 @@ void Foam::autoLayerDriver::getLayerCellsFaces
     {
         const labelList& added = addedCells[oldPatchFaceI];
 
-        forAll(added, i)
+        const labelList& layer = layerFaces[oldPatchFaceI];
+
+        if (layer.size())
         {
-            flaggedCells[added[i]] = true;
+            forAll(added, i)
+            {
+                cellNLayers[added[i]] = layer.size()-1;
+            }
         }
     }
 
     forAll(layerFaces, oldPatchFaceI)
     {
         const labelList& layer = layerFaces[oldPatchFaceI];
+        const scalar realThickness = oldRealThickness[oldPatchFaceI];
 
         if (layer.size())
         {
-            for (label i = 1; i < layer.size()-1; i++)
+            // Layer contains both original boundary face and new boundary
+            // face so is nLayers+1
+            forAll(layer, i)
             {
-                flaggedFaces[layer[i]] = true;
+                faceRealThickness[layer[i]] = realThickness;
             }
         }
     }
+}
+
+
+void Foam::autoLayerDriver::printLayerData
+(
+    const fvMesh& mesh,
+    const labelList& patchIDs,
+    const labelList& cellNLayers,
+    const scalarField& faceWantedThickness,
+    const scalarField& faceRealThickness
+) const
+{
+    const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+
+    int oldPrecision = Info().precision();
+
+    // Find maximum length of a patch name, for a nicer output
+    label maxPatchNameLen = 0;
+    forAll(patchIDs, i)
+    {
+        label patchI = patchIDs[i];
+        word patchName = pbm[patchI].name();
+        maxPatchNameLen = max(maxPatchNameLen, label(patchName.size()));
+    }
+
+    Info<< nl
+        << setf(ios_base::left) << setw(maxPatchNameLen) << "patch"
+        << setw(0) << " faces    layers   overall thickness" << nl
+        << setf(ios_base::left) << setw(maxPatchNameLen) << " "
+        << setw(0) << "                   [m]       [%]" << nl
+        << setf(ios_base::left) << setw(maxPatchNameLen) << "-----"
+        << setw(0) << " -----    ------   ---       ---" << endl;
+
+
+    forAll(patchIDs, i)
+    {
+        label patchI = patchIDs[i];
+        const polyPatch& pp = pbm[patchI];
+
+        label sumSize = pp.size();
+
+        // Number of layers
+        const labelList& faceCells = pp.faceCells();
+        label sumNLayers = 0;
+        forAll(faceCells, i)
+        {
+            sumNLayers += cellNLayers[faceCells[i]];
+        }
+
+        // Thickness
+        scalarField::subField patchWanted = pbm[patchI].patchSlice
+        (
+            faceWantedThickness
+        );
+        scalarField::subField patchReal = pbm[patchI].patchSlice
+        (
+            faceRealThickness
+        );
+
+        scalar sumRealThickness = sum(patchReal);
+        scalar sumFraction = 0;
+        forAll(patchReal, i)
+        {
+            if (patchWanted[i] > VSMALL)
+            {
+                sumFraction += (patchReal[i]/patchWanted[i]);
+            }
+        }
+
+
+        reduce(sumSize, sumOp<label>());
+        reduce(sumNLayers, sumOp<label>());
+        reduce(sumRealThickness, sumOp<scalar>());
+        reduce(sumFraction, sumOp<scalar>());
+
+
+        scalar avgLayers = 0;
+        scalar avgReal = 0;
+        scalar avgFraction = 0;
+        if (sumSize > 0)
+        {
+            avgLayers = scalar(sumNLayers)/sumSize;
+            avgReal = sumRealThickness/sumSize;
+            avgFraction = sumFraction/sumSize;
+        }
+
+        Info<< setf(ios_base::left) << setw(maxPatchNameLen)
+            << pbm[patchI].name() << setprecision(3)
+            << " " << setw(8) << sumSize
+            << " " << setw(8) << avgLayers
+            << " " << setw(8) << avgReal
+            << "  " << setw(8) << 100*avgFraction
+            << endl;
+    }
+    Info<< setprecision(oldPrecision) << endl;
+}
+
+
+bool Foam::autoLayerDriver::writeLayerData
+(
+    const fvMesh& mesh,
+    const labelList& patchIDs,
+    const labelList& cellNLayers,
+    const scalarField& faceWantedThickness,
+    const scalarField& faceRealThickness
+) const
+{
+    bool allOk = true;
+
+    if (meshRefinement::writeLevel() & meshRefinement::WRITELAYERSETS)
+    {
+        {
+            label nAdded = 0;
+            forAll(cellNLayers, cellI)
+            {
+                if (cellNLayers[cellI] > 0)
+                {
+                    nAdded++;
+                }
+            }
+            cellSet addedCellSet(mesh, "addedCells", nAdded);
+            forAll(cellNLayers, cellI)
+            {
+                if (cellNLayers[cellI] > 0)
+                {
+                    addedCellSet.insert(cellI);
+                }
+            }
+            addedCellSet.instance() = meshRefiner_.timeName();
+            Info<< "Writing "
+                << returnReduce(addedCellSet.size(), sumOp<label>())
+                << " added cells to cellSet "
+                << addedCellSet.name() << endl;
+            bool ok = addedCellSet.write();
+            allOk = allOk & ok;
+        }
+        {
+            label nAdded = 0;
+            forAll(faceRealThickness, faceI)
+            {
+                if (faceRealThickness[faceI] > 0)
+                {
+                    nAdded++;
+                }
+            }
+
+            faceSet layerFacesSet(mesh, "layerFaces", nAdded);
+            forAll(faceRealThickness, faceI)
+            {
+                if (faceRealThickness[faceI] > 0)
+                {
+                    layerFacesSet.insert(faceI);
+                }
+            }
+            layerFacesSet.instance() = meshRefiner_.timeName();
+            Info<< "Writing "
+                << returnReduce(layerFacesSet.size(), sumOp<label>())
+                << " faces inside added layer to faceSet "
+                << layerFacesSet.name() << endl;
+            bool ok = layerFacesSet.write();
+            allOk = allOk & ok;
+        }
+    }
+
+    if (meshRefinement::writeLevel() & meshRefinement::WRITELAYERFIELDS)
+    {
+        Info<< nl << "Writing fields with layer information:" << incrIndent
+            << endl;
+        {
+            volScalarField fld
+            (
+                IOobject
+                (
+                    "nSurfaceLayers",
+                    mesh.time().timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE,
+                    false
+                ),
+                mesh,
+                dimensionedScalar("zero", dimless, 0),
+                fixedValueFvPatchScalarField::typeName
+            );
+            const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+            forAll(patchIDs, i)
+            {
+                label patchI = patchIDs[i];
+                const polyPatch& pp = pbm[patchI];
+                const labelList& faceCells = pp.faceCells();
+                scalarField pfld(faceCells.size());
+                forAll(faceCells, i)
+                {
+                    pfld[i] = cellNLayers[faceCells[i]];
+                }
+                fld.boundaryField()[patchI] == pfld;
+            }
+            Info<< indent << fld.name() << "    : actual number of layers"
+                << endl;
+            bool ok = fld.write();
+            allOk = allOk & ok;
+        }
+        {
+            volScalarField fld
+            (
+                IOobject
+                (
+                    "thickness",
+                    mesh.time().timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE,
+                    false
+                ),
+                mesh,
+                dimensionedScalar("zero", dimless, 0),
+                fixedValueFvPatchScalarField::typeName
+            );
+            const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+            forAll(patchIDs, i)
+            {
+                label patchI = patchIDs[i];
+                fld.boundaryField()[patchI] == pbm[patchI].patchSlice
+                (
+                    faceRealThickness
+                );
+            }
+            Info<< indent << fld.name() << "         : overall layer thickness"
+                << endl;
+            bool ok = fld.write();
+            allOk = allOk & ok;
+        }
+        {
+            volScalarField fld
+            (
+                IOobject
+                (
+                    "thicknessFraction",
+                    mesh.time().timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE,
+                    false
+                ),
+                mesh,
+                dimensionedScalar("zero", dimless, 0),
+                fixedValueFvPatchScalarField::typeName
+            );
+            const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+            forAll(patchIDs, i)
+            {
+                label patchI = patchIDs[i];
+
+                scalarField::subField patchWanted = pbm[patchI].patchSlice
+                (
+                    faceWantedThickness
+                );
+                scalarField::subField patchReal = pbm[patchI].patchSlice
+                (
+                    faceRealThickness
+                );
+
+                // Convert patchReal to relavtive thickness
+                scalarField pfld(patchReal.size(), 0.0);
+                forAll(patchReal, i)
+                {
+                    if (patchWanted[i] > VSMALL)
+                    {
+                        pfld[i] = patchReal[i]/patchWanted[i];
+                    }
+                }
+
+                fld.boundaryField()[patchI] == pfld;
+            }
+            Info<< indent << fld.name()
+                << " : overall layer thickness (fraction"
+                << " of desired thickness)" << endl;
+            bool ok = fld.write();
+            allOk = allOk & ok;
+        }
+        Info<< decrIndent<< endl;
+    }
+
+    //if (meshRefinement::outputLevel() & meshRefinement::OUTPUTLAYERINFO)
+    {
+        printLayerData
+        (
+            mesh,
+            patchIDs,
+            cellNLayers,
+            faceWantedThickness,
+            faceRealThickness
+        );
+    }
+
+    return allOk;
 }
 
 
@@ -2428,17 +2786,18 @@ void Foam::autoLayerDriver::mergePatchFacesUndo
     const dictionary& motionDict
 )
 {
-    scalar minCos =
-        Foam::cos(degToRad(layerParams.featureAngle()));
+    // Clip to 30 degrees. Not helpful!
+    //scalar planarAngle = min(30.0, layerParams.featureAngle());
+    scalar planarAngle = layerParams.featureAngle();
+    scalar minCos = Foam::cos(degToRad(planarAngle));
 
-    scalar concaveCos =
-        Foam::cos(degToRad(layerParams.concaveAngle()));
+    scalar concaveCos = Foam::cos(degToRad(layerParams.concaveAngle()));
 
     Info<< nl
         << "Merging all faces of a cell" << nl
         << "---------------------------" << nl
         << "    - which are on the same patch" << nl
-        << "    - which make an angle < " << layerParams.featureAngle()
+        << "    - which make an angle < " << planarAngle
         << " degrees"
         << nl
         << "      (cos:" << minCos << ')' << nl
@@ -2450,14 +2809,7 @@ void Foam::autoLayerDriver::mergePatchFacesUndo
 
     const fvMesh& mesh = meshRefiner_.mesh();
 
-    List<labelPair> couples
-    (
-        meshRefiner_.getDuplicateFaces   // get all baffles
-        (
-            identity(mesh.nFaces()-mesh.nInternalFaces())
-          + mesh.nInternalFaces()
-        )
-    );
+    List<labelPair> couples(localPointRegion::findDuplicateFacePairs(mesh));
 
     labelList duplicateFace(mesh.nFaces(), -1);
     forAll(couples, i)
@@ -2505,10 +2857,16 @@ void Foam::autoLayerDriver::addLayers
     if (debug&meshRefinement::MESH)
     {
         const_cast<Time&>(mesh.time())++;
-        Info<< "Writing baffled mesh to " << meshRefiner_.timeName() << endl;
+        Info<< "Writing baffled mesh to time "
+            << meshRefiner_.timeName() << endl;
         meshRefiner_.write
         (
-            debug,
+            meshRefinement::debugType(debug),
+            meshRefinement::writeType
+            (
+                meshRefinement::writeLevel()
+              | meshRefinement::WRITEMESH
+            ),
             mesh.time().path()/meshRefiner_.timeName()
         );
     }
@@ -2554,26 +2912,6 @@ void Foam::autoLayerDriver::addLayers
     );
 
 
-    // Construct iterative mesh mover.
-    Info<< "Constructing mesh displacer ..." << endl;
-
-    autoPtr<motionSmoother> meshMover
-    (
-        new motionSmoother
-        (
-            mesh,
-            pp(),
-            patchIDs,
-            makeLayerDisplacementField
-            (
-                pointMesh::New(mesh),
-                layerParams.numLayers()
-            ),
-            motionDict
-        )
-    );
-
-
     // Point-wise extrusion data
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2585,7 +2923,7 @@ void Foam::autoLayerDriver::addLayers
     labelList patchNLayers(pp().nPoints(), 0);
 
     // Ideal number of cells added
-    label nIdealAddedCells = 0;
+    label nIdealTotAddedCells = 0;
 
     // Whether to add edge for all pp.localPoints.
     List<extrudeMode> extrudeStatus(pp().nPoints(), EXTRUDE);
@@ -2598,13 +2936,13 @@ void Foam::autoLayerDriver::addLayers
         setNumLayers
         (
             layerParams.numLayers(),    // per patch the num layers
-            meshMover().adaptPatchIDs(),// patches that are being moved
+            patchIDs,                   // patches that are being moved
             pp,                         // indirectpatch for all faces moving
 
             patchDisp,
             patchNLayers,
             extrudeStatus,
-            nIdealAddedCells
+            nIdealTotAddedCells
         );
 
         // Precalculate mesh edge labels for patch edges
@@ -2696,12 +3034,22 @@ void Foam::autoLayerDriver::addLayers
     // Determine (wanted) point-wise overall layer thickness and expansion
     // ratio
     scalarField thickness(pp().nPoints());
-    scalarField minThickness(pp().nPoints());
+    scalarIOField minThickness
+    (
+        IOobject
+        (
+            "minThickness",
+            meshRefiner_.timeName(),
+            mesh,
+            IOobject::NO_READ
+        ),
+        pp().nPoints()
+    );
     scalarField expansionRatio(pp().nPoints());
     calculateLayerThickness
     (
         pp,
-        meshMover().adaptPatchIDs(),
+        patchIDs,
         layerParams,
         cellLevel,
         patchNLayers,
@@ -2714,99 +3062,55 @@ void Foam::autoLayerDriver::addLayers
 
 
 
-    // Calculate wall to medial axis distance for smoothing displacement
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    pointScalarField pointMedialDist
+    // Overall displacement field
+    pointVectorField displacement
     (
-        IOobject
+        makeLayerDisplacementField
         (
-            "pointMedialDist",
-            meshRefiner_.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            false
-        ),
-        meshMover().pMesh(),
-        dimensionedScalar("pointMedialDist", dimLength, 0.0)
+            pointMesh::New(mesh),
+            layerParams.numLayers()
+        )
     );
 
-    pointVectorField dispVec
-    (
-        IOobject
+    // Allocate run-time selectable mesh mover
+    autoPtr<externalDisplacementMeshMover> medialAxisMoverPtr;
+    {
+        // Set up controls for meshMover
+        dictionary combinedDict(layerParams.dict());
+        // Add mesh quality constraints
+        combinedDict.merge(motionDict);
+        // Where to get minThickness from
+        combinedDict.add("minThicknessName", minThickness.name());
+
+        // Take over patchDisp as boundary conditions on displacement
+        // pointVectorField
+        medialAxisMoverPtr = externalDisplacementMeshMover::New
         (
-            "dispVec",
-            meshRefiner_.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            false
-        ),
-        meshMover().pMesh(),
-        dimensionedVector("dispVec", dimLength, vector::zero)
-    );
-
-    pointScalarField medialRatio
-    (
-        IOobject
-        (
-            "medialRatio",
-            meshRefiner_.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            false
-        ),
-        meshMover().pMesh(),
-        dimensionedScalar("medialRatio", dimless, 0.0)
-    );
-
-    pointVectorField medialVec
-    (
-        IOobject
-        (
-            "medialVec",
-            meshRefiner_.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            false
-        ),
-        meshMover().pMesh(),
-        dimensionedVector("medialVec", dimLength, vector::zero)
-    );
-
-    // Setup information for medial axis smoothing. Calculates medial axis
-    // and a smoothed displacement direction.
-    // - pointMedialDist : distance to medial axis
-    // - dispVec : normalised direction of nearest displacement
-    // - medialRatio : ratio of medial distance to wall distance.
-    //   (1 at wall, 0 at medial axis)
-    medialAxisSmoothingInfo
-    (
-        meshMover,
-        layerParams.nSmoothNormals(),
-        layerParams.nSmoothSurfaceNormals(),
-        layerParams.minMedianAxisAngleCos(),
-        layerParams.slipFeatureAngle(),
-
-        dispVec,
-        medialRatio,
-        pointMedialDist,
-        medialVec
-    );
-
+            layerParams.meshShrinker(),
+            combinedDict,
+            baffles,
+            displacement
+        );
+    }
 
 
     // Saved old points
     pointField oldPoints(mesh.points());
 
-    // Last set of topology changes. (changing mesh clears out polyTopoChange)
+    // Current set of topology changes. (changing mesh clears out
+    // polyTopoChange)
     polyTopoChange savedMeshMod(mesh.boundaryMesh().size());
+    // Per cell 0 or number of layers in the cell column it is part of
+    labelList cellNLayers;
+    // Per face actual overall layer thickness
+    scalarField faceRealThickness;
+    // Per face wanted overall layer thickness
+    scalarField faceWantedThickness(mesh.nFaces(), 0.0);
+    {
+        UIndirectList<scalar>(faceWantedThickness, pp().addressing()) =
+            avgPointData(pp, thickness);
+    }
 
-    boolList flaggedCells;
-    boolList flaggedFaces;
 
     for (label iteration = 0; iteration < layerParams.nLayerIter(); iteration++)
     {
@@ -2833,7 +3137,7 @@ void Foam::autoLayerDriver::addLayers
         // Make sure displacement is equal on both sides of coupled patches.
         syncPatchDisplacement
         (
-            meshMover,
+            pp,
             minThickness,
             patchDisp,
             patchNLayers,
@@ -2843,7 +3147,7 @@ void Foam::autoLayerDriver::addLayers
         // Displacement acc. to pointnormals
         getPatchDisplacement
         (
-            meshMover,
+            pp,
             thickness,
             minThickness,
             patchDisp,
@@ -2857,41 +3161,38 @@ void Foam::autoLayerDriver::addLayers
         {
             pointField oldPatchPos(pp().localPoints());
 
-            //// Laplacian displacement shrinking.
-            //shrinkMeshDistance
-            //(
-            //    debug,
-            //    meshMover,
-            //    -patchDisp,     // Shrink in opposite direction of addedPoints
-            //    layerParams.nSmoothDisp(),
-            //    layerParams.nSnap()
-            //);
-
-            // Medial axis based shrinking
-            shrinkMeshMedialDistance
+            // Take over patchDisp into pointDisplacement field and
+            // adjust both for multi-patch constraints
+            motionSmootherAlgo::setDisplacement
             (
-                meshMover(),
-                meshQualityDict,
-                baffles,
-
-                layerParams.nSmoothThickness(),
-                layerParams.maxThicknessToMedialRatio(),
-                nAllowableErrors,
-                layerParams.nSnap(),
-                layerParams.layerTerminationCos(),
-
-                thickness,
-                minThickness,
-
-                dispVec,
-                medialRatio,
-                pointMedialDist,
-                medialVec,
-
-                extrudeStatus,
+                patchIDs,
+                pp,
                 patchDisp,
-                patchNLayers
+                displacement
             );
+
+
+            // Move mesh
+            // ~~~~~~~~~
+
+            // Set up controls for meshMover
+            dictionary combinedDict(layerParams.dict());
+            // Add standard quality constraints
+            combinedDict.merge(motionDict);
+            // Add relaxed constraints (overrides standard ones)
+            combinedDict.merge(meshQualityDict);
+            // Where to get minThickness from
+            combinedDict.add("minThicknessName", minThickness.name());
+
+            labelList checkFaces(identity(mesh.nFaces()));
+            medialAxisMoverPtr().move
+            (
+                combinedDict,
+                nAllowableErrors,
+                checkFaces
+            );
+
+            pp().movePoints(mesh.points());
 
             // Update patchDisp (since not all might have been honoured)
             patchDisp = oldPatchPos - pp().localPoints();
@@ -2905,7 +3206,7 @@ void Foam::autoLayerDriver::addLayers
         (
             globalFaces,
             edgeGlobalFaces,
-            meshMover(),
+            pp,
             minThickness,
             dummySet,
             patchDisp,
@@ -2926,14 +3227,20 @@ void Foam::autoLayerDriver::addLayers
             );
 
             const_cast<Time&>(mesh.time())++;
-            Info<< "Writing shrunk mesh to " << meshRefiner_.timeName() << endl;
+            Info<< "Writing shrunk mesh to time "
+                << meshRefiner_.timeName() << endl;
 
             // See comment in autoSnapDriver why we should not remove meshPhi
             // using mesh.clearOut().
 
             meshRefiner_.write
             (
-                debug,
+                meshRefinement::debugType(debug),
+                meshRefinement::writeType
+                (
+                    meshRefinement::writeLevel()
+                  | meshRefinement::WRITEMESH
+                ),
                 mesh.time().path()/meshRefiner_.timeName()
             );
         }
@@ -2952,7 +3259,7 @@ void Foam::autoLayerDriver::addLayers
         labelList nPatchFaceLayers(pp().size(), -1);
         setupLayerInfoTruncation
         (
-            meshMover(),
+            pp,
             patchNLayers,
             extrudeStatus,
             layerParams.nBufferCellsNoExtrude(),
@@ -3053,34 +3360,52 @@ void Foam::autoLayerDriver::addLayers
         (
             newMesh,
             addLayer,
-            flaggedCells,
-            flaggedFaces
+            avgPointData(pp, mag(patchDisp))(), // current thickness
+
+            cellNLayers,
+            faceRealThickness
         );
+
+
+        // Count number of added cells
+        label nAddedCells = 0;
+        forAll(cellNLayers, cellI)
+        {
+            if (cellNLayers[cellI] > 0)
+            {
+                nAddedCells++;
+            }
+        }
 
 
         if (debug&meshRefinement::MESH)
         {
-            Info<< "Writing layer mesh to " << meshRefiner_.timeName() << endl;
+            Info<< "Writing layer mesh to time " << meshRefiner_.timeName()
+                << endl;
             newMesh.write();
-            cellSet addedCellSet
-            (
-                newMesh,
-                "addedCells",
-                findIndices(flaggedCells, true)
-            );
+
+            cellSet addedCellSet(newMesh, "addedCells", nAddedCells);
+            forAll(cellNLayers, cellI)
+            {
+                if (cellNLayers[cellI] > 0)
+                {
+                    addedCellSet.insert(cellI);
+                }
+            }
             addedCellSet.instance() = meshRefiner_.timeName();
             Info<< "Writing "
                 << returnReduce(addedCellSet.size(), sumOp<label>())
-                << " added cells to cellSet "
-                << addedCellSet.name() << endl;
+                << " added cells to cellSet " << addedCellSet.name() << endl;
             addedCellSet.write();
 
-            faceSet layerFacesSet
-            (
-                newMesh,
-                "layerFaces",
-                findIndices(flaggedCells, true)
-            );
+            faceSet layerFacesSet(newMesh, "layerFaces", newMesh.nFaces()/100);
+            forAll(faceRealThickness, faceI)
+            {
+                if (faceRealThickness[faceI] > 0)
+                {
+                    layerFacesSet.insert(faceI);
+                }
+            }
             layerFacesSet.instance() = meshRefiner_.timeName();
             Info<< "Writing "
                 << returnReduce(layerFacesSet.size(), sumOp<label>())
@@ -3104,26 +3429,17 @@ void Foam::autoLayerDriver::addLayers
             extrudeStatus
         );
 
-        label nExtruded = countExtrusion(pp, extrudeStatus);
+        label nTotExtruded = countExtrusion(pp, extrudeStatus);
         label nTotFaces = returnReduce(pp().size(), sumOp<label>());
-        label nAddedCells = 0;
-        {
-            forAll(flaggedCells, cellI)
-            {
-                if (flaggedCells[cellI])
-                {
-                    nAddedCells++;
-                }
-            }
-            reduce(nAddedCells, sumOp<label>());
-        }
-        Info<< "Extruding " << nExtruded
+        label nTotAddedCells = returnReduce(nAddedCells, sumOp<label>());
+
+        Info<< "Extruding " << nTotExtruded
             << " out of " << nTotFaces
-            << " faces (" << 100.0*nExtruded/nTotFaces << "%)."
+            << " faces (" << 100.0*nTotExtruded/nTotFaces << "%)."
             << " Removed extrusion at " << nTotChanged << " faces."
             << endl
-            << "Added " << nAddedCells << " out of " << nIdealAddedCells
-            << " cells (" << 100.0*nAddedCells/nIdealAddedCells << "%)."
+            << "Added " << nTotAddedCells << " out of " << nIdealTotAddedCells
+            << " cells (" << 100.0*nTotAddedCells/nIdealTotAddedCells << "%)."
             << endl;
 
         if (nTotChanged == 0)
@@ -3132,9 +3448,8 @@ void Foam::autoLayerDriver::addLayers
         }
 
         // Reset mesh points and start again
-        meshMover().movePoints(oldPoints);
-        meshMover().correct();
-
+        mesh.movePoints(oldPoints);
+        pp().movePoints(mesh.points());
 
         // Grow out region of non-extrusion
         for (label i = 0; i < layerParams.nGrow(); i++)
@@ -3181,6 +3496,8 @@ void Foam::autoLayerDriver::addLayers
 
     meshRefiner_.updateMesh(map, labelList(0));
 
+    // Update numbering of faceWantedThickness
+    meshRefinement::updateList(map().faceMap(), scalar(0), faceWantedThickness);
 
     // Update numbering on baffles
     forAll(baffles, i)
@@ -3201,8 +3518,9 @@ void Foam::autoLayerDriver::addLayers
 
         autoPtr<mapPolyMesh> map = meshRefiner_.mergeBaffles(baffles);
 
-        inplaceReorder(map().reverseCellMap(), flaggedCells);
-        inplaceReorder(map().reverseFaceMap(), flaggedFaces);
+        inplaceReorder(map().reverseCellMap(), cellNLayers);
+        inplaceReorder(map().reverseFaceMap(), faceWantedThickness);
+        inplaceReorder(map().reverseFaceMap(), faceRealThickness);
 
         Info<< "Converted baffles in = "
             << meshRefiner_.mesh().time().cpuTimeIncrement()
@@ -3236,29 +3554,23 @@ void Foam::autoLayerDriver::addLayers
         );
 
         // Re-distribute flag of layer faces and cells
-        map().distributeCellData(flaggedCells);
-        map().distributeFaceData(flaggedFaces);
+        map().distributeCellData(cellNLayers);
+        map().distributeFaceData(faceWantedThickness);
+        map().distributeFaceData(faceRealThickness);
     }
 
 
-    // Write mesh
-    // ~~~~~~~~~~
+    // Write mesh data
+    // ~~~~~~~~~~~~~~~
 
-    cellSet addedCellSet(mesh, "addedCells", findIndices(flaggedCells, true));
-    addedCellSet.instance() = meshRefiner_.timeName();
-    Info<< "Writing "
-        << returnReduce(addedCellSet.size(), sumOp<label>())
-        << " added cells to cellSet "
-        << addedCellSet.name() << endl;
-    addedCellSet.write();
-
-    faceSet layerFacesSet(mesh, "layerFaces", findIndices(flaggedFaces, true));
-    layerFacesSet.instance() = meshRefiner_.timeName();
-    Info<< "Writing "
-        << returnReduce(layerFacesSet.size(), sumOp<label>())
-        << " faces inside added layer to faceSet "
-        << layerFacesSet.name() << endl;
-    layerFacesSet.write();
+    writeLayerData
+    (
+        mesh,
+        patchIDs,
+        cellNLayers,
+        faceWantedThickness,
+        faceRealThickness
+    );
 }
 
 

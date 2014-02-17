@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,9 +17,12 @@ FoamFile
 
 DebugSwitches
 {
-    primitiveMesh   1;
-    polyMesh        1;
-    fvMesh          1;
+    primitiveMesh       1;
+    polyMesh            1;
+    fvMesh              1;
+    polyTopoChange      1;
+    pointMesh           1;
+    pointConstraints    1;
 }
 
 application     icoFoam;

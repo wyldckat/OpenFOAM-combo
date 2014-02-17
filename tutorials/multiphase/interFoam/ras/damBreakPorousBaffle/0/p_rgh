@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -25,16 +25,19 @@ boundaryField
     {
         type            fixedFluxPressure;
         gradient        uniform 0;
+        value           uniform 0;
     }
     rightWall
     {
         type            fixedFluxPressure;
         gradient        uniform 0;
+        value           uniform 0;
     }
     lowerWall
     {
         type            fixedFluxPressure;
         gradient        uniform 0;
+        value           uniform 0;
     }
     atmosphere
     {
@@ -55,18 +58,18 @@ boundaryField
         patchType       cyclic;
         jump            uniform 0;
         value           uniform 0;
-        D               700;
+        D               1000;
         I               500;
-        length          1.05;
+        length          0.15;
     }
     porous_half1
     {
         type            porousBafflePressure;
         patchType       cyclic;
         value           uniform 0;
-        D               700;
+        D               1000;
         I               500;
-        length          1.05;
+        length          0.15;
     }
 }
 

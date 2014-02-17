@@ -52,6 +52,7 @@ namespace surfaceFilmModels
 {
 
 // Forward declaration of classes
+class filmViscosityModel;
 class heatTransferModel;
 class phaseChangeModel;
 class filmRadiationModel;
@@ -86,11 +87,6 @@ protected:
 
             //- Reference to the SLGThermo
             const SLGThermo& thermo_;
-
-            // Single component
-
-                //- Id of component in thermo database
-                label liquidId_;
 
 
             // Fields
@@ -169,6 +165,9 @@ protected:
 
 
         // Sub-models
+
+            //- Viscosity model
+            autoPtr<filmViscosityModel> viscosity_;
 
             //- Heat transfer coefficient bewteen film surface and primary
             //  region [W/m2/K]
@@ -261,11 +260,6 @@ public:
 
             //- Return const reference to the SLGThermo object
             inline const SLGThermo& thermo() const;
-
-            // Single component
-
-                //- Return the Id of component in thermo database
-                inline label liquidId() const;
 
 
             // Fields

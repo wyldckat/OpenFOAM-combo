@@ -63,20 +63,6 @@ class surfaceFilmModel
 :
     public singleLayerRegion
 {
-public:
-
-    // Data types
-
-        //- Enumeration listing the possible thermo types
-        enum thermoModelType
-        {
-            tmConstant,
-            tmSingleComponent
-        };
-
-        //- Named enumeration for the thermoType
-        static const NamedEnum<thermoModelType, 2> thermoModelTypeNames_;
-
 
 private:
 
@@ -93,12 +79,8 @@ protected:
 
     // Protected data
 
-
         //- Acceleration due to gravity [m/s2]
         const dimensionedVector& g_;
-
-        //- Thermo type
-        thermoModelType thermoModel_;
 
 
     // Protected member functions
@@ -162,9 +144,6 @@ public:
 
             //- Return the accleration due to gravity
             inline const dimensionedVector& g() const;
-
-            //- Return the thermo type
-            inline const thermoModelType& thermoModel() const;
 
             //- External hook to add sources to the film
             virtual void addSources

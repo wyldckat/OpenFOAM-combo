@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ License
 
 #include "cachedRandom.H"
 #include "OSspecific.H"
+#include "PstreamReduceOps.H"
 
 // * * * * * * * * * * * * * private Member Functions  * * * * * * * * * * * //
 
@@ -95,7 +96,8 @@ Foam::cachedRandom::cachedRandom(const cachedRandom& cr, const bool reset)
 
         osRandomSeed(seed_);
     }
-    else if (reset)
+
+    if (reset && samples_.size())
     {
         sampleI_ = 0;
     }
@@ -139,6 +141,78 @@ Foam::scalar Foam::cachedRandom::position
 )
 {
     return start + scalar01()*(end - start);
+}
+
+
+template<>
+Foam::label Foam::cachedRandom::globalSample01()
+{
+    scalar value = -GREAT;
+
+    if (Pstream::master())
+    {
+        value = scalar01();
+    }
+
+    reduce(value, maxOp<scalar>());
+
+    return round(value);
+}
+
+
+template<>
+Foam::scalar Foam::cachedRandom::globalSample01()
+{
+    scalar value = -GREAT;
+
+    if (Pstream::master())
+    {
+        value = scalar01();
+    }
+
+    reduce(value, maxOp<scalar>());
+
+    return value;
+}
+
+
+template<>
+Foam::label Foam::cachedRandom::globalPosition
+(
+    const label& start,
+    const label& end
+)
+{
+    label value = labelMin;
+
+    if (Pstream::master())
+    {
+        value = round(scalar01()*(end - start));
+    }
+
+    reduce(value, maxOp<label>());
+
+    return start + value;
+}
+
+
+template<>
+Foam::scalar Foam::cachedRandom::globalPosition
+(
+    const scalar& start,
+    const scalar& end
+)
+{
+    scalar value = -GREAT;
+
+    if (Pstream::master())
+    {
+        value = scalar01()*(end - start);
+    }
+
+    reduce(value, maxOp<scalar>());
+
+    return start + value;
 }
 
 

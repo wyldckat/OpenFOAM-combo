@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,13 +67,36 @@ class MGridGenGAMGAgglomeration
 
     // Private Member Functions
 
+        void swap
+        (
+            const lduInterfacePtrsList& interfaces,
+            const labelUList& cellValues,
+            PtrList<labelList>& nbrValues
+        ) const;
+
+        void getNbrAgglom
+        (
+            const lduAddressing& addr,
+            const lduInterfacePtrsList& interfaces,
+            const PtrList<labelList>& nbrGlobalAgglom,
+            labelList& cellToNbrAgglom
+        ) const;
+
+        void detectSharedFaces
+        (
+            const lduMesh& mesh,
+            const labelList& value,
+            labelHashSet& sharedFaces
+        ) const;
+
+
         //- Construct the CSR format addressing
         void makeCompactCellFaceAddressingAndFaceWeights
         (
             const lduAddressing& fineAddressing,
             List<idxtype>& cellCells,
             List<idxtype>& cellCellOffsets,
-            const vectorField& Si,
+            const scalarField& magSi,
             List<scalar>& faceWeights
         );
 
@@ -85,8 +108,8 @@ class MGridGenGAMGAgglomeration
             const label maxSize,
             const lduAddressing& fineAddressing,
             const scalarField& V,
-            const vectorField& Sf,
-            const scalarField& Sb
+            const scalarField& magSf,
+            const scalarField& magSb
         );
 
 

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,19 +17,25 @@ FoamFile
 
 solvers
 {
-    cellDisplacement
+    "alpha.water.*"
     {
-        solver          GAMG;
-        tolerance       1e-5;
+        nAlphaCorr      1;
+        nAlphaSubCycles 1;
+        cAlpha          1;
+
+        alphaOuterCorrectors  yes;
+
+        MULESCorr       yes;
+        nLimiterIter    5;
+        alphaApplyPrevCorr  true;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
         relTol          0;
-        smoother        GaussSeidel;
-        cacheAgglomeration true;
-        nCellsInCoarsestLevel 10;
-        agglomerator    faceAreaPair;
-        mergeLevels     1;
     }
 
-    pcorr
+    "pcorr.*"
     {
         solver          PCG;
         preconditioner
@@ -113,12 +119,11 @@ solvers
 PIMPLE
 {
     momentumPredictor no;
-    nCorrectors     2;
+    nOuterCorrectors 5;
+    nCorrectors      1;
     nNonOrthogonalCorrectors 0;
-    nAlphaCorr      1;
-    nAlphaSubCycles 3;
-    cAlpha          1;
     correctPhi      yes;
+    moveMeshOuterCorrectors yes;
 }
 
 relaxationFactors
@@ -128,7 +133,7 @@ relaxationFactors
     }
     equations
     {
-        "(U|k|epsilon|omega|R|nuTilda).*" 1;
+        ".*" 1;
     }
 }
 

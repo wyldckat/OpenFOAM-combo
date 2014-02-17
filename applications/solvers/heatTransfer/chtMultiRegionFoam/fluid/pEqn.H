@@ -5,8 +5,8 @@
 
     rho = thermo.rho();
 
-    volScalarField rAU(1.0/UEqn().A());
-    surfaceScalarField rhorAUf("Dp", fvc::interpolate(rho*rAU));
+    volScalarField rAU("rAU", 1.0/UEqn().A());
+    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
 
     volVectorField HbyA("HbyA", U);
     HbyA = rAU*UEqn().H();
@@ -16,15 +16,25 @@
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::interpolate(rho)
-       *(
-            (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        (
+            (fvc::interpolate(rho*HbyA) & mesh.Sf())
+          + rhorAUf*fvc::ddtCorr(rho, U, phi)
         )
       + phig
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
+
+    // Update the fixedFluxPressure BCs to ensure flux consistency
+    setSnGrad<fixedFluxPressureFvPatchScalarField>
+    (
+        p_rgh.boundaryField(),
+        (
+            phiHbyA.boundaryField()
+          - fvOptions.relative(mesh.Sf().boundaryField() & U.boundaryField())
+           *rho.boundaryField()
+        )/(mesh.magSf().boundaryField()*rhorAUf.boundaryField())
+    );
 
     {
         fvScalarMatrix p_rghDDtEqn

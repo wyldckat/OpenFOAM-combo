@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -21,6 +21,7 @@ solution
     coupled         true;
     transient       yes;
     cellValueSourceCorrection on;
+    maxCo           0.3;
 
     sourceTerms
     {
@@ -57,18 +58,10 @@ constantProperties
 {
     T0              320;
 
-    // place holders for rho0 and Cp0 - reset from liquid props using T0
+    // place holders for rho0 and Cp0
+    // - reset from liquid properties using T0
     rho0            1000;
     Cp0             4187;
-
-    youngsModulus   1e9;
-    poissonsRatio   0.35;
-
-    epsilon0        1;
-    f0              0.5;
-    Pr              0.7;
-    Tvap            273;
-    Tbp             373;
 
     constantVolume  false;
 }
@@ -235,24 +228,7 @@ subModels
 
 
 cloudFunctions
-{
-    particleCollector
-    {
-        mode            concentricCircle;
-
-        origin          (0 0.08 0);
-        radius          (0.0010 0.0015 0.0020 0.0025 0.0030 0.0035 0.0040 0.0045);
-        nSector         20;
-        refDir          (1 0 0);
-        normal          (0 1 0);
-
-        negateParcelsOppositeNormal no;
-        removeCollected no;
-        surfaceFormat   vtk;
-        resetOnWrite    no;
-        log             yes;
-    }
-}
+{}
 
 
 // ************************************************************************* //

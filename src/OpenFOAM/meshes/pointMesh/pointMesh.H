@@ -85,6 +85,10 @@ public:
         explicit pointMesh(const polyMesh& pMesh);
 
 
+    //- Destructor
+    ~pointMesh();
+
+
     // Member Functions
 
         //- Return number of points
@@ -120,7 +124,7 @@ public:
 
         // Mesh motion
 
-            //- Move points, returns volumes swept by faces in motion
+            //- Move points
             bool movePoints();
 
             //- Update the mesh corresponding to given map

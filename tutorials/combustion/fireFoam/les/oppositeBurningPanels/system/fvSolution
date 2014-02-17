@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -34,7 +34,7 @@ solvers
     p_rgh
     {
         solver              GAMG;
-        tolerance           1e-7;
+        tolerance           1e-6;
         relTol              0.01;
         smoother            GaussSeidel;
         cacheAgglomeration  true;
@@ -46,16 +46,16 @@ solvers
     p_rghFinal
     {
         $p_rgh;
-        tolerance           1e-7;
+        tolerance           1e-6;
         relTol              0;
     };
 
 
-   "(U|Yi|k|h|omega)"
+    "(U|Yi|k|h|omega)"
     {
         solver          PBiCG;
         preconditioner  DILU;
-        tolerance       1e-7;
+        tolerance       1e-6;
         relTol          0.1;
         nSweeps         1;
     };
@@ -63,26 +63,27 @@ solvers
     "(U|Yi|k|h|omega)Final"
     {
         $U;
-        tolerance       1e-7;
+        tolerance       1e-6;
         relTol          0;
     };
 
+
     Ii
     {
-        solver              GAMG;
-        tolerance           1e-4;
-        relTol              0;
-        smoother            symGaussSeidel;
-        cacheAgglomeration  true;
+        solver                  GAMG;
+        tolerance               1e-4;
+        relTol                  0;
+        smoother                symGaussSeidel;
+        cacheAgglomeration      true;
         nCellsInCoarsestLevel   10;
-        agglomerator    faceAreaPair;
-        mergeLevels         1;
-        maxIter             1;
-        nPreSweeps          0;
-        nPostSweeps         1;
+        agglomerator            faceAreaPair;
+        mergeLevels             1;
+        maxIter                 1;
+        nPreSweeps              0;
+        nPostSweeps             1;
     }
 
-    G
+    "(G)Final"
     {
         solver          PCG;
         preconditioner  DIC;
@@ -96,7 +97,7 @@ PIMPLE
 {
     momentumPredictor yes;
     nOuterCorrectors  1;
-    nCorrectors       3;
+    nCorrectors       2;
     nNonOrthogonalCorrectors 0;
 }
 

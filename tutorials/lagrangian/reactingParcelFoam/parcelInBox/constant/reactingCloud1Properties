@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -21,6 +21,7 @@ solution
     coupled         false;
     transient       yes;
     cellValueSourceCorrection off;
+    maxCo           0.3;
 
     sourceTerms
     {
@@ -58,18 +59,6 @@ constantProperties
     rho0            1000;
     T0              350;
     Cp0             4100;
-
-    youngsModulus   1e9;
-    poissonsRatio   0.35;
-
-    epsilon0        1;
-    f0              0.5;
-
-    Tvap            284;
-    Tbp             373;
-    Pr              0.7;
-    LDevol          0;
-    hRetentionCoeff 1;
 
     constantVolume  false;
 }
@@ -118,6 +107,8 @@ subModels
     devolatilisationModel none;
 
     surfaceReactionModel none;
+
+    stochasticCollisionModel none;
 
     surfaceFilmModel none;
 

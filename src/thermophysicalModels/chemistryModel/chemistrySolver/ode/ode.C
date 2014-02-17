@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -36,9 +36,8 @@ Foam::ode<ChemistryModel>::ode
 :
     chemistrySolver<ChemistryModel>(mesh),
     coeffsDict_(this->subDict("odeCoeffs")),
-    solverName_(coeffsDict_.lookup("solver")),
-    odeSolver_(ODESolver::New(solverName_, *this)),
-    eps_(readScalar(coeffsDict_.lookup("eps")))
+    odeSolver_(ODESolver::New(*this, coeffsDict_)),
+    cTp_(this->nEqns())
 {}
 
 
@@ -52,44 +51,33 @@ Foam::ode<ChemistryModel>::~ode()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class ChemistryModel>
-Foam::scalar Foam::ode<ChemistryModel>::solve
+void Foam::ode<ChemistryModel>::solve
 (
     scalarField& c,
-    const scalar T,
-    const scalar p,
-    const scalar t0,
-    const scalar dt
+    scalar& T,
+    scalar& p,
+    scalar& deltaT,
+    scalar& subDeltaT
 ) const
 {
     label nSpecie = this->nSpecie();
-    scalarField c1(this->nEqns(), 0.0);
 
-    // copy the concentration, T and P to the total solve-vector
-    for (label i = 0; i < nSpecie; i++)
+    // Copy the concentration, T and P to the total solve-vector
+    for (register int i=0; i<nSpecie; i++)
     {
-        c1[i] = c[i];
+        cTp_[i] = c[i];
     }
-    c1[nSpecie] = T;
-    c1[nSpecie+1] = p;
+    cTp_[nSpecie] = T;
+    cTp_[nSpecie+1] = p;
 
-    scalar dtEst = dt;
+    odeSolver_->solve(0, deltaT, cTp_, subDeltaT);
 
-    odeSolver_->solve
-    (
-        *this,
-        t0,
-        t0 + dt,
-        c1,
-        eps_,
-        dtEst
-    );
-
-    forAll(c, i)
+    for (register int i=0; i<nSpecie; i++)
     {
-        c[i] = max(0.0, c1[i]);
+        c[i] = max(0.0, cTp_[i]);
     }
-
-    return dtEst;
+    T = cTp_[nSpecie];
+    p = cTp_[nSpecie+1];
 }
 
 

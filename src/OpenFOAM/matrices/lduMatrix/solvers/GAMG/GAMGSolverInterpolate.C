@@ -34,7 +34,6 @@ void Foam::GAMGSolver::interpolate
     const lduMatrix& m,
     const FieldField<Field, scalar>& interfaceBouCoeffs,
     const lduInterfaceFieldPtrsList& interfaces,
-    const scalarField& source,
     const direction cmpt
 ) const
 {
@@ -79,6 +78,54 @@ void Foam::GAMGSolver::interpolate
     for (register label celli=0; celli<nCells; celli++)
     {
         psiPtr[celli] = -ApsiPtr[celli]/(diagPtr[celli]);
+    }
+}
+
+
+void Foam::GAMGSolver::interpolate
+(
+    scalarField& psi,
+    scalarField& Apsi,
+    const lduMatrix& m,
+    const FieldField<Field, scalar>& interfaceBouCoeffs,
+    const lduInterfaceFieldPtrsList& interfaces,
+    const labelList& restrictAddressing,
+    const scalarField& psiC,
+    const direction cmpt
+) const
+{
+    interpolate
+    (
+        psi,
+        Apsi,
+        m,
+        interfaceBouCoeffs,
+        interfaces,
+        cmpt
+    );
+
+    register const label nCells = m.diag().size();
+    scalar* __restrict__ psiPtr = psi.begin();
+    const scalar* const __restrict__ diagPtr = m.diag().begin();
+
+    register const label nCCells = psiC.size();
+    scalarField corrC(nCCells, 0);
+    scalarField diagC(nCCells, 0);
+
+    for (register label celli=0; celli<nCells; celli++)
+    {
+        corrC[restrictAddressing[celli]] += diagPtr[celli]*psiPtr[celli];
+        diagC[restrictAddressing[celli]] += diagPtr[celli];
+    }
+
+    for (register label ccelli=0; ccelli<nCCells; ccelli++)
+    {
+        corrC[ccelli] = psiC[ccelli] - corrC[ccelli]/diagC[ccelli];
+    }
+
+    for (register label celli=0; celli<nCells; celli++)
+    {
+        psiPtr[celli] += corrC[restrictAddressing[celli]];
     }
 }
 

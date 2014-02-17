@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -21,22 +21,21 @@ internalField   uniform 0;
 
 boundaryField
 {
-   fRight_zone_top
+    ".*"
     {
-        type           zeroGradient;
+        type            zeroGradient;
     }
+
     fRight_zone_side
     {
         type            wedge;
     }
-    fLeft_zone_top
-    {
-        type           zeroGradient;
-    }
+
     fLeft_zone_side
     {
         type            wedge;
     }
+
     region0_to_panelRegion_fLeft_zone
     {
         type            mappedField;
@@ -49,6 +48,7 @@ boundaryField
         average         0;
         value           uniform 0;
     }
+
     region0_to_panelRegion_fRight_zone
     {
         type            mappedField;

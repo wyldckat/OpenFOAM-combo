@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,7 +28,10 @@ License
 #include "Time.H"
 #include "subCycle.H"
 #include "MULES.H"
+#include "surfaceInterpolate.H"
+#include "fvcGrad.H"
 #include "fvcSnGrad.H"
+#include "fvcDiv.H"
 #include "fvcFlux.H"
 
 // * * * * * * * * * * * * * * * Static Member Data  * * * * * * * * * * * * //
@@ -62,7 +65,18 @@ Foam::multiphaseMixture::multiphaseMixture
     const surfaceScalarField& phi
 )
 :
-    transportModel(U, phi),
+    IOdictionary
+    (
+        IOobject
+        (
+            "transportProperties",
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_WRITE
+        )
+    ),
+
     phases_(lookup("phases"), phase::iNew(U, phi)),
 
     mesh_(U.mesh()),
@@ -73,14 +87,14 @@ Foam::multiphaseMixture::multiphaseMixture
     (
         IOobject
         (
-            "rho*phi",
+            "rhoPhi",
             mesh_.time().timeName(),
             mesh_,
             IOobject::NO_READ,
             IOobject::NO_WRITE
         ),
         mesh_,
-        dimensionedScalar("rho*phi", dimMass/dimTime, 0.0)
+        dimensionedScalar("rhoPhi", dimMass/dimTime, 0.0)
     ),
 
     alphas_
@@ -113,7 +127,8 @@ Foam::multiphaseMixture::multiphaseMixture
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::rho() const
+Foam::tmp<Foam::volScalarField>
+Foam::multiphaseMixture::rho() const
 {
     PtrDictionary<phase>::const_iterator iter = phases_.begin();
 
@@ -128,7 +143,24 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::rho() const
 }
 
 
-Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::mu() const
+Foam::tmp<Foam::scalarField>
+Foam::multiphaseMixture::rho(const label patchi) const
+{
+    PtrDictionary<phase>::const_iterator iter = phases_.begin();
+
+    tmp<scalarField> trho = iter().boundaryField()[patchi]*iter().rho().value();
+
+    for (++iter; iter != phases_.end(); ++iter)
+    {
+        trho() += iter().boundaryField()[patchi]*iter().rho().value();
+    }
+
+    return trho;
+}
+
+
+Foam::tmp<Foam::volScalarField>
+Foam::multiphaseMixture::mu() const
 {
     PtrDictionary<phase>::const_iterator iter = phases_.begin();
 
@@ -143,7 +175,30 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::mu() const
 }
 
 
-Foam::tmp<Foam::surfaceScalarField> Foam::multiphaseMixture::muf() const
+Foam::tmp<Foam::scalarField>
+Foam::multiphaseMixture::mu(const label patchi) const
+{
+    PtrDictionary<phase>::const_iterator iter = phases_.begin();
+
+    tmp<scalarField> tmu =
+        iter().boundaryField()[patchi]
+       *iter().rho().value()
+       *iter().nu(patchi);
+
+    for (++iter; iter != phases_.end(); ++iter)
+    {
+        tmu() +=
+            iter().boundaryField()[patchi]
+           *iter().rho().value()
+           *iter().nu(patchi);
+    }
+
+    return tmu;
+}
+
+
+Foam::tmp<Foam::surfaceScalarField>
+Foam::multiphaseMixture::muf() const
 {
     PtrDictionary<phase>::const_iterator iter = phases_.begin();
 
@@ -160,13 +215,22 @@ Foam::tmp<Foam::surfaceScalarField> Foam::multiphaseMixture::muf() const
 }
 
 
-Foam::tmp<Foam::volScalarField> Foam::multiphaseMixture::nu() const
+Foam::tmp<Foam::volScalarField>
+Foam::multiphaseMixture::nu() const
 {
     return mu()/rho();
 }
 
 
-Foam::tmp<Foam::surfaceScalarField> Foam::multiphaseMixture::nuf() const
+Foam::tmp<Foam::scalarField>
+Foam::multiphaseMixture::nu(const label patchi) const
+{
+    return mu(patchi)/rho(patchi);
+}
+
+
+Foam::tmp<Foam::surfaceScalarField>
+Foam::multiphaseMixture::nuf() const
 {
     return muf()/fvc::interpolate(rho());
 }
@@ -241,18 +305,26 @@ void Foam::multiphaseMixture::solve()
 
     const Time& runTime = mesh_.time();
 
-    const dictionary& pimpleDict = mesh_.solutionDict().subDict("PIMPLE");
-
-    label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
-
-    scalar cAlpha(readScalar(pimpleDict.lookup("cAlpha")));
-
-
     volScalarField& alpha = phases_.first();
+
+    const dictionary& alphaControls = mesh_.solverDict("alpha");
+    label nAlphaSubCycles(readLabel(alphaControls.lookup("nAlphaSubCycles")));
+    scalar cAlpha(readScalar(alphaControls.lookup("cAlpha")));
 
     if (nAlphaSubCycles > 1)
     {
-        surfaceScalarField rhoPhiSum(0.0*rhoPhi_);
+        surfaceScalarField rhoPhiSum
+        (
+            IOobject
+            (
+                "rhoPhiSum",
+                runTime.timeName(),
+                mesh_
+            ),
+            mesh_,
+            dimensionedScalar("0", rhoPhi_.dimensions(), 0)
+        );
+
         dimensionedScalar totalDeltaT = runTime.deltaT();
 
         for
@@ -497,6 +569,7 @@ void Foam::multiphaseMixture::solveAlphas
             phasei,
             new surfaceScalarField
             (
+                "phi" + alpha.name() + "Corr",
                 fvc::flux
                 (
                     phi_,
@@ -526,6 +599,7 @@ void Foam::multiphaseMixture::solveAlphas
 
         MULES::limit
         (
+            1.0/mesh_.time().deltaT().value(),
             geometricOneField(),
             alpha,
             phi_,

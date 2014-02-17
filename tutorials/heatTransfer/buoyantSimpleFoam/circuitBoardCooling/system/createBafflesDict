@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.x                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -29,35 +29,13 @@ baffles
         surface     triSurfaceMesh;
         name        baffle1D.stl;
 
-        patches
+        patchPairs
         {
-            master
+            type            wall;
+            patchFields
             {
-                //- Master side patch
-                name            baffle1DWall_master;
-
-                type            wall;
-                inGroups        (baffleWallGroup);
-
-                patchFields
-                {
-                    #include "./0/include/wallBafflePatches"
-                    #include "./0/include/1DBaffle/1DTemperatureMasterBafflePatches"
-                }
-            }
-            slave
-            {
-                //- Slave side patch
-                name            baffle1DWall_slave;
-
-                type            wall;
-                inGroups        (baffleWallGroup);
-
-                patchFields
-                {
-                    #include "./0/include/wallBafflePatches"
-                    #include "./0/include/1DBaffle/1DTemperatureSlaveBafflePatches"
-                }
+                #include "./0/include/wallBafflePatches"
+                #include "./0/include/1DBaffle/1DTemperatureMasterBafflePatches"
             }
         }
     }
@@ -70,47 +48,17 @@ baffles
         surface     triSurfaceMesh;
         name        baffle3D.stl;
 
-        patches
+        patchPairs
         {
-            master
+            type            mappedWall;
+            sampleMode      nearestPatchFace;
+            // Put master and slave patch in same group (default on)
+            // Otherwise makeup group names xxx_master and xxx_slave
+            sameGroup       off;
+            patchFields
             {
-                //- Master side patch
-                name            ${masterPatchName};
-
-                type            mappedWall;
-                inGroups        (baffleWallGroup);
-
-                sampleMode      nearestPatchFace;
-                sampleRegion    ${baffleRegionName};
-                samplePatch     bottom;
-                offsetMode      uniform;
-                offset          (0 0 0);
-
-                patchFields
-                {
-                    #include "./0/include/wallBafflePatches"
-                    #include "./0/include/3DBaffle/3DTemperatureMasterBafflePatches"
-                }
-            }
-            slave
-            {
-                //- Slave side patch
-                name            ${slavePatchName};
-
-                type            mappedWall;
-                inGroups        (baffleWallGroup);
-
-                sampleMode      nearestPatchFace;
-                sampleRegion    ${baffleRegionName};
-                samplePatch     top;
-                offsetMode      uniform;
-                offset          (0 0 0);
-
-                patchFields
-                {
-                    #include "./0/include/wallBafflePatches"
-                    #include "./0/include/3DBaffle/3DTemperatureSlaveBafflePatches"
-                }
+                #include "./0/include/wallBafflePatches"
+                #include "./0/include/3DBaffle/3DTemperatureMasterBafflePatches"
             }
         }
     }

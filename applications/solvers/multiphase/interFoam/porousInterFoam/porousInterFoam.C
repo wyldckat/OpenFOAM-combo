@@ -39,7 +39,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "MULES.H"
+#include "CMULES.H"
 #include "subCycle.H"
 #include "interfaceProperties.H"
 #include "incompressibleTwoPhaseMixture.H"
@@ -47,6 +47,7 @@ Description
 #include "IOporosityModelList.H"
 #include "pimpleControl.H"
 #include "fvIOoptionList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -62,6 +63,7 @@ int main(int argc, char *argv[])
 
     pimpleControl pimple(mesh);
 
+    #include "createPrghCorrTypes.H"
     #include "correctPhi.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
@@ -81,14 +83,19 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        twoPhaseProperties.correct();
-
-        #include "alphaEqnSubCycle.H"
-        interface.correct();
-
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
+            #include "alphaControls.H"
+
+            if (pimple.firstIter() || alphaOuterCorrectors)
+            {
+                twoPhaseProperties.correct();
+
+                #include "alphaEqnSubCycle.H"
+                interface.correct();
+            }
+
             #include "UEqn.H"
 
             // --- Pressure corrector loop

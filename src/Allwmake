@@ -24,7 +24,7 @@ wmakeLnInclude OpenFOAM
 wmakeLnInclude OSspecific/${WM_OSTYPE:-POSIX}
 Pstream/Allwmake $*
 
-OSspecific/${WM_OSTYPE:-POSIX}/Allwmake
+OSspecific/${WM_OSTYPE:-POSIX}/Allwmake $*
 wmake $makeType OpenFOAM
 
 wmake $makeType fileFormats
@@ -64,6 +64,7 @@ wmake $makeType randomProcesses
 thermophysicalModels/Allwmake $*
 transportModels/Allwmake $*
 turbulenceModels/Allwmake $*
+TurbulenceModels/Allwmake $*
 wmake $makeType combustionModels
 regionModels/Allwmake $*
 lagrangian/Allwmake $*
@@ -79,5 +80,7 @@ wmake $makeType fvOptions
 wmake $makeType regionCoupled
 
 postProcessing/Allwmake $*
+
+wmake $makeType sixDoFRigidBodyMotion
 
 # ----------------------------------------------------------------- end-of-file

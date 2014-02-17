@@ -97,6 +97,16 @@ protected:
         //- Calculate the Y+ at the edge of the laminar sublayer
         scalar yPlusLam(const scalar kappa, const scalar E);
 
+        //- Calculate the epsilon and G
+        virtual void calculate
+        (
+            const turbulenceModel& turbulence,
+            const List<scalar>& cornerWeights,
+            const fvPatch& patch,
+            scalarField& G,
+            scalarField& epsilon
+        );
+
 
 public:
 
@@ -165,14 +175,6 @@ public:
                 new epsilonLowReWallFunctionFvPatchScalarField(*this, iF)
             );
         }
-
-
-    // Member functions
-
-        // Evaluation functions
-
-            //- Update the coefficients associated with the patch field
-            virtual void updateCoeffs();
 };
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,9 +51,11 @@ bool Foam::triSurface::readOBJ(const fileName& OBJfileName)
     {
         string line = getLineNoComment(OBJfile);
 
-        if (line[line.size()-1] == '\\')
+        label sz = line.size();
+
+        if (sz && line[sz-1] == '\\')
         {
-            line.substr(0, line.size()-1);
+            line.substr(0, sz-1);
             line += getLineNoComment(OBJfile);
         }
 
@@ -102,7 +104,7 @@ bool Foam::triSurface::readOBJ(const fileName& OBJfileName)
             while (true)
             {
                 string::size_type startNum =
-                    line.find_first_not_of(' ', endNum);
+                    line.find_first_not_of(" \r", endNum);
 
                 if (startNum == string::npos)
                 {

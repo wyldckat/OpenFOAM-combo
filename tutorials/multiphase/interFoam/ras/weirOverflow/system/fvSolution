@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,6 +16,13 @@ FoamFile
 
 solvers
 {
+    alpha.water
+    {
+        nAlphaCorr      1;
+        nAlphaSubCycles 2;
+        cAlpha          1;
+    }
+
     pcorr
     {
         solver          PCG;
@@ -40,8 +47,8 @@ solvers
 
     "(U|k|epsilon)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-8;
         relTol          0.1;
     }
@@ -58,9 +65,6 @@ PIMPLE
     momentumPredictor no;
     nCorrectors     3;
     nNonOrthogonalCorrectors 0;
-    nAlphaCorr      1;
-    nAlphaSubCycles 2;
-    cAlpha          1;
 }
 
 

@@ -67,7 +67,6 @@ class functionObjectList
         //- Quick lookup of the index into functions/digests
         HashTable<label> indices_;
 
-        //- Time
         const Time& time_;
 
         //- The parent dictionary containing a "functions" entry
@@ -152,10 +151,11 @@ public:
         //- Return the execution status (on/off) of the function objects
         virtual bool status() const;
 
+
         //- Called at the start of the time-loop
         virtual bool start();
 
-        //- Called at the start of the time-loop. forceWrite overrides
+        //- Called at each ++ or += of the time-loop. forceWrite overrides
         //  the usual outputControl behaviour and forces writing always
         //  (used in postprocessing mode)
         virtual bool execute(const bool forceWrite = false);

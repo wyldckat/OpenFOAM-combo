@@ -1,20 +1,4 @@
-surfaceScalarField rhoPhi
-(
-    IOobject
-    (
-        "rhoPhi",
-        runTime.timeName(),
-        mesh
-    ),
-    mesh,
-    dimensionedScalar("0", dimMass/dimTime, 0)
-);
-
 {
-    const dictionary& pimpleDict = pimple.dict();
-    label nAlphaCorr(readLabel(pimpleDict.lookup("nAlphaCorr")));
-    label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
-
     surfaceScalarField phic(mag(phi/mesh.magSf()));
     phic = min(interface.cAlpha()*phic, max(phic));
 

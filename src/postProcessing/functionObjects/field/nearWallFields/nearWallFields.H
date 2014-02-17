@@ -76,8 +76,7 @@ SourceFiles
 #include "OFstream.H"
 #include "volFields.H"
 #include "Tuple2.H"
-#include "cachedInterpolationCellPoint.H"
-//#include "interpolationCellPoint.H"
+#include "interpolationCellPoint.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -161,8 +160,7 @@ protected:
         template<class Type>
         void sampleBoundaryField
         (
-            const cachedInterpolationCellPoint<Type>& interpolator,
-            //const interpolationCellPoint<Type>& interpolator,
+            const interpolationCellPoint<Type>& interpolator,
             GeometricField<Type, fvPatchField, volMesh>& fld
         ) const;
 

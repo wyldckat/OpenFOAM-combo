@@ -168,6 +168,12 @@ int main(int argc, char *argv[])
         "add exposed internal faces to specified patch instead of to "
         "'oldInternalFaces'"
     );
+    argList::addOption
+    (
+        "resultTime",
+        "time",
+        "specify a time for the resulting mesh"
+    );
     #include "setRootCase.H"
     #include "createTime.H"
     runTime.functionObjects().off();
@@ -178,10 +184,22 @@ int main(int argc, char *argv[])
     #include "createNamedMesh.H"
 
 
-    const word oldInstance = mesh.pointsInstance();
-
     const word setName = args[1];
+
+    word meshInstance = mesh.pointsInstance();
+    word fieldsInstance = runTime.timeName();
+
     const bool overwrite = args.optionFound("overwrite");
+    const bool specifiedInstance = args.optionReadIfPresent
+    (
+        "resultTime",
+        fieldsInstance
+    );
+    if (specifiedInstance)
+    {
+        // Set both mesh and field to this time
+        meshInstance = fieldsInstance;
+    }
 
 
     Info<< "Reading cell set from " << setName << endl << endl;
@@ -347,13 +365,14 @@ int main(int argc, char *argv[])
     // Write mesh and fields to new time
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    if (!overwrite)
+    if (overwrite || specifiedInstance)
     {
-        runTime++;
+        runTime.setTime(instant(fieldsInstance), 0);
+        subsetter.subMesh().setInstance(meshInstance);
     }
     else
     {
-        subsetter.subMesh().setInstance(oldInstance);
+        runTime++;
     }
 
     Info<< "Writing subsetted mesh and fields to time " << runTime.timeName()
@@ -365,31 +384,26 @@ int main(int argc, char *argv[])
     forAll(scalarFlds, i)
     {
         scalarFlds[i].rename(scalarNames[i]);
-
         scalarFlds[i].write();
     }
     forAll(vectorFlds, i)
     {
         vectorFlds[i].rename(vectorNames[i]);
-
         vectorFlds[i].write();
     }
     forAll(sphericalTensorFlds, i)
     {
         sphericalTensorFlds[i].rename(sphericalTensorNames[i]);
-
         sphericalTensorFlds[i].write();
     }
     forAll(symmTensorFlds, i)
     {
         symmTensorFlds[i].rename(symmTensorNames[i]);
-
         symmTensorFlds[i].write();
     }
     forAll(tensorFlds, i)
     {
         tensorFlds[i].rename(tensorNames[i]);
-
         tensorFlds[i].write();
     }
 
@@ -397,31 +411,26 @@ int main(int argc, char *argv[])
     forAll(surfScalarFlds, i)
     {
         surfScalarFlds[i].rename(surfScalarNames[i]);
-
         surfScalarFlds[i].write();
     }
     forAll(surfVectorFlds, i)
     {
         surfVectorFlds[i].rename(surfVectorNames[i]);
-
         surfVectorFlds[i].write();
     }
     forAll(surfSphericalTensorFlds, i)
     {
         surfSphericalTensorFlds[i].rename(surfSphericalTensorNames[i]);
-
         surfSphericalTensorFlds[i].write();
     }
     forAll(surfSymmTensorFlds, i)
     {
         surfSymmTensorFlds[i].rename(surfSymmTensorNames[i]);
-
         surfSymmTensorFlds[i].write();
     }
     forAll(surfTensorNames, i)
     {
         surfTensorFlds[i].rename(surfTensorNames[i]);
-
         surfTensorFlds[i].write();
     }
 
@@ -429,31 +438,26 @@ int main(int argc, char *argv[])
     forAll(pointScalarFlds, i)
     {
         pointScalarFlds[i].rename(pointScalarNames[i]);
-
         pointScalarFlds[i].write();
     }
     forAll(pointVectorFlds, i)
     {
         pointVectorFlds[i].rename(pointVectorNames[i]);
-
         pointVectorFlds[i].write();
     }
     forAll(pointSphericalTensorFlds, i)
     {
         pointSphericalTensorFlds[i].rename(pointSphericalTensorNames[i]);
-
         pointSphericalTensorFlds[i].write();
     }
     forAll(pointSymmTensorFlds, i)
     {
         pointSymmTensorFlds[i].rename(pointSymmTensorNames[i]);
-
         pointSymmTensorFlds[i].write();
     }
     forAll(pointTensorNames, i)
     {
         pointTensorFlds[i].rename(pointTensorNames[i]);
-
         pointTensorFlds[i].write();
     }
 

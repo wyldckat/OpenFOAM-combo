@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -18,7 +18,7 @@ FoamFile
 chemistryType
 {
     chemistrySolver   ode;
-    chemistryThermo   pyrolysisChemistryModel;
+    chemistryThermo   pyrolysis;
 }
 
 chemistry           on;
@@ -27,14 +27,10 @@ initialChemicalTimeStep 1e-07;
 
 odeCoeffs
 {
-    solver          SIBS;
-    eps             0.05;
+    solver          seulex;
+    absTol          1e-12;
+    relTol          0.01;
 }
 
-sequentialCoeffs
-{
-    cTauChem              0.001;
-    equilibriumRateLimiter off;
-}
 
 // ************************************************************************* //

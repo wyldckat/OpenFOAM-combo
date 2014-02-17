@@ -53,7 +53,7 @@ namespace pyrolysisModels
 pyrolysisModelCollection::pyrolysisModelCollection(const fvMesh& mesh)
 :
     PtrList<pyrolysisModel>()
-    
+
 {
     IOdictionary pyrolysisZonesDict
     (
@@ -73,7 +73,16 @@ pyrolysisModelCollection::pyrolysisModelCollection(const fvMesh& mesh)
 
     for (label i = 0; i < regions.size(); i++)
     {
-        set(i, pyrolysisModel::New(mesh, pyrolysisZonesDict.subDict(regions[i]), regions[i]));
+        set
+        (
+            i,
+            pyrolysisModel::New
+            (
+                mesh,
+                pyrolysisZonesDict.subDict(regions[i]),
+                regions[i]
+            )
+        );
     }
 }
 

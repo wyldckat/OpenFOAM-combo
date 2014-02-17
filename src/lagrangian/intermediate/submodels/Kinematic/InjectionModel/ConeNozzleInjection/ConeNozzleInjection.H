@@ -32,7 +32,7 @@ Description
       - injector position
       - direction (along injection axis)
       - parcel flow rate
-      - inner and outer cone angles
+      - inner and outer half-cone angles
 
     - Parcel diameters obtained by size distribution model
 
@@ -134,10 +134,10 @@ private:
         //- Flow rate profile relative to SOI []
         const TimeDataEntry<scalar> flowRateProfile_;
 
-        //- Inner half cone angle relative to SOI [deg]
+        //- Inner half-cone angle relative to SOI [deg]
         const TimeDataEntry<scalar> thetaInner_;
 
-        //- Outer half cone angle relative to SOI [deg]
+        //- Outer half-cone angle relative to SOI [deg]
         const TimeDataEntry<scalar> thetaOuter_;
 
         //- Parcel size PDF model

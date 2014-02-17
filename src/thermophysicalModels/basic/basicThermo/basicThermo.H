@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -182,7 +182,7 @@ public:
             const word& phaseName
         )
         {
-            return name + phaseName;
+            return IOobject::groupName(name, phaseName);
         }
 
         word phasePropertyName(const word& name) const
@@ -266,6 +266,9 @@ public:
 
             //- Density [kg/m^3]
             virtual tmp<volScalarField> rho() const = 0;
+
+            //- Density for patch [kg/m^3]
+            virtual tmp<scalarField> rho(const label patchi) const = 0;
 
             //- Enthalpy/Internal energy [J/kg]
             //  Non-const access allowed for transport equations
@@ -389,6 +392,12 @@ public:
 
             //- Thermal diffusivity for enthalpy of mixture [kg/m/s]
             virtual const volScalarField& alpha() const;
+
+            //- Thermal diffusivity for enthalpy of mixture for patch [kg/m/s]
+            virtual const scalarField& alpha
+            (
+                const label patchi
+            ) const;
 
 
         // Fields derived from transport state variables

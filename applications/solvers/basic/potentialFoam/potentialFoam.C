@@ -59,9 +59,10 @@ int main(int argc, char *argv[])
     // function objects so do it ourselves
     runTime.functionObjects().start();
 
-    fvOptions.relativeFlux(phi);
+    fvOptions.makeRelative(phi);
 
     adjustPhi(phi, U, p);
+
 
     for (int nonOrth=0; nonOrth<=nNonOrthCorr; nonOrth++)
     {
@@ -82,7 +83,6 @@ int main(int argc, char *argv[])
         );
 
         pEqn.setReference(pRefCell, pRefValue);
-
         pEqn.solve();
 
         if (nonOrth == nNonOrthCorr)
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    fvOptions.absoluteFlux(phi);
+    fvOptions.makeAbsolute(phi);
 
     Info<< "continuity error = "
         << mag(fvc::div(phi))().weightedAverage(mesh.V()).value()

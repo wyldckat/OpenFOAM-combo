@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -103,7 +103,7 @@ void Foam::regionModels::regionModel::initialise()
     forAll(rbm, patchI)
     {
         const polyPatch& regionPatch = rbm[patchI];
-        if (isA<mappedWallPolyPatch>(regionPatch))
+        if (isA<mappedPatchBase>(regionPatch))
         {
             if (debug)
             {
@@ -136,11 +136,32 @@ void Foam::regionModels::regionModel::initialise()
     primaryPatchIDs_.transfer(primaryPatchIDs);
     intCoupledPatchIDs_.transfer(intCoupledPatchIDs);
 
-    if (nBoundaryFaces == 0)
+    if (returnReduce(nBoundaryFaces, sumOp<label>()) == 0)
     {
         WarningIn("regionModel::initialise()")
             << "Region model has no mapped boundary conditions - transfer "
             << "between regions will not be possible" << endl;
+    }
+
+    if (!outputPropertiesPtr_.valid())
+    {
+        const fileName uniformPath(word("uniform")/"regionModels");
+
+        outputPropertiesPtr_.reset
+        (
+            new IOdictionary
+            (
+                IOobject
+                (
+                    regionName_ + "OutputProperties",
+                    time_.timeName(),
+                    uniformPath/regionName_,
+                    primaryMesh_,
+                    IOobject::READ_IF_PRESENT,
+                    IOobject::NO_WRITE
+                )
+            )
+        );
     }
 }
 
@@ -221,6 +242,8 @@ Foam::regionModels::regionModel::interRegionAMI
                     p,
                     nbrP,
                     faceAreaIntersect::tmMesh,
+                    AMIPatchToPatchInterpolation::imFaceAreaWeight,
+                    -1,
                     flip
                 )
             );
@@ -261,6 +284,8 @@ Foam::regionModels::regionModel::interRegionAMI
                 p,
                 nbrP,
                 faceAreaIntersect::tmMesh,
+                AMIPatchToPatchInterpolation::imFaceAreaWeight,
+                -1,
                 flip
             )
         );
@@ -348,7 +373,7 @@ Foam::label Foam::regionModels::regionModel::nbrCoupledPatchID
         (
             "Foam::label Foam::regionModels::regionModel::nbrCoupledPatchID"
             "("
-                "const regionModel& , "
+                "const regionModel&, "
                 "const label"
             ") const"
         )
@@ -387,6 +412,7 @@ Foam::regionModels::regionModel::regionModel
     modelName_("none"),
     regionMeshPtr_(NULL),
     coeffs_(dictionary::null),
+    outputPropertiesPtr_(NULL),
     primaryPatchIDs_(),
     intCoupledPatchIDs_(),
     regionName_("none"),
@@ -422,6 +448,7 @@ Foam::regionModels::regionModel::regionModel
     modelName_(modelName),
     regionMeshPtr_(NULL),
     coeffs_(subOrEmptyDict(modelName + "Coeffs")),
+    outputPropertiesPtr_(NULL),
     primaryPatchIDs_(),
     intCoupledPatchIDs_(),
     regionName_(lookup("regionName")),
@@ -469,6 +496,7 @@ Foam::regionModels::regionModel::regionModel
     modelName_(modelName),
     regionMeshPtr_(NULL),
     coeffs_(dict.subOrEmptyDict(modelName + "Coeffs")),
+    outputPropertiesPtr_(NULL),
     primaryPatchIDs_(),
     intCoupledPatchIDs_(),
     regionName_(dict.lookup("regionName")),
@@ -516,6 +544,16 @@ void Foam::regionModels::regionModel::evolve()
             Info<< incrIndent;
             info();
             Info<< endl << decrIndent;
+        }
+
+        if (time_.outputTime())
+        {
+            outputProperties().writeObject
+            (
+                IOstream::ASCII,
+                IOstream::currentVersion,
+                time_.writeCompression()
+            );
         }
     }
 }

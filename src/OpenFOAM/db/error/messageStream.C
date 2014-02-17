@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,6 +55,26 @@ Foam::messageStream::messageStream(const dictionary& dict)
     maxErrors_(0),
     errorCount_(0)
 {}
+
+
+Foam::OSstream& Foam::messageStream::masterStream(const label communicator)
+{
+    if (UPstream::warnComm != -1 && communicator != UPstream::warnComm)
+    {
+        Pout<< "** messageStream with comm:" << communicator
+            << endl;
+        error::printStack(Pout);
+    }
+
+    if (communicator == UPstream::worldComm)
+    {
+        return operator()();
+    }
+    else
+    {
+        return operator()(UPstream::master(communicator));
+    }
+}
 
 
 Foam::OSstream& Foam::messageStream::operator()
@@ -163,6 +183,19 @@ Foam::OSstream& Foam::messageStream::operator()
         dict.startLineNumber(),
         dict.endLineNumber()
     );
+}
+
+
+Foam::OSstream& Foam::messageStream::operator()(const bool output)
+{
+    if (output)
+    {
+        return operator()();
+    }
+    else
+    {
+        return Snull;
+    }
 }
 
 

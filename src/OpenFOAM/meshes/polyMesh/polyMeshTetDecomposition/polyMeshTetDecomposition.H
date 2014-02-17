@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -130,12 +130,29 @@ public:
             label cI
         );
 
+        //- Return the tet decomposition of the given triangle of the given face
+        static tetIndices triangleTetIndices
+        (
+            const polyMesh& mesh,
+            label fI,
+            label cI,
+            const label tetPtI      // offset in face
+        );
+
         //- Return the tet decomposition of the given cell, see
         //  findFacePt for the meaning of the indices
         static List<tetIndices> cellTetIndices
         (
             const polyMesh& mesh,
             label cI
+        );
+
+        //- Find the tet decomposition of the cell containing the given point
+        static tetIndices findTet
+        (
+            const polyMesh& mesh,
+            label cI,
+            const point& pt
         );
 };
 

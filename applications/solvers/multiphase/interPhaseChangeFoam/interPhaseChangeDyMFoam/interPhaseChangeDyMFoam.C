@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,13 +43,14 @@ Description
 
 #include "fvCFD.H"
 #include "dynamicFvMesh.H"
-#include "MULES.H"
+#include "CMULES.H"
 #include "subCycle.H"
 #include "interfaceProperties.H"
 #include "phaseChangeTwoPhaseMixture.H"
 #include "turbulenceModel.H"
 #include "pimpleControl.H"
 #include "fvIOoptionList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,15 +61,28 @@ int main(int argc, char *argv[])
     #include "createDynamicFvMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "initContinuityErrs.H"
-    #include "createFields.H"
-    #include "readTimeControls.H"
 
     pimpleControl pimple(mesh);
 
-    surfaceScalarField phiAbs("phiAbs", phi);
-    fvc::makeAbsolute(phiAbs, U);
+    #include "createFields.H"
+    #include "readTimeControls.H"
+    #include "createPcorrTypes.H"
 
-    #include "../interFoam/interDyMFoam/correctPhi.H"
+    volScalarField rAU
+    (
+        IOobject
+        (
+            "rAU",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("rAUf", dimTime/rho.dimensions(), 1.0)
+    );
+
+    #include "createUf.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
 
@@ -86,52 +100,68 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();
-
-        {
-            // Ensure old-time U exists for mapping
-            U.oldTime();
-
-            // Calculate the relative velocity used to map the relative flux phi
-            volVectorField Urel("Urel", U);
-
-            if (mesh.moving())
-            {
-                Urel -= fvc::reconstruct(fvc::meshPhi(U));
-            }
-
-            // Do any mesh changes
-            mesh.update();
-        }
-
-        if (mesh.changing())
-        {
-            Info<< "Execution time for mesh.update() = "
-                << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
-                << " s" << endl;
-
-            gh = g & mesh.C();
-            ghf = g & mesh.Cf();
-        }
-
-        if (mesh.changing() && correctPhi)
-        {
-            #include "../interFoam/interDyMFoam/correctPhi.H"
-        }
-
-        if (mesh.changing() && checkMeshCourantNo)
-        {
-            #include "meshCourantNo.H"
-        }
-
-        twoPhaseProperties->correct();
-
-        #include "alphaEqnSubCycle.H"
-        interface.correct();
-
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
+            if (pimple.firstIter() || moveMeshOuterCorrectors)
+            {
+                // Store divU from the previous mesh for the correctPhi
+                volScalarField divU(fvc::div(fvc::absolute(phi, U)));
+
+                scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();
+
+                mesh.update();
+
+                if (mesh.changing())
+                {
+                    Info<< "Execution time for mesh.update() = "
+                        << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
+                        << " s" << endl;
+
+                    gh = g & mesh.C();
+                    ghf = g & mesh.Cf();
+                }
+
+                if (mesh.changing() && correctPhi)
+                {
+                    // Calculate absolute flux from the mapped surface velocity
+                    phi = mesh.Sf() & Uf;
+
+                    #define divUCorr -divU
+                    #include "../interFoam/interDyMFoam/correctPhi.H"
+
+                    // Make the flux relative to the mesh motion
+                    fvc::makeRelative(phi, U);
+                }
+
+                if (mesh.changing() && checkMeshCourantNo)
+                {
+                    #include "meshCourantNo.H"
+                }
+            }
+
+            #include "alphaControls.H"
+
+            surfaceScalarField rhoPhi
+            (
+                IOobject
+                (
+                    "rhoPhi",
+                    runTime.timeName(),
+                    mesh
+                ),
+                mesh,
+                dimensionedScalar("0", dimMass/dimTime, 0)
+            );
+
+            if (pimple.firstIter() || alphaOuterCorrectors)
+            {
+                twoPhaseProperties->correct();
+
+                #include "alphaEqnSubCycle.H"
+                interface.correct();
+            }
+
             #include "UEqn.H"
 
             // --- Pressure corrector loop

@@ -56,6 +56,7 @@ primitives/Vector/lists/vectorListIOList.C
 
 primitives/Tensor2D/tensor2D/tensor2D.C
 primitives/SphericalTensor2D/sphericalTensor2D/sphericalTensor2D.C
+primitives/SymmTensor2D/symmTensor2D/symmTensor2D.C
 primitives/Vector2D/vector2D/vector2D.C
 
 primitives/complex/complex.C
@@ -71,6 +72,8 @@ primitives/functions/DataEntry/polynomial/polynomial.C
 primitives/functions/DataEntry/polynomial/polynomialIO.C
 
 primitives/functions/Polynomial/polynomialFunction.C
+
+primitives/subModelBase/subModelBase.C
 
 strings = primitives/strings
 $(strings)/string/string.C
@@ -311,12 +314,32 @@ $(GAMGAgglomeration)/GAMGAgglomerateLduAddressing.C
 pairGAMGAgglomeration = $(GAMGAgglomerations)/pairGAMGAgglomeration
 $(pairGAMGAgglomeration)/pairGAMGAgglomeration.C
 $(pairGAMGAgglomeration)/pairGAMGAgglomerate.C
-$(pairGAMGAgglomeration)/pairGAMGAgglomerationCombineLevels.C
 
 algebraicPairGAMGAgglomeration = $(GAMGAgglomerations)/algebraicPairGAMGAgglomeration
 $(algebraicPairGAMGAgglomeration)/algebraicPairGAMGAgglomeration.C
 
+dummyAgglomeration = $(GAMGAgglomerations)/dummyAgglomeration
+$(dummyAgglomeration)/dummyAgglomeration.C
+
+
+GAMGProcAgglomerations = $(GAMG)/GAMGProcAgglomerations
+
+GAMGProcAgglomeration = $(GAMGProcAgglomerations)/GAMGProcAgglomeration
+$(GAMGProcAgglomeration)/GAMGProcAgglomeration.C
+masterCoarsestGAMGProcAgglomeration = $(GAMGProcAgglomerations)/masterCoarsestGAMGProcAgglomeration
+$(masterCoarsestGAMGProcAgglomeration)/masterCoarsestGAMGProcAgglomeration.C
+manualGAMGProcAgglomeration = $(GAMGProcAgglomerations)/manualGAMGProcAgglomeration
+$(manualGAMGProcAgglomeration)/manualGAMGProcAgglomeration.C
+eagerGAMGProcAgglomeration = $(GAMGProcAgglomerations)/eagerGAMGProcAgglomeration
+$(eagerGAMGProcAgglomeration)/eagerGAMGProcAgglomeration.C
+noneGAMGProcAgglomeration = $(GAMGProcAgglomerations)/noneGAMGProcAgglomeration
+$(noneGAMGProcAgglomeration)/noneGAMGProcAgglomeration.C
+procFacesGAMGProcAgglomeration = $(GAMGProcAgglomerations)/procFacesGAMGProcAgglomeration
+$(procFacesGAMGProcAgglomeration)/procFacesGAMGProcAgglomeration.C
+
+
 meshes/lduMesh/lduMesh.C
+meshes/lduMesh/lduPrimitiveMesh.C
 
 LduMatrix = matrices/LduMatrix
 $(LduMatrix)/LduMatrix/lduMatrices.C
@@ -366,6 +389,7 @@ $(cellShape)/cellShapeIO.C
 $(cellShape)/cellShapeIOList.C
 
 meshes/Identifiers/patch/patchIdentifier.C
+meshes/Identifiers/patch/coupleGroupIdentifier.C
 
 meshes/MeshObject/meshObject.C
 
@@ -387,6 +411,7 @@ $(constraintPolyPatches)/empty/emptyPolyPatch.C
 $(constraintPolyPatches)/nonuniformTransformCyclic/nonuniformTransformCyclicPolyPatch.C
 $(constraintPolyPatches)/processorCyclic/processorCyclicPolyPatch.C
 $(constraintPolyPatches)/processor/processorPolyPatch.C
+$(constraintPolyPatches)/symmetryPlane/symmetryPlanePolyPatch.C
 $(constraintPolyPatches)/symmetry/symmetryPolyPatch.C
 $(constraintPolyPatches)/wedge/wedgePolyPatch.C
 
@@ -506,6 +531,7 @@ $(constraintPointPatches)/empty/emptyPointPatch.C
 $(constraintPointPatches)/nonuniformTransformCyclic/nonuniformTransformCyclicPointPatch.C
 $(constraintPointPatches)/processor/processorPointPatch.C
 $(constraintPointPatches)/processorCyclic/processorCyclicPointPatch.C
+$(constraintPointPatches)/symmetryPlane/symmetryPlanePointPatch.C
 $(constraintPointPatches)/symmetry/symmetryPointPatch.C
 $(constraintPointPatches)/wedge/wedgePointPatch.C
 
@@ -534,6 +560,7 @@ $(Fields)/sphericalTensorField/sphericalTensorField.C
 $(Fields)/diagTensorField/diagTensorField.C
 $(Fields)/symmTensorField/symmTensorField.C
 $(Fields)/tensorField/tensorField.C
+$(Fields)/quaternionField/quaternionField.C
 $(Fields)/triadField/triadField.C
 $(Fields)/complexFields/complexFields.C
 
@@ -553,6 +580,7 @@ $(Fields)/symmTensorField/symmTensorIOField.C
 $(Fields)/symmTensorField/symmTensorFieldIOField.C
 $(Fields)/tensorField/tensorIOField.C
 $(Fields)/tensorField/tensorFieldIOField.C
+$(Fields)/quaternionField/quaternionIOField.C
 $(Fields)/triadField/triadIOField.C
 $(Fields)/transformField/transformField.C
 
@@ -573,6 +601,7 @@ $(constraintPointPatchFields)/empty/emptyPointPatchFields.C
 $(constraintPointPatchFields)/nonuniformTransformCyclic/nonuniformTransformCyclicPointPatchFields.C
 $(constraintPointPatchFields)/processor/processorPointPatchFields.C
 $(constraintPointPatchFields)/processorCyclic/processorCyclicPointPatchFields.C
+$(constraintPointPatchFields)/symmetryPlane/symmetryPlanePointPatchFields.C
 $(constraintPointPatchFields)/symmetry/symmetryPointPatchFields.C
 $(constraintPointPatchFields)/wedge/wedgePointPatchFields.C
 
@@ -605,6 +634,7 @@ $(interpolationWeights)/splineInterpolationWeights/splineInterpolationWeights.C
 
 algorithms/indexedOctree/indexedOctreeName.C
 algorithms/indexedOctree/treeDataCell.C
+algorithms/indexedOctree/volumeType.C
 
 
 algorithms/dynamicIndexedOctree/dynamicIndexedOctreeName.C

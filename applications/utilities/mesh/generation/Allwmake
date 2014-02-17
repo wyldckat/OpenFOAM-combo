@@ -2,12 +2,17 @@
 cd ${0%/*} || exit 1    # run from this directory
 set -x
 
-wmake blockMesh
+wmake all blockMesh
 wmake all extrude
+wmake all extrude2DMesh
+wmake all snappyHexMesh
 
-extrude2DMesh/Allwmake
-
-wmake snappyHexMesh
+if [ -n "$CGAL_ARCH_PATH" ]
+then
+    wmake libso foamyHexMesh/conformalVoronoiMesh
+    wmake all foamyHexMesh
+    wmake all foamyQuadMesh
+fi
 
 
 # ----------------------------------------------------------------- end-of-file

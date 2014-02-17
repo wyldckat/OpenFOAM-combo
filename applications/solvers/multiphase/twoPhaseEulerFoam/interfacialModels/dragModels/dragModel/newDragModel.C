@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,43 +24,35 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "dragModel.H"
+#include "phasePair.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * Selector  * * * * * * * * * * * * * * * * //
 
 Foam::autoPtr<Foam::dragModel> Foam::dragModel::New
 (
-    const dictionary& interfaceDict,
-    const volScalarField& alpha1,
-    const phaseModel& phase1,
-    const phaseModel& phase2
+    const dictionary& dict,
+    const phasePair& pair
 )
 {
-    word dragModelType
-    (
-        interfaceDict.lookup("dragModel" + phase1.name())
-    );
+    word dragModelType(dict.lookup("type"));
 
-    Info << "Selecting dragModel for phase "
-        << phase1.name()
-        << ": "
-        << dragModelType << endl;
+    Info<< "Selecting dragModel for "
+        << pair << ": " << dragModelType << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(dragModelType);
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalError
-            << "dragModel::New : " << endl
-                << "    unknown dragModelType type "
-                << dragModelType
-                << ", constructor not in hash table" << endl << endl
-                << "    Valid dragModel types are : " << endl;
-        Info << dictionaryConstructorTablePtr_->sortedToc()
-             << abort(FatalError);
+        FatalErrorIn("dragModel::New")
+            << "Unknown dragModelType type "
+            << dragModelType << endl << endl
+            << "Valid dragModel types are : " << endl
+            << dictionaryConstructorTablePtr_->sortedToc()
+            << exit(FatalError);
     }
 
-    return cstrIter()(interfaceDict, alpha1, phase1, phase2);
+    return cstrIter()(dict, pair, true);
 }
 
 

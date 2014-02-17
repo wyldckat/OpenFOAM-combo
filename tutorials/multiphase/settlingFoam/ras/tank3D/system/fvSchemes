@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -28,6 +28,7 @@ gradSchemes
 divSchemes
 {
     default         none;
+
     div(phi,U)      Gauss limitedLinearV 1;
     div(phi,k)      Gauss limitedLinear 1;
     div(phi,epsilon) Gauss limitedLinear 1;
@@ -37,12 +38,7 @@ divSchemes
 
 laplacianSchemes
 {
-    default         none;
-    laplacian(muEff,U) Gauss linear corrected;
-    laplacian(Dp,p_rgh) Gauss linear corrected;
-    laplacian(DkEff,k) Gauss linear corrected;
-    laplacian(DepsilonEff,epsilon) Gauss linear corrected;
-    laplacian(mut,Alpha) Gauss linear corrected;
+    default         Gauss linear corrected;
 }
 
 interpolationSchemes

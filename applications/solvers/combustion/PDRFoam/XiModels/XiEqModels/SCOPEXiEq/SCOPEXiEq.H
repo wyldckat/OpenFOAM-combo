@@ -120,7 +120,6 @@ public:
 
         //- Update properties from given dictionary
         virtual bool read(const dictionary& XiEqProperties);
-
 };
 
 

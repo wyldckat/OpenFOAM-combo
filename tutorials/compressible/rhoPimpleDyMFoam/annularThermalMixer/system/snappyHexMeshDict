@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -71,7 +71,7 @@ geometry
     wall.obj
     {
         type        triSurfaceMesh;
-        name        wall;
+        name        walls;
     }
 };
 
@@ -191,7 +191,7 @@ castellatedMeshControls
             faceType baffle;
         }
 
-        wall
+        walls
         {
             level       (1 1);
             patchInfo
@@ -268,7 +268,6 @@ meshQualityControls
     }
 }
 
-debug 0;
 mergeTolerance 1e-6;
 
 // ************************************************************************* //

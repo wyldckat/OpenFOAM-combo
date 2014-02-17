@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.x                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -28,8 +28,8 @@ divSchemes
 {
     default         none;
 
-    div(alphaPhic,Uc)   Gauss linearUpwindV unlimited;
-    div((muEff*dev(T(grad(Uc)))))  Gauss linear;
+    div(alphaPhic,U.air)    Gauss linearUpwindV unlimited;
+    div(((alpha.air*nuEff)*dev2(T(grad(U.air))))) Gauss linear;
 }
 
 laplacianSchemes
@@ -51,6 +51,7 @@ fluxRequired
 {
     default         no;
     p;
+    kinematicCloud:theta;
 }
 
 // ************************************************************************* //

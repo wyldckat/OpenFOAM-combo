@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2013-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,17 +25,25 @@ Application
     DPMFoam
 
 Description
-    Solver combining the discrete particle/parcel and incompressible Eulerian
-    continuous-phase models for simulating fluid particle interaction problems
-    including 4-way coupling.
+    Transient solver for the coupled transport of a single kinematic particle
+    cloud including the effect of the volume fraction of particles on the
+    continuous phase.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
 #include "singlePhaseTransportModel.H"
-#include "turbulenceModel.H"
-#include "basicKinematicCollidingCloud.H"
+#include "PhaseIncompressibleTurbulenceModel.H"
 #include "pimpleControl.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
+
+#ifdef MPPIC
+    #include "basicKinematicMPPICCloud.H"
+    #define basicKinematicTypeCloud basicKinematicMPPICCloud
+#else
+    #include "basicKinematicCollidingCloud.H"
+    #define basicKinematicTypeCloud basicKinematicCollidingCloud
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -73,11 +81,8 @@ int main(int argc, char *argv[])
         Info<< "Evolving " << kinematicCloud.name() << endl;
         kinematicCloud.evolve();
 
-        // Update continuous phase volume fraction field.
-        // Limit unphysically high values which can happen because
-        // volume of a cell can be smaller than the volume of a particle.
-        // Might want to smooth here.
-        alphac = max(1.0 - kinematicCloud.theta(), packedAlphac);
+        // Update continuous phase volume fraction field
+        alphac = max(1.0 - kinematicCloud.theta(), alphacMin);
         alphac.correctBoundaryConditions();
         alphacf = fvc::interpolate(alphac);
         alphaPhic = alphacf*phic;

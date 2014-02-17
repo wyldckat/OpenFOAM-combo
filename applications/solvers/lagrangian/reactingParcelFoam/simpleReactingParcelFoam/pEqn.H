@@ -1,6 +1,4 @@
 {
-    rho = thermo.rho();
-
     // Thermodynamic density needs to be updated by psi*d(p) after the
     // pressure solution - done in 2 parts. Part 1:
     thermo.rho() -= psi*p;
@@ -17,7 +15,7 @@
         fvc::interpolate(rho)*(fvc::interpolate(HbyA) & mesh.Sf())
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
     while (simple.correctNonOrthogonal())
     {
@@ -54,6 +52,7 @@
     rho = thermo.rho();
     rho = max(rho, rhoMin);
     rho = min(rho, rhoMax);
+    rho.relax();
 
     Info<< "p min/max = " << min(p).value() << ", " << max(p).value() << endl;
 }

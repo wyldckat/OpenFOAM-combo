@@ -133,6 +133,9 @@ private:
             //  Created from points on construction, updated when the mesh moves
             boundBox bounds_;
 
+            //- Communicator used for parallel communication
+            label comm_;
+
             //- vector of non-constrained directions in mesh
             //  defined according to the presence of empty and wedge patches
             mutable Vector<label> geometricD_;
@@ -169,8 +172,8 @@ private:
             //- Is the mesh moving
             bool moving_;
 
-            //- Is the mesh changing (moving and/or topology changing)
-            bool changing_;
+            //- Is the mesh topology changing
+            bool topoChanging_;
 
             //- Current time index for mesh motion
             mutable label curMotionTimeIndex_;
@@ -265,6 +268,24 @@ private:
                 const Vector<label>& meshD
             ) const;
 
+            bool checkFaceWeight
+            (
+                const vectorField& fCtrs,
+                const vectorField& fAreas,
+                const vectorField& cellCtrs,
+                const bool report,
+                const scalar minWeight,
+                labelHashSet* setPtr
+            ) const;
+
+            bool checkVolRatio
+            (
+                const scalarField& cellVols,
+                const bool report,
+                const scalar minRatio,
+                labelHashSet* setPtr
+            ) const;
+
 public:
 
     // Public typedefs
@@ -288,7 +309,7 @@ public:
         //- Construct from IOobject
         explicit polyMesh(const IOobject& io);
 
-        //- Construct without boundary from components.
+        //- Construct from IOobject or from components.
         //  Boundary is added using addPatches() member function
         polyMesh
         (
@@ -442,6 +463,12 @@ public:
             //- Return parallel info
             const globalMeshData& globalData() const;
 
+            //- Return communicator used for parallel communication
+            label comm() const;
+
+            //- Return communicator used for parallel communication
+            label& comm();
+
             //- Return the object registry
             const objectRegistry& thisDb() const
             {
@@ -462,22 +489,27 @@ public:
             {
                 bool m0 = moving_;
                 moving_ = m;
-                changing_ = changing_ || moving_;
                 return m0;
+            }
+
+            //- Is mesh topology changing
+            bool topoChanging() const
+            {
+                return topoChanging_;
+            }
+
+            //- Set the mesh topology to be changing
+            bool topoChanging(const bool c)
+            {
+                bool c0 = topoChanging_;
+                topoChanging_ = c;
+                return c0;
             }
 
             //- Is mesh changing (topology changing and/or moving)
             bool changing() const
             {
-                return changing_;
-            }
-
-            //- Set the mesh to be changing
-            bool changing(const bool c)
-            {
-                bool c0 = changing_;
-                changing_ = c;
-                return c0;
+                return moving()||topoChanging();
             }
 
             //- Move points, returns volumes swept by faces in motion
@@ -553,7 +585,7 @@ public:
             void clearGeom();
 
             //- Clear addressing
-            void clearAddressing();
+            void clearAddressing(const bool isMeshUpdate = false);
 
             //- Clear all geometry and addressing unnecessary for CFD
             void clearOut();
@@ -610,6 +642,22 @@ public:
                 const pointField& newPoints,
                 const bool report = false,
                 const bool detailedReport = false
+            ) const;
+
+            //- Check for face weights
+            virtual bool checkFaceWeight
+            (
+                const bool report,
+                const scalar minWeight = 0.05,
+                labelHashSet* setPtr = NULL
+            ) const;
+
+            //- Check for neighbouring cell volumes
+            virtual bool checkVolRatio
+            (
+                const bool report,
+                const scalar minRatio = 0.01,
+                labelHashSet* setPtr = NULL
             ) const;
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -65,7 +65,7 @@ private:
 
     // Private Member Data
 
-        //- gap size in meter
+        //- gap size in metre
         const scalar gap_;
 
         //- Underlying geometry (size 1)
@@ -154,6 +154,17 @@ public:
         virtual tmp<pointField> coordinates() const
         {
             return surface().coordinates();
+        }
+
+        //- Get bounding spheres (centre and radius squared), one per element.
+        //  Any point on element is guaranteed to be inside.
+        virtual void boundingSpheres
+        (
+            pointField& centres,
+            scalarField& radiusSqr
+        ) const
+        {
+            surface().boundingSpheres(centres, radiusSqr);
         }
 
         //- Get the points that define the surface.
@@ -250,16 +261,16 @@ public:
             //  bounding boxes. The bounds are hints to the surface as for
             //  the range of queries it can expect. faceMap/pointMap can be
             //  set if the surface has done any redistribution.
-            virtual void distribute
-            (
-                const List<treeBoundBox>& bbs,
-                const bool keepNonLocal,
-                autoPtr<mapDistribute>& faceMap,
-                autoPtr<mapDistribute>& pointMap
-            )
-            {
-                subGeom_[0].distribute(bbs, keepNonLocal, faceMap, pointMap);
-            }
+            //virtual void distribute
+            //(
+            //    const List<treeBoundBox>& bbs,
+            //    const bool keepNonLocal,
+            //    autoPtr<mapDistribute>& faceMap,
+            //    autoPtr<mapDistribute>& pointMap
+            //)
+            //{
+            //    subGeom_[0].distribute(bbs, keepNonLocal, faceMap, pointMap);
+            //}
 
             //- WIP. Store element-wise field.
             virtual void setField(const labelList& values)

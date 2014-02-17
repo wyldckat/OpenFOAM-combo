@@ -40,6 +40,7 @@ SourceFiles
 #include "dictionary.H"
 #include "fvMatricesFwd.H"
 #include "runTimeSelectionTables.H"
+#include "coordinateSystem.H"
 #include "dimensionedVector.H"
 #include "keyType.H"
 
@@ -89,8 +90,11 @@ protected:
         //- Name(s) of cell-zone
         keyType zoneName_;
 
-        //- Cell zone Ids
-        labelList cellZoneIds_;
+        //- Cell zone IDs
+        labelList cellZoneIDs_;
+
+        //- Local co-ordinate system
+        coordinateSystem coordSys_;
 
 
     // Protected Member Functions
@@ -121,6 +125,9 @@ protected:
             const fvVectorMatrix& UEqn,
             volTensorField& AU
         ) const = 0;
+
+        //- Return label index
+        label fieldIndex(const label index) const;
 
 
 public:
@@ -254,7 +261,7 @@ public:
     // I-O
 
         //- Write
-        virtual bool writeData(Ostream& os) const = 0;
+        virtual bool writeData(Ostream& os) const;
 
         //- Read porosity dictionary
         virtual bool read(const dictionary& dict);

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.0.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -48,7 +48,7 @@ OptimisationSwitches
 {
     // On NFS mounted file system: maximum wait for files to appear/get
     // updated. Set to 0 on distributed case.
-    fileModificationSkew 30;
+    fileModificationSkew 10;
 
     //- Modification checking:
     //  - timeStamp         : use modification time on file
@@ -135,7 +135,7 @@ DebugSwitches
     FDIC                0;
     FaceCellWave        0;
     GAMG                0;
-    GAMGAgglomeration   0;
+    GAMGAgglomeration   1;
     GAMGInterface       0;
     GAMGInterfaceField  0;
     Gamma               0;
@@ -813,6 +813,7 @@ DebugSwitches
     symmTensorAverageField 0;
     symmTensorField     0;
     symmetryPlane       0;
+    symmetry            0;
     syringePressure     0;
     tensorAverageField  0;
     tensorField         0;
@@ -891,7 +892,7 @@ DebugSwitches
     waveTransmissive    0;
     wedge               0;
     weighted            0;
-    word                2;
+    word                0;
     writer              0;
     xmgr                0;
     zeroGradient        0;

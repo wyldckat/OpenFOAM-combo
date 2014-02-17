@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,6 +38,7 @@ Description
 #define geometricOneField_H
 
 #include "oneFieldField.H"
+#include "dimensionSet.H"
 #include "scalar.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -65,6 +66,8 @@ public:
 
     // Member Operators
 
+        inline const dimensionSet& dimensions() const;
+
         inline scalar operator[](const label) const;
 
         inline oneField field() const;
@@ -73,6 +76,19 @@ public:
 
         inline oneFieldField boundaryField() const;
 };
+
+
+inline const geometricOneField& operator*
+(
+    const geometricOneField&,
+    const geometricOneField&
+);
+
+inline const geometricOneField& operator/
+(
+    const geometricOneField&,
+    const geometricOneField&
+);
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

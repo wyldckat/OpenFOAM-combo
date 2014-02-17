@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -109,7 +109,7 @@ Foam::PatchInteractionModel<CloudType>::PatchInteractionModel
     CloudType& owner
 )
 :
-    SubModelBase<CloudType>(owner),
+    CloudSubModelBase<CloudType>(owner),
     UName_("unknown_UName")
 {}
 
@@ -122,7 +122,7 @@ Foam::PatchInteractionModel<CloudType>::PatchInteractionModel
     const word& type
 )
 :
-    SubModelBase<CloudType>(owner, dict, typeName, type),
+    CloudSubModelBase<CloudType>(owner, dict, typeName, type),
     UName_(this->coeffDict().lookupOrDefault("UName", word("U")))
 {}
 
@@ -133,7 +133,7 @@ Foam::PatchInteractionModel<CloudType>::PatchInteractionModel
     const PatchInteractionModel<CloudType>& pim
 )
 :
-    SubModelBase<CloudType>(pim),
+    CloudSubModelBase<CloudType>(pim),
     UName_(pim.UName_)
 {}
 
@@ -151,31 +151,6 @@ template<class CloudType>
 const Foam::word& Foam::PatchInteractionModel<CloudType>::UName() const
 {
     return UName_;
-}
-
-
-template<class CloudType>
-bool Foam::PatchInteractionModel<CloudType>::correct
-(
-    typename CloudType::parcelType&,
-    const polyPatch&,
-    bool&,
-    const scalar,
-    const tetIndices&
-)
-{
-    notImplemented
-    (
-        "bool Foam::PatchInteractionModel<CloudType>::correct"
-        "("
-            "typename CloudType::parcelType&, "
-            "const polyPatch&, "
-            "bool&, "
-            "const scalar, "
-            "const tetIndices& "
-        ") const"
-    );
-    return false;
 }
 
 

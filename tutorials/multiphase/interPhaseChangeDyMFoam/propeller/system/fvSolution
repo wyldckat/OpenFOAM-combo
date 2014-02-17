@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,20 +16,24 @@ FoamFile
 
 solvers
 {
-    alpha1
+    "alpha.water.*"
     {
-        maxUnboundedness 1e-5;
-        CoCoeff          0;
-        maxIter          5;
-        nLimiterIter     2;
+        cAlpha          0;
+        nAlphaCorr      2;
+        nAlphaSubCycles 1;
 
-        solver           PBiCG;
-        preconditioner   DILU;
-        tolerance        1e-12;
-        relTol           0.1;
+        MULESCorr       yes;
+        nLimiterIter    5;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        maxIter         10;
+        minIter         1;
     };
 
-    pcorr
+    "pcorr.*"
     {
         solver          GAMG;
         tolerance       1e-2;
@@ -62,12 +66,12 @@ solvers
         smoother        symGaussSeidel;
         tolerance       1e-6;
         relTol          0.1;
+        minIter         1;
     }
 
     "(U|k|epsilon)Final"
     {
         $U;
-        tolerance       1e-6;
         relTol          0;
     }
 }
@@ -75,13 +79,9 @@ solvers
 PIMPLE
 {
     correctPhi          yes;
-    nOuterCorrectors    1;
-    nCorrectors         3;
+    nOuterCorrectors    3;
+    nCorrectors         1;
     nNonOrthogonalCorrectors 0;
-
-    cAlpha                     0;
-    nAlphaCorr                 1;
-    nAlphaSubCycles            1;
 }
 
 relaxationFactors

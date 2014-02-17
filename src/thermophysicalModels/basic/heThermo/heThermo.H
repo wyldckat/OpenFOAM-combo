@@ -278,12 +278,6 @@ public:
                 const label patchi
             ) const;
 
-            //- Thermal diffusivity of mixture [kg/m/s]
-            virtual tmp<scalarField> alpha
-            (
-                const label patchI
-            ) const;
-
             //- Effective thermal diffusivity of mixture [kg/m/s]
             virtual tmp<volScalarField> alphaEff
             (

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -112,20 +112,23 @@ void Foam::fieldMinMax::read(const dictionary& dict)
 
 void Foam::fieldMinMax::writeFileHeader(const label i)
 {
-    file()
-        << "# Time" << token::TAB << "field" << token::TAB
-        << "min" << token::TAB << "position(min)";
+    writeHeader(file(), "Field minima and maxima");
+    writeCommented(file(), "Time");
+    writeTabbed(file(), "field");
+    writeTabbed(file(), "min");
+    writeTabbed(file(), "position(min)");
 
     if (Pstream::parRun())
     {
-        file() << token::TAB << "proc";
+        writeTabbed(file(), "processor");
     }
 
-    file() << token::TAB << "max" << token::TAB << "position(max)";
+    writeTabbed(file(), "max");
+    writeTabbed(file(), "position(max)");
 
     if (Pstream::parRun())
     {
-        file() << token::TAB << "proc";
+        writeTabbed(file(), "processor");
     }
 
     file() << endl;
@@ -156,10 +159,7 @@ void Foam::fieldMinMax::write()
     {
         functionObjectFile::write();
 
-        if (log_)
-        {
-            Info<< type() << " " << name_ <<  " output:" << nl;
-        }
+        Info(log_)<< type() << " " << name_ <<  " output:" << nl;
 
         forAll(fieldSet_, fieldI)
         {
@@ -170,10 +170,7 @@ void Foam::fieldMinMax::write()
             calcMinMaxFields<tensor>(fieldSet_[fieldI], mode_);
         }
 
-        if (log_)
-        {
-            Info<< endl;
-        }
+        Info(log_)<< endl;
     }
 }
 

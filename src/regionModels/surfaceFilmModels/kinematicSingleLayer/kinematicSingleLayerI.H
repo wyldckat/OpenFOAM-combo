@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
+#include "filmThermoModel.H"
 #include "surfaceInterpolate.H"
 #include "fvcSurfaceIntegrate.H"
 
@@ -58,6 +59,12 @@ inline label kinematicSingleLayer::nCorr() const
 inline label kinematicSingleLayer::nNonOrthCorr() const
 {
     return nNonOrthCorr_;
+}
+
+
+inline const dimensionedScalar& kinematicSingleLayer::deltaSmall() const
+{
+    return deltaSmall_;
 }
 
 
@@ -163,9 +170,21 @@ inline const volScalarField& kinematicSingleLayer::muPrimary() const
 }
 
 
+inline const filmThermoModel& kinematicSingleLayer::filmThermo() const
+{
+    return filmThermo_();
+}
+
+
 inline injectionModelList& kinematicSingleLayer::injection()
 {
     return injection_;
+}
+
+
+inline const filmTurbulenceModel& kinematicSingleLayer::turbulence() const
+{
+    return turbulence_();
 }
 
 
@@ -177,11 +196,16 @@ inline tmp<volScalarField> kinematicSingleLayer::mass() const
 
 inline tmp<volScalarField> kinematicSingleLayer::netMass() const
 {
-    dimensionedScalar d0("SMALL", dimLength, ROOTVSMALL);
     return
-        fvc::surfaceSum(pos(phi_)*phi_/(fvc::interpolate(delta_) + d0))
+        fvc::surfaceSum(pos(phi_)*phi_/(fvc::interpolate(delta_) + deltaSmall_))
        *time().deltaT()
       + rho_*delta_*magSf();
+}
+
+
+inline tmp<volScalarField> kinematicSingleLayer::deltaMass() const
+{
+    return rhoSp_*magSf()*time().deltaT();
 }
 
 

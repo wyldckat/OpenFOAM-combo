@@ -12,10 +12,11 @@
         surfaceScalarField phid
         (
             "phid",
-            fvc::interpolate(psi)*(fvc::interpolate(HbyA) & mesh.Sf())
+            fvc::interpolate(psi)
+           *(fvc::interpolate(HbyA) & mesh.Sf())
         );
 
-        fvOptions.relativeFlux(fvc::interpolate(psi), phid);
+        fvOptions.makeRelative(fvc::interpolate(psi), phid);
 
         while (simple.correctNonOrthogonal())
         {
@@ -47,10 +48,10 @@
         surfaceScalarField phiHbyA
         (
             "phiHbyA",
-            fvc::interpolate(rho)*(fvc::interpolate(HbyA) & mesh.Sf())
+            fvc::interpolate(rho*HbyA) & mesh.Sf()
         );
 
-        fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+        fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
         closedVolume = adjustPhi(phiHbyA, U, p);
 

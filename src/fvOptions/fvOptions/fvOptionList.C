@@ -26,6 +26,7 @@ License
 #include "fvOptionList.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvMesh.H"
+#include "surfaceFields.H"
 #include "Time.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -107,16 +108,16 @@ void Foam::fv::optionList::reset(const dictionary& dict)
 }
 
 
-void Foam::fv::optionList::relativeFlux(surfaceScalarField& phi) const
+void Foam::fv::optionList::makeRelative(surfaceScalarField& phi) const
 {
     forAll(*this, i)
     {
-        this->operator[](i).relativeFlux(phi);
+        this->operator[](i).makeRelative(phi);
     }
 }
 
 
-void Foam::fv::optionList::relativeFlux
+void Foam::fv::optionList::makeRelative
 (
     const surfaceScalarField& rho,
     surfaceScalarField& phi
@@ -124,21 +125,38 @@ void Foam::fv::optionList::relativeFlux
 {
     forAll(*this, i)
     {
-        this->operator[](i).relativeFlux(rho, phi);
+        this->operator[](i).makeRelative(rho, phi);
     }
 }
 
 
-void Foam::fv::optionList::absoluteFlux(surfaceScalarField& phi) const
+Foam::tmp<Foam::FieldField<Foam::fvsPatchField, Foam::scalar> >
+Foam::fv::optionList::relative
+(
+    const tmp<FieldField<fvsPatchField, scalar> >& phi
+) const
+{
+    tmp<FieldField<fvsPatchField, scalar> > rphi(phi.ptr());
+
+    forAll(*this, i)
+    {
+        operator[](i).makeRelative(rphi());
+    }
+
+    return rphi;
+}
+
+
+void Foam::fv::optionList::makeAbsolute(surfaceScalarField& phi) const
 {
     forAll(*this, i)
     {
-        this->operator[](i).absoluteFlux(phi);
+        this->operator[](i).makeAbsolute(phi);
     }
 }
 
 
-void Foam::fv::optionList::absoluteFlux
+void Foam::fv::optionList::makeAbsolute
 (
     const surfaceScalarField& rho,
     surfaceScalarField& phi
@@ -146,7 +164,7 @@ void Foam::fv::optionList::absoluteFlux
 {
     forAll(*this, i)
     {
-        this->operator[](i).absoluteFlux(rho, phi);
+        this->operator[](i).makeAbsolute(rho, phi);
     }
 }
 

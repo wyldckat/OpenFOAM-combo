@@ -48,15 +48,16 @@ namespace Foam
     defineTemplateTypeNameAndDebugWithName                                    \
     (                                                                         \
         sChemistryl##Comp##SThermo,                                           \
-        (#sChemistry"<"#Comp"," + SThermo::typeName() + ">").c_str(),         \
+        (word(sChemistry::typeName_()) + "<"#Comp"," + SThermo::typeName() +  \
+        + ">").c_str(),                                                       \
         0                                                                     \
     );                                                                        \
                                                                               \
     defineTemplateTypeNameAndDebugWithName                                    \
     (                                                                         \
         SS##Comp##SThermo##GThermo,                                           \
-        (#SS"<"#Comp"," + SThermo::typeName() + "," + GThermo::typeName() +   \
-        ">").c_str(),                                                         \
+        (word(SS::typeName_()) + "<"#Comp"," + SThermo::typeName() + "," +    \
+        GThermo::typeName() + ">").c_str(),                                   \
         0                                                                     \
     );
 

@@ -31,6 +31,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "triSurface.H"
+#include "triSurfaceSearch.H"
 #include "argList.H"
 #include "OFstream.H"
 #include "IFstream.H"
@@ -40,6 +41,8 @@ Description
 #include "indexedOctree.H"
 #include "treeDataTriSurface.H"
 #include "Random.H"
+#include "volumeType.H"
+#include "plane.H"
 
 using namespace Foam;
 
@@ -242,25 +245,15 @@ int main(int argc, char *argv[])
         // Read surface to select on
         triSurface selectSurf(surfName);
 
-        // bb of surface
-        treeBoundBox bb(selectSurf.localPoints());
-
-        // Random number generator
-        Random rndGen(354543);
-
-        // search engine
-        indexedOctree<treeDataTriSurface> selectTree
+        triSurfaceSearch searchSelectSurf
         (
-            treeDataTriSurface
-            (
-                selectSurf,
-                indexedOctree<treeDataTriSurface>::perturbTol()
-            ),
-            bb.extend(rndGen, 1e-4),    // slightly randomize bb
-            8,      // maxLevel
-            10,     // leafsize
-            3.0     // duplicity
+            selectSurf,
+            indexedOctree<treeDataTriSurface>::perturbTol(),
+            8
         );
+
+        const indexedOctree<treeDataTriSurface>& selectTree =
+            searchSelectSurf.tree();
 
         // Check if face (centre) is in outside or inside.
         forAll(facesToSubset, faceI)
@@ -269,14 +262,13 @@ int main(int argc, char *argv[])
             {
                 const point fc(surf1[faceI].centre(surf1.points()));
 
-                indexedOctree<treeDataTriSurface>::volumeType t =
-                    selectTree.getVolumeType(fc);
+                volumeType t = selectTree.getVolumeType(fc);
 
                 if
                 (
                     outside
-                  ? (t == indexedOctree<treeDataTriSurface>::OUTSIDE)
-                  : (t == indexedOctree<treeDataTriSurface>::INSIDE)
+                  ? (t == volumeType::OUTSIDE)
+                  : (t == volumeType::INSIDE)
                 )
                 {
                     facesToSubset[faceI] = true;
@@ -284,6 +276,31 @@ int main(int argc, char *argv[])
             }
         }
     }
+
+
+    if (meshSubsetDict.found("plane"))
+    {
+        const dictionary& planeDict = meshSubsetDict.subDict("plane");
+
+        const plane pl(planeDict);
+        const scalar distance(readScalar(planeDict.lookup("distance")));
+        const scalar cosAngle(readScalar(planeDict.lookup("cosAngle")));
+
+        // Select all triangles that are close to the plane and
+        // whose normal aligns with the plane as well.
+
+        forAll(surf1.faceCentres(), faceI)
+        {
+            const point& fc = surf1.faceCentres()[faceI];
+            const point& nf = surf1.faceNormals()[faceI];
+
+            if (pl.distance(fc) < distance && mag(pl.normal() & nf) > cosAngle)
+            {
+                facesToSubset[faceI] = true;
+            }
+        }
+    }
+
 
 
     //

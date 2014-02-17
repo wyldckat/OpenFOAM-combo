@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,7 +17,7 @@ FoamFile
 
 application     pimpleDyMFoam;
 
-startFrom       latestTime;
+startFrom       startTime;
 
 startTime       0;
 
@@ -48,29 +48,5 @@ runTimeModifiable true;
 adjustTimeStep  yes;
 
 maxCo           0.9;
-
-libs
-(
-    "libOpenFOAM.so"
-    "libforces.so"
-);
-
-functions
-{
-    forces
-    {
-        type                forces;
-        functionObjectLibs  ("libforces.so");
-        outputControl       timeStep;
-        outputInterval      10;
-        patches             (wing);
-        pName               p;
-        UName               U;
-        rhoName             rhoInf;
-        log                 true;
-        rhoInf              1;
-        CofR                (0.25 0.007 0.125);
-    }
-}
 
 // ************************************************************************* //

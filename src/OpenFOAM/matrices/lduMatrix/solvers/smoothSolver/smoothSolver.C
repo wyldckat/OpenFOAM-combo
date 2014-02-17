@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -122,18 +122,27 @@ Foam::solverPerformance Foam::smoothSolver::solve
             normFactor = this->normFactor(psi, source, Apsi, temp);
 
             // Calculate residual magnitude
-            solverPerf.initialResidual() = gSumMag(source - Apsi)/normFactor;
+            solverPerf.initialResidual() = gSumMag
+            (
+                (source - Apsi)(),
+                matrix().mesh().comm()
+            )/normFactor;
             solverPerf.finalResidual() = solverPerf.initialResidual();
         }
 
         if (lduMatrix::debug >= 2)
         {
-            Info<< "   Normalisation factor = " << normFactor << endl;
+            Info.masterStream(matrix().mesh().comm())
+                << "   Normalisation factor = " << normFactor << endl;
         }
 
 
         // Check convergence, solve if not converged
-        if (!solverPerf.checkConvergence(tolerance_, relTol_))
+        if
+        (
+            minIter_ > 0
+         || !solverPerf.checkConvergence(tolerance_, relTol_)
+        )
         {
             autoPtr<lduMatrix::smoother> smootherPtr = lduMatrix::smoother::New
             (
@@ -166,12 +175,16 @@ Foam::solverPerformance Foam::smoothSolver::solve
                         interfaceBouCoeffs_,
                         interfaces_,
                         cmpt
-                    )
+                    )(),
+                    matrix().mesh().comm()
                 )/normFactor;
             } while
             (
-                (solverPerf.nIterations() += nSweeps_) < maxIter_
-             && !(solverPerf.checkConvergence(tolerance_, relTol_))
+                (
+                    (solverPerf.nIterations() += nSweeps_) < maxIter_
+                && !solverPerf.checkConvergence(tolerance_, relTol_)
+                )
+             || solverPerf.nIterations() < minIter_
             );
         }
     }

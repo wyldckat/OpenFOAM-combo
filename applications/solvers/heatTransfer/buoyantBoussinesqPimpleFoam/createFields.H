@@ -116,4 +116,3 @@
             pRefValue - getRefCellValue(p, pRefCell)
         );
     }
-

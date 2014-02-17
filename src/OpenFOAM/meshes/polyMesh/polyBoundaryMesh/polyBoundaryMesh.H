@@ -78,9 +78,6 @@ class polyBoundaryMesh
 
     // Private Member Functions
 
-        //- Create identity map
-        static labelList ident(const label len);
-
         //- Calculate the geometry for the patches (transformation tensors etc.)
         void calcGeometry();
 
@@ -188,6 +185,9 @@ public:
 
         //- Per patch group the patch indices
         const HashTable<labelList, word>& groupPatchIDs() const;
+
+        //- Set/add group with patches
+        void setGroup(const word& groupName, const labelList& patchIDs);
 
         //- Return the set of patch IDs corresponding to the given names
         //  By default warns if given names are not found. Optionally

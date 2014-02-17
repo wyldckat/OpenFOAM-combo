@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ Foam::DevolatilisationModel<CloudType>::DevolatilisationModel
     CloudType& owner
 )
 :
-    SubModelBase<CloudType>(owner),
+    CloudSubModelBase<CloudType>(owner),
     dMass_(0.0)
 {}
 
@@ -46,7 +46,7 @@ Foam::DevolatilisationModel<CloudType>::DevolatilisationModel
     const word& type
 )
 :
-    SubModelBase<CloudType>(owner, dict, typeName, type),
+    CloudSubModelBase<CloudType>(owner, dict, typeName, type),
     dMass_(0.0)
 {}
 
@@ -57,7 +57,7 @@ Foam::DevolatilisationModel<CloudType>::DevolatilisationModel
     const DevolatilisationModel<CloudType>& dm
 )
 :
-    SubModelBase<CloudType>(dm),
+    CloudSubModelBase<CloudType>(dm),
     dMass_(dm.dMass_)
 {}
 
@@ -82,7 +82,7 @@ void Foam::DevolatilisationModel<CloudType>::calculate
     const scalarField&,
     const scalarField&,
     const scalarField&,
-    bool&,
+    label&,
     scalarField&
 ) const
 {
@@ -98,7 +98,7 @@ void Foam::DevolatilisationModel<CloudType>::calculate
             "const scalarField&, "
             "const scalarField&, "
             "const scalarField&, "
-            "bool&, "
+            "label&, "
             "scalarField&"
         ") const"
     );

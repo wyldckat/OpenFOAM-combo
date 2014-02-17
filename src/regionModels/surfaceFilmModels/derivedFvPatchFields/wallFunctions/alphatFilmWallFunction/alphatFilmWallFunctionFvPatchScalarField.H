@@ -92,9 +92,6 @@ protected:
 
     // Protected data
 
-        //- Name of film region
-        word filmRegionName_;
-
         //- B Coefficient (default = 5.5)
         scalar B_;
 

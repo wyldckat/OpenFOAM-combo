@@ -1,7 +1,5 @@
 {
-    label nAlphaCorr(readLabel(pimple.dict().lookup("nAlphaCorr")));
-
-    label nAlphaSubCycles(readLabel(pimple.dict().lookup("nAlphaSubCycles")));
+    #include "alphaControls.H"
 
     surfaceScalarField phic(mag(phi/mesh.magSf()));
     phic = min(interface.cAlpha()*phic, max(phic));
@@ -11,7 +9,17 @@
     if (nAlphaSubCycles > 1)
     {
         dimensionedScalar totalDeltaT = runTime.deltaT();
-        surfaceScalarField rhoPhiSum(0.0*rhoPhi);
+        surfaceScalarField rhoPhiSum
+        (
+            IOobject
+            (
+                "rhoPhiSum",
+                runTime.timeName(),
+                mesh
+            ),
+            mesh,
+            dimensionedScalar("0", rhoPhi.dimensions(), 0)
+        );
 
         for
         (

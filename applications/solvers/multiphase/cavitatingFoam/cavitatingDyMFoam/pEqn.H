@@ -4,24 +4,24 @@
         p =
         (
             rho
-          - gamma2*rhol0
-          - ((gamma*psiv + gamma2*psil) - psi)*pSat
+          - alphal*rhol0
+          - ((alphav*psiv + alphal*psil) - psi)*pSat
         )/psi;
     }
 
     surfaceScalarField rhof("rhof", fvc::interpolate(rho));
 
     volScalarField rAU(1.0/UEqn.A());
-    surfaceScalarField rAUf("Dp", rhof*fvc::interpolate(rAU));
+    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
 
     volVectorField HbyA("HbyA", U);
     HbyA = rAU*UEqn.H();
 
     phiv = (fvc::interpolate(HbyA) & mesh.Sf())
-         + fvc::ddtPhiCorr(rAU, rho, U, phivAbs);
+         + rhorAUf*fvc::ddtCorr(U, Uf);
     fvc::makeRelative(phiv, U);
 
-    surfaceScalarField phiGradp(rAUf*mesh.magSf()*fvc::snGrad(p));
+    surfaceScalarField phiGradp(rhorAUf*mesh.magSf()*fvc::snGrad(p));
 
     phiv -= phiGradp/rhof;
 
@@ -35,7 +35,7 @@
           + psi*correction(fvm::ddt(p))
           + fvc::div(phiv, rho)
           + fvc::div(phiGradp)
-          - fvm::laplacian(rAUf, p)
+          - fvm::laplacian(rhorAUf, p)
         );
 
         pEqn.solve(mesh.solver(p.select(pimple.finalInnerIter())));
@@ -43,7 +43,6 @@
         if (pimple.finalNonOrthogonalIter())
         {
             phiv += (phiGradp + pEqn.flux())/rhof;
-            phivAbs = fvc::absolute(phiv, U);
         }
     }
 
@@ -52,13 +51,13 @@
 
     rho == max(rho0 + psi*p, rhoMin);
 
-    #include "gammaPsi.H"
+    #include "alphavPsi.H"
 
     p =
     (
         rho
-      - gamma2*rhol0
-      - ((gamma*psiv + gamma2*psil) - psi)*pSat
+      - alphal*rhol0
+      - ((alphav*psiv + alphal*psil) - psi)*pSat
     )/psi;
 
     p.correctBoundaryConditions();
@@ -82,4 +81,10 @@
     U.correctBoundaryConditions();
 
     Info<< "max(U) " << max(mag(U)).value() << endl;
+
+    {
+        Uf = fvc::interpolate(U);
+        surfaceVectorField n(mesh.Sf()/mesh.magSf());
+        Uf += n*(phiv/mesh.magSf() - (n & Uf));
+    }
 }

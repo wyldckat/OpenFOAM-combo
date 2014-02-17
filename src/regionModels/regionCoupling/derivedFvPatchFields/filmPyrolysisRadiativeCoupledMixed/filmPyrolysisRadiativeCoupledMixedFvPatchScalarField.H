@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2013 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2013-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,7 +55,7 @@ Description
     In between ratio 0 and 1 the gradient and value contributions are
     weighted using the ratio field in the followig way:
 
-    qConv = ratio*htcwfilm*(Tfilm - *this)*convectiveScaling_;
+    qConv = ratio*htcwfilm*(Tfilm - *this);
     qRad = (1.0 - ratio)*Qr;
 
     Then the solid can gain or loose energy through radiation or conduction

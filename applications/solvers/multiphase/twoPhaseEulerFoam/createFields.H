@@ -1,82 +1,40 @@
-    Info<< "Reading transportProperties\n" << endl;
+    Info<< "Creating twoPhaseSystem\n" << endl;
 
-    IOdictionary transportProperties
+    twoPhaseSystem fluid(mesh, g);
+
+    phaseModel& phase1 = fluid.phase1();
+    phaseModel& phase2 = fluid.phase2();
+
+    volScalarField& alpha1 = phase1;
+    volScalarField& alpha2 = phase2;
+
+    volVectorField& U1 = phase1.U();
+    surfaceScalarField& phi1 = phase1.phi();
+    surfaceScalarField& alphaPhi1 = phase1.phiAlpha();
+
+    volVectorField& U2 = phase2.U();
+    surfaceScalarField& phi2 = phase2.phi();
+    surfaceScalarField& alphaPhi2 = phase2.phiAlpha();
+
+    surfaceScalarField& phi = fluid.phi();
+
+    dimensionedScalar pMin
     (
-        IOobject
-        (
-            "transportProperties",
-            runTime.constant(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
+        "pMin",
+        dimPressure,
+        fluid.lookup("pMin")
     );
 
-    autoPtr<phaseModel> phase1 = phaseModel::New
-    (
-        mesh,
-        transportProperties,
-        "1"
-    );
+    rhoThermo& thermo1 = phase1.thermo();
+    rhoThermo& thermo2 = phase2.thermo();
 
-    autoPtr<phaseModel> phase2 = phaseModel::New
-    (
-        mesh,
-        transportProperties,
-        "2"
-    );
+    volScalarField& p = thermo1.p();
 
-    volVectorField& U1 = phase1->U();
-    surfaceScalarField& phi1 = phase1->phi();
-    const dimensionedScalar& rho1 = phase1->rho();
-    const dimensionedScalar& nu1 = phase1->nu();
+    volScalarField& rho1 = thermo1.rho();
+    const volScalarField& psi1 = thermo1.psi();
 
-    volVectorField& U2 = phase2->U();
-    surfaceScalarField& phi2 = phase2->phi();
-    const dimensionedScalar& rho2 = phase2->rho();
-    const dimensionedScalar& nu2 = phase2->nu();
-
-    Info<< "Reading field alpha1\n" << endl;
-    volScalarField alpha1
-    (
-        IOobject
-        (
-            "alpha1",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
-
-    volScalarField alpha2
-    (
-        IOobject
-        (
-            "alpha2",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        scalar(1) - alpha1
-        //,alpha1.boundaryField().types()
-    );
-
-    Info<< "Reading field p\n" << endl;
-    volScalarField p
-    (
-        IOobject
-        (
-            "p",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
+    volScalarField& rho2 = thermo2.rho();
+    const volScalarField& psi2 = thermo2.psi();
 
     volVectorField U
     (
@@ -88,41 +46,7 @@
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        alpha1*U1 + alpha2*U2
-    );
-
-    dimensionedScalar Cvm
-    (
-        "Cvm",
-        dimless,
-        transportProperties.lookup("Cvm")
-    );
-
-    dimensionedScalar Cl
-    (
-        "Cl",
-        dimless,
-        transportProperties.lookup("Cl")
-    );
-
-    dimensionedScalar Ct
-    (
-        "Ct",
-        dimless,
-        transportProperties.lookup("Ct")
-    );
-
-    surfaceScalarField phi
-    (
-        IOobject
-        (
-            "phi",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        fvc::interpolate(alpha1)*phi1 + fvc::interpolate(alpha2)*phi2
+        fluid.U()
     );
 
     volScalarField rho
@@ -131,17 +55,18 @@
         (
             "rho",
             runTime.timeName(),
-            mesh
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
         ),
-        alpha1*rho1 + alpha2*rho2
+        fluid.rho()
     );
-
-    #include "createRASTurbulence.H"
 
     Info<< "Calculating field DDtU1 and DDtU2\n" << endl;
 
     volVectorField DDtU1
     (
+        "DDtU1",
         fvc::ddt(U1)
       + fvc::div(phi1, U1)
       - fvc::div(phi1)*U1
@@ -149,84 +74,17 @@
 
     volVectorField DDtU2
     (
+        "DDtU2",
         fvc::ddt(U2)
       + fvc::div(phi2, U2)
       - fvc::div(phi2)*U2
     );
 
-
-    Info<< "Calculating field g.h\n" << endl;
-    volScalarField gh("gh", g & mesh.C());
-
-    IOdictionary interfacialProperties
+    volScalarField rAU1
     (
         IOobject
         (
-            "interfacialProperties",
-            runTime.constant(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    );
-
-    autoPtr<dragModel> drag1 = dragModel::New
-    (
-        interfacialProperties,
-        alpha1,
-        phase1,
-        phase2
-    );
-
-    autoPtr<dragModel> drag2 = dragModel::New
-    (
-        interfacialProperties,
-        alpha2,
-        phase2,
-        phase1
-    );
-
-    word dragPhase("blended");
-    if (interfacialProperties.found("dragPhase"))
-    {
-        dragPhase = word(interfacialProperties.lookup("dragPhase"));
-
-        bool validDrag =
-            dragPhase == "1" || dragPhase == "2" || dragPhase == "blended";
-
-        if (!validDrag)
-        {
-            FatalErrorIn(args.executable())
-                << "invalid dragPhase " << dragPhase
-                << exit(FatalError);
-        }
-    }
-
-    dimensionedScalar residualSlip
-    (
-        dimensionedScalar::lookupOrDefault
-        (
-            "residualSlip",
-            interfacialProperties,
-            0,
-            dimVelocity
-        )
-    );
-
-    Info << "dragPhase is " << dragPhase << endl;
-    kineticTheoryModel kineticTheory
-    (
-        phase1,
-        U2,
-        alpha1,
-        drag1
-    );
-
-    surfaceScalarField rAU1f
-    (
-        IOobject
-        (
-            "rAU1f",
+            IOobject::groupName("rAU", phase1.name()),
             runTime.timeName(),
             mesh,
             IOobject::NO_READ,
@@ -236,21 +94,38 @@
         dimensionedScalar("zero", dimensionSet(0, 0, 1, 0, 0), 0.0)
     );
 
-    surfaceScalarField ppMagf
+    volScalarField rAU2
     (
         IOobject
         (
-            "ppMagf",
+            IOobject::groupName("rAU", phase2.name()),
             runTime.timeName(),
             mesh,
             IOobject::NO_READ,
             IOobject::NO_WRITE
         ),
         mesh,
-        dimensionedScalar("zero", dimensionSet(0, 2, -1, 0, 0), 0.0)
+        dimensionedScalar("zero", dimensionSet(0, 0, 1, 0, 0), 0.0)
     );
-
 
     label pRefCell = 0;
     scalar pRefValue = 0.0;
     setRefCell(p, mesh.solutionDict().subDict("PIMPLE"), pRefCell, pRefValue);
+
+    Info<< "Creating field dpdt\n" << endl;
+    volScalarField dpdt
+    (
+        IOobject
+        (
+            "dpdt",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
+    );
+
+
+    Info<< "Creating field kinetic energy K\n" << endl;
+    volScalarField K1(IOobject::groupName("K", phase1.name()), 0.5*magSqr(U1));
+    volScalarField K2(IOobject::groupName("K", phase2.name()), 0.5*magSqr(U2));

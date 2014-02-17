@@ -193,6 +193,7 @@ int main(int argc, char *argv[])
         {
             Info<< "\n    Generating " << nTracks << " tracks" << endl;
 
+            // determine length of each track
             labelList trackLengths(nTracks, 0);
             forAll(particleToTrack, i)
             {

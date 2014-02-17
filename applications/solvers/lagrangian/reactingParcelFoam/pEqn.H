@@ -6,20 +6,21 @@
     thermo.rho() -= psi*p;
 
     volScalarField rAU(1.0/UEqn.A());
+    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+
     volVectorField HbyA("HbyA", U);
     HbyA = rAU*UEqn.H();
 
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::interpolate(rho)
-       *(
-            (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        (
+            (fvc::interpolate(rho*HbyA) & mesh.Sf())
+          + rhorAUf*fvc::ddtCorr(rho, U, phi)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
     fvScalarMatrix pDDtEqn
     (
@@ -35,7 +36,7 @@
         fvScalarMatrix pEqn
         (
             pDDtEqn
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(rhorAUf, p)
         );
 
         fvOptions.constrain(pEqn);

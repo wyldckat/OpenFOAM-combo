@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -15,6 +15,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+radiation on;
+
 radiationModel  fvDOM;
 
 fvDOMCoeffs
@@ -26,7 +28,7 @@ fvDOMCoeffs
     cacheDiv    true;       // cache the div of the RTE equation.
 
 // NOTE: Caching div is "only" accurate if the upwind scheme is used in
-//div(Ji,Ii_h)
+// div(Ji,Ii_h)
 }
 
 // Number of flow iterations per radiation iteration
@@ -187,5 +189,12 @@ greyMeanAbsorptionEmissionCoeffs
 
 scatterModel    none;
 
+sootModel mixtureFractionSoot<gasHThermoPhysics>;
 
+mixtureFractionSootCoeffs
+{
+    //CH4 + 2O2 + 7.5N2 = CO2 + 2H2O + 7.5N2 + nuSoot soot
+    nuSoot              0.055;
+    Wsoot               12;
+}
 // ************************************************************************* //

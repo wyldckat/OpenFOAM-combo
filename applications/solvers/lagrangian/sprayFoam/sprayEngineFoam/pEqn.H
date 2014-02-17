@@ -1,6 +1,8 @@
 rho = thermo.rho();
 
 volScalarField rAU(1.0/UEqn.A());
+surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+
 volVectorField HbyA("HbyA", U);
 HbyA = rAU*UEqn.H();
 
@@ -11,12 +13,15 @@ if (pimple.transonic())
         "phid",
         fvc::interpolate(psi)
        *(
-            ((fvc::interpolate(HbyA) & mesh.Sf()) - fvc::meshPhi(rho, U))
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+            (
+                (fvc::interpolate(rho*HbyA) & mesh.Sf())
+              + rhorAUf*fvc::ddtCorr(rho, U, rhoUf)
+            )/fvc::interpolate(rho)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(psi), phid);
+    fvc::makeRelative(phid, psi, U);
+    fvOptions.makeRelative(fvc::interpolate(psi), phid);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -24,7 +29,7 @@ if (pimple.transonic())
         (
             fvm::ddt(psi, p)
           + fvm::div(phid, p)
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(rhorAUf, p)
          ==
             parcels.Srho()
           + fvOptions(psi, p, rho.name())
@@ -45,14 +50,14 @@ else
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::interpolate(rho)
-       *(
-            ((fvc::interpolate(HbyA) & mesh.Sf()) - fvc::meshPhi(rho, U))
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        (
+            (fvc::interpolate(HbyA) & mesh.Sf())
+          + rhorAUf*fvc::ddtCorr(rho, U, rhoUf)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvc::makeRelative(phiHbyA, rho, U);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -60,7 +65,7 @@ else
         (
             fvm::ddt(psi, p)
           + fvc::div(phiHbyA)
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(rhorAUf, p)
          ==
             parcels.Srho()
           + fvOptions(psi, p, rho.name())
@@ -84,6 +89,12 @@ U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
 fvOptions.correct(U);
 K = 0.5*magSqr(U);
+
+{
+    rhoUf = fvc::interpolate(rho*U);
+    surfaceVectorField n(mesh.Sf()/mesh.magSf());
+    rhoUf += n*(fvc::absolute(phi, rho, U)/mesh.magSf() - (n & rhoUf));
+}
 
 if (thermo.dpdt())
 {

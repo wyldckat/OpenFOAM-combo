@@ -28,7 +28,7 @@ License
 #include "constants.H"
 #include "greyDiffusiveViewFactorFixedValueFvPatchScalarField.H"
 #include "typeInfo.H"
-
+#include "addToRunTimeSelectionTable.H"
 
 using namespace Foam::constant;
 
@@ -203,7 +203,7 @@ void Foam::radiation::viewFactor::initialise()
                 scalar delta = sumF - 1.0;
                 for (label j=0; j<totalNCoarseFaces_; j++)
                 {
-                    Fmatrix_()[i][j] *= (1.0 - delta/sumF);
+                    Fmatrix_()[i][j] *= (1.0 - delta/(sumF + 0.001));
                 }
             }
         }

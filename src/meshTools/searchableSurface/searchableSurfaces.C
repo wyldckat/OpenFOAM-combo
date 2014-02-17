@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -21,7 +21,7 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
-\*----------------------------------------------------------------------------*/
+\*---------------------------------------------------------------------------*/
 
 #include "searchableSurfaces.H"
 #include "searchableSurfacesQueries.H"
@@ -175,7 +175,8 @@ Foam::searchableSurfaces::searchableSurfaces(const label size)
 Foam::searchableSurfaces::searchableSurfaces
 (
     const IOobject& io,
-    const dictionary& topDict
+    const dictionary& topDict,
+    const bool singleRegionName
 )
 :
     PtrList<searchableSurface>(topDict.size()),
@@ -233,9 +234,16 @@ Foam::searchableSurfaces::searchableSurfaces
         wordList& rNames = regionNames_[surfI];
         rNames.setSize(localNames.size());
 
-        forAll(localNames, regionI)
+        if (singleRegionName && localNames.size() == 1)
         {
-            rNames[regionI] = names_[surfI] + '_' + localNames[regionI];
+            rNames[0] = names_[surfI];
+        }
+        else
+        {
+            forAll(localNames, regionI)
+            {
+                rNames[regionI] = names_[surfI] + '_' + localNames[regionI];
+            }
         }
 
         // See if dictionary provides any global region names.
@@ -290,6 +298,18 @@ Foam::label Foam::searchableSurfaces::findSurfaceID
 ) const
 {
     return findIndex(names_, wantedName);
+}
+
+
+Foam::label Foam::searchableSurfaces::findSurfaceRegionID
+(
+    const word& surfaceName,
+    const word& regionName
+) const
+{
+    label surfaceIndex = findSurfaceID(surfaceName);
+
+    return findIndex(this->operator[](surfaceIndex).regions(), regionName);
 }
 
 
@@ -381,6 +401,28 @@ void Foam::searchableSurfaces::findNearest
     );
 }
 
+
+// Find nearest. Return -1 or nearest point
+void Foam::searchableSurfaces::findNearest
+(
+    const pointField& samples,
+    const scalarField& nearestDistSqr,
+    const labelList& regionIndices,
+    labelList& nearestSurfaces,
+    List<pointIndexHit>& nearestInfo
+) const
+{
+    searchableSurfacesQueries::findNearest
+    (
+        *this,
+        allSurfaces_,
+        samples,
+        nearestDistSqr,
+        regionIndices,
+        nearestSurfaces,
+        nearestInfo
+    );
+}
 
 //- Calculate bounding box
 Foam::boundBox Foam::searchableSurfaces::bounds() const

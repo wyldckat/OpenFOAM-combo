@@ -11,7 +11,6 @@ EXE_INC = \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/mesh/extrudeModel/lnInclude
 
-
 LIB_LIBS = \
     -lregionModels \
     -lsolidThermo \

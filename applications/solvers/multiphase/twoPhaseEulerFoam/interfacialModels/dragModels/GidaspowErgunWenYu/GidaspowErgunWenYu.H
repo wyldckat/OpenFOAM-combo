@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::GidaspowErgunWenYu
+    Foam::dragModels::GidaspowErgunWenYu
 
 Description
     D. Gidaspow, Multiphase flow and fluidization,
@@ -43,6 +43,14 @@ SourceFiles
 namespace Foam
 {
 
+class phasePair;
+
+namespace dragModels
+{
+
+class Ergun;
+class WenYu;
+
 /*---------------------------------------------------------------------------*\
                            Class GidaspowErgunWenYu Declaration
 \*---------------------------------------------------------------------------*/
@@ -51,6 +59,16 @@ class GidaspowErgunWenYu
 :
     public dragModel
 {
+private:
+
+    // Private data
+
+        //- Ergun drag model
+        autoPtr<Ergun> Ergun_;
+
+        //- Wen Yu drag model
+        autoPtr<WenYu> WenYu_;
+
 
 public:
 
@@ -60,13 +78,12 @@ public:
 
     // Constructors
 
-        //- Construct from components
+        //- Construct from a dictionary and an ordered phase pair
         GidaspowErgunWenYu
         (
             const dictionary& interfaceDict,
-            const volScalarField& alpha1,
-            const phaseModel& phase1,
-            const phaseModel& phase2
+            const phasePair& pair,
+            const bool registerObject
         );
 
 
@@ -76,12 +93,14 @@ public:
 
     // Member Functions
 
-        tmp<volScalarField> K(const volScalarField& Ur) const;
+        //- Drag coefficient
+        virtual tmp<volScalarField> CdRe() const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace dragModels
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

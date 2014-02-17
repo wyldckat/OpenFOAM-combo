@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,38 +32,13 @@ License
 #include "globalIndex.H"
 #include "removePoints.H"
 #include "motionSmoother.H"
+#include "OFstream.H"
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 namespace Foam
 {
 defineTypeNameAndDebug(edgeCollapser, 0);
-}
-
-
-Foam::label Foam::edgeCollapser::longestEdge
-(
-    const face& f,
-    const pointField& pts
-)
-{
-    const edgeList& eds = f.edges();
-
-    label longestEdgeI = -1;
-    scalar longestEdgeLength = -SMALL;
-
-    forAll(eds, edI)
-    {
-        scalar edgeLength = eds[edI].mag(pts);
-
-        if (edgeLength > longestEdgeLength)
-        {
-            longestEdgeI = edI;
-            longestEdgeLength = edgeLength;
-        }
-    }
-
-    return longestEdgeI;
 }
 
 
@@ -207,53 +182,46 @@ void Foam::edgeCollapser::collapseToEdge
     Map<point>& collapsePointToLocation
 ) const
 {
-    const face& f = mesh_.faces()[faceI];
-
     // Negative half
 
-    Foam::point collapseToPtA =
-        collapseAxis*(sum(dNeg)/dNeg.size() - dShift) + fC;
+    Foam::point collapseToPtA(GREAT, GREAT, GREAT);
+        //collapseAxis*(sum(dNeg)/dNeg.size() - dShift) + fC;
 
-    DynamicList<label> faceBoundaryPts(f.size());
-    DynamicList<label> faceFeaturePts(f.size());
+    label maxPriority = labelMin;
+    DynamicList<label> maxPriorityPts(max(dNeg.size(), dPos.size()));
 
     forAll(facePtsNeg, fPtI)
     {
-        if (pointPriority[facePtsNeg[fPtI]] == 1)
+        const label facePointI = facePtsNeg[fPtI];
+        const label facePtPriority = pointPriority[facePointI];
+
+        if (facePtPriority > maxPriority)
         {
-            faceFeaturePts.append(facePtsNeg[fPtI]);
+            maxPriority = facePtPriority;
+            maxPriorityPts.clear();
+            maxPriorityPts.append(facePointI);
         }
-        else if (pointPriority[facePtsNeg[fPtI]] == 0)
+        else if (facePtPriority == maxPriority)
         {
-            faceBoundaryPts.append(facePtsNeg[fPtI]);
+            maxPriorityPts.append(facePointI);
         }
     }
 
-    if (!faceBoundaryPts.empty() || !faceFeaturePts.empty())
+    if (!maxPriorityPts.empty())
     {
-        if (!faceFeaturePts.empty())
-        {
-            collapseToPtA = pts[faceFeaturePts.first()];
-        }
-        else if (faceBoundaryPts.size() == 2)
-        {
-            collapseToPtA =
-                0.5
-               *(
-                    pts[faceBoundaryPts[0]]
-                  + pts[faceBoundaryPts[1]]
-                );
-        }
-        else if (faceBoundaryPts.size() <= f.size())
-        {
-            face bFace(faceBoundaryPts);
+        Foam::point averagePt(vector::zero);
 
-            collapseToPtA = bFace.centre(pts);
+        forAll(maxPriorityPts, ptI)
+        {
+            averagePt += pts[maxPriorityPts[ptI]];
         }
+
+        collapseToPtA = averagePt/maxPriorityPts.size();
+//        collapseToPtA = pts[maxPriorityPts.first()];
     }
 
-    faceFeaturePts.clear();
-    faceBoundaryPts.clear();
+    maxPriority = labelMin;
+    maxPriorityPts.clear();
 
     labelList faceEdgesNeg = edgesFromPoints(faceI, facePtsNeg);
 
@@ -269,47 +237,37 @@ void Foam::edgeCollapser::collapseToEdge
 
 
     // Positive half
-
-    Foam::point collapseToPtB
-        = collapseAxis*(sum(dPos)/dPos.size() - dShift) + fC;
+    Foam::point collapseToPtB(GREAT, GREAT, GREAT);
+//        = collapseAxis*(sum(dPos)/dPos.size() - dShift) + fC;
 
     forAll(facePtsPos, fPtI)
     {
-        if (pointPriority[facePtsPos[fPtI]] == 1)
+        const label facePointI = facePtsPos[fPtI];
+        const label facePtPriority = pointPriority[facePointI];
+
+        if (facePtPriority > maxPriority)
         {
-            faceFeaturePts.append(facePtsPos[fPtI]);
+            maxPriority = facePtPriority;
+            maxPriorityPts.clear();
+            maxPriorityPts.append(facePointI);
         }
-        else if (pointPriority[facePtsPos[fPtI]] == 0)
+        else if (facePtPriority == maxPriority)
         {
-            // If there is a point which is on the boundary,
-            // use it as the point to collapse others to, will
-            // use the first boundary point encountered if
-            // there are multiple boundary points.
-            faceBoundaryPts.append(facePtsPos[fPtI]);
+            maxPriorityPts.append(facePointI);
         }
     }
 
-    if (!faceBoundaryPts.empty() || !faceFeaturePts.empty())
+    if (!maxPriorityPts.empty())
     {
-        if (!faceFeaturePts.empty())
-        {
-            collapseToPtB = pts[faceFeaturePts.first()];
-        }
-        else if (faceBoundaryPts.size() == 2)
-        {
-            collapseToPtB =
-                0.5
-               *(
-                    pts[faceBoundaryPts[0]]
-                  + pts[faceBoundaryPts[1]]
-                );
-        }
-        else if (faceBoundaryPts.size() <= f.size())
-        {
-            face bFace(faceBoundaryPts);
+        Foam::point averagePt(vector::zero);
 
-            collapseToPtB = bFace.centre(pts);
+        forAll(maxPriorityPts, ptI)
+        {
+            averagePt += pts[maxPriorityPts[ptI]];
         }
+
+        collapseToPtB = averagePt/maxPriorityPts.size();
+//        collapseToPtB = pts[maxPriorityPts.first()];
     }
 
     labelList faceEdgesPos = edgesFromPoints(faceI, facePtsPos);
@@ -341,45 +299,79 @@ void Foam::edgeCollapser::collapseToPoint
 
     Foam::point collapseToPt = fC;
 
-    DynamicList<label> faceBoundaryPts(f.size());
-    DynamicList<label> faceFeaturePts(f.size());
+    label maxPriority = labelMin;
+    DynamicList<label> maxPriorityPts(f.size());
 
     forAll(facePts, fPtI)
     {
-        if (pointPriority[facePts[fPtI]] == 1)
+        const label facePointI = facePts[fPtI];
+        const label facePtPriority = pointPriority[facePointI];
+
+        if (facePtPriority > maxPriority)
         {
-            faceFeaturePts.append(facePts[fPtI]);
+            maxPriority = facePtPriority;
+            maxPriorityPts.clear();
+            maxPriorityPts.append(facePointI);
         }
-        else if (pointPriority[facePts[fPtI]] == 0)
+        else if (facePtPriority == maxPriority)
         {
-            faceBoundaryPts.append(facePts[fPtI]);
+            maxPriorityPts.append(facePointI);
         }
     }
 
-    if (!faceBoundaryPts.empty() || !faceFeaturePts.empty())
+    if (!maxPriorityPts.empty())
     {
-        if (!faceFeaturePts.empty())
-        {
-            collapseToPt = pts[faceFeaturePts.first()];
-        }
-        else if (faceBoundaryPts.size() == 2)
-        {
-            collapseToPt =
-                0.5
-               *(
-                    pts[faceBoundaryPts[0]]
-                  + pts[faceBoundaryPts[1]]
-                );
-        }
-        else if (faceBoundaryPts.size() <= f.size())
-        {
-            face bFace(faceBoundaryPts);
+        Foam::point averagePt(vector::zero);
 
-            collapseToPt = bFace.centre(pts);
+        forAll(maxPriorityPts, ptI)
+        {
+            averagePt += pts[maxPriorityPts[ptI]];
         }
+
+        collapseToPt = averagePt/maxPriorityPts.size();
+
+//        collapseToPt = pts[maxPriorityPts.first()];
     }
 
-    const labelList faceEdges = mesh_.faceEdges()[faceI];
+//    DynamicList<label> faceBoundaryPts(f.size());
+//    DynamicList<label> faceFeaturePts(f.size());
+//
+//    forAll(facePts, fPtI)
+//    {
+//        if (pointPriority[facePts[fPtI]] == 1)
+//        {
+//            faceFeaturePts.append(facePts[fPtI]);
+//        }
+//        else if (pointPriority[facePts[fPtI]] == 0)
+//        {
+//            faceBoundaryPts.append(facePts[fPtI]);
+//        }
+//    }
+//
+//    if (!faceBoundaryPts.empty() || !faceFeaturePts.empty())
+//    {
+//        if (!faceFeaturePts.empty())
+//        {
+//            collapseToPt = pts[faceFeaturePts.first()];
+//        }
+//        else if (faceBoundaryPts.size() == 2)
+//        {
+//            collapseToPt =
+//                0.5
+//               *(
+//                    pts[faceBoundaryPts[0]]
+//                  + pts[faceBoundaryPts[1]]
+//                );
+//        }
+//        else if (faceBoundaryPts.size() <= f.size())
+//        {
+//            face bFace(faceBoundaryPts);
+//
+//            collapseToPt = bFace.centre(pts);
+//        }
+//    }
+
+    const labelList& faceEdges = mesh_.faceEdges()[faceI];
 
     forAll(faceEdges, eI)
     {
@@ -483,7 +475,7 @@ Foam::scalarField Foam::edgeCollapser::calcTargetFaceSizes() const
 {
     scalarField targetFaceSizes(mesh_.nFaces(), -1);
 
-    const scalarField& cellVolumes = mesh_.cellVolumes();
+    const scalarField& V = mesh_.cellVolumes();
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
     const labelList& cellOwner = mesh_.faceOwner();
@@ -494,8 +486,8 @@ Foam::scalarField Foam::edgeCollapser::calcTargetFaceSizes() const
     // Calculate face size from cell volumes for internal faces
     for (label intFaceI = 0; intFaceI < mesh_.nInternalFaces(); ++intFaceI)
     {
-        const scalar cellOwnerVol = cellVolumes[cellOwner[intFaceI]];
-        const scalar cellNeighbourVol = cellVolumes[cellNeighbour[intFaceI]];
+        const scalar cellOwnerVol = max(0.0, V[cellOwner[intFaceI]]);
+        const scalar cellNeighbourVol = max(0.0, V[cellNeighbour[intFaceI]]);
 
         scalar targetFaceSizeA = Foam::pow(cellOwnerVol, 1.0/3.0);
         scalar targetFaceSizeB = Foam::pow(cellNeighbourVol, 1.0/3.0);
@@ -520,7 +512,7 @@ Foam::scalarField Foam::edgeCollapser::calcTargetFaceSizes() const
 
             forAll(faceCells, facei)
             {
-                neiCellVolumes[bFaceI++] = cellVolumes[faceCells[facei]];
+                neiCellVolumes[bFaceI++] = max(0.0, V[faceCells[facei]]);
             }
         }
         else
@@ -530,7 +522,7 @@ Foam::scalarField Foam::edgeCollapser::calcTargetFaceSizes() const
             forAll(patch, patchFaceI)
             {
                 const label extFaceI = patchFaceI + patch.start();
-                const scalar cellOwnerVol = cellVolumes[cellOwner[extFaceI]];
+                const scalar cellOwnerVol = max(0.0, V[cellOwner[extFaceI]]);
 
                 targetFaceSizes[extFaceI] = Foam::pow(cellOwnerVol, 1.0/3.0);
             }
@@ -550,7 +542,7 @@ Foam::scalarField Foam::edgeCollapser::calcTargetFaceSizes() const
             forAll(patch, patchFaceI)
             {
                 const label localFaceI = patchFaceI + patch.start();
-                const scalar cellOwnerVol = cellVolumes[cellOwner[localFaceI]];
+                const scalar cellOwnerVol = max(0.0, V[cellOwner[localFaceI]]);
                 const scalar cellNeighbourVol = neiCellVolumes[bFaceI++];
 
                 scalar targetFaceSizeA = Foam::pow(cellOwnerVol, 1.0/3.0);
@@ -765,35 +757,51 @@ Foam::label Foam::edgeCollapser::edgeMaster
 {
     label masterPoint = -1;
 
-    label e0 = e.start();
-    label e1 = e.end();
+    const label e0 = e.start();
+    const label e1 = e.end();
 
-    // Collapse edge to point with higher priority.
-    if (pointPriority[e0] >= 0)
+    const label e0Priority = pointPriority[e0];
+    const label e1Priority = pointPriority[e1];
+
+    if (e0Priority > e1Priority)
     {
-        if (pointPriority[e1] >= 0)
-        {
-            // Both points have high priority. Choose one to collapse to.
-            // Note: should look at feature edges/points!
-            masterPoint = e0;
-        }
-        else
-        {
-            masterPoint = e0;
-        }
+        masterPoint = e0;
     }
-    else
+    else if (e0Priority < e1Priority)
     {
-        if (pointPriority[e1] >= 0)
-        {
-            masterPoint = e1;
-        }
-        else
-        {
-            // None on boundary. Neither is a master.
-            return -1;
-        }
+        masterPoint = e1;
     }
+    else if (e0Priority == e1Priority)
+    {
+        masterPoint = e0;
+    }
+
+//    // Collapse edge to point with higher priority.
+//    if (pointPriority[e0] >= 0)
+//    {
+//        if (pointPriority[e1] >= 0)
+//        {
+//            // Both points have high priority. Choose one to collapse to.
+//            // Note: should look at feature edges/points!
+//            masterPoint = e0;
+//        }
+//        else
+//        {
+//            masterPoint = e0;
+//        }
+//    }
+//    else
+//    {
+//        if (pointPriority[e1] >= 0)
+//        {
+//            masterPoint = e1;
+//        }
+//        else
+//        {
+//            // None on boundary. Neither is a master.
+//            return -1;
+//        }
+//    }
 
     return masterPoint;
 }
@@ -809,7 +817,10 @@ void Foam::edgeCollapser::checkBoundaryPointMergeEdges
 {
    const pointField& points = mesh_.points();
 
-   if (pointPriority[pointI] >= 0 && pointPriority[otherPointI] < 0)
+   const label e0Priority = pointPriority[pointI];
+   const label e1Priority = pointPriority[otherPointI];
+
+   if (e0Priority > e1Priority)
    {
        collapsePointToLocation.set
        (
@@ -817,13 +828,29 @@ void Foam::edgeCollapser::checkBoundaryPointMergeEdges
            points[pointI]
        );
    }
-   else
+   else if (e0Priority < e1Priority)
    {
        collapsePointToLocation.set
        (
            pointI,
            points[otherPointI]
        );
+   }
+   else // e0Priority == e1Priority
+   {
+       collapsePointToLocation.set
+       (
+           pointI,
+           points[otherPointI]
+       );
+
+//       Foam::point averagePt
+//       (
+//           0.5*(points[otherPointI] + points[pointI])
+//       );
+//
+//       collapsePointToLocation.set(pointI, averagePt);
+//       collapsePointToLocation.set(otherPointI, averagePt);
    }
 }
 
@@ -1242,7 +1269,19 @@ Foam::edgeCollapser::edgeCollapser
     (
         dict.lookupOrDefault<scalar>("allowEarlyCollapseCoeff", 0)
     )
-{}
+{
+    if (debug)
+    {
+        Info<< "Edge Collapser Settings:" << nl
+            << "    Guard Fraction = " << guardFraction_ << nl
+            << "    Max collapse face to point side length = "
+            << maxCollapseFaceToPointSideLengthCoeff_ << nl
+            << "    " << (allowEarlyCollapseToPoint_ ? "Allow" : "Do not allow")
+            << " early collapse to point" << nl
+            << "    Early collapse coeff = " << allowEarlyCollapseCoeff_
+            << endl;
+    }
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -1976,7 +2015,7 @@ Foam::labelPair Foam::edgeCollapser::markSmallSliverFaces
     {
         const face& f = faces[fI];
 
-        if (faceFilterFactor[fI] == 0)
+        if (faceFilterFactor[fI] <= 0)
         {
             continue;
         }
@@ -2017,93 +2056,150 @@ Foam::labelPair Foam::edgeCollapser::markSmallSliverFaces
 }
 
 
-void Foam::edgeCollapser::markIndirectPatchFaces
+Foam::labelPair Foam::edgeCollapser::markFaceZoneEdges
 (
+    const faceZone& fZone,
+    const scalarField& faceFilterFactor,
+    const labelList& pointPriority,
     PackedBoolList& collapseEdge,
     Map<point>& collapsePointToLocation
 ) const
 {
-    const faceZone& indirectFaceZone = mesh_.faceZones()["indirectPatchFaces"];
+    const faceList& faces = mesh_.faces();
 
-    const edgeList& edges = mesh_.edges();
-    const pointField& points = mesh_.points();
-    const labelListList& edgeFaces = mesh_.edgeFaces();
-    const polyBoundaryMesh& bMesh = mesh_.boundaryMesh();
+    const scalarField targetFaceSizes = calcTargetFaceSizes();
 
-    forAll(edges, eI)
+    // Calculate number of faces that will be collapsed to a point or an edge
+    label nCollapseToPoint = 0;
+    label nCollapseToEdge = 0;
+
+    forAll(faces, fI)
     {
-        const edge& e = edges[eI];
-
-        const labelList& eFaces = edgeFaces[eI];
-
-        bool keepEdge = false;
-
-        label nInternalFaces = 0;
-        label nPatchFaces = 0;
-        label nIndirectFaces = 0;
-
-        bool coupled = false;
-
-        forAll(eFaces, eFaceI)
+        if (fZone.whichFace(fI) == -1)
         {
-            const label eFaceIndex = eFaces[eFaceI];
-
-            if (mesh_.isInternalFace(eFaceIndex))
-            {
-                nInternalFaces++;
-            }
-            else
-            {
-                const label patchIndex = bMesh.whichPatch(eFaceIndex);
-                const polyPatch& pPatch = bMesh[patchIndex];
-
-                if (pPatch.coupled())
-                {
-                    coupled = true;
-                    nInternalFaces++;
-                }
-                else
-                {
-                    // Keep the edge if an attached face is not in the face zone
-                    if (indirectFaceZone.whichFace(eFaceIndex) == -1)
-                    {
-                        nPatchFaces++;
-                    }
-                    else
-                    {
-                        nIndirectFaces++;
-                    }
-                }
-            }
+            continue;
         }
 
-        if (eFaces.size() != nInternalFaces + nPatchFaces + nIndirectFaces)
+        const face& f = faces[fI];
+
+        if (faceFilterFactor[fI] <= 0)
         {
-            Pout<< eFaces.size() << " ("
-                << nInternalFaces << "/" << nPatchFaces << "/" << nIndirectFaces
-                << ")" << endl;
+            continue;
         }
 
-        if
+        collapseType flagCollapseFace = collapseFace
         (
-            eFaces.size() == nInternalFaces
-         || nIndirectFaces < (coupled ? 1 : 2)
-        )
+            pointPriority,
+            f,
+            fI,
+            targetFaceSizes[fI],
+            collapseEdge,
+            collapsePointToLocation,
+            faceFilterFactor
+        );
+
+        if (flagCollapseFace == noCollapse)
         {
-            keepEdge = true;
+            continue;
         }
-
-        if (!keepEdge)
+        else if (flagCollapseFace == toPoint)
         {
-            collapseEdge[eI] = true;
-
-            const Foam::point collapsePoint =
-                0.5*(points[e.end()] + points[e.start()]);
-
-            collapsePointToLocation.insert(e.start(), collapsePoint);
-            collapsePointToLocation.insert(e.end(), collapsePoint);
+            nCollapseToPoint++;
+        }
+        else if (flagCollapseFace == toEdge)
+        {
+            nCollapseToEdge++;
+        }
+        else
+        {
+            FatalErrorIn("collapseFaces(const polyMesh&, List<labelPair>&)")
+                << "Face is marked to be collapsed to " << flagCollapseFace
+                << ". Currently can only collapse to point/edge."
+                << abort(FatalError);
         }
     }
+
+    return labelPair(nCollapseToPoint, nCollapseToEdge);
+
+//    const edgeList& edges = mesh_.edges();
+//    const pointField& points = mesh_.points();
+//    const labelListList& edgeFaces = mesh_.edgeFaces();
+//    const polyBoundaryMesh& bMesh = mesh_.boundaryMesh();
+//
+//    forAll(edges, eI)
+//    {
+//        const edge& e = edges[eI];
+//
+//        const labelList& eFaces = edgeFaces[eI];
+//
+//        bool keepEdge = false;
+//
+//        label nInternalFaces = 0;
+//        label nPatchFaces = 0;
+//        label nIndirectFaces = 0;
+//
+//        bool coupled = false;
+//
+//        forAll(eFaces, eFaceI)
+//        {
+//            const label eFaceIndex = eFaces[eFaceI];
+//
+//            if (mesh_.isInternalFace(eFaceIndex))
+//            {
+//                nInternalFaces++;
+//            }
+//            else
+//            {
+//                const label patchIndex = bMesh.whichPatch(eFaceIndex);
+//                const polyPatch& pPatch = bMesh[patchIndex];
+//
+//                if (pPatch.coupled())
+//                {
+//                    coupled = true;
+//                    nInternalFaces++;
+//                }
+//                else
+//                {
+//                    // Keep the edge if an attached face is not in the zone
+//                    if (fZone.whichFace(eFaceIndex) == -1)
+//                    {
+//                        nPatchFaces++;
+//                    }
+//                    else
+//                    {
+//                        nIndirectFaces++;
+//                    }
+//                }
+//            }
+//        }
+//
+//        if (eFaces.size() != nInternalFaces + nPatchFaces + nIndirectFaces)
+//        {
+//            Pout<< eFaces.size() << " ("
+//                << nInternalFaces << "/" << nPatchFaces << "/"
+//                << nIndirectFaces << ")" << endl;
+//        }
+//
+//        if
+//        (
+//            eFaces.size() == nInternalFaces
+//         || nIndirectFaces < (coupled ? 1 : 2)
+//        )
+//        {
+//            keepEdge = true;
+//        }
+//
+//        if (!keepEdge)
+//        {
+//            collapseEdge[eI] = true;
+//
+//            const Foam::point collapsePoint =
+//                0.5*(points[e.end()] + points[e.start()]);
+//
+//            collapsePointToLocation.insert(e.start(), collapsePoint);
+//            collapsePointToLocation.insert(e.end(), collapsePoint);
+//        }
+//    }
 
 //    OFstream str
 //    (

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -104,7 +104,7 @@ bool inFileNameList
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
-#   include "addRegionOption.H"
+    #include "addRegionOption.H"
 
     argList::addBoolOption
     (
@@ -147,17 +147,17 @@ int main(int argc, char *argv[])
         "specify cellZone to write"
     );
 
-#   include "setRootCase.H"
+    #include "setRootCase.H"
 
     // Check options
     const bool binary = !args.optionFound("ascii");
     const bool nodeValues = args.optionFound("nodeValues");
 
-#   include "createTime.H"
+    #include "createTime.H"
 
     instantList Times = timeSelector::select0(runTime, args);
 
-#   include "createNamedMesh.H"
+    #include "createNamedMesh.H"
 
     // Mesh instance (region0 gets filtered out)
     fileName regionPrefix = "";
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
         volTensorField::typeName
     };
 
-    // Path to EnSight folder at case level only
+    // Path to EnSight directory at case level only
     // - For parallel cases, data only written from master
     fileName ensightDir = args.rootPath()/args.globalCaseName()/"EnSight";
 
@@ -223,7 +223,6 @@ int main(int argc, char *argv[])
     {
         patchPatterns = wordReList(args.optionLookup("patches")());
     }
-
     const bool selectedZones = args.optionFound("faceZones");
     wordReList zonePatterns;
     if (selectedZones)
@@ -273,7 +272,7 @@ int main(int argc, char *argv[])
 
     IOobjectList objects(mesh, runTime.timeName());
 
-#   include "checkMeshMoving.H"
+    #include "checkMeshMoving.H"
 
     if (meshMoving)
     {
@@ -320,7 +319,7 @@ int main(int argc, char *argv[])
                 cloud::prefix/cloudDirs[cloudI]
             );
 
-            IOobject* positionsPtr = cloudObjs.lookup("positions");
+            IOobject* positionsPtr = cloudObjs.lookup(word("positions"));
 
             if (positionsPtr)
             {
@@ -453,7 +452,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-#               include "checkData.H"
+                #include "checkData.H"
 
                 if (!variableGood)
                 {
@@ -621,7 +620,7 @@ int main(int argc, char *argv[])
         }
     }
 
-#   include "ensightCaseTail.H"
+    #include "ensightCaseTail.H"
 
     if (Pstream::master())
     {

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -436,6 +436,29 @@ Foam::point Foam::plane::planePlaneIntersect
     vector b(coeffs1[3],coeffs2[3],coeffs3[3]);
 
     return (inv(a) & (-b));
+}
+
+
+Foam::plane::side Foam::plane::sideOfPlane(const point& p) const
+{
+    const scalar angle((p - basePoint_) & unitVector_);
+
+    return (angle < 0 ? FLIP : NORMAL);
+}
+
+
+Foam::point Foam::plane::mirror(const point& p) const
+{
+    const vector mirroredPtDir = p - nearestPoint(p);
+
+    if ((normal() & mirroredPtDir) > 0)
+    {
+        return p - 2.0*distance(p)*normal();
+    }
+    else
+    {
+        return p + 2.0*distance(p)*normal();
+    }
 }
 
 

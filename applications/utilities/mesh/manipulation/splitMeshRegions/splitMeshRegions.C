@@ -1078,7 +1078,6 @@ labelList addRegionPatches
             mesh.boundaryMesh()
         );
 
-        //interfacePatches[interI] = addPatch(mesh, patch1);
         interfacePatches[interI] = fvMeshTools::addPatch
         (
             mesh,
@@ -1100,7 +1099,6 @@ labelList addRegionPatches
             point::zero,        // offset
             mesh.boundaryMesh()
         );
-        //addPatch(mesh, patch2);
         fvMeshTools::addPatch
         (
             mesh,
@@ -1404,6 +1402,7 @@ int main(int argc, char *argv[])
     (
         "splits mesh into multiple regions (detected by walking across faces)"
     );
+#   include "addRegionOption.H"
     #include "addOverwriteOption.H"
     argList::addBoolOption
     (
@@ -1467,7 +1466,7 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
     runTime.functionObjects().off();
-    #include "createMesh.H"
+    #include "createNamedMesh.H"
     const word oldInstance = mesh.pointsInstance();
 
     word blockedFacesName;

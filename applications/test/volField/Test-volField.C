@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    volFieldTest
+    Test-volField
 
 \*---------------------------------------------------------------------------*/
 
@@ -51,8 +51,6 @@ int main(int argc, char *argv[])
         ),
         mesh
     );
-
-    //Info<< min(p, p);
 
     Info<< "Reading field U\n" << endl;
     volVectorField U
@@ -85,11 +83,12 @@ int main(int argc, char *argv[])
         zeroGradientFvPatchSymmTensorField::typeName
     );
 
-    //Info<< fvc::div(st) << endl;
-    dimensionedScalar DT("dt", pow(dimLength, 2)/dimTime, 1.0);
-
-
-    solve(fvm::ddt(st) + fvm::div(phi, st) - fvm::laplacian(DT, st));
+    solve
+    (
+        fvm::ddt(st)
+      + fvm::div(phi, st)
+      - fvm::laplacian(dimensionedScalar("D", sqr(dimLength)/dimTime, 1), st)
+    );
 
     return 0;
 }

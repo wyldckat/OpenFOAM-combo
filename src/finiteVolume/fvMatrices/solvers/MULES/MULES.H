@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,7 @@ Global
     MULES
 
 Description
-    MULES: Multidimensional universal limiter with explicit solution.
+    MULES: Multidimensional universal limiter for explicit solution.
 
     Solve a convective-only transport equation using an explicit universal
     multi-dimensional limiter.
@@ -36,17 +36,20 @@ Description
 
 SourceFiles
     MULES.C
+    MULESTemplates.C
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef MULES_H
 #define MULES_H
 
-#include "volFields.H"
+#include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "primitiveFieldsFwd.H"
 #include "geometricOneField.H"
 #include "zero.H"
+#include "zeroField.H"
+#include "UPtrList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,6 +59,17 @@ namespace MULES
 {
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+template<class RdeltaTType, class RhoType, class SpType, class SuType>
+void explicitSolve
+(
+    const RdeltaTType& rDeltaT,
+    const RhoType& rho,
+    volScalarField& psi,
+    const surfaceScalarField& phiPsi,
+    const SpType& Sp,
+    const SuType& Su
+);
 
 template<class RhoType, class SpType, class SuType>
 void explicitSolve
@@ -90,31 +104,33 @@ void explicitSolve
 );
 
 template<class RhoType, class SpType, class SuType>
-void implicitSolve
+void explicitLTSSolve
 (
     const RhoType& rho,
-    volScalarField& gamma,
-    const surfaceScalarField& phi,
-    surfaceScalarField& phiCorr,
+    volScalarField& psi,
+    const surfaceScalarField& phiBD,
+    surfaceScalarField& phiPsi,
     const SpType& Sp,
     const SuType& Su,
     const scalar psiMax,
     const scalar psiMin
 );
 
-void implicitSolve
+void explicitLTSSolve
 (
-    volScalarField& gamma,
-    const surfaceScalarField& phi,
-    surfaceScalarField& phiCorr,
+    volScalarField& psi,
+    const surfaceScalarField& phiBD,
+    surfaceScalarField& phiPsi,
     const scalar psiMax,
     const scalar psiMin
 );
 
-template<class RhoType, class SpType, class SuType>
+
+template<class RdeltaTType, class RhoType, class SpType, class SuType>
 void limiter
 (
     scalarField& allLambda,
+    const RdeltaTType& rDeltaT,
     const RhoType& rho,
     const volScalarField& psi,
     const surfaceScalarField& phiBD,
@@ -126,9 +142,10 @@ void limiter
     const label nLimiterIter
 );
 
-template<class RhoType, class SpType, class SuType>
+template<class RdeltaTType, class RhoType, class SpType, class SuType>
 void limit
 (
+    const RdeltaTType& rDeltaT,
     const RhoType& rho,
     const volScalarField& psi,
     const surfaceScalarField& phi,
@@ -141,10 +158,12 @@ void limit
     const bool returnCorr
 );
 
+
 void limitSum(UPtrList<scalarField>& phiPsiCorrs);
 
 template<class SurfaceScalarFieldList>
 void limitSum(SurfaceScalarFieldList& phiPsiCorrs);
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

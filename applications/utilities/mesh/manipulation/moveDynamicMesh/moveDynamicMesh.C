@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,7 +44,7 @@ void writeWeights
 (
     const scalarField& wghtSum,
     const primitivePatch& patch,
-    const fileName& folder,
+    const fileName& directory,
     const fileName& prefix,
     const word& timeName
 )
@@ -53,7 +53,7 @@ void writeWeights
 
     writer.write
     (
-        folder,
+        directory,
         prefix + "_proc" + Foam::name(Pstream::myProcNo()) + "_" + timeName,
         patch.localPoints(),
         patch.localFaces(),
@@ -85,11 +85,12 @@ void writeWeights(const polyMesh& mesh)
 
                 const AMIPatchToPatchInterpolation& ami =
                     cpp.AMI();
+
                 writeWeights
                 (
                     ami.tgtWeightsSum(),
                     cpp.neighbPatch(),
-                    "output",
+                    "postProcessing",
                     "tgt",
                     tmName
                 );
@@ -97,7 +98,7 @@ void writeWeights(const polyMesh& mesh)
                 (
                     ami.srcWeightsSum(),
                     cpp,
-                    "output",
+                    "postProcessing",
                     "src",
                     tmName
                 );
@@ -110,16 +111,16 @@ void writeWeights(const polyMesh& mesh)
 
 int main(int argc, char *argv[])
 {
-    #include "addRegionOption.H"
+#   include "addRegionOption.H"
     argList::addBoolOption
     (
         "checkAMI",
         "check AMI weights"
     );
 
-    #include "setRootCase.H"
-    #include "createTime.H"
-    #include "createNamedDynamicFvMesh.H"
+#   include "setRootCase.H"
+#   include "createTime.H"
+#   include "createNamedDynamicFvMesh.H"
 
     const bool checkAMI  = args.optionFound("checkAMI");
 

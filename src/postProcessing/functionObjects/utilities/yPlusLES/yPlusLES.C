@@ -43,10 +43,13 @@ namespace Foam
 
 void Foam::yPlusLES::writeFileHeader(const label i)
 {
-    file() << "# y+ (LES)" << nl
-        << "# time " << token::TAB << "patch" << token::TAB
-        << "min" << token::TAB << "max" << token::TAB << "average"
-        << endl;
+    writeHeader(file(), "y+ (LES)");
+
+    writeCommented(file(), "Time");
+    writeTabbed(file(), "patch");
+    writeTabbed(file(), "min");
+    writeTabbed(file(), "max");
+    writeTabbed(file(), "average");
 }
 
 
@@ -90,19 +93,18 @@ void Foam::yPlusLES::calcIncompressibleYPlus
             scalar maxYp = gMax(Yp);
             scalar avgYp = gAverage(Yp);
 
-            if (log_)
-            {
-                Info<< "    patch " << currPatch.name()
-                    << " y+ : min = " << minYp << ", max = " << maxYp
-                    << ", average = " << avgYp << nl;
-            }
-
             if (Pstream::master())
             {
-                file() << obr_.time().value() << token::TAB
-                    << currPatch.name() << token::TAB
-                    << minYp << token::TAB << maxYp << token::TAB
-                    << avgYp << endl;
+                Info(log_)<< "    patch " << currPatch.name()
+                    << " y+ : min = " << minYp << ", max = " << maxYp
+                    << ", average = " << avgYp << nl;
+
+                file() << obr_.time().value()
+                    << token::TAB << currPatch.name()
+                    << token::TAB << minYp
+                    << token::TAB << maxYp
+                    << token::TAB << avgYp
+                    << endl;
             }
         }
     }
@@ -132,6 +134,8 @@ void Foam::yPlusLES::calcCompressibleYPlus
 
     const volScalarField muLam(model.mu());
 
+    Info<< type() << " output:" << nl;
+
     bool foundPatch = false;
     forAll(patches, patchi)
     {
@@ -155,19 +159,18 @@ void Foam::yPlusLES::calcCompressibleYPlus
             scalar maxYp = gMax(Yp);
             scalar avgYp = gAverage(Yp);
 
-            if (log_)
-            {
-                Info<< "    patch " << currPatch.name()
-                    << " y+ : min = " << minYp << ", max = " << maxYp
-                    << ", average = " << avgYp << nl;
-            }
-
             if (Pstream::master())
             {
-                file() << obr_.time().value() << token::TAB
-                    << currPatch.name() << token::TAB
-                    << minYp << token::TAB << maxYp << token::TAB
-                    << avgYp << endl;
+                Info(log_)<< "    patch " << currPatch.name()
+                    << " y+ : min = " << minYp << ", max = " << maxYp
+                    << ", average = " << avgYp << nl;
+
+                file() << obr_.time().value()
+                    << token::TAB << currPatch.name()
+                    << token::TAB << minYp
+                    << token::TAB << maxYp
+                    << token::TAB << avgYp
+                    << endl;
             }
          }
     }
@@ -260,24 +263,6 @@ void Foam::yPlusLES::read(const dictionary& dict)
 
 void Foam::yPlusLES::execute()
 {
-    // Do nothing - only valid on write
-}
-
-
-void Foam::yPlusLES::end()
-{
-    // Do nothing - only valid on write
-}
-
-
-void Foam::yPlusLES::timeSet()
-{
-    // Do nothing - only valid on write
-}
-
-
-void Foam::yPlusLES::write()
-{
     if (active_)
     {
         functionObjectFile::write();
@@ -295,10 +280,7 @@ void Foam::yPlusLES::write()
                 mesh.lookupObject<volScalarField>(type())
             );
 
-        if (log_)
-        {
-            Info<< type() << " " << name_ << " output:" << nl;
-        }
+        Info(log_)<< type() << " " << name_ << " output:" << nl;
 
         if (phi.dimensions() == dimMass/dimTime)
         {
@@ -308,11 +290,35 @@ void Foam::yPlusLES::write()
         {
             calcIncompressibleYPlus(mesh, U, yPlusLES);
         }
+    }
+}
 
-        if (log_)
-        {
-            Info<< "    writing field " << yPlusLES.name() << nl << endl;
-        }
+
+void Foam::yPlusLES::end()
+{
+    if (active_)
+    {
+        execute();
+    }
+}
+
+
+void Foam::yPlusLES::timeSet()
+{
+    // Do nothing
+}
+
+
+void Foam::yPlusLES::write()
+{
+    if (active_)
+    {
+        functionObjectFile::write();
+
+        const volScalarField& yPlusLES =
+            obr_.lookupObject<volScalarField>(type());
+
+        Info(log_)<< "    writing field " << yPlusLES.name() << nl << endl;
 
         yPlusLES.write();
     }

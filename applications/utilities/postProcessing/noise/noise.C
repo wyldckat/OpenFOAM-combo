@@ -60,7 +60,7 @@ Description
         nw          | Number of sampling windows    | no        | 100
         fl          | Lower frequency band          | no        | 25
         fU          | Upper frequency band          | no        | 10000
-        graphFormat | Output graph format           | no        | raw
+        graphFormat | Output graph format          | no        | raw
     \endtable
 
     Current graph outputs include:

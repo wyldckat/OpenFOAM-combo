@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,16 +63,6 @@ public:
         const vectorField& cellCtrs
     );
 
-//    static tmp<scalarField> faceOrthogonality(const polyMesh& mesh)
-//    {
-//        return faceOrthogonality
-//        (
-//            mesh,
-//            mesh.faceAreas(),
-//            mesh.cellCentres()
-//        );
-//    }
-
     //- Generate skewness field
     static tmp<scalarField> faceSkewness
     (
@@ -83,17 +73,21 @@ public:
         const vectorField& cellCtrs
     );
 
-//    static tmp<scalarField> faceSkewness(const polyMesh& mesh)
-//    {
-//        return faceSkewness
-//        (
-//            mesh,
-//            mesh.points(),
-//            mesh.faceCentres(),
-//            mesh.faceAreas(),
-//            mesh.cellCentres()
-//        );
-//    }
+    //- Generate interpolation factors field
+    static tmp<scalarField> faceWeights
+    (
+        const polyMesh& mesh,
+        const vectorField& fCtrs,
+        const vectorField& fAreas,
+        const vectorField& cellCtrs
+    );
+
+    //- Generate volume ratio field
+    static tmp<scalarField> volRatio
+    (
+        const polyMesh& mesh,
+        const scalarField& vol
+    );
 
 };
 

@@ -38,6 +38,7 @@ SourceFiles
 #define fvMeshAdder_H
 
 #include "polyMeshAdder.H"
+#include "volFieldsFwd.H"
 #include "fvPatchFieldsFwd.H"
 #include "fvsPatchFieldsFwd.H"
 #include "fvPatchFieldMapper.H"
@@ -66,53 +67,6 @@ class fvMeshAdder
 {
 
 private:
-
-
-    // Private class
-
-    class directFvPatchFieldMapper
-    :
-        public fvPatchFieldMapper
-    {
-        // Private data
-
-            const labelList& directAddressing_;
-
-    public:
-
-        // Constructors
-
-            //- Construct from components
-            directFvPatchFieldMapper(const labelList& directAddressing)
-            :
-                fvPatchFieldMapper(),
-                directAddressing_(directAddressing)
-            {}
-
-
-        //- Destructor
-        virtual ~directFvPatchFieldMapper()
-        {}
-
-
-        // Member Functions
-
-            label size() const
-            {
-                return directAddressing_.size();
-            }
-
-            bool direct() const
-            {
-                return true;
-            }
-
-            const labelUList& directAddressing() const
-            {
-                return directAddressing_;
-            }
-    };
-
 
     // Private Member Functions
 

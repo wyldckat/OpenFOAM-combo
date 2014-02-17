@@ -53,20 +53,28 @@ void Foam::incompressibleTwoPhaseMixture::calcNu()
 Foam::incompressibleTwoPhaseMixture::incompressibleTwoPhaseMixture
 (
     const volVectorField& U,
-    const surfaceScalarField& phi,
-    const word& alpha1Name,
-    const word& alpha2Name
+    const surfaceScalarField& phi
 )
 :
-    transportModel(U, phi),
-    twoPhaseMixture(U.mesh(), *this, alpha1Name, alpha2Name),
+    IOdictionary
+    (
+        IOobject
+        (
+            "transportProperties",
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_WRITE
+        )
+    ),
+    twoPhaseMixture(U.mesh(), *this),
 
     nuModel1_
     (
         viscosityModel::New
         (
             "nu1",
-            subDict(phase1Name_ == "1" ? "phase1": phase1Name_),
+            subDict(phase1Name_),
             U,
             phi
         )
@@ -76,7 +84,7 @@ Foam::incompressibleTwoPhaseMixture::incompressibleTwoPhaseMixture
         viscosityModel::New
         (
             "nu2",
-            subDict(phase2Name_ == "2" ? "phase2": phase2Name_),
+            subDict(phase2Name_),
             U,
             phi
         )
@@ -171,7 +179,7 @@ Foam::incompressibleTwoPhaseMixture::nuf() const
 
 bool Foam::incompressibleTwoPhaseMixture::read()
 {
-    if (transportModel::read())
+    if (regIOobject::read())
     {
         if
         (

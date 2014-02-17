@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,8 +40,10 @@ SourceFiles
 #include "tensor.H"
 #include "pointHit.H"
 #include "Random.H"
+#include "cachedRandom.H"
 #include "FixedList.H"
 #include "UList.H"
+#include "linePointRef.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -161,6 +163,10 @@ public:
             //  distribution
             inline Point randomPoint(Random& rndGen) const;
 
+            //- Return a random point on the triangle from a uniform
+            //  distribution
+            inline Point randomPoint(cachedRandom& rndGen) const;
+
             //- Calculate the barycentric coordinates of the given
             //  point, in the same order as a, b, c.  Returns the
             //  determinant of the solution.
@@ -220,6 +226,15 @@ public:
                 const point& p,
                 label& nearType,
                 label& nearLabel
+            ) const;
+
+            //- Return nearest point to line on triangle. Returns hit if
+            //  point is inside triangle. Sets edgePoint to point on edge
+            //  (hit if nearest is inside line)
+            inline pointHit nearestPoint
+            (
+                const linePointRef& edge,
+                pointHit& edgePoint
             ) const;
 
 

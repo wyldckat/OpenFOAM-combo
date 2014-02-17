@@ -38,8 +38,10 @@ Description
 
     and the removal:
 
-    \f[ - k_{1} /frac{\vert \dwea{\vec{U}} \vert}{L_{sub}}
-    \frac{\Xi_{sub}-1}{\Xi_{sub}} \f]
+    \f[
+        - k_{1} /frac{\vert \dwea{\vec{U}} \vert}{L_{sub}}
+        \frac{\Xi_{sub}-1}{\Xi_{sub}}
+    \f]
 
     Finally, \f$ G_{sub} \f$ is added to generation rate \f$ G_{in} \f$
     due to the turbulence.

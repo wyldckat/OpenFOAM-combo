@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,10 +47,490 @@ Description
 #include "snapParameters.H"
 #include "layerParameters.H"
 #include "vtkSetWriter.H"
+#include "faceSet.H"
+#include "motionSmoother.H"
+#include "polyTopoChange.H"
+#include "cellModeller.H"
+#include "uindirectPrimitivePatch.H"
+#include "surfZoneIdentifierList.H"
+#include "UnsortedMeshedSurface.H"
+#include "MeshedSurface.H"
+#include "globalIndex.H"
+#include "IOmanip.H"
 
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Convert size (as fraction of defaultCellSize) to refinement level
+label sizeCoeffToRefinement
+(
+    const scalar level0Coeff,   // ratio of hex cell size v.s. defaultCellSize
+    const scalar sizeCoeff
+)
+{
+     return round(::log(level0Coeff/sizeCoeff)/::log(2));
+}
+
+
+autoPtr<refinementSurfaces> createRefinementSurfaces
+(
+    const searchableSurfaces& allGeometry,
+    const dictionary& surfacesDict,
+    const dictionary& shapeControlDict,
+    const label gapLevelIncrement,
+    const scalar level0Coeff
+)
+{
+    autoPtr<refinementSurfaces> surfacePtr;
+
+    // Count number of surfaces.
+    label surfI = 0;
+    forAll(allGeometry.names(), geomI)
+    {
+        const word& geomName = allGeometry.names()[geomI];
+
+        if (surfacesDict.found(geomName))
+        {
+            surfI++;
+        }
+    }
+
+    labelList surfaces(surfI);
+    wordList names(surfI);
+    PtrList<surfaceZonesInfo> surfZones(surfI);
+
+    labelList regionOffset(surfI);
+
+    labelList globalMinLevel(surfI, 0);
+    labelList globalMaxLevel(surfI, 0);
+    labelList globalLevelIncr(surfI, 0);
+    PtrList<dictionary> globalPatchInfo(surfI);
+    List<Map<label> > regionMinLevel(surfI);
+    List<Map<label> > regionMaxLevel(surfI);
+    List<Map<label> > regionLevelIncr(surfI);
+    List<Map<scalar> > regionAngle(surfI);
+    List<Map<autoPtr<dictionary> > > regionPatchInfo(surfI);
+
+    HashSet<word> unmatchedKeys(surfacesDict.toc());
+
+    surfI = 0;
+    forAll(allGeometry.names(), geomI)
+    {
+        const word& geomName = allGeometry.names()[geomI];
+
+        const entry* ePtr = surfacesDict.lookupEntryPtr(geomName, false, true);
+
+        if (ePtr)
+        {
+            const dictionary& shapeDict = ePtr->dict();
+            unmatchedKeys.erase(ePtr->keyword());
+
+            names[surfI] = geomName;
+            surfaces[surfI] = geomI;
+
+            const searchableSurface& surface = allGeometry[geomI];
+
+            // Find the index in shapeControlDict
+            // Invert surfaceCellSize to get the refinementLevel
+
+            const word scsFuncName =
+                shapeDict.lookup("surfaceCellSizeFunction");
+            const dictionary& scsDict =
+                shapeDict.subDict(scsFuncName + "Coeffs");
+
+            const scalar surfaceCellSize =
+                readScalar(scsDict.lookup("surfaceCellSizeCoeff"));
+
+            const label refLevel = sizeCoeffToRefinement
+            (
+                level0Coeff,
+                surfaceCellSize
+            );
+
+            globalMinLevel[surfI] = refLevel;
+            globalMaxLevel[surfI] = refLevel;
+            globalLevelIncr[surfI] = gapLevelIncrement;
+
+            // Surface zones
+            surfZones.set(surfI, new surfaceZonesInfo(surface, shapeDict));
+
+
+            // Global perpendicular angle
+            if (shapeDict.found("patchInfo"))
+            {
+                globalPatchInfo.set
+                (
+                    surfI,
+                    shapeDict.subDict("patchInfo").clone()
+                );
+            }
+
+
+            // Per region override of patchInfo
+
+            if (shapeDict.found("regions"))
+            {
+                const dictionary& regionsDict = shapeDict.subDict("regions");
+                const wordList& regionNames =
+                    allGeometry[surfaces[surfI]].regions();
+
+                forAll(regionNames, regionI)
+                {
+                    if (regionsDict.found(regionNames[regionI]))
+                    {
+                        // Get the dictionary for region
+                        const dictionary& regionDict = regionsDict.subDict
+                        (
+                            regionNames[regionI]
+                        );
+
+                        if (regionDict.found("patchInfo"))
+                        {
+                            regionPatchInfo[surfI].insert
+                            (
+                                regionI,
+                                regionDict.subDict("patchInfo").clone()
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Per region override of cellSize
+            if (shapeDict.found("regions"))
+            {
+                const dictionary& shapeControlRegionsDict =
+                    shapeDict.subDict("regions");
+                const wordList& regionNames =
+                    allGeometry[surfaces[surfI]].regions();
+
+                forAll(regionNames, regionI)
+                {
+                    if (shapeControlRegionsDict.found(regionNames[regionI]))
+                    {
+                        const dictionary& shapeControlRegionDict =
+                            shapeControlRegionsDict.subDict
+                            (
+                                regionNames[regionI]
+                            );
+
+                        const word scsFuncName =
+                            shapeControlRegionDict.lookup
+                            (
+                                "surfaceCellSizeFunction"
+                            );
+                        const dictionary& scsDict =
+                            shapeControlRegionDict.subDict
+                            (
+                                scsFuncName + "Coeffs"
+                            );
+
+                        const scalar surfaceCellSize =
+                            readScalar
+                            (
+                                scsDict.lookup("surfaceCellSizeCoeff")
+                            );
+
+                        const label refLevel = sizeCoeffToRefinement
+                        (
+                            level0Coeff,
+                            surfaceCellSize
+                        );
+
+                        regionMinLevel[surfI].insert(regionI, refLevel);
+                        regionMaxLevel[surfI].insert(regionI, refLevel);
+                        regionLevelIncr[surfI].insert(regionI, 0);
+                    }
+                }
+            }
+
+            surfI++;
+        }
+    }
+
+    // Calculate local to global region offset
+    label nRegions = 0;
+
+    forAll(surfaces, surfI)
+    {
+        regionOffset[surfI] = nRegions;
+        nRegions += allGeometry[surfaces[surfI]].regions().size();
+    }
+
+    // Rework surface specific information into information per global region
+    labelList minLevel(nRegions, 0);
+    labelList maxLevel(nRegions, 0);
+    labelList gapLevel(nRegions, -1);
+    PtrList<dictionary> patchInfo(nRegions);
+
+    forAll(globalMinLevel, surfI)
+    {
+        label nRegions = allGeometry[surfaces[surfI]].regions().size();
+
+        // Initialise to global (i.e. per surface)
+        for (label i = 0; i < nRegions; i++)
+        {
+            label globalRegionI = regionOffset[surfI] + i;
+            minLevel[globalRegionI] = globalMinLevel[surfI];
+            maxLevel[globalRegionI] = globalMaxLevel[surfI];
+            gapLevel[globalRegionI] =
+                maxLevel[globalRegionI]
+              + globalLevelIncr[surfI];
+
+            if (globalPatchInfo.set(surfI))
+            {
+                patchInfo.set
+                (
+                    globalRegionI,
+                    globalPatchInfo[surfI].clone()
+                );
+            }
+        }
+
+        // Overwrite with region specific information
+        forAllConstIter(Map<label>, regionMinLevel[surfI], iter)
+        {
+            label globalRegionI = regionOffset[surfI] + iter.key();
+
+            minLevel[globalRegionI] = iter();
+            maxLevel[globalRegionI] = regionMaxLevel[surfI][iter.key()];
+            gapLevel[globalRegionI] =
+                maxLevel[globalRegionI]
+              + regionLevelIncr[surfI][iter.key()];
+        }
+
+        const Map<autoPtr<dictionary> >& localInfo = regionPatchInfo[surfI];
+        forAllConstIter(Map<autoPtr<dictionary> >, localInfo, iter)
+        {
+            label globalRegionI = regionOffset[surfI] + iter.key();
+            patchInfo.set(globalRegionI, iter()().clone());
+        }
+    }
+
+    surfacePtr.set
+    (
+        new refinementSurfaces
+        (
+            allGeometry,
+            surfaces,
+            names,
+            surfZones,
+            regionOffset,
+            minLevel,
+            maxLevel,
+            gapLevel,
+            scalarField(nRegions, -GREAT),  //perpendicularAngle,
+            patchInfo
+        )
+    );
+
+
+    const refinementSurfaces& rf = surfacePtr();
+
+    // Determine maximum region name length
+    label maxLen = 0;
+    forAll(rf.surfaces(), surfI)
+    {
+        label geomI = rf.surfaces()[surfI];
+        const wordList& regionNames = allGeometry.regionNames()[geomI];
+        forAll(regionNames, regionI)
+        {
+            maxLen = Foam::max(maxLen, label(regionNames[regionI].size()));
+        }
+    }
+
+
+    Info<< setw(maxLen) << "Region"
+        << setw(10) << "Min Level"
+        << setw(10) << "Max Level"
+        << setw(10) << "Gap Level" << nl
+        << setw(maxLen) << "------"
+        << setw(10) << "---------"
+        << setw(10) << "---------"
+        << setw(10) << "---------" << endl;
+
+    forAll(rf.surfaces(), surfI)
+    {
+        label geomI = rf.surfaces()[surfI];
+
+        Info<< rf.names()[surfI] << ':' << nl;
+
+        const wordList& regionNames = allGeometry.regionNames()[geomI];
+
+        forAll(regionNames, regionI)
+        {
+            label globalI = rf.globalRegion(surfI, regionI);
+
+            Info<< setw(maxLen) << regionNames[regionI]
+                << setw(10) << rf.minLevel()[globalI]
+                << setw(10) << rf.maxLevel()[globalI]
+                << setw(10) << rf.gapLevel()[globalI] << endl;
+        }
+    }
+
+
+    return surfacePtr;
+}
+
+
+void extractSurface
+(
+    const polyMesh& mesh,
+    const Time& runTime,
+    const labelHashSet& includePatches,
+    const fileName& outFileName
+)
+{
+    const polyBoundaryMesh& bMesh = mesh.boundaryMesh();
+
+    // Collect sizes. Hash on names to handle local-only patches (e.g.
+    //  processor patches)
+    HashTable<label> patchSize(1000);
+    label nFaces = 0;
+    forAllConstIter(labelHashSet, includePatches, iter)
+    {
+        const polyPatch& pp = bMesh[iter.key()];
+        patchSize.insert(pp.name(), pp.size());
+        nFaces += pp.size();
+    }
+    Pstream::mapCombineGather(patchSize, plusEqOp<label>());
+
+
+    // Allocate zone/patch for all patches
+    HashTable<label> compactZoneID(1000);
+    forAllConstIter(HashTable<label>, patchSize, iter)
+    {
+        label sz = compactZoneID.size();
+        compactZoneID.insert(iter.key(), sz);
+    }
+    Pstream::mapCombineScatter(compactZoneID);
+
+
+    // Rework HashTable into labelList just for speed of conversion
+    labelList patchToCompactZone(bMesh.size(), -1);
+    forAllConstIter(HashTable<label>, compactZoneID, iter)
+    {
+        label patchI = bMesh.findPatchID(iter.key());
+        if (patchI != -1)
+        {
+            patchToCompactZone[patchI] = iter();
+        }
+    }
+
+    // Collect faces on zones
+    DynamicList<label> faceLabels(nFaces);
+    DynamicList<label> compactZones(nFaces);
+    forAllConstIter(labelHashSet, includePatches, iter)
+    {
+        const polyPatch& pp = bMesh[iter.key()];
+        forAll(pp, i)
+        {
+            faceLabels.append(pp.start()+i);
+            compactZones.append(patchToCompactZone[pp.index()]);
+        }
+    }
+
+    // Addressing engine for all faces
+    uindirectPrimitivePatch allBoundary
+    (
+        UIndirectList<face>(mesh.faces(), faceLabels),
+        mesh.points()
+    );
+
+
+    // Find correspondence to master points
+    labelList pointToGlobal;
+    labelList uniqueMeshPoints;
+    autoPtr<globalIndex> globalNumbers = mesh.globalData().mergePoints
+    (
+        allBoundary.meshPoints(),
+        allBoundary.meshPointMap(),
+        pointToGlobal,
+        uniqueMeshPoints
+    );
+
+    // Gather all unique points on master
+    List<pointField> gatheredPoints(Pstream::nProcs());
+    gatheredPoints[Pstream::myProcNo()] = pointField
+    (
+        mesh.points(),
+        uniqueMeshPoints
+    );
+    Pstream::gatherList(gatheredPoints);
+
+    // Gather all faces
+    List<faceList> gatheredFaces(Pstream::nProcs());
+    gatheredFaces[Pstream::myProcNo()] = allBoundary.localFaces();
+    forAll(gatheredFaces[Pstream::myProcNo()], i)
+    {
+        inplaceRenumber(pointToGlobal, gatheredFaces[Pstream::myProcNo()][i]);
+    }
+    Pstream::gatherList(gatheredFaces);
+
+    // Gather all ZoneIDs
+    List<labelList> gatheredZones(Pstream::nProcs());
+    gatheredZones[Pstream::myProcNo()] = compactZones.xfer();
+    Pstream::gatherList(gatheredZones);
+
+    // On master combine all points, faces, zones
+    if (Pstream::master())
+    {
+        pointField allPoints = ListListOps::combine<pointField>
+        (
+            gatheredPoints,
+            accessOp<pointField>()
+        );
+        gatheredPoints.clear();
+
+        faceList allFaces = ListListOps::combine<faceList>
+        (
+            gatheredFaces,
+            accessOp<faceList>()
+        );
+        gatheredFaces.clear();
+
+        labelList allZones = ListListOps::combine<labelList>
+        (
+            gatheredZones,
+            accessOp<labelList>()
+        );
+        gatheredZones.clear();
+
+
+        // Zones
+        surfZoneIdentifierList surfZones(compactZoneID.size());
+        forAllConstIter(HashTable<label>, compactZoneID, iter)
+        {
+            surfZones[iter()] = surfZoneIdentifier(iter.key(), iter());
+            Info<< "surfZone " << iter()  <<  " : " << surfZones[iter()].name()
+                << endl;
+        }
+
+        UnsortedMeshedSurface<face> unsortedFace
+        (
+            xferMove(allPoints),
+            xferMove(allFaces),
+            xferMove(allZones),
+            xferMove(surfZones)
+        );
+
+
+        MeshedSurface<face> sortedFace(unsortedFace);
+
+        fileName globalCasePath
+        (
+            runTime.processorCase()
+          ? runTime.path()/".."/outFileName
+          : runTime.path()/outFileName
+        );
+
+        Info<< "Writing merged surface to " << globalCasePath << endl;
+
+        sortedFace.write(globalCasePath);
+    }
+}
+
 
 // Check writing tolerance before doing any serious work
 scalar getMergeDistance(const polyMesh& mesh, const scalar mergeTol)
@@ -96,25 +576,30 @@ void writeMesh
 (
     const string& msg,
     const meshRefinement& meshRefiner,
-    const bool writeLevel,
-    const label debug
+    const meshRefinement::debugType debugLevel,
+    const meshRefinement::writeType writeLevel
 )
 {
     const fvMesh& mesh = meshRefiner.mesh();
 
-    meshRefiner.printMeshInfo(debug, msg);
+    meshRefiner.printMeshInfo(debugLevel, msg);
     Info<< "Writing mesh to time " << meshRefiner.timeName() << endl;
 
-    label flag = meshRefinement::MESH;
-    if (writeLevel)
-    {
-        flag |= meshRefinement::SCALARLEVELS;
-    }
-    if (debug & meshRefinement::OBJINTERSECTIONS)
-    {
-        flag |= meshRefinement::OBJINTERSECTIONS;
-    }
-    meshRefiner.write(flag, mesh.time().path()/meshRefiner.timeName());
+    //label flag = meshRefinement::MESH;
+    //if (writeLevel)
+    //{
+    //    flag |= meshRefinement::SCALARLEVELS;
+    //}
+    //if (debug & meshRefinement::OBJINTERSECTIONS)
+    //{
+    //    flag |= meshRefinement::OBJINTERSECTIONS;
+    //}
+    meshRefiner.write
+    (
+        debugLevel,
+        meshRefinement::writeType(writeLevel | meshRefinement::WRITEMESH),
+        mesh.time().path()/meshRefiner.timeName()
+    );
     Info<< "Wrote mesh in = "
         << mesh.time().cpuTimeIncrement() << " s." << endl;
 }
@@ -128,23 +613,171 @@ int main(int argc, char *argv[])
         "checkGeometry",
         "check all surface geometry for quality"
     );
-    Foam::argList::addBoolOption
+    Foam::argList::addOption
     (
-        "writeLevel",
-        "write pointLevel and cellLevel postprocessing files"
+        "surfaceSimplify",
+        "boundBox",
+        "simplify the surface using snappyHexMesh starting from a boundBox"
     );
+    Foam::argList::addOption
+    (
+        "patches",
+        "(patch0 .. patchN)",
+        "only triangulate selected patches (wildcards supported)"
+    );
+    Foam::argList::addOption
+    (
+        "outFile",
+        "fileName",
+        "name of the file to save the simplified surface to"
+    );
+#   include "addDictOption.H"
 
 #   include "setRootCase.H"
 #   include "createTime.H"
     runTime.functionObjects().off();
-#   include "createMesh.H"
-
-    Info<< "Read mesh in = "
-        << runTime.cpuTimeIncrement() << " s" << endl;
 
     const bool overwrite = args.optionFound("overwrite");
     const bool checkGeometry = args.optionFound("checkGeometry");
-    bool writeLevel = args.optionFound("writeLevel");
+    const bool surfaceSimplify = args.optionFound("surfaceSimplify");
+
+    autoPtr<fvMesh> meshPtr;
+
+//    if (surfaceSimplify)
+//    {
+//        IOdictionary foamyHexMeshDict
+//        (
+//           IOobject
+//           (
+//                "foamyHexMeshDict",
+//                runTime.system(),
+//                runTime,
+//                IOobject::MUST_READ_IF_MODIFIED,
+//                IOobject::NO_WRITE
+//           )
+//        );
+//
+//        const dictionary& motionDict =
+//            foamyHexMeshDict.subDict("motionControl");
+//
+//        const scalar defaultCellSize =
+//            readScalar(motionDict.lookup("defaultCellSize"));
+//
+//        Info<< "Constructing single cell mesh from boundBox" << nl << endl;
+//
+//        boundBox bb(args.optionRead<boundBox>("surfaceSimplify"));
+//
+//        labelList owner(6, label(0));
+//        labelList neighbour(0);
+//
+//        const cellModel& hexa = *(cellModeller::lookup("hex"));
+//        faceList faces = hexa.modelFaces();
+//
+//        meshPtr.set
+//        (
+//            new fvMesh
+//            (
+//                IOobject
+//                (
+//                    fvMesh::defaultRegion,
+//                    runTime.timeName(),
+//                    runTime,
+//                    IOobject::NO_READ
+//                ),
+//                xferMove<Field<vector> >(bb.points()()),
+//                faces.xfer(),
+//                owner.xfer(),
+//                neighbour.xfer()
+//            )
+//        );
+//
+//        List<polyPatch*> patches(1);
+//
+//        patches[0] = new wallPolyPatch
+//        (
+//            "boundary",
+//            6,
+//            0,
+//            0,
+//            meshPtr().boundaryMesh(),
+//            wallPolyPatch::typeName
+//        );
+//
+//        meshPtr().addFvPatches(patches);
+//
+//        const scalar initialCellSize = ::pow(meshPtr().V()[0], 1.0/3.0);
+//        const label initialRefLevels =
+//            ::log(initialCellSize/defaultCellSize)/::log(2);
+//
+//        Info<< "Default cell size = " << defaultCellSize << endl;
+//        Info<< "Initial cell size = " << initialCellSize << endl;
+//
+//        Info<< "Initial refinement levels = " << initialRefLevels << endl;
+//
+//        Info<< "Mesh starting size = " << meshPtr().nCells() << endl;
+//
+//        // meshCutter must be destroyed before writing the mesh otherwise it
+//        // writes the cellLevel/pointLevel files
+//        {
+//            hexRef8 meshCutter(meshPtr(), false);
+//
+//            for (label refineI = 0; refineI < initialRefLevels; ++refineI)
+//            {
+//                // Mesh changing engine.
+//                polyTopoChange meshMod(meshPtr(), true);
+//
+//                // Play refinement commands into mesh changer.
+//                meshCutter.setRefinement
+//                (
+//                    identity(meshPtr().nCells()),
+//                    meshMod
+//                );
+//
+//                // Create mesh (no inflation), return map from old to new mesh
+//                autoPtr<mapPolyMesh> map =
+//                    meshMod.changeMesh(meshPtr(), false);
+//
+//                // Update fields
+//                meshPtr().updateMesh(map);
+//
+//                // Delete mesh volumes.
+//                meshPtr().clearOut();
+//
+//                Info<< "Refinement Iteration " << refineI + 1
+//                    << ", Mesh size = " << meshPtr().nCells() << endl;
+//            }
+//        }
+//
+//        Info<< "Mesh end size = " << meshPtr().nCells() << endl;
+//
+//        Info<< "Create mesh" << endl;
+//        meshPtr().write();
+//    }
+//    else
+    {
+        Foam::Info
+            << "Create mesh for time = "
+            << runTime.timeName() << Foam::nl << Foam::endl;
+
+        meshPtr.set
+        (
+            new fvMesh
+            (
+                Foam::IOobject
+                (
+                    Foam::fvMesh::defaultRegion,
+                    runTime.timeName(),
+                    runTime,
+                    Foam::IOobject::MUST_READ
+                )
+            )
+        );
+    }
+
+    fvMesh& mesh = meshPtr();
+
+    Info<< "Read mesh in = "
+        << runTime.cpuTimeIncrement() << " s" << endl;
 
     // Check patches and faceZones are synchronised
     mesh.boundaryMesh().checkParallelSync(true);
@@ -152,17 +785,10 @@ int main(int argc, char *argv[])
 
 
     // Read meshing dictionary
-    IOdictionary meshDict
-    (
-       IOobject
-       (
-            "snappyHexMeshDict",
-            runTime.system(),
-            mesh,
-            IOobject::MUST_READ_IF_MODIFIED,
-            IOobject::NO_WRITE
-       )
-    );
+    const word dictName("snappyHexMeshDict");
+    #include "setSystemMeshDictionaryIO.H"
+    const IOdictionary meshDict(dictIO);
+
 
     // all surface geometry
     const dictionary& geometryDict = meshDict.subDict("geometry");
@@ -216,16 +842,75 @@ int main(int argc, char *argv[])
     // Debug
     // ~~~~~
 
-    const label debug = meshDict.lookupOrDefault<label>("debug", 0);
-    if (debug > 0)
+    // Set debug level
+    meshRefinement::debugType debugLevel = meshRefinement::debugType
+    (
+        meshDict.lookupOrDefault<label>
+        (
+            "debug",
+            0
+        )
+    );
     {
-        meshRefinement::debug   = debug;
-        autoRefineDriver::debug = debug;
-        autoSnapDriver::debug   = debug;
-        autoLayerDriver::debug  = debug;
+        wordList flags;
+        if (meshDict.readIfPresent("debugFlags", flags))
+        {
+            debugLevel = meshRefinement::debugType
+            (
+                meshRefinement::readFlags
+                (
+                    meshRefinement::IOdebugTypeNames,
+                    flags
+                )
+            );
+        }
+    }
+    if (debugLevel > 0)
+    {
+        meshRefinement::debug   = debugLevel;
+        autoRefineDriver::debug = debugLevel;
+        autoSnapDriver::debug   = debugLevel;
+        autoLayerDriver::debug  = debugLevel;
     }
 
-    writeLevel = meshDict.lookupOrDefault<bool>("writeLevel", writeLevel);
+    // Set file writing level
+    {
+        wordList flags;
+        if (meshDict.readIfPresent("writeFlags", flags))
+        {
+            meshRefinement::writeLevel
+            (
+                meshRefinement::writeType
+                (
+                    meshRefinement::readFlags
+                    (
+                        meshRefinement::IOwriteTypeNames,
+                        flags
+                    )
+                )
+            );
+        }
+    }
+
+    // Set output level
+    {
+        wordList flags;
+        if (meshDict.readIfPresent("outputFlags", flags))
+        {
+            meshRefinement::outputLevel
+            (
+                meshRefinement::outputType
+                (
+                    meshRefinement::readFlags
+                    (
+                        meshRefinement::IOoutputTypeNames,
+                        flags
+                    )
+                )
+            );
+        }
+    }
+
 
     // Read geometry
     // ~~~~~~~~~~~~~
@@ -242,21 +927,82 @@ int main(int argc, char *argv[])
             IOobject::MUST_READ,
             IOobject::NO_WRITE
         ),
-        geometryDict
+        geometryDict,
+        meshDict.lookupOrDefault("singleRegionName", true)
     );
 
 
     // Read refinement surfaces
     // ~~~~~~~~~~~~~~~~~~~~~~~~
 
+    autoPtr<refinementSurfaces> surfacesPtr;
+
     Info<< "Reading refinement surfaces." << endl;
-    refinementSurfaces surfaces
-    (
-        allGeometry,
-        refineDict.subDict("refinementSurfaces")
-    );
-    Info<< "Read refinement surfaces in = "
-        << mesh.time().cpuTimeIncrement() << " s" << nl << endl;
+
+    if (surfaceSimplify)
+    {
+        IOdictionary foamyHexMeshDict
+        (
+           IOobject
+           (
+                "foamyHexMeshDict",
+                runTime.system(),
+                runTime,
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE
+           )
+        );
+
+        const dictionary& conformationDict =
+            foamyHexMeshDict.subDict("surfaceConformation").subDict
+            (
+                "geometryToConformTo"
+            );
+
+        const dictionary& motionDict =
+            foamyHexMeshDict.subDict("motionControl");
+
+        const dictionary& shapeControlDict =
+            motionDict.subDict("shapeControlFunctions");
+
+        // Calculate current ratio of hex cells v.s. wanted cell size
+        const scalar defaultCellSize =
+            readScalar(motionDict.lookup("defaultCellSize"));
+
+        const scalar initialCellSize = ::pow(meshPtr().V()[0], 1.0/3.0);
+
+        //Info<< "Wanted cell size  = " << defaultCellSize << endl;
+        //Info<< "Current cell size = " << initialCellSize << endl;
+        //Info<< "Fraction          = " << initialCellSize/defaultCellSize
+        //    << endl;
+
+        surfacesPtr =
+            createRefinementSurfaces
+            (
+                allGeometry,
+                conformationDict,
+                shapeControlDict,
+                refineDict.lookupOrDefault("gapLevelIncrement", 0),
+                initialCellSize/defaultCellSize
+            );
+    }
+    else
+    {
+        surfacesPtr.set
+        (
+            new refinementSurfaces
+            (
+                allGeometry,
+                refineDict.subDict("refinementSurfaces"),
+                refineDict.lookupOrDefault("gapLevelIncrement", 0)
+            )
+        );
+
+        Info<< "Read refinement surfaces in = "
+            << mesh.time().cpuTimeIncrement() << " s" << nl << endl;
+    }
+
+    refinementSurfaces& surfaces = surfacesPtr();
 
 
     // Checking only?
@@ -365,11 +1111,12 @@ int main(int argc, char *argv[])
         << mesh.time().cpuTimeIncrement() << " s" << nl << endl;
 
     // Some stats
-    meshRefiner.printMeshInfo(debug, "Initial mesh");
+    meshRefiner.printMeshInfo(debugLevel, "Initial mesh");
 
     meshRefiner.write
     (
-        debug & meshRefinement::OBJINTERSECTIONS,
+        meshRefinement::debugType(debugLevel&meshRefinement::OBJINTERSECTIONS),
+        meshRefinement::writeType(0),
         mesh.time().path()/meshRefiner.timeName()
     );
 
@@ -391,9 +1138,13 @@ int main(int argc, char *argv[])
         globalToMasterPatch.setSize(surfaces.nRegions(), -1);
         globalToSlavePatch.setSize(surfaces.nRegions(), -1);
 
-        Info<< "Patch\tType\tRegion" << nl
-            << "-----\t----\t------"
-            << endl;
+        Info<< setf(ios_base::left)
+            << setw(6) << "Patch"
+            << setw(20) << "Type"
+            << setw(30) << "Region" << nl
+            << setw(6) << "-----"
+            << setw(20) << "----"
+            << setw(30) << "------" << endl;
 
         const labelList& surfaceGeometry = surfaces.surfaces();
         const PtrList<dictionary>& surfacePatchInfo = surfaces.patchInfo();
@@ -406,7 +1157,7 @@ int main(int argc, char *argv[])
 
             Info<< surfaces.names()[surfI] << ':' << nl << nl;
 
-            if (surfaces.faceZoneNames()[surfI].empty())
+            if (surfaces.surfZones()[surfI].faceZoneName().empty())
             {
                 // 'Normal' surface
                 forAll(regNames, i)
@@ -435,8 +1186,10 @@ int main(int argc, char *argv[])
                         );
                     }
 
-                    Info<< patchI << '\t' << mesh.boundaryMesh()[patchI].type()
-                        << '\t' << regNames[i] << nl;
+                    Info<< setf(ios_base::left)
+                        << setw(6) << patchI
+                        << setw(20) << mesh.boundaryMesh()[patchI].type()
+                        << setw(30) << regNames[i] << nl;
 
                     globalToMasterPatch[globalRegionI] = patchI;
                     globalToSlavePatch[globalRegionI] = patchI;
@@ -473,9 +1226,10 @@ int main(int argc, char *argv[])
                             );
                         }
 
-                        Info<< patchI << '\t'
-                            << mesh.boundaryMesh()[patchI].type()
-                            << '\t' << regNames[i] << nl;
+                        Info<< setf(ios_base::left)
+                            << setw(6) << patchI
+                            << setw(20) << mesh.boundaryMesh()[patchI].type()
+                            << setw(30) << regNames[i] << nl;
 
                         globalToMasterPatch[globalRegionI] = patchI;
                     }
@@ -504,9 +1258,10 @@ int main(int argc, char *argv[])
                             );
                         }
 
-                        Info<< patchI << '\t'
-                            << mesh.boundaryMesh()[patchI].type()
-                            << '\t' << slaveName << nl;
+                        Info<< setf(ios_base::left)
+                            << setw(6) << patchI
+                            << setw(20) << mesh.boundaryMesh()[patchI].type()
+                            << setw(30) << slaveName << nl;
 
                         globalToSlavePatch[globalRegionI] = patchI;
                     }
@@ -557,6 +1312,16 @@ int main(int argc, char *argv[])
     const Switch wantSnap(meshDict.lookup("snap"));
     const Switch wantLayers(meshDict.lookup("addLayers"));
 
+    // Refinement parameters
+    const refinementParameters refineParams(refineDict);
+
+    // Snap parameters
+    const snapParameters snapParams(snapDict);
+
+    // Layer addition parameters
+    const layerParameters layerParams(layerDict, mesh.boundaryMesh());
+
+
     if (wantRefine)
     {
         cpuTime timer;
@@ -570,22 +1335,28 @@ int main(int argc, char *argv[])
             globalToSlavePatch
         );
 
-        // Refinement parameters
-        refinementParameters refineParams(refineDict);
 
-        if (!overwrite && !debug)
+        if (!overwrite && !debugLevel)
         {
             const_cast<Time&>(mesh.time())++;
         }
 
-        refineDriver.doRefine(refineDict, refineParams, wantSnap, motionDict);
+
+        refineDriver.doRefine
+        (
+            refineDict,
+            refineParams,
+            snapParams,
+            refineParams.handleSnapProblems(),
+            motionDict
+        );
 
         writeMesh
         (
             "Refined mesh",
             meshRefiner,
-            writeLevel,
-            debug
+            debugLevel,
+            meshRefinement::writeLevel()
         );
 
         Info<< "Mesh refined in = "
@@ -603,28 +1374,30 @@ int main(int argc, char *argv[])
             globalToSlavePatch
         );
 
-        // Snap parameters
-        snapParameters snapParams(snapDict);
-        // Temporary hack to get access to resolveFeatureAngle
-        scalar curvature;
-        {
-            refinementParameters refineParams(refineDict);
-            curvature = refineParams.curvature();
-        }
-
-        if (!overwrite && !debug)
+        if (!overwrite && !debugLevel)
         {
             const_cast<Time&>(mesh.time())++;
         }
 
-        snapDriver.doSnap(snapDict, motionDict, curvature, snapParams);
+        // Use the resolveFeatureAngle from the refinement parameters
+        scalar curvature = refineParams.curvature();
+        scalar planarAngle = refineParams.planarAngle();
+
+        snapDriver.doSnap
+        (
+            snapDict,
+            motionDict,
+            curvature,
+            planarAngle,
+            snapParams
+        );
 
         writeMesh
         (
             "Snapped mesh",
             meshRefiner,
-            writeLevel,
-            debug
+            debugLevel,
+            meshRefinement::writeLevel()
         );
 
         Info<< "Mesh snapped in = "
@@ -642,23 +1415,15 @@ int main(int argc, char *argv[])
             globalToSlavePatch
         );
 
-        // Layer addition parameters
-        layerParameters layerParams(layerDict, mesh.boundaryMesh());
-
-        //!!! Temporary hack to get access to maxLocalCells
-        bool preBalance;
-        {
-            refinementParameters refineParams(refineDict);
-
-            preBalance = returnReduce
-            (
-                (mesh.nCells() >= refineParams.maxLocalCells()),
-                orOp<bool>()
-            );
-        }
+        // Use the maxLocalCells from the refinement parameters
+        bool preBalance = returnReduce
+        (
+            (mesh.nCells() >= refineParams.maxLocalCells()),
+            orOp<bool>()
+        );
 
 
-        if (!overwrite &&  !debug)
+        if (!overwrite && !debugLevel)
         {
             const_cast<Time&>(mesh.time())++;
         }
@@ -677,12 +1442,97 @@ int main(int argc, char *argv[])
         (
             "Layer mesh",
             meshRefiner,
-            writeLevel,
-            debug
+            debugLevel,
+            meshRefinement::writeLevel()
         );
 
         Info<< "Layers added in = "
             << timer.cpuTimeIncrement() << " s." << endl;
+    }
+
+
+    {
+        // Check final mesh
+        Info<< "Checking final mesh ..." << endl;
+        faceSet wrongFaces(mesh, "wrongFaces", mesh.nFaces()/100);
+        motionSmoother::checkMesh(false, mesh, motionDict, wrongFaces);
+        const label nErrors = returnReduce
+        (
+            wrongFaces.size(),
+            sumOp<label>()
+        );
+
+        if (nErrors > 0)
+        {
+            Info<< "Finished meshing with " << nErrors << " illegal faces"
+                << " (concave, zero area or negative cell pyramid volume)"
+                << endl;
+            wrongFaces.write();
+        }
+        else
+        {
+            Info<< "Finished meshing without any errors" << endl;
+        }
+    }
+
+
+    if (surfaceSimplify)
+    {
+        const polyBoundaryMesh& bMesh = mesh.boundaryMesh();
+
+        labelHashSet includePatches(bMesh.size());
+
+        if (args.optionFound("patches"))
+        {
+            includePatches = bMesh.patchSet
+            (
+                wordReList(args.optionLookup("patches")())
+            );
+        }
+        else
+        {
+            forAll(bMesh, patchI)
+            {
+                const polyPatch& patch = bMesh[patchI];
+
+                if (!isA<processorPolyPatch>(patch))
+                {
+                    includePatches.insert(patchI);
+                }
+            }
+        }
+
+        fileName outFileName
+        (
+            args.optionLookupOrDefault<fileName>
+            (
+                "outFile",
+                "constant/triSurface/simplifiedSurface.stl"
+            )
+        );
+
+        extractSurface
+        (
+            mesh,
+            runTime,
+            includePatches,
+            outFileName
+        );
+
+        pointIOField cellCentres
+        (
+            IOobject
+            (
+                "internalCellCentres",
+                runTime.timeName(),
+                mesh,
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE
+            ),
+            mesh.cellCentres()
+        );
+
+        cellCentres.write();
     }
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,7 +30,6 @@ Description
 SourceFiles
     pairGAMGAgglomeration.C
     pairGAMGAgglomerate.C
-    pairGAMGAgglomerationCombineLevels.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -57,18 +56,13 @@ class pairGAMGAgglomeration
         //- Number of levels to merge, 1 = don't merge, 2 = merge pairs etc.
         label mergeLevels_;
 
+        //- Direction of cell loop for the current level
+        static bool forward_;
+
 
 protected:
 
     // Protected Member Functions
-
-        //- Calculate and return agglomeration of given level
-        tmp<labelField> agglomerate
-        (
-            label& nCoarseCells,
-            const lduAddressing& fineMatrixAddressing,
-            const scalarField& faceWeights
-        );
 
         //- Agglomerate all levels starting from the given face weights
         void agglomerate
@@ -76,8 +70,6 @@ protected:
             const lduMesh& mesh,
             const scalarField& faceWeights
         );
-
-        void combineLevels(const label curLevel);
 
         //- Disallow default bitwise copy construct
         pairGAMGAgglomeration(const pairGAMGAgglomeration&);
@@ -99,6 +91,14 @@ public:
         (
             const lduMesh& mesh,
             const dictionary& controlDict
+        );
+
+        //- Calculate and return agglomeration
+        static tmp<labelField> agglomerate
+        (
+            label& nCoarseCells,
+            const lduAddressing& fineMatrixAddressing,
+            const scalarField& faceWeights
         );
 };
 

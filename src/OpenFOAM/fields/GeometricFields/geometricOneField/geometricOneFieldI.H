@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,11 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+inline const Foam::dimensionSet& Foam::geometricOneField::dimensions() const
+{
+    return dimless;
+}
+
 inline Foam::scalar Foam::geometricOneField::operator[](const label) const
 {
     return scalar(1);
@@ -45,6 +50,25 @@ inline Foam::oneField Foam::geometricOneField::oldTime() const
 inline Foam::oneFieldField Foam::geometricOneField::boundaryField() const
 {
     return oneFieldField();
+}
+
+
+inline const Foam::geometricOneField& Foam::operator*
+(
+    const geometricOneField& gof,
+    const geometricOneField&
+)
+{
+    return gof;
+}
+
+inline const Foam::geometricOneField& Foam::operator/
+(
+    const geometricOneField& gof,
+    const geometricOneField&
+)
+{
+    return gof;
 }
 
 

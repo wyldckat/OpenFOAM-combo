@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -21,6 +21,7 @@ solution
     coupled         yes;
     transient       yes;
     cellValueSourceCorrection yes;
+    maxCo           0.3;
 
     sourceTerms
     {
@@ -58,15 +59,6 @@ constantProperties
     T0              300;
     Cp0             4187;
 
-    youngsModulus   1e9;
-    poissonsRatio   0.35;
-
-    epsilon0        1;
-    f0              0.5;
-    Pr              0.7;
-    Tvap            273;
-    Tbp             373;
-
     constantVolume  false;
 }
 
@@ -91,12 +83,12 @@ subModels
                 ((0.6 0.35 1.45) (0 0 -1))
             );
 
-            massTotal       10;
+            massTotal       5;
             parcelsPerInjector 20000;
             parcelsPerSecond 500;
             parcelBasisType mass;
-            flowRateProfile constant 0.1;
-            Umag            constant 3.0;
+            flowRateProfile constant 1;
+            Umag            constant 1;
             thetaInner      constant 0;
             thetaOuter      constant 45;
 
@@ -123,6 +115,8 @@ subModels
     compositionModel singlePhaseMixture;
 
     phaseChangeModel none;
+
+    stochasticCollisionModel none;
 
     surfaceFilmModel thermoSurfaceFilm;
 

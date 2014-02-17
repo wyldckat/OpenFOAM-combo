@@ -33,6 +33,8 @@ License
 #include "mapDistribute.H"
 
 // Sub-models
+#include "filmThermoModel.H"
+#include "filmViscosityModel.H"
 #include "heatTransferModel.H"
 #include "phaseChangeModel.H"
 #include "filmRadiationModel.H"
@@ -59,7 +61,11 @@ wordList thermoSingleLayer::hsBoundaryTypes()
     wordList bTypes(T_.boundaryField().types());
     forAll(bTypes, patchI)
     {
-        if (bTypes[patchI] == mappedFieldFvPatchField<scalar>::typeName)
+        if
+        (
+            T_.boundaryField()[patchI].fixesValue()
+         || bTypes[patchI] == mappedFieldFvPatchField<scalar>::typeName
+        )
         {
             bTypes[patchI] = fixedValueFvPatchField<scalar>::typeName;
         }
@@ -93,53 +99,10 @@ void thermoSingleLayer::resetPrimaryRegionSourceTerms()
 
 void thermoSingleLayer::correctThermoFields()
 {
-    switch (thermoModel_)
-    {
-        case tmConstant:
-        {
-            const dictionary&
-                constDict(coeffs_.subDict("constantThermoCoeffs"));
-            rho_ == dimensionedScalar(constDict.lookup("rho0"));
-            mu_ == dimensionedScalar(constDict.lookup("mu0"));
-            sigma_ == dimensionedScalar(constDict.lookup("sigma0"));
-            Cp_ == dimensionedScalar(constDict.lookup("Cp0"));
-            kappa_ == dimensionedScalar(constDict.lookup("kappa0"));
-
-            break;
-        }
-        case tmSingleComponent:
-        {
-            const liquidProperties& liq =
-                thermo_.liquids().properties()[liquidId_];
-
-            forAll(rho_, cellI)
-            {
-                const scalar T = T_[cellI];
-                const scalar p = pPrimary_[cellI];
-                rho_[cellI] = liq.rho(p, T);
-                mu_[cellI] = liq.mu(p, T);
-                sigma_[cellI] = liq.sigma(p, T);
-                Cp_[cellI] = liq.Cp(p, T);
-                kappa_[cellI] = liq.K(p, T);
-            }
-
-            rho_.correctBoundaryConditions();
-            mu_.correctBoundaryConditions();
-            sigma_.correctBoundaryConditions();
-            Cp_.correctBoundaryConditions();
-            kappa_.correctBoundaryConditions();
-
-            break;
-        }
-        default:
-        {
-            FatalErrorIn
-            (
-                "void thermoSingleLayer::"
-                "correctThermoFields()"
-            )   << "Unknown thermoType enumeration" << abort(FatalError);
-        }
-    }
+    rho_ == filmThermo_->rho();
+    sigma_ == filmThermo_->sigma();
+    Cp_ == filmThermo_->Cp();
+    kappa_ == filmThermo_->kappa();
 }
 
 
@@ -190,7 +153,6 @@ void thermoSingleLayer::transferPrimaryRegionThermoFields()
     // Update primary region fields on local region via direct mapped (coupled)
     // boundary conditions
     TPrimary_.correctBoundaryConditions();
-
     forAll(YPrimary_, i)
     {
         YPrimary_[i].correctBoundaryConditions();
@@ -287,7 +249,7 @@ void thermoSingleLayer::updateSubmodels()
     rhoSp_ += primaryMassPCTrans_/magSf()/time().deltaT();
 
     // Vapour recoil pressure
-    pSp_ -= sqr(primaryMassPCTrans_/magSf()/time_.deltaT())/2.0/rhoPrimary_;
+    pSp_ -= sqr(primaryMassPCTrans_/magSf()/time().deltaT())/2.0/rhoPrimary_;
 }
 
 
@@ -295,14 +257,15 @@ tmp<fvScalarMatrix> thermoSingleLayer::q(volScalarField& hs) const
 {
     dimensionedScalar Tstd("Tstd", dimTemperature, 298.15);
 
+    volScalarField htcst(htcs_->h());
+    volScalarField htcwt(htcw_->h());
 
-    volScalarField htcst = htcs_->h()();
-    volScalarField htcwt = htcw_->h()();
     forAll(alpha_, i)
     {
-        htcst[i] *= max(alpha_[i], SMALL);
-        htcwt[i] *= max(alpha_[i], SMALL);
+        htcst[i] *= max(alpha_[i], ROOTVSMALL);
+        htcwt[i] *= max(alpha_[i], ROOTVSMALL);
     }
+
     htcst.correctBoundaryConditions();
     htcwt.correctBoundaryConditions();
 
@@ -311,7 +274,6 @@ tmp<fvScalarMatrix> thermoSingleLayer::q(volScalarField& hs) const
       - fvm::Sp(htcst/Cp_, hs) - htcst*(Tstd - TPrimary_)
       - fvm::Sp(htcwt/Cp_, hs) - htcwt*(Tstd - Tw_)
     );
-
 }
 
 
@@ -324,7 +286,7 @@ void thermoSingleLayer::solveEnergy()
 
     updateSurfaceTemperatures();
 
-    fvScalarMatrix hsEqn
+    solve
     (
         fvm::ddt(deltaRho_, hs_)
       + fvm::div(phi_, hs_)
@@ -336,11 +298,10 @@ void thermoSingleLayer::solveEnergy()
       - rhoSp_*hs_
     );
 
-    hsEqn.relax();
-
-    hsEqn.solve();
-
     correctThermoFields();
+
+    // evaluate viscosity from user-model
+    viscosity_->correct(pPrimary_, T_);
 }
 
 
@@ -357,7 +318,6 @@ thermoSingleLayer::thermoSingleLayer
 :
     kinematicSingleLayer(modelType, mesh, g, regionType, false),
     thermo_(mesh.lookupObject<SLGThermo>("SLGThermo")),
-    liquidId_(thermo_.liquidId(coeffs_.lookup("liquid"))),
     Cp_
     (
         IOobject
@@ -525,6 +485,7 @@ thermoSingleLayer::thermoSingleLayer
 
     YPrimary_(),
 
+    viscosity_(filmViscosityModel::New(*this, coeffs(), mu_)),
     htcs_
     (
         heatTransferModel::New(*this, coeffs().subDict("upperSurfaceModels"))
@@ -584,12 +545,18 @@ thermoSingleLayer::thermoSingleLayer
     if (readFields)
     {
         transferPrimaryRegionThermoFields();
+
+        correctAlpha();
+
         correctThermoFields();
 
         // Update derived fields
         hs_ == hs(T_);
         deltaRho_ == delta_*rho_;
         phi_ = fvc::interpolate(deltaRho_*U_) & regionMesh().Sf();
+
+        // evaluate viscosity from user-model
+        viscosity_->correct(pPrimary_, T_);
     }
 }
 
@@ -810,8 +777,7 @@ tmp<DimensionedField<scalar, volMesh> > thermoSingleLayer::Srho
     const label i
 ) const
 {
-    const label vapId =
-        thermo_.carrierId(thermo_.liquids().components()[liquidId_]);
+    const label vapId = thermo_.carrierId(filmThermo_->name());
 
     tmp<DimensionedField<scalar, volMesh> > tSrho
     (

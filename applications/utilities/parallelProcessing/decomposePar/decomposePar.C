@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -55,6 +55,9 @@ Usage
     \param -fields \n
     Use existing geometry decomposition and convert fields only.
 
+    \param -noSets \n
+    Skip decomposing cellSets, faceSets, pointSets.
+
     \param -force \n
     Remove any existing \a processor subdirectories before decomposing the
     geometry.
@@ -96,6 +99,40 @@ Usage
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+const labelIOList& procAddressing
+(
+    const PtrList<fvMesh>& procMeshList,
+    const label procI,
+    const word& name,
+    PtrList<labelIOList>& procAddressingList
+)
+{
+    const fvMesh& procMesh = procMeshList[procI];
+
+    if (!procAddressingList.set(procI))
+    {
+        procAddressingList.set
+        (
+            procI,
+            new labelIOList
+            (
+                IOobject
+                (
+                    name,
+                    procMesh.facesInstance(),
+                    procMesh.meshSubDir,
+                    procMesh,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+            )
+        );
+    }
+    return procAddressingList[procI];
+}
+
+
+
 int main(int argc, char *argv[])
 {
     argList::addNote
@@ -128,6 +165,11 @@ int main(int argc, char *argv[])
     );
     argList::addBoolOption
     (
+        "noSets",
+        "skip decomposing cellSets, faceSets, pointSets"
+    );
+    argList::addBoolOption
+    (
         "force",
         "remove existing processor*/ subdirs before decomposing the geometry"
     );
@@ -146,6 +188,7 @@ int main(int argc, char *argv[])
     bool writeCellDist           = args.optionFound("cellDist");
     bool copyUniform             = args.optionFound("copyUniform");
     bool decomposeFieldsOnly     = args.optionFound("fields");
+    bool decomposeSets           = !args.optionFound("noSets");
     bool forceOverwrite          = args.optionFound("force");
     bool ifRequiredDecomposition = args.optionFound("ifRequired");
 
@@ -312,7 +355,7 @@ int main(int argc, char *argv[])
         {
             mesh.decomposeMesh();
 
-            mesh.writeDecomposition();
+            mesh.writeDecomposition(decomposeSets);
 
             if (writeCellDist)
             {
@@ -539,7 +582,7 @@ int main(int argc, char *argv[])
                     cloud::prefix/cloudDirs[i]
                 );
 
-                IOobject* positionsPtr = sprayObjs.lookup("positions");
+                IOobject* positionsPtr = sprayObjs.lookup(word("positions"));
 
                 if (positionsPtr)
                 {
@@ -796,74 +839,29 @@ int main(int argc, char *argv[])
                 }
                 const fvMesh& procMesh = procMeshList[procI];
 
+                const labelIOList& faceProcAddressing = procAddressing
+                (
+                    procMeshList,
+                    procI,
+                    "faceProcAddressing",
+                    faceProcAddressingList
+                );
 
-                if (!faceProcAddressingList.set(procI))
-                {
-                    faceProcAddressingList.set
-                    (
-                        procI,
-                        new labelIOList
-                        (
-                            IOobject
-                            (
-                                "faceProcAddressing",
-                                procMesh.facesInstance(),
-                                procMesh.meshSubDir,
-                                procMesh,
-                                IOobject::MUST_READ,
-                                IOobject::NO_WRITE
-                            )
-                        )
-                    );
-                }
-                const labelIOList& faceProcAddressing =
-                    faceProcAddressingList[procI];
+                const labelIOList& cellProcAddressing = procAddressing
+                (
+                    procMeshList,
+                    procI,
+                    "cellProcAddressing",
+                    cellProcAddressingList
+                );
 
-
-                if (!cellProcAddressingList.set(procI))
-                {
-                    cellProcAddressingList.set
-                    (
-                        procI,
-                        new labelIOList
-                        (
-                            IOobject
-                            (
-                                "cellProcAddressing",
-                                procMesh.facesInstance(),
-                                procMesh.meshSubDir,
-                                procMesh,
-                                IOobject::MUST_READ,
-                                IOobject::NO_WRITE
-                            )
-                        )
-                    );
-                }
-                const labelIOList& cellProcAddressing =
-                    cellProcAddressingList[procI];
-
-
-                if (!boundaryProcAddressingList.set(procI))
-                {
-                    boundaryProcAddressingList.set
-                    (
-                        procI,
-                        new labelIOList
-                        (
-                            IOobject
-                            (
-                                "boundaryProcAddressing",
-                                procMesh.facesInstance(),
-                                procMesh.meshSubDir,
-                                procMesh,
-                                IOobject::MUST_READ,
-                                IOobject::NO_WRITE
-                            )
-                        )
-                    );
-                }
-                const labelIOList& boundaryProcAddressing =
-                    boundaryProcAddressingList[procI];
+                const labelIOList& boundaryProcAddressing = procAddressing
+                (
+                    procMeshList,
+                    procI,
+                    "boundaryProcAddressing",
+                    boundaryProcAddressingList
+                );
 
 
                 // FV fields
@@ -950,27 +948,13 @@ int main(int argc, char *argv[])
                  || pointTensorFields.size()
                 )
                 {
-                    if (!pointProcAddressingList.set(procI))
-                    {
-                        pointProcAddressingList.set
-                        (
-                            procI,
-                            new labelIOList
-                            (
-                                IOobject
-                                (
-                                    "pointProcAddressing",
-                                    procMesh.facesInstance(),
-                                    procMesh.meshSubDir,
-                                    procMesh,
-                                    IOobject::MUST_READ,
-                                    IOobject::NO_WRITE
-                                )
-                            )
-                        );
-                    }
-                    const labelIOList& pointProcAddressing =
-                        pointProcAddressingList[procI];
+                    const labelIOList& pointProcAddressing = procAddressing
+                    (
+                        procMeshList,
+                        procI,
+                        "pointProcAddressing",
+                        pointProcAddressingList
+                    );
 
                     const pointMesh& procPMesh = pointMesh::New(procMesh);
 

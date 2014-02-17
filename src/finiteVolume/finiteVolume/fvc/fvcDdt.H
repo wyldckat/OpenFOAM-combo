@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,6 +39,8 @@ SourceFiles
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "dimensionedTypes.H"
+#include "one.H"
+#include "geometricZeroField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,6 +81,29 @@ namespace fvc
     );
 
     template<class Type>
+    tmp<GeometricField<Type, fvPatchField, volMesh> > ddt
+    (
+        const one&,
+        const GeometricField<Type, fvPatchField, volMesh>&
+    );
+
+    template<class Type>
+    tmp<GeometricField<Type, fvPatchField, volMesh> > ddt
+    (
+        const GeometricField<Type, fvPatchField, volMesh>&,
+        const one&
+    );
+
+    inline geometricZeroField ddt
+    (
+        const one&,
+        const one&
+    )
+    {
+        return geometricZeroField();
+    }
+
+    template<class Type>
     tmp
     <
         GeometricField
@@ -88,9 +113,24 @@ namespace fvc
             surfaceMesh
         >
     >
-    ddtPhiCorr
+    ddtCorr
     (
-        const volScalarField& rA,
+        const GeometricField<Type, fvPatchField, volMesh>& U,
+        const GeometricField<Type, fvsPatchField, surfaceMesh>& Uf
+    );
+
+    template<class Type>
+    tmp
+    <
+        GeometricField
+        <
+            typename Foam::flux<Type>::type,
+            fvsPatchField,
+            surfaceMesh
+        >
+    >
+    ddtCorr
+    (
         const GeometricField<Type, fvPatchField, volMesh>& U,
         const GeometricField
         <
@@ -110,9 +150,25 @@ namespace fvc
             surfaceMesh
         >
     >
-    ddtPhiCorr
+    ddtCorr
     (
-        const volScalarField& rA,
+        const volScalarField& rho,
+        const GeometricField<Type, fvPatchField, volMesh>& U,
+        const GeometricField<Type, fvsPatchField, surfaceMesh>& Uf
+    );
+
+    template<class Type>
+    tmp
+    <
+        GeometricField
+        <
+            typename Foam::flux<Type>::type,
+            fvsPatchField,
+            surfaceMesh
+        >
+    >
+    ddtCorr
+    (
         const volScalarField& rho,
         const GeometricField<Type, fvPatchField, volMesh>& U,
         const GeometricField

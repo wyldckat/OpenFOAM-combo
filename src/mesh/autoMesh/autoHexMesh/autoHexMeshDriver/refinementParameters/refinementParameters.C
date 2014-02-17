@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,33 +30,31 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from dictionary
-Foam::refinementParameters::refinementParameters
-(
-    const dictionary& dict,
-    const label dummy
-)
-:
-    maxGlobalCells_(readLabel(dict.lookup("cellLimit"))),
-    maxLocalCells_(readLabel(dict.lookup("procCellLimit"))),
-    minRefineCells_(readLabel(dict.lookup("minimumRefine"))),
-    curvature_(readScalar(dict.lookup("curvature"))),
-    nBufferLayers_(readLabel(dict.lookup("nBufferLayers"))),
-    keepPoints_(dict.lookup("keepPoints")),
-    allowFreeStandingZoneFaces_(dict.lookup("allowFreeStandingZoneFaces")),
-    maxLoadUnbalance_(dict.lookupOrDefault<scalar>("maxLoadUnbalance",0))
-{}
-
-
 Foam::refinementParameters::refinementParameters(const dictionary& dict)
 :
     maxGlobalCells_(readLabel(dict.lookup("maxGlobalCells"))),
     maxLocalCells_(readLabel(dict.lookup("maxLocalCells"))),
     minRefineCells_(readLabel(dict.lookup("minRefinementCells"))),
+    planarAngle_
+    (
+        dict.lookupOrDefault
+        (
+            "planarAngle",
+            readScalar(dict.lookup("resolveFeatureAngle"))
+        )
+    ),
     nBufferLayers_(readLabel(dict.lookup("nCellsBetweenLevels"))),
     keepPoints_(pointField(1, dict.lookup("locationInMesh"))),
     allowFreeStandingZoneFaces_(dict.lookup("allowFreeStandingZoneFaces")),
-    maxLoadUnbalance_(dict.lookupOrDefault<scalar>("maxLoadUnbalance",0))
+    useTopologicalSnapDetection_
+    (
+        dict.lookupOrDefault<bool>("useTopologicalSnapDetection", true)
+    ),
+    maxLoadUnbalance_(dict.lookupOrDefault<scalar>("maxLoadUnbalance", 0)),
+    handleSnapProblems_
+    (
+        dict.lookupOrDefault<Switch>("handleSnapProblems", true)
+    )
 {
     scalar featAngle(readScalar(dict.lookup("resolveFeatureAngle")));
 

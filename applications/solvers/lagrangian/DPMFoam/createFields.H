@@ -8,15 +8,21 @@
             runTime.constant(),
             mesh,
             IOobject::MUST_READ_IF_MODIFIED,
-            IOobject::NO_WRITE
+            IOobject::NO_WRITE,
+            false
         )
     );
 
+    word contiuousPhaseName(transportProperties.lookup("contiuousPhaseName"));
+
     dimensionedScalar rhocValue
     (
-        "rhoc",
+        IOobject::groupName("rho", contiuousPhaseName),
         dimDensity,
-        transportProperties.lookup("rhoc")
+        transportProperties.lookup
+        (
+            IOobject::groupName("rho", contiuousPhaseName)
+        )
     );
 
     volScalarField rhoc
@@ -38,7 +44,7 @@
     (
         IOobject
         (
-            "Uc",
+            IOobject::groupName("U", contiuousPhaseName),
             runTime.timeName(),
             mesh,
             IOobject::MUST_READ,
@@ -69,7 +75,7 @@
     (
         IOobject
         (
-            "phic",
+            IOobject::groupName("phi", contiuousPhaseName),
             runTime.timeName(),
             mesh,
             IOobject::READ_IF_PRESENT,
@@ -90,7 +96,7 @@
     (
         IOobject
         (
-            "muc",
+            IOobject::groupName("mu", contiuousPhaseName),
             runTime.timeName(),
             mesh,
             IOobject::NO_READ,
@@ -106,7 +112,7 @@
     (
         IOobject
         (
-            "alphac",
+            IOobject::groupName("alpha", contiuousPhaseName),
             runTime.timeName(),
             mesh,
             IOobject::READ_IF_PRESENT,
@@ -120,7 +126,7 @@
     args.optionReadIfPresent("cloudName", kinematicCloudName);
 
     Info<< "Constructing kinematicCloud " << kinematicCloudName << endl;
-    basicKinematicCollidingCloud kinematicCloud
+    basicKinematicTypeCloud kinematicCloud
     (
         kinematicCloudName,
         rhoc,
@@ -129,24 +135,33 @@
         g
     );
 
-    scalar packedAlpha
+    // Particle fraction upper limit
+    scalar alphacMin
     (
-        readScalar
+        1.0
+      - readScalar
         (
             kinematicCloud.particleProperties().subDict("constantProperties")
-           .lookup("packedAlpha")
+           .lookup("alphaMax")
         )
     );
-    scalar packedAlphac(1.0 - packedAlpha);
 
     // Update alphac from the particle locations
-    alphac = max(1.0 - kinematicCloud.theta(), packedAlphac);
+    alphac = max(1.0 - kinematicCloud.theta(), alphacMin);
     alphac.correctBoundaryConditions();
 
     surfaceScalarField alphacf("alphacf", fvc::interpolate(alphac));
     surfaceScalarField alphaPhic("alphaPhic", alphacf*phic);
 
-    autoPtr<incompressible::turbulenceModel> continuousPhaseTurbulence
+    autoPtr<PhaseIncompressibleTurbulenceModel<singlePhaseTransportModel> >
+    continuousPhaseTurbulence
     (
-        incompressible::turbulenceModel::New(Uc, phic, continuousPhaseTransport)
+        PhaseIncompressibleTurbulenceModel<singlePhaseTransportModel>::New
+        (
+            alphac,
+            Uc,
+            alphaPhic,
+            phic,
+            continuousPhaseTransport
+        )
     );

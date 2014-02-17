@@ -1,28 +1,26 @@
+if (mesh.changing())
 {
-    if (mesh.changing())
+    forAll(U.boundaryField(), patchi)
     {
-        forAll(U.boundaryField(), patchi)
+        if (U.boundaryField()[patchi].fixesValue())
         {
-            if (U.boundaryField()[patchi].fixesValue())
-            {
-                U.boundaryField()[patchi].initEvaluate();
-            }
-        }
-
-        forAll(U.boundaryField(), patchi)
-        {
-            if (U.boundaryField()[patchi].fixesValue())
-            {
-                U.boundaryField()[patchi].evaluate();
-
-                phi.boundaryField()[patchi] =
-                U.boundaryField()[patchi] & mesh.Sf().boundaryField()[patchi];
-            }
+            U.boundaryField()[patchi].initEvaluate();
         }
     }
 
-    #include "continuityErrs.H"
+    forAll(U.boundaryField(), patchi)
+    {
+        if (U.boundaryField()[patchi].fixesValue())
+        {
+            U.boundaryField()[patchi].evaluate();
 
+            phi.boundaryField()[patchi] =
+            U.boundaryField()[patchi] & mesh.Sf().boundaryField()[patchi];
+        }
+    }
+}
+
+{
     volScalarField pcorr
     (
         IOobject
@@ -38,9 +36,7 @@
         pcorrTypes
     );
 
-    dimensionedScalar rAUf("(1|A(U))", dimTime/rho.dimensions(), 1.0);
-
-    adjustPhi(phi, U, pcorr);
+    dimensionedScalar rAUf("rAUf", dimTime/rho.dimensions(), 1.0);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -56,8 +52,8 @@
             phi -= pcorrEqn.flux();
         }
     }
+
+    phi.oldTime() = phi;
+
+    #include "continuityErrs.H"
 }
-
-phi.oldTime() = phi;
-
-#include "continuityErrs.H"

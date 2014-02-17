@@ -37,6 +37,7 @@ SourceFiles
 
 #include "HashTable.H"
 #include "regIOobject.H"
+#include "wordReList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -146,6 +147,14 @@ public:
             //- Return the list of names of the IOobjects of given type
             template<class Type>
             wordList names() const;
+
+            //- Return the list of objects whose name matches the input regExp
+            template<class Type>
+            wordList names(const wordRe& name) const;
+
+            //- Return the list of objects whose name matches the input regExp
+            template<class Type>
+            wordList names(const wordReList& name) const;
 
             //- Lookup and return a const sub-objectRegistry. Optionally create
             //  it if it does not exist.

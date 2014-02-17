@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -56,6 +56,17 @@ Foam::word Foam::name(const septernion& s)
     OStringStream buf;
     buf << '(' << s.t() << ',' << s.r() << ')';
     return buf.str();
+}
+
+
+Foam::septernion Foam::slerp
+(
+    const septernion& qa,
+    const septernion& qb,
+    const scalar t
+)
+{
+    return septernion((1.0-t)*qa.t()+t*qb.t(), slerp(qa.r(), qb.r(), t));
 }
 
 

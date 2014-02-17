@@ -262,9 +262,6 @@ public:
 
         // Check
 
-            //- Find the longest edge in a face
-            static label longestEdge(const face& f, const pointField& pts);
-
             //- Calls motionSmoother::checkMesh and returns a set of bad faces
             static HashSet<label> checkBadFaces
             (
@@ -339,8 +336,11 @@ public:
             ) const;
 
             //- Marks edges in the faceZone indirectPatchFaces for collapse
-            void markIndirectPatchFaces
+            labelPair markFaceZoneEdges
             (
+                const faceZone& fZone,
+                const scalarField& faceFilterFactor,
+                const labelList& pointPriority,
                 PackedBoolList& collapseEdge,
                 Map<point>& collapsePointToLocation
             ) const;

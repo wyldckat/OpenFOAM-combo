@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -32,12 +32,14 @@ FoamFile
     front
     {
         type            empty;
+        inGroups        1(empty);
         nFaces          3072;
         startFace       6336;
     }
     back
     {
         type            empty;
+        inGroups        1(empty);
         nFaces          3072;
         startFace       9408;
     }

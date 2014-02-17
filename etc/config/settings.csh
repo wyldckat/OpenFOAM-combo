@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -224,6 +224,20 @@ case ThirdParty:
         set mpfr_version=mpfr-3.1.0
         set mpc_version=mpc-0.9
         breaksw
+    case Gcc49:
+    case Gcc49++0x:
+        set gcc_version=gcc-4.9.0
+        set gmp_version=gmp-5.1.2
+        set mpfr_version=mpfr-3.1.2
+        set mpc_version=mpc-1.0.1
+        breaksw
+    case Gcc48:
+    case Gcc48++0x:
+        set gcc_version=gcc-4.8.2
+        set gmp_version=gmp-5.1.2
+        set mpfr_version=mpfr-3.1.2
+        set mpc_version=mpc-1.0.1
+        breaksw
     case Gcc47:
     case Gcc47++0x:
         set gcc_version=gcc-4.7.2
@@ -242,8 +256,7 @@ case ThirdParty:
         # using clang - not gcc
         setenv WM_CC 'clang'
         setenv WM_CXX 'clang++'
-        set clang_version=llvm-3.1
-        #set clang_version=llvm-svn
+        set clang_version=llvm-3.4
         breaksw
     default:
         echo
@@ -340,35 +353,6 @@ if ( $?WM_CXXFLAGS ) then
 endif
 
 
-# boost and CGAL
-# ~~~~~~~~~~~~~~
-
-set boost_version=boost_1_45_0
-set cgal_version=CGAL-4.0
-
-setenv BOOST_ARCH_PATH $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$boost_version
-setenv CGAL_ARCH_PATH  $WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$cgal_version
-
-# enabled if CGAL is available
-if ($?FOAM_VERBOSE && $?prompt) then
-    echo "Checking for"
-    echo "    $cgal_version at $CGAL_ARCH_PATH"
-    echo "    $boost_version at $BOOST_ARCH_PATH"
-endif
-
-if ( -d "$CGAL_ARCH_PATH" ) then
-    if ( -d "$BOOST_ARCH_PATH" ) then
-        _foamAddLib $BOOST_ARCH_PATH/lib
-    else
-        unsetenv BOOST_ARCH_PATH
-    endif
-    _foamAddLib $CGAL_ARCH_PATH/lib
-else
-    unsetenv BOOST_ARCH_PATH CGAL_ARCH_PATH MPFR_ARCH_PATH GMP_ARCH_PATH
-endif
-
-unset boost_version cgal_version
-
 
 # Communications library
 # ~~~~~~~~~~~~~~~~~~~~~~
@@ -391,7 +375,7 @@ case SYSTEMOPENMPI:
     breaksw
 
 case OPENMPI:
-    setenv FOAM_MPI openmpi-1.6.3
+    setenv FOAM_MPI openmpi-1.6.5
     # optional configuration tweaks:
     _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/openmpi.csh`
 
@@ -578,7 +562,7 @@ endif
 
 # cleanup environment:
 # ~~~~~~~~~~~~~~~~~~~~
-unalias _foamAddPath _foamAddLib _foamAddMan
+#- keep _foamAddPath _foamAddLib _foamAddMan
 unset foamCompiler minBufferSize
 
 # ----------------------------------------------------------------- end-of-file

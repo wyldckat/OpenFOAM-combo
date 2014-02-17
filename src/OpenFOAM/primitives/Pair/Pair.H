@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -69,6 +69,12 @@ public:
             second() = s;
         }
 
+        //- Construct from FixedList
+        inline Pair(const FixedList<Type, 2>& fl)
+        :
+            FixedList<Type, 2>(fl)
+        {}
+
         //- Construct from Istream
         inline Pair(Istream& is)
         :
@@ -100,12 +106,6 @@ public:
         inline Type& second()
         {
             return this->operator[](1);
-        }
-
-        //- Return reverse pair
-        inline Pair<Type> reversePair() const
-        {
-            return Pair<Type>(second(), first());
         }
 
         //- Return other
@@ -141,11 +141,11 @@ public:
         //  - -1: same pair, but reversed order
         static inline int compare(const Pair<Type>& a, const Pair<Type>& b)
         {
-            if (a[0] == b[0] && a[1] == b[1])
+            if (a == b)
             {
                 return 1;
             }
-            else if (a[0] == b[1] && a[1] == b[0])
+            else if (a == reverse(b))
             {
                 return -1;
             }
@@ -154,33 +154,64 @@ public:
                 return 0;
             }
         }
-
-
-    // Friend Operators
-
-        friend bool operator==(const Pair<Type>& a, const Pair<Type>& b)
-        {
-            return (a.first() == b.first() && a.second() == b.second());
-        }
-
-        friend bool operator!=(const Pair<Type>& a, const Pair<Type>& b)
-        {
-            return !(a == b);
-        }
-
-        friend bool operator<(const Pair<Type>& a, const Pair<Type>& b)
-        {
-            return
-            (
-                a.first() < b.first()
-             ||
-                (
-                    !(b.first() < a.first())
-                 && a.second() < b.second()
-                )
-            );
-        }
 };
+
+
+template<class Type>
+Pair<Type> reverse(const Pair<Type>& p)
+{
+    return Pair<Type>(p.second(), p.first());
+}
+
+
+template<class Type>
+bool operator==(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return (a.first() == b.first() && a.second() == b.second());
+}
+
+
+template<class Type>
+bool operator!=(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return !(a == b);
+}
+
+
+template<class Type>
+bool operator<(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return
+    (
+        a.first() < b.first()
+     ||
+        (
+            !(b.first() < a.first())
+         && a.second() < b.second()
+        )
+    );
+}
+
+
+template<class Type>
+bool operator<=(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return !(b < a);
+}
+
+
+template<class Type>
+bool operator>(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return (b < a);
+}
+
+
+template<class Type>
+bool operator>=(const Pair<Type>& a, const Pair<Type>& b)
+{
+    return !(a < b);
+}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

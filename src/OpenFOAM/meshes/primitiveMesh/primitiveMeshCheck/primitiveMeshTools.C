@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -54,6 +54,44 @@ Foam::scalar Foam::primitiveMeshTools::faceSkewness
     // from the face centre to the edge of the face in the direction
     // of the skewness
     scalar fd = 0.2*mag(d) + VSMALL;
+    const face& f = mesh.faces()[faceI];
+    forAll(f, pi)
+    {
+        fd = max(fd, mag(svHat & (p[f[pi]] - fCtrs[faceI])));
+    }
+
+    // Normalised skewness
+    return mag(sv)/fd;
+}
+
+Foam::scalar Foam::primitiveMeshTools::boundaryFaceSkewness
+(
+    const primitiveMesh& mesh,
+    const pointField& p,
+    const vectorField& fCtrs,
+    const vectorField& fAreas,
+
+    const label faceI,
+    const point& ownCc
+)
+{
+    vector Cpf = fCtrs[faceI] - ownCc;
+
+    vector normal = fAreas[faceI];
+    normal /= mag(normal) + VSMALL;
+    vector d = normal*(normal & Cpf);
+
+
+    // Skewness vector
+    vector sv =
+        Cpf
+      - ((fAreas[faceI] & Cpf)/((fAreas[faceI] & d) + VSMALL))*d;
+    vector svHat = sv/(mag(sv) + VSMALL);
+
+    // Normalisation distance calculated as the approximate distance
+    // from the face centre to the edge of the face in the direction
+    // of the skewness
+    scalar fd = 0.4*mag(d) + VSMALL;
     const face& f = mesh.faces()[faceI];
     forAll(f, pi)
     {
@@ -119,7 +157,6 @@ Foam::tmp<Foam::scalarField> Foam::primitiveMeshTools::faceSkewness
 {
     const labelList& own = mesh.faceOwner();
     const labelList& nei = mesh.faceNeighbour();
-    const faceList& fcs = mesh.faces();
 
     tmp<scalarField> tskew(new scalarField(mesh.nFaces()));
     scalarField& skew = tskew();
@@ -145,31 +182,15 @@ Foam::tmp<Foam::scalarField> Foam::primitiveMeshTools::faceSkewness
 
     for (label faceI = mesh.nInternalFaces(); faceI < mesh.nFaces(); faceI++)
     {
-        vector Cpf = fCtrs[faceI] - cellCtrs[own[faceI]];
-
-        vector normal = fAreas[faceI];
-        normal /= mag(normal) + VSMALL;
-        vector d = normal*(normal & Cpf);
-
-
-        // Skewness vector
-        vector sv =
-            Cpf
-          - ((fAreas[faceI] & Cpf)/((fAreas[faceI] & d) + VSMALL))*d;
-        vector svHat = sv/(mag(sv) + VSMALL);
-
-        // Normalisation distance calculated as the approximate distance
-        // from the face centre to the edge of the face in the direction
-        // of the skewness
-        scalar fd = 0.4*mag(d) + VSMALL;
-        const face& f = fcs[faceI];
-        forAll(f, pi)
-        {
-            fd = max(fd, mag(svHat & (p[f[pi]] - fCtrs[faceI])));
-        }
-
-        // Normalised skewness
-        skew[faceI] = mag(sv)/fd;
+        skew[faceI] = boundaryFaceSkewness
+        (
+            mesh,
+            p,
+            fCtrs,
+            fAreas,
+            faceI,
+            cellCtrs[own[faceI]]
+        );
     }
 
     return tskew;
@@ -294,10 +315,12 @@ void Foam::primitiveMeshTools::cellClosedness
         scalar aspectRatio = maxCmpt/(minCmpt + VSMALL);
         if (nDims == 3)
         {
+            scalar v = max(VSMALL, vols[cellI]);
+
             aspectRatio = max
             (
                 aspectRatio,
-                1.0/6.0*cmptSum(sumMagClosed[cellI])/pow(vols[cellI], 2.0/3.0)
+                1.0/6.0*cmptSum(sumMagClosed[cellI])/pow(v, 2.0/3.0)
             );
         }
 

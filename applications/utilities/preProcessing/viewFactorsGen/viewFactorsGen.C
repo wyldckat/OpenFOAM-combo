@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -68,6 +68,101 @@ Description
 #include "fixedValueFvPatchFields.H"
 
 using namespace Foam;
+
+
+triSurface triangulate
+(
+    const polyBoundaryMesh& bMesh,
+    const labelHashSet& includePatches,
+    const labelListIOList& finalAgglom,
+    labelList& triSurfaceToAgglom,
+    const globalIndex& globalNumbering,
+    const polyBoundaryMesh& coarsePatches
+)
+{
+    const polyMesh& mesh = bMesh.mesh();
+
+    // Storage for surfaceMesh. Size estimate.
+    DynamicList<labelledTri> triangles
+    (
+        mesh.nFaces() - mesh.nInternalFaces()
+    );
+
+    label newPatchI = 0;
+    label localTriFaceI = 0;
+
+    forAllConstIter(labelHashSet, includePatches, iter)
+    {
+        const label patchI = iter.key();
+        const polyPatch& patch = bMesh[patchI];
+        const pointField& points = patch.points();
+
+        label nTriTotal = 0;
+
+        forAll(patch, patchFaceI)
+        {
+            const face& f = patch[patchFaceI];
+
+            faceList triFaces(f.nTriangles(points));
+
+            label nTri = 0;
+
+            f.triangles(points, nTri, triFaces);
+
+            forAll(triFaces, triFaceI)
+            {
+                const face& f = triFaces[triFaceI];
+
+                triangles.append(labelledTri(f[0], f[1], f[2], newPatchI));
+
+                nTriTotal++;
+
+                triSurfaceToAgglom[localTriFaceI++] = globalNumbering.toGlobal
+                (
+                    Pstream::myProcNo(),
+                    finalAgglom[patchI][patchFaceI]
+                  + coarsePatches[patchI].start()
+                );
+            }
+        }
+
+        newPatchI++;
+    }
+
+    triSurfaceToAgglom.resize(localTriFaceI-1);
+
+    triangles.shrink();
+
+    // Create globally numbered tri surface
+    triSurface rawSurface(triangles, mesh.points());
+
+    // Create locally numbered tri surface
+    triSurface surface
+    (
+        rawSurface.localFaces(),
+        rawSurface.localPoints()
+    );
+
+    // Add patch names to surface
+    surface.patches().setSize(newPatchI);
+
+    newPatchI = 0;
+
+    forAllConstIter(labelHashSet, includePatches, iter)
+    {
+        const label patchI = iter.key();
+        const polyPatch& patch = bMesh[patchI];
+
+        surface.patches()[newPatchI].index() = patchI;
+        surface.patches()[newPatchI].name() = patch.name();
+        surface.patches()[newPatchI].geometricType() = patch.type();
+
+        newPatchI++;
+    }
+
+    return surface;
+}
+
 
 void writeRays
 (
@@ -214,7 +309,7 @@ int main(int argc, char *argv[])
 
     if (debug)
     {
-        Info << "\nCreating single cell mesh..." << endl;
+        Pout << "\nCreating single cell mesh..." << endl;
     }
 
     singleCellFvMesh coarseMesh
@@ -230,6 +325,11 @@ int main(int argc, char *argv[])
         mesh,
         finalAgglom
     );
+
+    if (debug)
+    {
+        Pout << "\nCreated single cell mesh..." << endl;
+    }
 
 
     // Calculate total number of fine and coarse faces
@@ -284,6 +384,8 @@ int main(int argc, char *argv[])
     DynamicList<point> localCoarseCf(nCoarseFaces);
     DynamicList<point> localCoarseSf(nCoarseFaces);
 
+    DynamicList<label> localAgg(nCoarseFaces);
+
     forAll (viewFactorsPatches, i)
     {
         const label patchID = viewFactorsPatches[i];
@@ -297,17 +399,25 @@ int main(int argc, char *argv[])
         const pointField& coarseCf = coarseMesh.Cf().boundaryField()[patchID];
         const pointField& coarseSf = coarseMesh.Sf().boundaryField()[patchID];
 
+        labelHashSet includePatches;
+        includePatches.insert(patchID);
+
         forAll(coarseCf, faceI)
         {
             point cf = coarseCf[faceI];
+
             const label coarseFaceI = coarsePatchFace[faceI];
             const labelList& fineFaces = coarseToFine[coarseFaceI];
+            const label agglomI =
+                agglom[fineFaces[0]] + coarsePatches[patchID].start();
+
             // Construct single face
             uindirectPrimitivePatch upp
             (
                 UIndirectList<face>(pp, fineFaces),
                 pp.points()
             );
+
 
             List<point> availablePoints
             (
@@ -333,7 +443,7 @@ int main(int argc, char *argv[])
             forAll(availablePoints, iPoint)
             {
                 point cfFine = availablePoints[iPoint];
-                if(mag(cfFine-cfo) < dist)
+                if (mag(cfFine-cfo) < dist)
                 {
                     dist = mag(cfFine-cfo);
                     cf = cfFine;
@@ -343,35 +453,31 @@ int main(int argc, char *argv[])
             point sf = coarseSf[faceI];
             localCoarseCf.append(cf);
             localCoarseSf.append(sf);
+            localAgg.append(agglomI);
         }
     }
 
-    // Collect remote Cf and Sf on coarse mesh
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    List<pointField> remoteCoarseCf(Pstream::nProcs());
-    List<pointField> remoteCoarseSf(Pstream::nProcs());
-
-    remoteCoarseCf[Pstream::myProcNo()] = localCoarseCf;
-    remoteCoarseSf[Pstream::myProcNo()] = localCoarseSf;
-
-    // Collect remote Cf and Sf on fine mesh
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    List<pointField> remoteFineCf(Pstream::nProcs());
-    List<pointField> remoteFineSf(Pstream::nProcs());
-
-    remoteCoarseCf[Pstream::myProcNo()] = localCoarseCf;
-    remoteCoarseSf[Pstream::myProcNo()] = localCoarseSf;
 
     // Distribute local coarse Cf and Sf for shooting rays
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    List<pointField> remoteCoarseCf(Pstream::nProcs());
+    List<pointField> remoteCoarseSf(Pstream::nProcs());
+    List<labelField> remoteCoarseAgg(Pstream::nProcs());
+
+    remoteCoarseCf[Pstream::myProcNo()] = localCoarseCf;
+    remoteCoarseSf[Pstream::myProcNo()] = localCoarseSf;
+    remoteCoarseAgg[Pstream::myProcNo()] = localAgg;
 
     Pstream::gatherList(remoteCoarseCf);
     Pstream::scatterList(remoteCoarseCf);
     Pstream::gatherList(remoteCoarseSf);
     Pstream::scatterList(remoteCoarseSf);
+    Pstream::gatherList(remoteCoarseAgg);
+    Pstream::scatterList(remoteCoarseAgg);
 
+
+    globalIndex globalNumbering(nCoarseFaces);
 
     // Set up searching engine for obstacles
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -383,8 +489,6 @@ int main(int argc, char *argv[])
     DynamicList<label> rayStartFace(nCoarseFaces + 0.01*nCoarseFaces);
 
     DynamicList<label> rayEndFace(rayStartFace.size());
-
-    globalIndex globalNumbering(nCoarseFaces);
 
 
     // Return rayStartFace in local index andrayEndFace in global index

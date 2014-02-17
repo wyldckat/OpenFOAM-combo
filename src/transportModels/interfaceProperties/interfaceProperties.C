@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -112,7 +112,7 @@ void Foam::interfaceProperties::calculateK()
     const surfaceVectorField& Sf = mesh.Sf();
 
     // Cell gradient of alpha
-    const volVectorField gradAlpha(fvc::grad(alpha1_));
+    const volVectorField gradAlpha(fvc::grad(alpha1_, "nHat"));
 
     // Interpolated face-gradient of alpha
     surfaceVectorField gradAlphaf(fvc::interpolate(gradAlpha));
@@ -123,6 +123,11 @@ void Foam::interfaceProperties::calculateK()
 
     // Face unit interface normal
     surfaceVectorField nHatfv(gradAlphaf/(mag(gradAlphaf) + deltaN_));
+    // surfaceVectorField nHatfv
+    // (
+    //     (gradAlphaf + deltaN_*vector(0, 0, 1)
+    //    *sign(gradAlphaf.component(vector::Z)))/(mag(gradAlphaf) + deltaN_)
+    // );
     correctContactAngle(nHatfv.boundaryField(), gradAlphaf.boundaryField());
 
     // Face unit interface normal flux
@@ -159,7 +164,7 @@ Foam::interfaceProperties::interfaceProperties
     (
         readScalar
         (
-            alpha1.mesh().solutionDict().subDict("PIMPLE").lookup("cAlpha")
+            alpha1.mesh().solverDict(alpha1.name()).lookup("cAlpha")
         )
     ),
     sigma_(dict.lookup("sigma")),

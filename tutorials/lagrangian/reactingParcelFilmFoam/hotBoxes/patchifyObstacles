@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 #--------------------------------*- C++ -*------------------------------------#
 # =========                 |                                                 #
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           #
-#  \\    /   O peration     | Version:  2.2.2                                 #
+#  \\    /   O peration     | Version:  2.3.0                                 #
 #   \\  /    A nd           | Web:      www.OpenFOAM.org                      #
 #    \\/     M anipulation  |                                                 #
 #-----------------------------------------------------------------------------#
@@ -155,7 +155,7 @@ createSetsAndZone floor -$tol $floorMax -$tol $floorMax -$tol $tol
 echo "cellSet floorCells new faceToCell floorFaces owner" >> $tmpSetSet
 echo "faceZoneSet floorFaces new setsToFaceZone floorFaces floorCells" >> $tmpSetSet
 
-setSet -batch $tmpSetSet > log.setSet.patchifyObstacles >/dev/null 2>&1
+setSet -batch $tmpSetSet > log.setSet.patchifyObstacles 2>&1
 
 
 # *************************************************************************

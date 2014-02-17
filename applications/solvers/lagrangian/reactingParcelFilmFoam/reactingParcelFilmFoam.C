@@ -39,6 +39,7 @@ Description
 #include "SLGThermo.H"
 #include "fvIOoptionList.H"
 #include "pimpleControl.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -104,13 +105,9 @@ int main(int argc, char *argv[])
             }
 
             rho = thermo.rho();
+        }
 
-            runTime.write();
-        }
-        else
-        {
-            runTime.write();
-        }
+        runTime.write();
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"

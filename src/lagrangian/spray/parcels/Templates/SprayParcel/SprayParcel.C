@@ -90,17 +90,20 @@ void Foam::SprayParcel<ParcelType>::calc
     }
 
     // set the maximum temperature limit
-    td.cloud().constProps().TMax() = TMax;
+    td.cloud().constProps().setTMax(TMax);
 
+    // store the parcel properties
     this->Cp() = composition.liquids().Cp(pc0, T0, X0);
+    sigma_ = composition.liquids().sigma(pc0, T0, X0);
     scalar rho0 = composition.liquids().rho(pc0, T0, X0);
     this->rho() = rho0;
+    mu_ = composition.liquids().mu(pc0, T0, X0);
 
     ParcelType::calc(td, dt, cellI);
 
     if (td.keepParticle)
     {
-        // update Cp, diameter and density due to change in temperature
+        // update Cp, sigma, density and diameter due to change in temperature
         // and/or composition
         scalar T1 = this->T();
         const scalarField& Y1(this->Y());
@@ -108,8 +111,13 @@ void Foam::SprayParcel<ParcelType>::calc
 
         this->Cp() = composition.liquids().Cp(this->pc_, T1, X1);
 
+        sigma_ = composition.liquids().sigma(this->pc_, T1, X1);
+
         scalar rho1 = composition.liquids().rho(this->pc_, T1, X1);
         this->rho() = rho1;
+
+        mu_ = composition.liquids().mu(this->pc_, T1, X1);
+
         scalar d1 = this->d()*cbrt(rho0/rho1);
         this->d() = d1;
 
@@ -150,15 +158,6 @@ void Foam::SprayParcel<ParcelType>::calcAtomization
     const AtomizationModel<sprayCloudType>& atomization =
         td.cloud().atomization();
 
-
-    // cell state info is updated in ReactingParcel calc
-    const scalarField& Y(this->Y());
-    scalarField X(composition.liquids().X(Y));
-
-    scalar rho = composition.liquids().rho(this->pc(), this->T(), X);
-    scalar mu = composition.liquids().mu(this->pc(), this->T(), X);
-    scalar sigma = composition.liquids().sigma(this->pc(), this->T(), X);
-
     // Average molecular weight of carrier mix - assumes perfect gas
     scalar Wc = this->rhoc_*specie::RR*this->Tc()/this->pc();
     scalar R = specie::RR/Wc;
@@ -185,7 +184,7 @@ void Foam::SprayParcel<ParcelType>::calcAtomization
     scalar chi = 0.0;
     if (atomization.calcChi())
     {
-        chi = this->chi(td, X);
+        chi = this->chi(td, composition.liquids().X(this->Y()));
     }
 
     atomization.update
@@ -194,9 +193,9 @@ void Foam::SprayParcel<ParcelType>::calcAtomization
         this->d(),
         this->liquidCore(),
         this->tc(),
-        rho,
-        mu,
-        sigma,
+        this->rho(),
+        mu_,
+        sigma_,
         volFlowRate,
         rhoAv,
         Urel,
@@ -218,10 +217,6 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
     const label cellI
 )
 {
-    typedef typename TrackData::cloudType::reactingCloudType reactingCloudType;
-    const CompositionModel<reactingCloudType>& composition =
-        td.cloud().composition();
-
     typedef typename TrackData::cloudType cloudType;
     typedef typename cloudType::parcelType parcelType;
     typedef typename cloudType::forceType forceType;
@@ -233,14 +228,6 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
     {
         solveTABEq(td, dt);
     }
-
-    // cell state info is updated in ReactingParcel calc
-    const scalarField& Y(this->Y());
-    scalarField X(composition.liquids().X(Y));
-
-    scalar rho = composition.liquids().rho(this->pc(), this->T(), X);
-    scalar mu = composition.liquids().mu(this->pc(), this->T(), X);
-    scalar sigma = composition.liquids().sigma(this->pc(), this->T(), X);
 
     // Average molecular weight of carrier mix - assumes perfect gas
     scalar Wc = this->rhoc()*specie::RR*this->Tc()/this->pc();
@@ -277,9 +264,9 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
             this->y(),
             this->yDot(),
             this->d0(),
-            rho,
-            mu,
-            sigma,
+            this->rho(),
+            mu_,
+            sigma_,
             this->U(),
             rhoAv,
             muAv,
@@ -298,7 +285,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
         SprayParcel<ParcelType>* child = new SprayParcel<ParcelType>(*this);
         child->mass0() = massChild;
         child->d() = dChild;
-        child->nParticle() = massChild/rho*this->volume(dChild);
+        child->nParticle() = massChild/this->rho()*this->volume(dChild);
 
         const forceSuSp Fcp =
             forces.calcCoupled(*child, dt, massChild, Re, muAv);
@@ -373,10 +360,6 @@ void Foam::SprayParcel<ParcelType>::solveTABEq
     const scalar dt
 )
 {
-    typedef typename TrackData::cloudType::reactingCloudType reactingCloudType;
-    const CompositionModel<reactingCloudType>& composition =
-        td.cloud().composition();
-
     const scalar& TABCmu = td.cloud().breakup().TABCmu();
     const scalar& TABWeCrit = td.cloud().breakup().TABWeCrit();
     const scalar& TABComega = td.cloud().breakup().TABComega();
@@ -385,26 +368,19 @@ void Foam::SprayParcel<ParcelType>::solveTABEq
     scalar r2 = r*r;
     scalar r3 = r*r2;
 
-    const scalarField& Y(this->Y());
-    scalarField X(composition.liquids().X(Y));
-
-    scalar rho = composition.liquids().rho(this->pc(), this->T(), X);
-    scalar mu = composition.liquids().mu(this->pc(), this->T(), X);
-    scalar sigma = composition.liquids().sigma(this->pc(), this->T(), X);
-
     // inverse of characteristic viscous damping time
-    scalar rtd = 0.5*TABCmu*mu/(rho*r2);
+    scalar rtd = 0.5*TABCmu*mu_/(this->rho()*r2);
 
     // oscillation frequency (squared)
-    scalar omega2 = TABComega*sigma/(rho*r3) - rtd*rtd;
+    scalar omega2 = TABComega*sigma_/(this->rho()*r3) - rtd*rtd;
 
     if (omega2 > 0)
     {
         scalar omega = sqrt(omega2);
         scalar rhoc = this->rhoc();
-        scalar Wetmp = this->We(this->U(), r, rhoc, sigma)/TABWeCrit;
+        scalar We = this->We(this->U(), r, rhoc, sigma_)/TABWeCrit;
 
-        scalar y1 = this->y() - Wetmp;
+        scalar y1 = this->y() - We;
         scalar y2 = this->yDot()/omega;
 
         // update distortion parameters
@@ -413,7 +389,7 @@ void Foam::SprayParcel<ParcelType>::solveTABEq
         scalar e = exp(-rtd*dt);
         y2 = (this->yDot() + y1*rtd)/omega;
 
-        this->y() = Wetmp + e*(y1*c + y2*s);
+        this->y() = We + e*(y1*c + y2*s);
         if (this->y() < 0)
         {
             this->y() = 0.0;
@@ -421,7 +397,7 @@ void Foam::SprayParcel<ParcelType>::solveTABEq
         }
         else
         {
-            this->yDot() = (Wetmp - this->y())*rtd + e*omega*(y2*c - y1*s);
+            this->yDot() = (We - this->y())*rtd + e*omega*(y2*c - y1*s);
         }
     }
     else
@@ -441,6 +417,8 @@ Foam::SprayParcel<ParcelType>::SprayParcel(const SprayParcel<ParcelType>& p)
     ParcelType(p),
     d0_(p.d0_),
     position0_(p.position0_),
+    sigma_(p.sigma_),
+    mu_(p.mu_),
     liquidCore_(p.liquidCore_),
     KHindex_(p.KHindex_),
     y_(p.y_),
@@ -463,6 +441,8 @@ Foam::SprayParcel<ParcelType>::SprayParcel
     ParcelType(p, mesh),
     d0_(p.d0_),
     position0_(p.position0_),
+    sigma_(p.sigma_),
+    mu_(p.mu_),
     liquidCore_(p.liquidCore_),
     KHindex_(p.KHindex_),
     y_(p.y_),

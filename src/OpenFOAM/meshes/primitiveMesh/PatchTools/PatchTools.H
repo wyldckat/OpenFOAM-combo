@@ -34,10 +34,11 @@ SourceFiles
     PatchToolsCheck.C
     PatchToolsEdgeOwner.C
     PatchToolsGatherAndMerge.C
+    PatchToolsMatch.C
+    PatchToolsNormals.C
     PatchToolsSearch.C
     PatchToolsSortEdges.C
-    PatchToolsNormals.C
-    PatchToolsMatch.C
+    PatchToolsSortPoints.C
 
 \*---------------------------------------------------------------------------*/
 
@@ -54,6 +55,7 @@ namespace Foam
 
 class polyMesh;
 class PackedBoolList;
+class boundBox;
 
 /*---------------------------------------------------------------------------*\
                          Class PatchTools Declaration
@@ -140,6 +142,21 @@ public:
         labelList& faceMap
     );
 
+    //-
+    template
+    <
+        class Face,
+        template<class> class FaceList,
+        class PointField,
+        class PointType
+    >
+    static void calcBounds
+    (
+        const PrimitivePatch<Face, FaceList, PointField, PointType>& p,
+        boundBox& bb,
+        label& nPoints
+    );
+
     //- Return edge-face addressing sorted by angle around the edge.
     //  Orientation is anticlockwise looking from edge.vec(localPoints())
     template
@@ -154,6 +171,18 @@ public:
         const PrimitivePatch<Face, FaceList, PointField, PointType>&
     );
 
+    //- Return point-edge addressing sorted by order around the point.
+    template
+    <
+        class Face,
+        template<class> class FaceList,
+        class PointField,
+        class PointType
+    >
+    static labelListList sortedPointEdges
+    (
+        const PrimitivePatch<Face, FaceList, PointField, PointType>&
+    );
 
     //- If 2 face neighbours: label of face where ordering of edge
     //  is consistent with righthand walk.
@@ -271,7 +300,6 @@ public:
         List<Face>& mergedFaces,
         labelList& pointMergeMap
     );
-
 };
 
 

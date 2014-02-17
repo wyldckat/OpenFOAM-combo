@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,6 +17,11 @@ FoamFile
 
 solvers
 {
+    alpha
+    {
+        nAlphaSubCycles 2;
+    }
+
     p
     {
         solver          GAMG;
@@ -48,40 +53,40 @@ solvers
 
     "U.*"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0;
     }
 
     "T.*"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-8;
         relTol          0;
     }
 
     "Theta.*"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0;
     }
 
     "k.*"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0;
     }
 
     "epsilon.*"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-05;
         relTol          0;
     }
@@ -92,7 +97,6 @@ PIMPLE
     nOuterCorrectors 1;
     nCorrectors     2;
     nNonOrthogonalCorrectors 0;
-    nAlphaSubCycles 2;
 }
 
 relaxationFactors

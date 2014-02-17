@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ License
 
 #define TEMPLATE template<class Type>
 #include "FieldFunctionsM.H"
+#include "UPstream.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -170,6 +171,16 @@ Type sum(const UList<Type>& f);
 
 TMP_UNARY_FUNCTION(Type, sum)
 
+template<class Type>
+Type maxMagSqr(const UList<Type>& f);
+
+TMP_UNARY_FUNCTION(Type, maxMagSqr)
+
+template<class Type>
+Type minMagSqr(const UList<Type>& f);
+
+TMP_UNARY_FUNCTION(Type, minMagSqr)
+
 
 template<class Type>
 scalar sumProd(const UList<Type>& f1, const UList<Type>& f2);
@@ -201,12 +212,14 @@ TMP_UNARY_FUNCTION(Type, average)
 #define G_UNARY_FUNCTION(ReturnType, gFunc, Func, rFunc)                      \
                                                                               \
 template<class Type>                                                          \
-ReturnType gFunc(const UList<Type>& f);                                       \
+ReturnType gFunc(const UList<Type>& f, const int comm = UPstream::worldComm); \
 TMP_UNARY_FUNCTION(ReturnType, gFunc)
 
 G_UNARY_FUNCTION(Type, gMax, max, max)
 G_UNARY_FUNCTION(Type, gMin, min, min)
 G_UNARY_FUNCTION(Type, gSum, sum, sum)
+G_UNARY_FUNCTION(Type, gMaxMagSqr, maxMagSqr, maxMagSqr)
+G_UNARY_FUNCTION(Type, gMinMagSqr, minMagSqr, minMagSqr)
 G_UNARY_FUNCTION(scalar, gSumSqr, sumSqr, sum)
 G_UNARY_FUNCTION(scalar, gSumMag, sumMag, sum)
 G_UNARY_FUNCTION(Type, gSumCmptMag, sumCmptMag, sum)
@@ -214,13 +227,27 @@ G_UNARY_FUNCTION(Type, gSumCmptMag, sumCmptMag, sum)
 #undef G_UNARY_FUNCTION
 
 template<class Type>
-scalar gSumProd(const UList<Type>& f1, const UList<Type>& f2);
+scalar gSumProd
+(
+    const UList<Type>& f1,
+    const UList<Type>& f2,
+    const int comm = UPstream::worldComm
+);
 
 template<class Type>
-Type gSumCmptProd(const UList<Type>& f1, const UList<Type>& f2);
+Type gSumCmptProd
+(
+    const UList<Type>& f1,
+    const UList<Type>& f2,
+    const int comm = UPstream::worldComm
+);
 
 template<class Type>
-Type gAverage(const UList<Type>& f);
+Type gAverage
+(
+    const UList<Type>& f,
+    const int comm = UPstream::worldComm
+);
 
 TMP_UNARY_FUNCTION(Type, gAverage)
 

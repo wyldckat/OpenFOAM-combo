@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -81,11 +81,25 @@ class autoSnapDriver
 
             //- Calculate displacement per patch point to smooth out patch.
             //  Quite complicated in determining which points to move where.
-            pointField smoothPatchDisplacement
+            static pointField smoothPatchDisplacement
             (
                 const motionSmoother&,
                 const List<labelPair>&
-            ) const;
+            );
+
+            //static tmp<pointField> avg
+            //(
+            //    const indirectPrimitivePatch&,
+            //    const pointField&
+            //);
+
+            //- Calculate displacement per patch point. Wip.
+            //static tmp<pointField> smoothLambdaMuPatchDisplacement
+            //(
+            //    const motionSmoother& meshMover,
+            //    const List<labelPair>& baffles
+            //);
+
 
             //- Check that face zones are synced
             void checkCoupledFaceZones() const;
@@ -112,6 +126,16 @@ class autoSnapDriver
                 const vectorField&
             );
 
+            //- Detect warpage
+            void detectWarpedFaces
+            (
+                const scalar featureCos,
+                const indirectPrimitivePatch& pp,
+
+                DynamicList<label>& splitFaces,
+                DynamicList<labelPair>& splits
+            ) const;
+
             // Feature line snapping
 
                 //- Is point on two feature edges that make a largish angle?
@@ -125,17 +149,19 @@ class autoSnapDriver
 
                 void smoothAndConstrain
                 (
+                    const PackedBoolList& isMasterEdge,
                     const indirectPrimitivePatch& pp,
+                    const labelList& meshEdges,
                     const List<pointConstraint>& constraints,
                     vectorField& disp
                 ) const;
-                void smoothAndConstrain2
-                (
-                    const bool applyConstraints,
-                    const indirectPrimitivePatch& pp,
-                    const List<pointConstraint>& constraints,
-                    vectorField& disp
-                ) const;
+                //void smoothAndConstrain2
+                //(
+                //    const bool applyConstraints,
+                //    const indirectPrimitivePatch& pp,
+                //    const List<pointConstraint>& constraints,
+                //    vectorField& disp
+                //) const;
                 void calcNearest
                 (
                     const label iter,
@@ -148,6 +174,7 @@ class autoSnapDriver
                 (
                     const label iter,
                     const indirectPrimitivePatch& pp,
+                    const scalarField& faceSnapDist,
                     vectorField& faceDisp,
                     vectorField& faceSurfaceNormal,
                     labelList& faceSurfaceRegion,
@@ -195,6 +222,48 @@ class autoSnapDriver
                     List<pointConstraint>& patchConstraints
                 ) const;
 
+                //- Remove constraints of points next to multi-patch points
+                //  to give a bit more freedom of the mesh to conform to the
+                //  multi-patch points. Bit dodgy for simple cases.
+                void releasePointsNextToMultiPatch
+                (
+                    const label iter,
+                    const scalar featureCos,
+
+                    const indirectPrimitivePatch& pp,
+                    const scalarField& snapDist,
+
+                    const List<List<point> >& pointFaceCentres,
+                    const labelListList& pointFacePatchID,
+
+                    const vectorField& rawPatchAttraction,
+                    const List<pointConstraint>& rawPatchConstraints,
+
+                    vectorField& patchAttraction,
+                    List<pointConstraint>& patchConstraints
+                ) const;
+
+                //- Detect any diagonal attraction. Returns indices in face
+                //  or (-1, -1) if none
+                labelPair findDiagonalAttraction
+                (
+                    const indirectPrimitivePatch& pp,
+                    const vectorField& patchAttraction,
+                    const List<pointConstraint>& patchConstraints,
+                    const label faceI
+                ) const;
+
+                //- Avoid attraction across face diagonal since would
+                //  cause face squeeze
+                void avoidDiagonalAttraction
+                (
+                    const label iter,
+                    const scalar featureCos,
+                    const indirectPrimitivePatch& pp,
+                    vectorField& patchAttraction,
+                    List<pointConstraint>& patchConstraints
+                ) const;
+
                 //- Return hit if on multiple points
                 pointIndexHit findMultiPatchPoint
                 (
@@ -202,41 +271,27 @@ class autoSnapDriver
                     const labelList& patchIDs,
                     const List<point>& faceCentres
                 ) const;
-                void binFeatureFace
+
+                //- Return hit if faces-on-the-same-normalplane are on multiple
+                //  patches
+                pointIndexHit findMultiPatchPoint
                 (
-                    const label iter,
+                    const point& pt,
+                    const labelList& pfPatchID,
+                    const DynamicList<vector>& surfaceNormals,
+                    const labelList& faceToNormalBin
+                ) const;
+
+                //- Return index of similar normal
+                label findNormal
+                (
                     const scalar featureCos,
-
-                    const indirectPrimitivePatch& pp,
-                    const scalar snapDist,
-
-                    const point& fc,
                     const vector& faceSurfaceNormal,
-                    const vector& faceDisp,
-
-                    DynamicList<point>& surfacePoints,
-                    DynamicList<vector>& surfaceNormals,
-                    DynamicList<label>& surfaceCounts
-                ) const;
-                void binFeatureFaces
-                (
-                    const label iter,
-                    const scalar featureCos,
-
-                    const indirectPrimitivePatch& pp,
-                    const scalarField& snapDist,
-                    const label pointI,
-
-                    const List<List<point> >& pointFaceSurfNormals,
-                    const List<List<point> >& pointFaceDisp,
-                    const List<List<point> >& pointFaceCentres,
-
-                    DynamicList<point>& surfacePoints,
-                    DynamicList<vector>& surfaceNormals,
-                    DynamicList<label>& surfaceCounts
+                    const DynamicList<vector>& surfaceNormals
                 ) const;
 
-
+                //- Determine attraction and constraints for single point
+                //  using sampled surrounding of the point
                 void featureAttractionUsingReconstruction
                 (
                     const label iter,
@@ -244,6 +299,7 @@ class autoSnapDriver
 
                     const indirectPrimitivePatch& pp,
                     const scalarField& snapDist,
+                    const vectorField& nearestDisp,
                     const label pointI,
 
                     const List<List<point> >& pointFaceSurfNormals,
@@ -251,16 +307,24 @@ class autoSnapDriver
                     const List<List<point> >& pointFaceCentres,
                     const labelListList& pointFacePatchID,
 
+                    DynamicList<point>& surfacePoints,
+                    DynamicList<vector>& surfaceNormals,
+                    labelList& faceToNormalBin,
+
                     vector& patchAttraction,
                     pointConstraint& patchConstraint
                 ) const;
 
+                //- Determine attraction and constraints for all points
+                //  using sampled surrounding of the point
                 void featureAttractionUsingReconstruction
                 (
                     const label iter,
+                    const bool avoidSnapProblems,
                     const scalar featureCos,
                     const indirectPrimitivePatch& pp,
                     const scalarField& snapDist,
+                    const vectorField& nearestDisp,
 
                     const List<List<point> >& pointFaceSurfNormals,
                     const List<List<point> >& pointFaceDisp,
@@ -271,6 +335,8 @@ class autoSnapDriver
                     List<pointConstraint>& patchConstraints
                 ) const;
 
+                //- Determine geometric features and attraction to equivalent
+                //  surface features
                 void determineFeatures
                 (
                     const label iter,
@@ -278,7 +344,8 @@ class autoSnapDriver
                     const bool multiRegionFeatureSnap,
 
                     const indirectPrimitivePatch&,
-                    const scalarField&,
+                    const scalarField& snapDist,
+                    const vectorField& nearestDisp,
 
                     const List<List<point> >& pointFaceSurfNormals,
                     const List<List<point> >& pointFaceDisp,
@@ -294,17 +361,60 @@ class autoSnapDriver
                     List<pointConstraint>& patchConstraints
                 ) const;
 
+                //- Determine features originating from bafles and
+                //  and add attraction to equivalent surface features
+                void determineBaffleFeatures
+                (
+                    const label iter,
+                    const scalar featureCos,
+
+                    const indirectPrimitivePatch& pp,
+                    const scalarField& snapDist,
+
+                    // Feature-point to pp point
+                    List<labelList>& pointAttractor,
+                    List<List<pointConstraint> >& pointConstraints,
+                    // Feature-edge to pp point
+                    List<List<DynamicList<point> > >& edgeAttractors,
+                    List<List<DynamicList<pointConstraint> > >& edgeConstraints,
+                    // pp point to nearest feature
+                    vectorField& patchAttraction,
+                    List<pointConstraint>& patchConstraints
+                ) const;
+                void reverseAttractMeshPoints
+                (
+                    const label iter,
+
+                    const indirectPrimitivePatch& pp,
+                    const scalarField& snapDist,
+
+                    // Feature-point to pp point
+                    const List<labelList>& pointAttractor,
+                    const List<List<pointConstraint> >& pointConstraints,
+                    // Feature-edge to pp point
+                    const List<List<DynamicList<point> > >& edgeAttractors,
+                    const List<List<DynamicList<pointConstraint> > >&,
+
+                    const vectorField& rawPatchAttraction,
+                    const List<pointConstraint>& rawPatchConstraints,
+
+                    // pp point to nearest feature
+                    vectorField& patchAttraction,
+                    List<pointConstraint>& patchConstraints
+                ) const;
+
                 //- Find point on nearest feature edge (within searchDist).
                 //  Return point and feature
                 //  and store feature-edge to mesh-point and vice versa
-                pointIndexHit findNearFeatureEdge
+                Tuple2<label, pointIndexHit> findNearFeatureEdge
                 (
+                    const bool isRegionEdge,
+
                     const indirectPrimitivePatch& pp,
                     const scalarField& snapDist,
                     const label pointI,
                     const point& estimatedPt,
 
-                    label& featI,
                     List<List<DynamicList<point> > >&,
                     List<List<DynamicList<pointConstraint> > >&,
                     vectorField&,
@@ -317,8 +427,10 @@ class autoSnapDriver
                 //  If another mesh point already referring to this feature
                 //  point and further away, reset that one to a near feature
                 //  edge (using findNearFeatureEdge above)
-                labelPair findNearFeaturePoint
+                Tuple2<label, pointIndexHit> findNearFeaturePoint
                 (
+                    const bool isRegionEdge,
+
                     const indirectPrimitivePatch& pp,
                     const scalarField& snapDist,
                     const label pointI,
@@ -338,10 +450,12 @@ class autoSnapDriver
                 void featureAttractionUsingFeatureEdges
                 (
                     const label iter,
+                    const bool avoidSnapProblems,
                     const scalar featureCos,
                     const bool multiRegionFeatureSnap,
                     const indirectPrimitivePatch& pp,
                     const scalarField& snapDist,
+                    const vectorField& nearestDisp,
 
                     const List<List<point> >& pointFaceSurfNormals,
                     const List<List<point> >& pointFaceDisp,
@@ -362,15 +476,22 @@ class autoSnapDriver
                     List<pointConstraint>& patchConstraints
                 ) const;
 
+                //- Top level feature attraction routine. Gets given
+                //  displacement to nearest surface in nearestDisp
+                //  and calculates new displacement taking into account
+                //  features
                 vectorField calcNearestSurfaceFeature
                 (
                     const snapParameters& snapParams,
+                    const bool avoidSnapProblems,
                     const label iter,
                     const scalar featureCos,
                     const scalar featureAttract,
                     const scalarField& snapDist,
                     const vectorField& nearestDisp,
-                    motionSmoother& meshMover
+                    motionSmoother& meshMover,
+                    vectorField& patchAttraction,
+                    List<pointConstraint>& patchConstraints
                 ) const;
 
 
@@ -406,37 +527,70 @@ public:
             autoPtr<mapPolyMesh> mergeZoneBaffles(const List<labelPair>&);
 
             //- Calculate edge length per patch point.
-            scalarField calcSnapDistance
+            static scalarField calcSnapDistance
             (
+                const fvMesh& mesh,
                 const snapParameters& snapParams,
                 const indirectPrimitivePatch&
-            ) const;
+            );
 
             //- Smooth the mesh (patch and internal) to increase visibility
             //  of surface points (on castellated mesh) w.r.t. surface.
-            void preSmoothPatch
+            static void preSmoothPatch
             (
+                const meshRefinement& meshRefiner,
                 const snapParameters& snapParams,
                 const label nInitErrors,
                 const List<labelPair>& baffles,
                 motionSmoother&
-            ) const;
+            );
 
             //- Get points both on patch and facezone.
-            labelList getZoneSurfacePoints
+            static labelList getZoneSurfacePoints
             (
+                const fvMesh& mesh,
                 const indirectPrimitivePatch&,
                 const word& zoneName
+            );
+
+            //- Helper: calculate average cell centre per point
+            static tmp<pointField> avgCellCentres
+            (
+                const fvMesh& mesh,
+                const indirectPrimitivePatch&
+            );
+
+            //- Per patch point override displacement if in gap situation
+            void detectNearSurfaces
+            (
+                const scalar planarCos,
+                const indirectPrimitivePatch&,
+                const pointField& nearestPoint,
+                const vectorField& nearestNormal,
+                vectorField& disp
             ) const;
 
             //- Per patch point calculate point on nearest surface. Set as
             //  boundary conditions of motionSmoother displacement field. Return
             //  displacement of patch points.
-            vectorField calcNearestSurface
+            static vectorField calcNearestSurface
             (
+                const meshRefinement& meshRefiner,
                 const scalarField& snapDist,
-                motionSmoother& meshMover
-            ) const;
+                const indirectPrimitivePatch&,
+                pointField& nearestPoint,
+                vectorField& nearestNormal
+            );
+
+            ////- Per patch point calculate point on nearest surface. Set as
+            ////  boundary conditions of motionSmoother displacement field.
+            ////  Return displacement of patch points.
+            //static vectorField calcNearestLocalSurface
+            //(
+            //    const meshRefinement& meshRefiner,
+            //    const scalarField& snapDist,
+            //    const indirectPrimitivePatch&
+            //);
 
             //- Smooth the displacement field to the internal.
             void smoothDisplacement
@@ -469,6 +623,7 @@ public:
                 const dictionary& snapDict,
                 const dictionary& motionDict,
                 const scalar featureCos,
+                const scalar planarAngle,
                 const snapParameters& snapParams
             );
 

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.x                                 |
+|  \\    /   O peration     | Version:  2.3.0                               |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -24,9 +24,9 @@ solution
 
     interpolationSchemes
     {
-        rhoc         cell;
-        Uc           cellPoint;
-        muc          cell;
+        rho.air         cell;
+        U.air           cellPoint;
+        mu.air          cell;
     }
 
     integrationSchemes
@@ -53,18 +53,19 @@ constantProperties
     rho0            2526;
     youngsModulus   1e8;
     poissonsRatio   0.35;
-    packedAlpha     0.9; //0.64;
 
     constantVolume  false;
+
+    alphaMax        0.99;
 }
 
 subModels
 {
     particleForces
     {
-        ErgunWenYu
+        ErgunWenYuDrag
         {
-            alphac alphac;
+            alphac alpha.air;
         }
         gravity;
     }
@@ -105,15 +106,19 @@ subModels
                 e    0.97;
                 mu   0.09;
             }
-
             bottom
             {
                 type rebound;
                 e    0.97;
                 mu   0.09;
             }
-
             walls
+            {
+                type rebound;
+                e    0.97;
+                mu   0.09;
+            }
+            frontAndBack
             {
                 type rebound;
                 e    0.97;
@@ -137,7 +142,6 @@ subModels
 
     pairCollisionCoeffs
     {
-        // Maximum possible particle diameter expected at any time
         maxInteractionDistance  0.0025;
 
         writeReferredParticleCloud no;
@@ -168,7 +172,7 @@ subModels
             cohesionEnergyDensity 0;
         };
 
-        UName Uc;
+        UName U.air;
     }
 
     stochasticCollisionModel none;

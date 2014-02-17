@@ -33,10 +33,7 @@ License
 #include "addToRunTimeSelectionTable.H"
 #include "mappedWallPolyPatch.H"
 #include "mapDistribute.H"
-
-#include "cachedRandom.H"
-#include "normal.H"
-#include "mathematicalConstants.H"
+#include "filmThermoModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -76,22 +73,9 @@ bool kinematicSingleLayer::read()
 
 void kinematicSingleLayer::correctThermoFields()
 {
-    if (thermoModel_ == tmConstant)
-    {
-        const dictionary& constDict(coeffs_.subDict("constantThermoCoeffs"));
-        rho_ == dimensionedScalar(constDict.lookup("rho0"));
-        mu_ == dimensionedScalar(constDict.lookup("mu0"));
-        sigma_ == dimensionedScalar(constDict.lookup("sigma0"));
-    }
-    else
-    {
-        FatalErrorIn
-        (
-            "void Foam::surfaceFilmModels::kinematicSingleLayer::"
-            "correctThermo()"
-        )   << "Kinematic surface film must use "
-            << thermoModelTypeNames_[tmConstant] << "thermodynamics" << endl;
-    }
+    rho_ == filmThermo_->rho();
+    mu_ == filmThermo_->mu();
+    sigma_ == filmThermo_->sigma();
 }
 
 
@@ -152,6 +136,16 @@ void kinematicSingleLayer::transferPrimaryRegionSourceFields()
     rhoSp_.correctBoundaryConditions();
     USp_.correctBoundaryConditions();
     pSp_.correctBoundaryConditions();
+
+    // update addedMassTotal counter
+    if (time().outputTime())
+    {
+        scalar addedMassTotal = 0.0;
+        outputProperties().readIfPresent("addedMassTotal", addedMassTotal);
+        addedMassTotal += returnReduce(addedMassTotal_, sumOp<scalar>());
+        outputProperties().add("addedMassTotal", addedMassTotal, true);
+        addedMassTotal_ = 0.0;
+    }
 }
 
 
@@ -163,7 +157,7 @@ tmp<volScalarField> kinematicSingleLayer::pu()
         (
             IOobject
             (
-                "pu",
+                typeName + ":pu",
                 time_.timeName(),
                 regionMesh(),
                 IOobject::NO_READ,
@@ -185,7 +179,7 @@ tmp<volScalarField> kinematicSingleLayer::pp()
         (
             IOobject
             (
-                "pp",
+                typeName + ":pp",
                 time_.timeName(),
                 regionMesh(),
                 IOobject::NO_READ,
@@ -199,7 +193,7 @@ tmp<volScalarField> kinematicSingleLayer::pp()
 
 void kinematicSingleLayer::correctAlpha()
 {
-    alpha_ == pos(delta_ - dimensionedScalar("SMALL", dimLength, SMALL));
+    alpha_ == pos(delta_ - deltaSmall_);
 }
 
 
@@ -216,6 +210,8 @@ void kinematicSingleLayer::updateSubmodels()
     // Update source fields
     const dimensionedScalar deltaT = time().deltaT();
     rhoSp_ += cloudMassTrans_/magSf()/deltaT;
+
+    turbulence_->correct();
 }
 
 
@@ -282,9 +278,7 @@ void kinematicSingleLayer::updateSurfaceVelocities()
     Uw_ -= nHat()*(Uw_ & nHat());
     Uw_.correctBoundaryConditions();
 
-    // apply quadratic profile to surface velocity (scale by sqrt(2))
-    Us_ = 1.414*U_;
-    Us_.correctBoundaryConditions();
+    Us_ = turbulence_->Us();
 }
 
 
@@ -309,6 +303,7 @@ tmp<Foam::fvVectorMatrix> kinematicSingleLayer::solveMomentum
 //      - fvm::SuSp(rhoSp_, U_)
       - rhoSp_*U_
       + forces_.correct(U_)
+      + turbulence_->Su(U_)
     );
 
     fvVectorMatrix& UEqn = tUEqn();
@@ -453,7 +448,9 @@ kinematicSingleLayer::kinematicSingleLayer
     ),
 
     cumulativeContErr_(0.0),
-    deltaCoLimit_(coeffs_.lookupOrDefault("deltaCoLimit", 1e-4)),
+
+    deltaSmall_("deltaSmall", dimLength, SMALL),
+    deltaCoLimit_(solution().lookupOrDefault("deltaCoLimit", 1e-4)),
 
     rho_
     (
@@ -777,9 +774,13 @@ kinematicSingleLayer::kinematicSingleLayer
         this->mappedFieldAndInternalPatchTypes<scalar>()
     ),
 
+    filmThermo_(filmThermoModel::New(*this, coeffs_)),
+
     availableMass_(regionMesh().nCells(), 0.0),
 
     injection_(*this, coeffs_),
+
+    turbulence_(filmTurbulenceModel::New(*this, coeffs_)),
 
     forces_(*this, coeffs_),
 
@@ -788,6 +789,8 @@ kinematicSingleLayer::kinematicSingleLayer
     if (readFields)
     {
         transferPrimaryRegionThermoFields();
+
+        correctAlpha();
 
         correctThermoFields();
 
@@ -949,6 +952,12 @@ const volVectorField& kinematicSingleLayer::Uw() const
 }
 
 
+const volScalarField& kinematicSingleLayer::deltaRho() const
+{
+    return deltaRho_;
+}
+
+
 const surfaceScalarField& kinematicSingleLayer::phi() const
 {
     return phi_;
@@ -1024,7 +1033,7 @@ tmp<volScalarField> kinematicSingleLayer::primaryMassTrans() const
         (
             IOobject
             (
-                "kinematicSingleLayer::primaryMassTrans",
+                typeName + ":primaryMassTrans",
                 time().timeName(),
                 primaryMesh(),
                 IOobject::NO_READ,
@@ -1056,9 +1065,11 @@ void kinematicSingleLayer::info() const
 
     const scalarField& deltaInternal = delta_.internalField();
     const vectorField& Uinternal = U_.internalField();
+    scalar addedMassTotal = 0.0;
+    outputProperties().readIfPresent("addedMassTotal", addedMassTotal);
+    addedMassTotal += returnReduce(addedMassTotal_, sumOp<scalar>());
 
-    Info<< indent << "added mass         = "
-        << returnReduce<scalar>(addedMassTotal_, sumOp<scalar>()) << nl
+    Info<< indent << "added mass         = " << addedMassTotal << nl
         << indent << "current mass       = "
         << gSum((deltaRho_*magSf())()) << nl
         << indent << "min/max(mag(U))    = " << gMin(mag(Uinternal)) << ", "
@@ -1080,7 +1091,7 @@ tmp<DimensionedField<scalar, volMesh> > kinematicSingleLayer::Srho() const
         (
             IOobject
             (
-                "kinematicSingleLayer::Srho",
+                typeName + ":Srho",
                 time().timeName(),
                 primaryMesh(),
                 IOobject::NO_READ,
@@ -1105,7 +1116,7 @@ tmp<DimensionedField<scalar, volMesh> > kinematicSingleLayer::Srho
         (
             IOobject
             (
-                "kinematicSingleLayer::Srho(" + Foam::name(i) + ")",
+                typeName + ":Srho(" + Foam::name(i) + ")",
                 time().timeName(),
                 primaryMesh(),
                 IOobject::NO_READ,
@@ -1127,7 +1138,7 @@ tmp<DimensionedField<scalar, volMesh> > kinematicSingleLayer::Sh() const
         (
             IOobject
             (
-                "kinematicSingleLayer::Sh",
+                typeName + ":Sh",
                 time().timeName(),
                 primaryMesh(),
                 IOobject::NO_READ,

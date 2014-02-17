@@ -213,9 +213,6 @@ Foam::KinematicParcel<ParcelType>::KinematicParcel
     d_(p.d_),
     dTarget_(p.dTarget_),
     U_(p.U_),
-    f_(p.f_),
-    angularMomentum_(p.angularMomentum_),
-    torque_(p.torque_),
     rho_(p.rho_),
     age_(p.age_),
     tTurb_(p.tTurb_),
@@ -240,9 +237,6 @@ Foam::KinematicParcel<ParcelType>::KinematicParcel
     d_(p.d_),
     dTarget_(p.dTarget_),
     U_(p.U_),
-    f_(p.f_),
-    angularMomentum_(p.angularMomentum_),
-    torque_(p.torque_),
     rho_(p.rho_),
     age_(p.age_),
     tTurb_(p.tTurb_),
@@ -271,7 +265,7 @@ bool Foam::KinematicParcel<ParcelType>::move
 
     const polyMesh& mesh = td.cloud().pMesh();
     const polyBoundaryMesh& pbMesh = mesh.boundaryMesh();
-    const scalarField& V = mesh.cellVolumes();
+    const scalarField& cellLengthScale = td.cloud().cellLengthScale();
     const scalar maxCo = td.cloud().solution().maxCo();
 
     scalar tEnd = (1.0 - p.stepFraction())*trackTime;
@@ -296,7 +290,7 @@ bool Foam::KinematicParcel<ParcelType>::move
         if (p.active() && moving && (magU > ROOTVSMALL))
         {
             const scalar d = dt*magU;
-            const scalar dCorr = min(d, maxCo*cbrt(V[cellI]));
+            const scalar dCorr = min(d, maxCo*cellLengthScale[cellI]);
             dt *=
                 dCorr/d
                *p.trackToFace(p.position() + dCorr*U_/magU, td);
@@ -452,12 +446,6 @@ void Foam::KinematicParcel<ParcelType>::transformProperties(const tensor& T)
     ParcelType::transformProperties(T);
 
     U_ = transform(T, U_);
-
-    f_ = transform(T, f_);
-
-    angularMomentum_ = transform(T, angularMomentum_);
-
-    torque_ = transform(T, torque_);
 }
 
 

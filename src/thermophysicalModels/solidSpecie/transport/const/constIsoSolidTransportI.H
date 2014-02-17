@@ -25,26 +25,26 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-template<class Thermo>
-inline Foam::constIsoSolidTransport<Thermo>::constIsoSolidTransport
+template<class thermo>
+inline Foam::constIsoSolidTransport<thermo>::constIsoSolidTransport
 (
-    const Thermo& t,
+    const thermo& t,
     const scalar kappa
 )
 :
-    Thermo(t),
+    thermo(t),
     kappa_(kappa)
 {}
 
 
-template<class Thermo>
-inline Foam::constIsoSolidTransport<Thermo>::constIsoSolidTransport
+template<class thermo>
+inline Foam::constIsoSolidTransport<thermo>::constIsoSolidTransport
 (
     const word& name,
     const constIsoSolidTransport& ct
 )
 :
-    Thermo(name, ct),
+    thermo(name, ct),
     kappa_(ct.kappa_)
 {}
 
@@ -64,28 +64,28 @@ Foam::constIsoSolidTransport<Thermo>::New
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-template<class Thermo>
-inline Foam::scalar Foam::constIsoSolidTransport<Thermo>::
+template<class thermo>
+inline Foam::scalar Foam::constIsoSolidTransport<thermo>::
 kappa(const scalar p, const scalar T) const
 {
     return kappa_;
 }
 
-template<class Thermo>
-inline Foam::vector Foam::constIsoSolidTransport<Thermo>::
+template<class thermo>
+inline Foam::vector Foam::constIsoSolidTransport<thermo>::
 Kappa(const scalar p, const scalar T) const
 {
     return vector(kappa_, kappa_, kappa_);
 }
 
 
-template<class Thermo>
-inline Foam::scalar Foam::constIsoSolidTransport<Thermo>::
+template<class thermo>
+inline Foam::scalar Foam::constIsoSolidTransport<thermo>::
 mu(const scalar p, const scalar T) const
 {
     notImplemented
     (
-        "Foam::scalar Foam::constIsoSolidTransport<Thermo>mu::"
+        "Foam::scalar Foam::constIsoSolidTransport<thermo>mu::"
         "("
         "    const scalar p, const scalar T"
         ") const"
@@ -94,8 +94,8 @@ mu(const scalar p, const scalar T) const
 }
 
 
-template<class Thermo>
-inline Foam::scalar Foam::constIsoSolidTransport<Thermo>::
+template<class thermo>
+inline Foam::scalar Foam::constIsoSolidTransport<thermo>::
 alphah(const scalar p, const scalar T) const
 {
     return kappa_/this->Cpv(p, T);
@@ -103,27 +103,27 @@ alphah(const scalar p, const scalar T) const
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
-template<class Thermo>
-inline Foam::constIsoSolidTransport<Thermo>&
-Foam::constIsoSolidTransport<Thermo>::operator=
+template<class thermo>
+inline Foam::constIsoSolidTransport<thermo>&
+Foam::constIsoSolidTransport<thermo>::operator=
 (
-    const constIsoSolidTransport<Thermo>& ct
+    const constIsoSolidTransport<thermo>& ct
 )
 {
-    Thermo::operator=(ct);
+    thermo::operator=(ct);
     kappa_ = ct.kappa_;
     return *this;
 }
 
 
-template<class Thermo>
-inline void Foam::constIsoSolidTransport<Thermo>::operator+=
+template<class thermo>
+inline void Foam::constIsoSolidTransport<thermo>::operator+=
 (
-    const constIsoSolidTransport<Thermo>& ct
+    const constIsoSolidTransport<thermo>& ct
 )
 {
     scalar molr1 = this->nMoles();
-    Thermo::operator+=(ct);
+    thermo::operator+=(ct);
 
     molr1 /= this->nMoles();
     scalar molr2 = ct.nMoles()/this->nMoles();
@@ -132,15 +132,15 @@ inline void Foam::constIsoSolidTransport<Thermo>::operator+=
 }
 
 
-template<class Thermo>
-inline void Foam::constIsoSolidTransport<Thermo>::operator-=
+template<class thermo>
+inline void Foam::constIsoSolidTransport<thermo>::operator-=
 (
-    const constIsoSolidTransport<Thermo>& ct
+    const constIsoSolidTransport<thermo>& ct
 )
 {
     scalar molr1 = this->nMoles();
 
-    Thermo::operator-=(ct);
+    thermo::operator-=(ct);
 
     molr1 /= this->nMoles();
     scalar molr2 = ct.nMoles()/this->nMoles();
@@ -151,16 +151,16 @@ inline void Foam::constIsoSolidTransport<Thermo>::operator-=
 // * * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * //
 
 
-template<class Thermo>
-inline Foam::constIsoSolidTransport<Thermo> Foam::operator*
+template<class thermo>
+inline Foam::constIsoSolidTransport<thermo> Foam::operator*
 (
     const scalar s,
-    const constIsoSolidTransport<Thermo>& ct
+    const constIsoSolidTransport<thermo>& ct
 )
 {
-    return constIsoSolidTransport<Thermo>
+    return constIsoSolidTransport<thermo>
     (
-        s*static_cast<const Thermo&>(ct),
+        s*static_cast<const thermo&>(ct),
         ct.kappa_
     );
 }

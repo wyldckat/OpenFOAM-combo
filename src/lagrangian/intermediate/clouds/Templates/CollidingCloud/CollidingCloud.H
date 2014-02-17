@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -97,6 +97,10 @@ protected:
 
     // Protected data
 
+        //- Thermo parcel constant properties
+        typename parcelType::constantProperties constProps_;
+
+
         // References to the cloud sub-models
 
             //- Collision model
@@ -180,6 +184,11 @@ public:
             //- Return a reference to the cloud copy
             inline const CollidingCloud& cloudCopy() const;
 
+            //- Return the constant properties
+            inline const typename parcelType::constantProperties&
+                constProps() const;
+
+
             //- If the collision model controls the wall interaction,
             //  then the wall impact distance should be zero.
             //  Otherwise, it should be allowed to be the value from
@@ -197,8 +206,13 @@ public:
                 inline CollisionModel<CollidingCloud<CloudType> >&
                     collision();
 
+        // Check
 
-        // Evolution
+            //- Total rotational kinetic energy in the system
+            inline scalar rotationalKineticEnergyOfSystem() const;
+
+
+        // Cloud evolution functions
 
             //- Store the current cloud state
             void storeState();
@@ -212,6 +226,12 @@ public:
             //- Particle motion
             template<class TrackData>
             void motion(TrackData& td);
+
+
+        // I-O
+
+            //- Print cloud information
+            void info();
 };
 
 

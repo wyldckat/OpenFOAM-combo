@@ -321,7 +321,6 @@ void reactingOneDim::solveEnergy()
 
     tmp<volScalarField> alpha(solidThermo_.alpha());
 
-
     fvScalarMatrix hEqn
     (
         fvm::ddt(rho_, h_)
@@ -698,11 +697,7 @@ void reactingOneDim::evolveRegion()
 
     if (useChemistrySolvers_)
     {
-        solidChemistry_->solve
-        (
-            time().value() - time().deltaTValue(),
-            time().deltaTValue()
-        );
+        solidChemistry_->solve(time().deltaTValue());
     }
     else
     {

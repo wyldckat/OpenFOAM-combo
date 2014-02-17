@@ -63,6 +63,7 @@ class linearNormal
         scalarList layerPoints_;
 
 
+
 public:
 
     //- Runtime type information

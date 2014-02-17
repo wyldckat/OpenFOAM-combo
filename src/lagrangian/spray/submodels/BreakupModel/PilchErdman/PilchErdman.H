@@ -51,7 +51,7 @@ Description
     The authors suggest that:
         compressible flow   : B1 = 0.75*1.0; B2 = 3*0.116
         incompressible flow : B1 = 0.75*0.5; B2 = 3*0.0758
-        
+
 
 \*---------------------------------------------------------------------------*/
 

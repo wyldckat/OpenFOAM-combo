@@ -107,6 +107,7 @@ void Foam::pairPatchAgglomeration::setEdgeWeights
     const label fineLevelIndex
 )
 {
+
     const bPatch& coarsePatch = patchLevels_[fineLevelIndex];
 
     const labelList& fineToCoarse = restrictAddressing_[fineLevelIndex];
@@ -383,8 +384,6 @@ void Foam::pairPatchAgglomeration:: agglomerate()
                 patch
             );
 
-
-
             if (nCoarseFaces > 0)
             {
                 agglomOK = agglomeratePatch
@@ -393,8 +392,6 @@ void Foam::pairPatchAgglomeration:: agglomerate()
                     finalAgglomPtr,
                     nCreatedLevels
                 );
-
-
 
                 restrictAddressing_.set(nCreatedLevels, finalAgglomPtr);
                 mapBaseToTopAgglom(nCreatedLevels);
@@ -414,7 +411,6 @@ void Foam::pairPatchAgglomeration:: agglomerate()
             else
             {
                 agglomOK = true;
-
             }
             reduce(nCoarseFaces, sumOp<label>());
         }

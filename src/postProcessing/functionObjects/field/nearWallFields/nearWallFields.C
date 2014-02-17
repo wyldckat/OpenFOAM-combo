@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -33,7 +33,7 @@ License
 
 namespace Foam
 {
-defineTypeNameAndDebug(nearWallFields, 0);
+    defineTypeNameAndDebug(nearWallFields, 0);
 }
 
 
@@ -328,32 +328,8 @@ void Foam::nearWallFields::execute()
     {
         Info<< "nearWallFields:execute()" << endl;
     }
-}
 
 
-void Foam::nearWallFields::end()
-{
-    if (debug)
-    {
-        Info<< "nearWallFields:end()" << endl;
-    }
-}
-
-
-void Foam::nearWallFields::timeSet()
-{
-    // Do nothing
-}
-
-
-void Foam::nearWallFields::write()
-{
-    if (debug)
-    {
-        Info<< "nearWallFields:write()" << endl;
-    }
-
-    // Do nothing
     if (active_)
     {
         if
@@ -380,7 +356,7 @@ void Foam::nearWallFields::write()
 
         Info<< type() << " " << name_ << " output:" << nl;
 
-        Info<< "    Writing sampled fields to " << obr_.time().timeName()
+        Info<< "    Sampling fields to " << obr_.time().timeName()
             << endl;
 
         sampleFields(vsf_);
@@ -388,8 +364,42 @@ void Foam::nearWallFields::write()
         sampleFields(vSpheretf_);
         sampleFields(vSymmtf_);
         sampleFields(vtf_);
+    }
+}
 
-        // Write fields
+
+void Foam::nearWallFields::end()
+{
+    if (debug)
+    {
+        Info<< "nearWallFields:end()" << endl;
+    }
+
+    if (active_)
+    {
+        execute();
+    }
+}
+
+
+void Foam::nearWallFields::timeSet()
+{
+    // Do nothing
+}
+
+
+void Foam::nearWallFields::write()
+{
+    if (debug)
+    {
+        Info<< "nearWallFields:write()" << endl;
+    }
+
+    if (active_)
+    {
+        Info<< "    Writing sampled fields to " << obr_.time().timeName()
+            << endl;
+
         forAll(vsf_, i)
         {
             vsf_[i].write();

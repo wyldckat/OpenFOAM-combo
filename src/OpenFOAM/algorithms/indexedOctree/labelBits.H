@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,7 +35,7 @@ SourceFiles
 #define labelBits_H
 
 #include "label.H"
-#include "uLabel.H"
+//#include "uLabel.H"
 #include "direction.H"
 #include "error.H"
 
@@ -64,6 +64,8 @@ class labelBits
                 (
                     "labelBits::pack(const label, const direction)"
                 )   << "Direction " << bits << " outside range 0..7"
+                    << " or value " << val << " negative or larger than "
+                    << label(8*sizeof(label)-3) << " bit representation"
                     << abort(FatalError);
             }
 #           endif

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -32,6 +32,11 @@ numberOfSubdomains  2;
 // for a good load balance) or explicitly provided (upsets balance).
 //singleProcessorFaceSets ((f0 -1));
 
+
+//- Keep owner and neighbour of baffles on same processor (i.e. keep it
+//  detectable as a baffle). Baffles are two boundary face sharing the
+//  same points.
+//preserveBaffles true;
 
 //- Use the volScalarField named here as a weight for each cell in the
 //  decomposition.  For example, use a particle population field to decompose

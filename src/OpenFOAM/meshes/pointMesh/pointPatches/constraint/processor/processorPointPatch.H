@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -115,23 +115,16 @@ public:
 
     // Member functions
 
-        //- Return true if running parallel
-        virtual bool coupled() const
-        {
-            if (Pstream::parRun())
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
         //- Return message tag to use for communication
         virtual int tag() const
         {
             return procPolyPatch_.tag();
+        }
+
+        //- Return communicator used for communication
+        virtual label comm() const
+        {
+            return procPolyPatch_.comm();
         }
 
         //- Return the constraint type this pointPatch implements.

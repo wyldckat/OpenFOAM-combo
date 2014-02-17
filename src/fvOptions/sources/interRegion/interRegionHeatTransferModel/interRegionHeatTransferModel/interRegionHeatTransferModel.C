@@ -97,7 +97,7 @@ void Foam::fv::interRegionHeatTransferModel::correct()
     else
     {
         nbrModel().correct();
-        interpolate(nbrModel().htc(), htc_.internalField());
+        interpolate(nbrModel().htc(), htc_);
     }
 }
 
@@ -218,8 +218,8 @@ void Foam::fv::interRegionHeatTransferModel::addSup
         {
             if (mesh_.foundObject<fluidThermo>("thermophysicalProperties"))
             {
-                const fluidThermo& thermo =
-                   mesh_.lookupObject<fluidThermo>("thermophysicalProperties");
+                const basicThermo& thermo =
+                   mesh_.lookupObject<basicThermo>("thermophysicalProperties");
 
                 eqn += htc_*Tmapped - fvm::SuSp(htc_/thermo.Cp(), h);
 
@@ -235,7 +235,7 @@ void Foam::fv::interRegionHeatTransferModel::addSup
             }
             else
             {
-                FatalErrorIn
+                 FatalErrorIn
                 (
                     "void Foam::fv::interRegionHeatTransferModel::addSup"
                     "("
@@ -243,7 +243,7 @@ void Foam::fv::interRegionHeatTransferModel::addSup
                     "   const label "
                     ")"
                 )   << " on mesh " << mesh_.name()
-                    << " could not find object fluidThermo. "
+                    << " could not find object fluidThermo."
                     << " The available objects : "
                     << mesh_.names()
                     << " The semi implicit option can only be used for "
@@ -259,16 +259,6 @@ void Foam::fv::interRegionHeatTransferModel::addSup
     else
     {
         eqn += htc_*(Tmapped - T);
-
-        if (debug)
-        {
-            const dimensionedScalar energy =
-                fvc::domainIntegrate(htc_*(Tmapped - T));
-
-            Info<< "Energy exchange from region " << nbrMesh.name()
-                << " To " << mesh_.name() << " : " <<  energy.value()
-                << endl;
-        }
     }
 }
 

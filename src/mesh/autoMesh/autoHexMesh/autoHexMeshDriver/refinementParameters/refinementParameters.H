@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,6 +67,9 @@ class refinementParameters
         //- Curvature
         scalar curvature_;
 
+        //- Planarity criterion
+        scalar planarAngle_;
+
         //- Number of layers between different refinement levels
         const label nBufferLayers_;
 
@@ -77,9 +80,14 @@ class refinementParameters
         //  cellZone?
         Switch allowFreeStandingZoneFaces_;
 
+        //- Use old topology based problem-cell removal (cells with 8 points
+        //  on surface)
+        Switch useTopologicalSnapDetection_;
+
         //- Allowed load unbalance
         scalar maxLoadUnbalance_;
 
+        Switch handleSnapProblems_;
 
     // Private Member Functions
 
@@ -93,9 +101,6 @@ class refinementParameters
 public:
 
     // Constructors
-
-        //- Construct from dictionary - old syntax
-        refinementParameters(const dictionary& dict, const label dummy);
 
         //- Construct from dictionary - new syntax
         refinementParameters(const dictionary& dict);
@@ -129,6 +134,12 @@ public:
                 return curvature_;
             }
 
+            //- Angle when two intersections are considered to be planar
+            scalar planarAngle() const
+            {
+                return planarAngle_;
+            }
+
             //- Number of layers between different refinement levels
             label nBufferLayers() const
             {
@@ -148,10 +159,22 @@ public:
                 return allowFreeStandingZoneFaces_;
             }
 
+            //- Use old topology based problem-cell removal
+            //  (cells with 8 points on surface)
+            bool useTopologicalSnapDetection() const
+            {
+                return useTopologicalSnapDetection_;
+            }
+
             //- Allowed load unbalance
             scalar maxLoadUnbalance() const
             {
                 return maxLoadUnbalance_;
+            }
+
+            bool handleSnapProblems() const
+            {
+                return handleSnapProblems_;
             }
 
 

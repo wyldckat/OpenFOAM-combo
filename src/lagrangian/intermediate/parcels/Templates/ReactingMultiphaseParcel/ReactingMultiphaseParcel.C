@@ -498,7 +498,7 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcDevolatilisation
     const scalarField& YGasEff,
     const scalarField& YLiquidEff,
     const scalarField& YSolidEff,
-    bool& canCombust,
+    label& canCombust,
     scalarField& dMassDV,
     scalar& Sh,
     scalar& N,
@@ -506,13 +506,19 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcDevolatilisation
     scalarField& Cs
 ) const
 {
-    // Check that model is active, and that the parcel temperature is
-    // within necessary limits for devolatilisation to occur
-    if
-    (
-        !td.cloud().devolatilisation().active()
-     || T < td.cloud().constProps().Tvap()
-    )
+    // Check that model is active
+    if (!td.cloud().devolatilisation().active())
+    {
+        return;
+    }
+
+    // Initialise demand-driven constants
+    (void)td.cloud().constProps().TDevol();
+    (void)td.cloud().constProps().LDevol();
+
+    // Check that the parcel temperature is within necessary limits for
+    // devolatilisation to occur
+    if (T < td.cloud().constProps().TDevol() || canCombust == -1)
     {
         return;
     }
@@ -588,7 +594,7 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcSurfaceReactions
     const scalar d,
     const scalar T,
     const scalar mass,
-    const bool canCombust,
+    const label canCombust,
     const scalar N,
     const scalarField& YMix,
     const scalarField& YGas,
@@ -603,10 +609,21 @@ void Foam::ReactingMultiphaseParcel<ParcelType>::calcSurfaceReactions
 ) const
 {
     // Check that model is active
-    if (!td.cloud().surfaceReaction().active() || !canCombust)
+    if (!td.cloud().surfaceReaction().active())
     {
         return;
     }
+
+    // Initialise demand-driven constants
+    (void)td.cloud().constProps().hRetentionCoeff();
+    (void)td.cloud().constProps().TMax();
+
+    // Check that model is active
+    if (canCombust != 1)
+    {
+        return;
+    }
+
 
     // Update surface reactions
     const scalar hReaction = td.cloud().surfaceReaction().calculate

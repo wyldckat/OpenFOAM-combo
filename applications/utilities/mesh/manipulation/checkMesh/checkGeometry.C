@@ -148,7 +148,7 @@ bool Foam::checkWedges
                     {
                         Info<< " ***Wedge patch " << pp.name() << " not planar."
                             << " Point " << pt << " is not in patch plane by "
-                            << d << " meter."
+                            << d << " metre."
                             << endl;
                     }
                     return true;
@@ -435,8 +435,10 @@ bool Foam::checkCoupledPoints
                                 setPtr->insert(cpp.start()+i);
                             }
                             nErrorFaces++;
+
                             break;
                         }
+
                         avgMismatch += d;
                         nCoupledPoints++;
 
@@ -829,6 +831,40 @@ Foam::label Foam::checkGeometry(const polyMesh& mesh, const bool allGeometry)
                 << " concave cells to set " << cells.name() << endl;
             cells.instance() = mesh.pointsInstance();
             cells.write();
+        }
+    }
+
+    if (allGeometry)
+    {
+        faceSet faces(mesh, "lowWeightFaces", mesh.nFaces()/100);
+        if (mesh.checkFaceWeight(true, 0.05, &faces))
+        {
+            noFailedChecks++;
+
+            label nFaces = returnReduce(faces.size(), sumOp<label>());
+
+            Info<< "  <<Writing " << nFaces
+                << " faces with low interpolation weights to set "
+                << faces.name() << endl;
+            faces.instance() = mesh.pointsInstance();
+            faces.write();
+        }
+    }
+
+    if (allGeometry)
+    {
+        faceSet faces(mesh, "lowVolRatioFaces", mesh.nFaces()/100);
+        if (mesh.checkVolRatio(true, 0.01, &faces))
+        {
+            noFailedChecks++;
+
+            label nFaces = returnReduce(faces.size(), sumOp<label>());
+
+            Info<< "  <<Writing " << nFaces
+                << " faces with low volume ratio cells to set "
+                << faces.name() << endl;
+            faces.instance() = mesh.pointsInstance();
+            faces.write();
         }
     }
 

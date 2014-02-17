@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -30,8 +30,9 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
 constantProperties()
 :
     ParcelType::constantProperties(),
-    LDevol_(0.0),
-    hRetentionCoeff_(0.0)
+    TDevol_(this->dict_, 0.0),
+    LDevol_(this->dict_, 0.0),
+    hRetentionCoeff_(this->dict_, 0.0)
 {}
 
 
@@ -43,6 +44,7 @@ constantProperties
 )
 :
     ParcelType::constantProperties(cp),
+    TDevol_(cp.TDevol_),
     LDevol_(cp.LDevol_),
     hRetentionCoeff_(cp.hRetentionCoeff_)
 {}
@@ -52,32 +54,14 @@ template<class ParcelType>
 inline Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
 constantProperties
 (
-    const dictionary& parentDict,
-    const bool readFields
+    const dictionary& parentDict
 )
 :
-    ParcelType::constantProperties(parentDict, readFields),
-    LDevol_(0.0),
-    hRetentionCoeff_(0.0)
-{
-    if (readFields)
-    {
-        this->dict().lookup("LDevol") >> LDevol_;
-        this->dict().lookup("hRetentionCoeff") >> hRetentionCoeff_;
-
-        if ((hRetentionCoeff_ < 0) || (hRetentionCoeff_ > 1))
-        {
-            FatalErrorIn
-            (
-                "ReactingMultiphaseParcel<ParcelType>::constantProperties::"
-                "constantProperties"
-            )   << "hRetentionCoeff must be in the range 0 to 1" << nl
-                << exit(FatalError) << endl;
-        }
-
-        hRetentionCoeff_ = max(1e-06, hRetentionCoeff_);
-    }
-}
+    ParcelType::constantProperties(parentDict),
+    TDevol_(this->dict_, "TDevol"),
+    LDevol_(this->dict_, "LDevol"),
+    hRetentionCoeff_(this->dict_, "hRetentionCoeff")
+{}
 
 
 template<class ParcelType>
@@ -94,7 +78,7 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
     YGas_(0),
     YLiquid_(0),
     YSolid_(0),
-    canCombust_(false)
+    canCombust_(0)
 {}
 
 
@@ -142,7 +126,7 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
     YGas_(YGas0),
     YLiquid_(YLiquid0),
     YSolid_(YSolid0),
-    canCombust_(false)
+    canCombust_(0)
 {}
 
 
@@ -150,9 +134,17 @@ inline Foam::ReactingMultiphaseParcel<ParcelType>::ReactingMultiphaseParcel
 
 template<class ParcelType>
 inline Foam::scalar
+Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::TDevol() const
+{
+    return TDevol_.value();
+}
+
+
+template<class ParcelType>
+inline Foam::scalar
 Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::LDevol() const
 {
-    return LDevol_;
+    return LDevol_.value();
 }
 
 
@@ -161,7 +153,19 @@ inline Foam::scalar
 Foam::ReactingMultiphaseParcel<ParcelType>::constantProperties::
 hRetentionCoeff() const
 {
-    return hRetentionCoeff_;
+    scalar value = hRetentionCoeff_.value();
+
+    if ((value < 0) || (value > 1))
+    {
+        FatalErrorIn
+        (
+            "ReactingMultiphaseParcel<ParcelType>::constantProperties::"
+            "constantProperties"
+        )   << "hRetentionCoeff must be in the range 0 to 1" << nl
+            << exit(FatalError) << endl;
+    }
+
+    return value;
 }
 
 
@@ -192,7 +196,8 @@ YSolid() const
 
 
 template<class ParcelType>
-inline bool Foam::ReactingMultiphaseParcel<ParcelType>::canCombust() const
+inline Foam::label
+Foam::ReactingMultiphaseParcel<ParcelType>::canCombust() const
 {
     return canCombust_;
 }
@@ -220,7 +225,7 @@ inline Foam::scalarField& Foam::ReactingMultiphaseParcel<ParcelType>::YSolid()
 
 
 template<class ParcelType>
-inline bool& Foam::ReactingMultiphaseParcel<ParcelType>::canCombust()
+inline Foam::label& Foam::ReactingMultiphaseParcel<ParcelType>::canCombust()
 {
     return canCombust_;
 }

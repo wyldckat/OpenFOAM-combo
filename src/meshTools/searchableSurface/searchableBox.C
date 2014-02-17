@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -246,6 +246,41 @@ Foam::tmp<Foam::pointField> Foam::searchableBox::coordinates() const
     }
 
     return tCtrs;
+}
+
+
+void Foam::searchableBox::boundingSpheres
+(
+    pointField& centres,
+    scalarField& radiusSqr
+) const
+{
+    centres.setSize(size());
+    radiusSqr.setSize(size());
+    radiusSqr = 0.0;
+
+    const pointField pts(treeBoundBox::points());
+    const faceList& fcs = treeBoundBox::faces;
+
+    forAll(fcs, i)
+    {
+        const face& f = fcs[i];
+
+        centres[i] = f.centre(pts);
+        forAll(f, fp)
+        {
+            const point& pt = pts[f[fp]];
+
+            radiusSqr[i] = Foam::max
+            (
+                radiusSqr[i],
+                Foam::magSqr(pt-centres[i])
+            );
+        }
+    }
+
+    // Add a bit to make sure all points are tested inside
+    radiusSqr += Foam::sqr(SMALL);
 }
 
 
@@ -583,7 +618,7 @@ void Foam::searchableBox::getVolumeType
 ) const
 {
     volType.setSize(points.size());
-    volType = INSIDE;
+    volType = volumeType::INSIDE;
 
     forAll(points, pointI)
     {
@@ -593,7 +628,7 @@ void Foam::searchableBox::getVolumeType
         {
             if (pt[dir] < min()[dir] || pt[dir] > max()[dir])
             {
-                volType[pointI] = OUTSIDE;
+                volType[pointI] = volumeType::OUTSIDE;
                 break;
             }
         }

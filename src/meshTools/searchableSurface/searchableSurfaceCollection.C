@@ -203,7 +203,6 @@ Foam::searchableSurfaceCollection::searchableSurfaceCollection
                 surfI,
                 coordinateSystem::New
                 (
-                    "",
                     subDict.subDict("transform")
                 )
             );
@@ -352,6 +351,43 @@ Foam::searchableSurfaceCollection::coordinates() const
     }
 
     return tCtrs;
+}
+
+
+void Foam::searchableSurfaceCollection::boundingSpheres
+(
+    pointField& centres,
+    scalarField& radiusSqr
+) const
+{
+    centres.setSize(size());
+    radiusSqr.setSize(centres.size());
+
+    // Append individual coordinates
+    label coordI = 0;
+
+    forAll(subGeom_, surfI)
+    {
+        scalar maxScale = cmptMax(scale_[surfI]);
+
+        pointField subCentres;
+        scalarField subRadiusSqr;
+        subGeom_[surfI].boundingSpheres(subCentres, subRadiusSqr);
+
+        forAll(subCentres, i)
+        {
+            centres[coordI] = transform_[surfI].globalPosition
+            (
+                cmptMultiply
+                (
+                    subCentres[i],
+                    scale_[surfI]
+                )
+            );
+            radiusSqr[coordI] = maxScale*subRadiusSqr[i];
+            coordI++;
+        }
+    }
 }
 
 

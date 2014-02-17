@@ -21,11 +21,12 @@ if (pimple.transonic())
         fvc::interpolate(psi)
        *(
             (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+          + fvc::interpolate(rho*rAU)*fvc::ddtCorr(rho, U, phi)
+           /fvc::interpolate(rho)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(psi), phid);
+    fvOptions.makeRelative(fvc::interpolate(psi), phid);
 
     surfaceScalarField phic
     (
@@ -35,7 +36,7 @@ if (pimple.transonic())
 
     HbyA -= (rAU - rAtU)*fvc::grad(p);
 
-    volScalarField Dp("Dp", rho*rAtU);
+    volScalarField rhorAtU("rhorAtU", rho*rAtU);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -44,7 +45,7 @@ if (pimple.transonic())
             fvm::ddt(psi, p)
           + fvm::div(phid, p)
           + fvc::div(phic)
-          - fvm::laplacian(Dp, p)
+          - fvm::laplacian(rhorAtU, p)
          ==
             fvOptions(psi, p, rho.name())
         );
@@ -64,19 +65,18 @@ else
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::interpolate(rho)
-       *(
-            (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        (
+            (fvc::interpolate(rho*HbyA) & mesh.Sf())
+          + fvc::interpolate(rho*rAU)*fvc::ddtCorr(rho, U, phi)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
     phiHbyA += fvc::interpolate(rho*(rAtU - rAU))*fvc::snGrad(p)*mesh.magSf();
     HbyA -= (rAU - rAtU)*fvc::grad(p);
 
-    volScalarField Dp("Dp", rho*rAtU);
+    volScalarField rhorAtU("rhorAtU", rho*rAtU);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -84,7 +84,7 @@ else
         (
             fvm::ddt(psi, p)
           + fvc::div(phiHbyA)
-          - fvm::laplacian(Dp, p)
+          - fvm::laplacian(rhorAtU, p)
          ==
             fvOptions(psi, p, rho.name())
         );

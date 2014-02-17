@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,7 +48,7 @@ Foam::fieldCoordinateSystemTransform::fieldCoordinateSystemTransform
     obr_(obr),
     active_(true),
     fieldSet_(),
-    coordSys_(dict, obr)
+    coordSys_(obr, dict)
 {
     // Check if the available mesh is an fvMesh otherise deactivate
     if (isA<fvMesh>(obr_))
@@ -96,13 +96,29 @@ void Foam::fieldCoordinateSystemTransform::read(const dictionary& dict)
 
 void Foam::fieldCoordinateSystemTransform::execute()
 {
-    // Do nothing
+    if (active_)
+    {
+        Info<< type() << " " << name_ << " output:" << nl;
+
+        forAll(fieldSet_, fieldI)
+        {
+            // If necessary load field
+            transform<scalar>(fieldSet_[fieldI]);
+            transform<vector>(fieldSet_[fieldI]);
+            transform<sphericalTensor>(fieldSet_[fieldI]);
+            transform<symmTensor>(fieldSet_[fieldI]);
+            transform<tensor>(fieldSet_[fieldI]);
+        }
+    }
 }
 
 
 void Foam::fieldCoordinateSystemTransform::end()
 {
-    // Do nothing
+    if (active_)
+    {
+        execute();
+    }
 }
 
 
@@ -114,16 +130,23 @@ void Foam::fieldCoordinateSystemTransform::timeSet()
 
 void Foam::fieldCoordinateSystemTransform::write()
 {
-    Info<< type() << " " << name_ << " output:" << nl;
-
-    forAll(fieldSet_, fieldI)
+    if (active_)
     {
-        // If necessary load field
-        transform<scalar>(fieldSet_[fieldI]);
-        transform<vector>(fieldSet_[fieldI]);
-        transform<sphericalTensor>(fieldSet_[fieldI]);
-        transform<symmTensor>(fieldSet_[fieldI]);
-        transform<tensor>(fieldSet_[fieldI]);
+        Info<< type() << " " << name_ << " output:" << nl;
+
+        forAll(fieldSet_, fieldI)
+        {
+            const word fieldName = fieldSet_[fieldI] + ":Transformed";
+
+            const regIOobject& field =
+                obr_.lookupObject<regIOobject>(fieldName);
+
+            Info<< "    writing field " << field.name() << nl;
+
+            field.write();
+        }
+
+        Info<< endl;
     }
 }
 

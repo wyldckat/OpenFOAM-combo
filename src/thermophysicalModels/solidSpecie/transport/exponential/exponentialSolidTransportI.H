@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -126,7 +126,6 @@ Foam::exponentialSolidTransport<Thermo>::operator=
     kappa0_ = ct.kappa0_;
     n0_ = ct.n0_;
     Tref_ = ct.Tref_;
-
     return *this;
 }
 

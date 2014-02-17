@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,10 +58,20 @@ static const doubleScalar doubleScalarSMALL = 1.0e-15;
 static const doubleScalar doubleScalarVSMALL = 1.0e-300;
 static const doubleScalar doubleScalarROOTVSMALL = 1.0e-150;
 
+//- Read whole of buf as a scalar. Return true if succesful.
+inline bool readScalar(const char* buf, doubleScalar& s)
+{
+    char* endPtr;
+    s = strtod(buf, &endPtr);
+
+    return (*endPtr == '\0');
+}
 
 #define Scalar doubleScalar
 #define ScalarVGREAT doubleScalarVGREAT
 #define ScalarVSMALL doubleScalarVSMALL
+#define ScalarROOTVGREAT doubleScalarROOTVGREAT
+#define ScalarROOTVSMALL doubleScalarROOTVSMALL
 #define readScalar readDoubleScalar
 
 inline Scalar mag(const Scalar s)
@@ -100,6 +110,8 @@ inline Scalar yn(const int n, const Scalar s)
 #undef Scalar
 #undef ScalarVGREAT
 #undef ScalarVSMALL
+#undef ScalarROOTVGREAT
+#undef ScalarROOTVSMALL
 #undef readScalar
 #undef transFunc
 

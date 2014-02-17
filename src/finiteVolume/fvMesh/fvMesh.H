@@ -141,7 +141,7 @@ class fvMesh
             void clearGeom();
 
             //- Clear addressing
-            void clearAddressing();
+            void clearAddressing(const bool isMeshUpdate = false);
 
             //- Preserve old volume(s)
             void storeOldVol(const scalarField&);
@@ -271,6 +271,12 @@ public:
             virtual lduInterfacePtrsList interfaces() const
             {
                 return boundary().interfaces();
+            }
+
+            //- Return communicator used for parallel communication
+            virtual int comm() const
+            {
+                return polyMesh::comm();
             }
 
             //- Internal face owner

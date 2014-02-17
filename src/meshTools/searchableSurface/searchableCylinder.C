@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,6 +44,23 @@ Foam::tmp<Foam::pointField> Foam::searchableCylinder::coordinates() const
     tmp<pointField> tCtrs(new pointField(1, 0.5*(point1_ + point2_)));
 
     return tCtrs;
+}
+
+
+void Foam::searchableCylinder::boundingSpheres
+(
+    pointField& centres,
+    scalarField& radiusSqr
+) const
+{
+    centres.setSize(1);
+    centres[0] = 0.5*(point1_ + point2_);
+
+    radiusSqr.setSize(1);
+    radiusSqr[0] = Foam::magSqr(point1_-centres[0]) + Foam::sqr(radius_);
+
+    // Add a bit to make sure all points are tested inside
+    radiusSqr += Foam::sqr(SMALL);
 }
 
 
@@ -673,7 +690,7 @@ void Foam::searchableCylinder::getVolumeType
 ) const
 {
     volType.setSize(points.size());
-    volType = INSIDE;
+    volType = volumeType::INSIDE;
 
     forAll(points, pointI)
     {
@@ -687,12 +704,12 @@ void Foam::searchableCylinder::getVolumeType
         if (parallel < 0)
         {
             // left of point1 endcap
-            volType[pointI] = OUTSIDE;
+            volType[pointI] = volumeType::OUTSIDE;
         }
         else if (parallel > magDir_)
         {
             // right of point2 endcap
-            volType[pointI] = OUTSIDE;
+            volType[pointI] = volumeType::OUTSIDE;
         }
         else
         {
@@ -701,11 +718,11 @@ void Foam::searchableCylinder::getVolumeType
 
             if (mag(v) > radius_)
             {
-                volType[pointI] = OUTSIDE;
+                volType[pointI] = volumeType::OUTSIDE;
             }
             else
             {
-                volType[pointI] = INSIDE;
+                volType[pointI] = volumeType::INSIDE;
             }
         }
     }

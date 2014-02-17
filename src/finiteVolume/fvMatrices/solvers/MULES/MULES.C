@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,17 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "MULES.H"
-#include "upwind.H"
-#include "uncorrectedSnGrad.H"
-#include "gaussConvectionScheme.H"
-#include "gaussLaplacianScheme.H"
-#include "uncorrectedSnGrad.H"
-#include "surfaceInterpolate.H"
-#include "fvcSurfaceIntegrate.H"
-#include "slicedSurfaceFields.H"
-#include "syncTools.H"
-
-#include "fvm.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -59,7 +48,7 @@ void Foam::MULES::explicitSolve
 }
 
 
-void Foam::MULES::implicitSolve
+void Foam::MULES::explicitLTSSolve
 (
     volScalarField& psi,
     const surfaceScalarField& phi,
@@ -68,7 +57,7 @@ void Foam::MULES::implicitSolve
     const scalar psiMin
 )
 {
-    implicitSolve
+    explicitLTSSolve
     (
         geometricOneField(),
         psi,

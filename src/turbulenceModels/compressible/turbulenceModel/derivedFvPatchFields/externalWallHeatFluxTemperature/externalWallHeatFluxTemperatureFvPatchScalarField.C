@@ -65,7 +65,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 :
     mixedFvPatchScalarField(p, iF),
     temperatureCoupledBase(patch(), "undefined", "undefined-K"),
-    oldMode_(unknown),
+    mode_(unknown),
     q_(p.size(), 0.0),
     h_(p.size(), 0.0),
     Ta_(p.size(), 0.0),
@@ -89,7 +89,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 :
     mixedFvPatchScalarField(ptf, p, iF, mapper),
     temperatureCoupledBase(patch(), ptf.KMethod(), ptf.kappaName()),
-    oldMode_(ptf.oldMode_),
+    mode_(ptf.mode_),
     q_(ptf.q_, mapper),
     h_(ptf.h_, mapper),
     Ta_(ptf.Ta_, mapper),
@@ -108,7 +108,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 :
     mixedFvPatchScalarField(p, iF),
     temperatureCoupledBase(patch(), dict),
-    oldMode_(unknown),
+    mode_(unknown),
     q_(p.size(), 0.0),
     h_(p.size(), 0.0),
     Ta_(p.size(), 0.0),
@@ -117,12 +117,12 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 {
     if (dict.found("q") && !dict.found("h") && !dict.found("Ta"))
     {
-        oldMode_ = fixedHeatFlux;
+        mode_ = fixedHeatFlux;
         q_ = scalarField("q", dict, p.size());
     }
     else if (dict.found("h") && dict.found("Ta") && !dict.found("q"))
     {
-        oldMode_ = fixedHeatTransferCoeff;
+        mode_ = fixedHeatTransferCoeff;
         h_ = scalarField("h", dict, p.size());
         Ta_ = scalarField("Ta", dict, p.size());
         if (dict.found("thicknessLayers"))
@@ -177,7 +177,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 :
     mixedFvPatchScalarField(tppsf),
     temperatureCoupledBase(tppsf),
-    oldMode_(tppsf.oldMode_),
+    mode_(tppsf.mode_),
     q_(tppsf.q_),
     h_(tppsf.h_),
     Ta_(tppsf.Ta_),
@@ -195,7 +195,7 @@ externalWallHeatFluxTemperatureFvPatchScalarField
 :
     mixedFvPatchScalarField(tppsf, iF),
     temperatureCoupledBase(patch(), tppsf.KMethod(), tppsf.kappaName()),
-    oldMode_(tppsf.oldMode_),
+    mode_(tppsf.mode_),
     q_(tppsf.q_),
     h_(tppsf.h_),
     Ta_(tppsf.Ta_),
@@ -243,41 +243,47 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::updateCoeffs()
     }
 
     scalarField q(size(), 0.0);
-    scalarField KWall(kappa(*this));
-    scalarField KDelta(KWall*patch().deltaCoeffs());
-    scalarField Tc(patchInternalField());
+    const scalarField Tc(patchInternalField());
+    const scalarField Tp(*this);
+    const scalarField KWall(kappa(Tp));
+    const scalarField KDelta(KWall*patch().deltaCoeffs());
 
-    if (oldMode_ == fixedHeatFlux)
+    switch (mode_)
     {
-        q = q_;
-    }
-    else if (oldMode_ == fixedHeatTransferCoeff)
-    {
-        scalar totalSolidRes = 0.0;
-        if (thicknessLayers_.size() > 0)
+        case fixedHeatFlux:
         {
-            forAll (thicknessLayers_, iLayer)
+            q = q_;
+            break;
+        }
+        case fixedHeatTransferCoeff:
+        {
+            scalar totalSolidRes = 0.0;
+            if (thicknessLayers_.size() > 0)
             {
-                const scalar l = thicknessLayers_[iLayer];
-                if (l > 0.0)
+                forAll (thicknessLayers_, iLayer)
                 {
-                    totalSolidRes += l/kappaLayers_[iLayer];
+                    const scalar l = thicknessLayers_[iLayer];
+                    if (kappaLayers_[iLayer] > 0.0)
+                    {
+                        totalSolidRes += l/kappaLayers_[iLayer];
+                    }
                 }
             }
+            q = (Ta_ - Tp)*(1.0/h_ + totalSolidRes);
+            break;
         }
-        q = (Ta_ - Tc)/(1.0/h_ + totalSolidRes);
-    }
-    else
-    {
-        FatalErrorIn
-        (
-            "externalWallHeatFluxTemperatureFvPatchScalarField"
-            "::updateCoeffs()"
-        )   << "Illegal heat flux mode " << operationModeNames[oldMode_]
-            << exit(FatalError);
+        default:
+        {
+            FatalErrorIn
+            (
+                "externalWallHeatFluxTemperatureFvPatchScalarField"
+                "::updateCoeffs()"
+            )   << "Illegal heat flux mode " << operationModeNames[mode_]
+                << exit(FatalError);
+        }
     }
 
-    forAll (*this, i)
+    forAll(*this, i)
     {
         if (q[i] > 0) //in
         {
@@ -320,7 +326,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::write
     mixedFvPatchScalarField::write(os);
     temperatureCoupledBase::write(os);
 
-    switch (oldMode_)
+    switch (mode_)
     {
         case fixedHeatFlux:
         {
@@ -345,7 +351,7 @@ void Foam::externalWallHeatFluxTemperatureFvPatchScalarField::write
                 "("
                     "Ostream& os"
                 ") const"
-            )   << "Illegal heat flux mode " << operationModeNames[oldMode_]
+            )   << "Illegal heat flux mode " << operationModeNames[mode_]
                 << abort(FatalError);
         }
     }

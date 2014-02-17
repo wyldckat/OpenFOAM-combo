@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,7 +35,6 @@ Description
 #include "noChemistrySolver.H"
 #include "EulerImplicit.H"
 #include "ode.H"
-#include "sequential.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,8 +51,9 @@ namespace Foam
     defineTemplateTypeNameAndDebugWithName                                    \
     (                                                                         \
         SS##Schem##Comp##SThermo##GThermo,                                    \
-        (#SS"<"#Schem"<"#Comp"," + SThermo::typeName() + ","                  \
-      + GThermo::typeName() + ">>").c_str(),                                  \
+        (#SS"<" + word(Schem<Comp, SThermo, GThermo>::typeName_())            \
+      + "<"#Comp"," + SThermo::typeName()                                     \
+      + ","  + GThermo::typeName() + ">>").c_str(),                           \
         0                                                                     \
     );                                                                        \
                                                                               \
@@ -76,7 +76,6 @@ namespace Foam
         GThermo                                                               \
     );                                                                        \
                                                                               \
-                                                                              \
     makeSolidChemistrySolverType                                              \
     (                                                                         \
         ode,                                                                  \
@@ -84,16 +83,8 @@ namespace Foam
         Comp,                                                                 \
         SThermo,                                                              \
         GThermo                                                               \
-    );                                                                        \
-                                                                              \
-    makeSolidChemistrySolverType                                              \
-    (                                                                         \
-        sequential,                                                           \
-        SolidChem,                                                            \
-        Comp,                                                                 \
-        SThermo,                                                              \
-        GThermo                                                               \
     );
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

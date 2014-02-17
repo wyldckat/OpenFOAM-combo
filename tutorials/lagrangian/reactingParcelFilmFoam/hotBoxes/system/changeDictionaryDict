@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -42,6 +42,28 @@ dictionaryReplacement
                 average         (0 0 0);
                 setAverage      no;
                 value           uniform (0 0 0);
+            }
+        }
+    }
+
+    "mut"
+    {
+        boundaryField
+        {
+            wallFilm
+            {
+                value           uniform 0;
+            }
+        }
+    }
+
+    "alphat"
+    {
+        boundaryField
+        {
+            wallFilm
+            {
+                value           uniform 0;
             }
         }
     }

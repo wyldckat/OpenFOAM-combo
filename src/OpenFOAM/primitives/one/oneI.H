@@ -32,6 +32,11 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+inline const one& operator*(const one& o, const one&)
+{
+    return o;
+}
+
 template<class Type>
 inline const Type& operator*(const Type& t, const one&)
 {
@@ -44,12 +49,17 @@ inline const Type& operator*(const one&, const Type& t)
     return t;
 }
 
+
+inline const one& operator/(const one& o, const one&)
+{
+    return o;
+}
+
 template<class Type>
 inline Type operator/(const one&, const Type& t)
 {
     return scalar(1)/t;
 }
-
 
 template<class Type>
 inline const Type& operator/(const Type& t, const one&)

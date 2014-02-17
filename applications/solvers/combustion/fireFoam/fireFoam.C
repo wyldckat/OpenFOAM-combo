@@ -41,6 +41,7 @@ Description
 #include "psiCombustionModel.H"
 #include "pimpleControl.H"
 #include "fvIOoptionList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
         #include "compressibleCourantNo.H"
         #include "solidRegionDiffusionNo.H"
         #include "setMultiRegionDeltaT.H"
+        #include "setDeltaT.H"
 
         runTime++;
 

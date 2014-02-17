@@ -47,10 +47,10 @@ Foam::pointIndexHit Foam::searchableSphere::findNearest
 {
     pointIndexHit info(false, sample, -1);
 
-    const vector n(sample-centre_);
+    const vector n(sample - centre_);
     scalar magN = mag(n);
 
-    if (nearestDistSqr > sqr(magN-radius_))
+    if (nearestDistSqr >= sqr(magN - radius_))
     {
         if (magN < ROOTVSMALL)
         {
@@ -183,6 +183,23 @@ const Foam::wordList& Foam::searchableSphere::regions() const
     return regions_;
 }
 
+
+
+void Foam::searchableSphere::boundingSpheres
+(
+    pointField& centres,
+    scalarField& radiusSqr
+) const
+{
+    centres.setSize(1);
+    centres[0] = centre_;
+
+    radiusSqr.setSize(1);
+    radiusSqr[0] = Foam::sqr(radius_);
+
+    // Add a bit to make sure all points are tested inside
+    radiusSqr += Foam::sqr(SMALL);
+}
 
 
 void Foam::searchableSphere::findNearest
@@ -334,7 +351,7 @@ void Foam::searchableSphere::getVolumeType
 ) const
 {
     volType.setSize(points.size());
-    volType = INSIDE;
+    volType = volumeType::INSIDE;
 
     forAll(points, pointI)
     {
@@ -342,11 +359,11 @@ void Foam::searchableSphere::getVolumeType
 
         if (magSqr(pt - centre_) <= sqr(radius_))
         {
-            volType[pointI] = INSIDE;
+            volType[pointI] = volumeType::INSIDE;
         }
         else
         {
-            volType[pointI] = OUTSIDE;
+            volType[pointI] = volumeType::OUTSIDE;
         }
     }
 }

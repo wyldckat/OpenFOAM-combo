@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,7 +75,13 @@ int main(int argc, char *argv[])
             // --- Pressure corrector loop
             while (pimple.correct())
             {
-                volScalarField rAU(1.0/UEqn.A());
+                volScalarField rAU("rAU", 1.0/UEqn.A());
+                surfaceScalarField rhorAUf
+                (
+                    "rhorAUf",
+                    fvc::interpolate(rho*rAU)
+                );
+
                 U = rAU*UEqn.H();
 
                 surfaceScalarField phid
@@ -84,19 +90,18 @@ int main(int argc, char *argv[])
                     psi
                    *(
                        (fvc::interpolate(U) & mesh.Sf())
-                     + fvc::ddtPhiCorr(rAU, rho, U, phi)
-                   )
+                     + rhorAUf*fvc::ddtCorr(rho, U, phi)/fvc::interpolate(rho)
+                    )
                 );
 
                 phi = (rhoO/psi)*phid;
-                volScalarField Dp("Dp", rho*rAU);
 
                 fvScalarMatrix pEqn
                 (
                     fvm::ddt(psi, p)
                   + fvc::div(phi)
                   + fvm::div(phid, p)
-                  - fvm::laplacian(Dp, p)
+                  - fvm::laplacian(rhorAUf, p)
                 );
 
                 pEqn.solve();

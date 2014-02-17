@@ -27,6 +27,7 @@ License
 #include "volFields.H"
 #include "surfaceFields.H"
 #include "ListListOps.H"
+#include "stringListOps.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -112,9 +113,9 @@ void Foam::sampledSurfaces::sampleAndWrite
 )
 {
     // interpolator for this field
-    autoPtr< interpolation<Type> > interpolator;
+    autoPtr<interpolation<Type> > interpolatorPtr;
 
-    const word& fieldName   = vField.name();
+    const word& fieldName = vField.name();
     const fileName outputDir = outputPath_/vField.time().timeName();
 
     forAll(*this, surfI)
@@ -125,16 +126,16 @@ void Foam::sampledSurfaces::sampleAndWrite
 
         if (s.interpolate())
         {
-            if (interpolator.empty())
+            if (interpolatorPtr.empty())
             {
-                interpolator = interpolation<Type>::New
+                interpolatorPtr = interpolation<Type>::New
                 (
                     interpolationScheme_,
                     vField
                 );
             }
 
-            values = s.interpolate(interpolator());
+            values = s.interpolate(interpolatorPtr());
         }
         else
         {
@@ -144,7 +145,6 @@ void Foam::sampledSurfaces::sampleAndWrite
         writeSurface<Type>(values, surfI, fieldName, outputDir);
     }
 }
-
 
 
 template<class Type>

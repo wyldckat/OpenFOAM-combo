@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -22,7 +22,7 @@ dynamicRefineFvMeshCoeffs
     // How often to refine
     refineInterval  1;
     // Field to be refinement on
-    field           alpha1;
+    field           alpha.water;
     // Refine field inbetween lower..upper
     lowerRefineLevel 0.001;
     upperRefineLevel 0.999;
@@ -39,11 +39,9 @@ dynamicRefineFvMeshCoeffs
     // on surfaceScalarFields that do not need to be reinterpolated.
     correctFluxes
     (
-        (phi Urel)
-        (phiAbs U)
-        (phiAbs_0 U_0)
+        (phi none)
         (nHatf none)
-        (rho*phi none)
+        (rhoPhi none)
         (ghf none)
     );
     // Write the refinement level as a volScalarField

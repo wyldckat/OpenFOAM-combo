@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ License
 #include "fvMesh.H"
 #include "fvMatrices.H"
 #include "volFields.H"
+#include "fvsPatchFields.H"
 #include "ListOps.H"
 #include "addToRunTimeSelectionTable.H"
 
@@ -186,14 +187,15 @@ void Foam::fv::option::setCellSet()
                 {
                     meshInterpPtr_.reset
                     (
-                        new meshToMeshNew
+                        new meshToMesh
                         (
                             mesh_,
                             nbrMesh,
-                            meshToMeshNew::interpolationMethodNames_.read
+                            meshToMesh::interpolationMethodNames_.read
                             (
                                 dict_.lookup("interpolationMethod")
-                            )
+                            ),
+                            false // not interpolating patches
                         )
                     );
                 }
@@ -254,6 +256,7 @@ Foam::fv::option::option
 )
 :
     name_(name),
+    modelType_(modelType),
     mesh_(mesh),
     dict_(dict),
     coeffs_(dict.subDict(modelType + "Coeffs")),
@@ -472,13 +475,22 @@ void Foam::fv::option::setValue(fvMatrix<tensor>& eqn, const label fieldI)
 }
 
 
-void Foam::fv::option::relativeFlux(surfaceScalarField& phi) const
+void Foam::fv::option::makeRelative(surfaceScalarField& phi) const
 {
     // do nothing
 }
 
 
-void Foam::fv::option::relativeFlux
+void Foam::fv::option::makeRelative
+(
+    FieldField<fvsPatchField, scalar>& phi
+) const
+{
+    // do nothing
+}
+
+
+void Foam::fv::option::makeRelative
 (
     const surfaceScalarField& rho,
     surfaceScalarField& phi
@@ -488,13 +500,13 @@ void Foam::fv::option::relativeFlux
 }
 
 
-void Foam::fv::option::absoluteFlux(surfaceScalarField& phi) const
+void Foam::fv::option::makeAbsolute(surfaceScalarField& phi) const
 {
     // do nothing
 }
 
 
-void Foam::fv::option::absoluteFlux
+void Foam::fv::option::makeAbsolute
 (
     const surfaceScalarField& rho,
     surfaceScalarField& phi

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -28,13 +28,13 @@ gradSchemes
 divSchemes
 {
     div(phi,alpha)  Gauss vanLeer;
-    div(phirb,alpha) Gauss interfaceCompression 1;
+    div(phirb,alpha) Gauss linear;
 
-    div(rho*phi,U)  Gauss upwind;
-    div(phi,thermo:rhowater) Gauss upwind;
-    div(phi,thermo:rhoair) Gauss upwind;
-    div(rho*phi,T)  Gauss upwind;
-    div(rho*phi,K)  Gauss upwind;
+    div(rhoPhi,U)  Gauss upwind;
+    div(phi,thermo:rho.water) Gauss upwind;
+    div(phi,thermo:rho.air) Gauss upwind;
+    div(rhoPhi,T)  Gauss upwind;
+    div(rhoPhi,K)  Gauss upwind;
     div(phi,p)      Gauss upwind;
     div(phi,k)      Gauss upwind;
 

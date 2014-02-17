@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,6 +48,7 @@ SourceFiles
 #include "pointIndexHit.H"
 #include "linePointRef.H"
 #include "objectRegistry.H"
+#include "volumeType.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -67,25 +68,6 @@ class searchableSurface
 :
     public regIOobject
 {
-public:
-
-    // Data types
-
-        //- Volume types
-        enum volumeType
-        {
-            UNKNOWN = 0,
-            MIXED = 1,      // not used. only here to maintain consistency with
-                            // indexedOctree volumeType.
-            INSIDE = 2,
-            OUTSIDE = 3
-        };
-
-        static const NamedEnum<volumeType, 4> volumeTypeNames;
-
-
-private:
-
     // Private data
 
         const word name_;
@@ -208,6 +190,14 @@ public:
         //  Usually the element centres (should be of length size()).
         virtual tmp<pointField> coordinates() const = 0;
 
+        //- Get bounding spheres (centre and radius squared), one per element.
+        //  Any point on element is guaranteed to be inside.
+        virtual void boundingSpheres
+        (
+            pointField& centres,
+            scalarField& radiusSqr
+        ) const = 0;
+
         //- Get the points that define the surface.
         virtual tmp<pointField> points() const = 0;
 
@@ -277,6 +267,19 @@ public:
                 const scalarField& nearestDistSqr,
                 List<pointIndexHit>&
             ) const = 0;
+
+            //- Find the nearest locations for the supplied points to a
+            //  particular region in the searchable surface.
+            virtual void findNearest
+            (
+                const pointField& samples,
+                const scalarField& nearestDistSqr,
+                const labelList& regionIndices,
+                List<pointIndexHit>& info
+            ) const
+            {
+                findNearest(samples, nearestDistSqr, info);
+            }
 
             //- Find first intersection on segment from start to end.
             //  Note: searchableSurfacesQueries expects no

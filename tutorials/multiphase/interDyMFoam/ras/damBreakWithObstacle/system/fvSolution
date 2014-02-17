@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -17,35 +17,19 @@ FoamFile
 
 solvers
 {
-    pcorr
+    "alpha.water.*"
     {
-        solver          PCG;
-        preconditioner
-        {
-            preconditioner  GAMG;
-            tolerance       0.001;
-            relTol          0;
-            smoother        GaussSeidel;
-            nPreSweeps      0;
-            nPostSweeps     2;
-            nFinestSweeps   2;
-            cacheAgglomeration false;
-            nCellsInCoarsestLevel 10;
-            agglomerator    faceAreaPair;
-            mergeLevels     1;
-        }
-
-        tolerance       0.0001;
-        relTol          0;
-        maxIter         100;
+        nAlphaCorr      1;
+        nAlphaSubCycles 3;
+        cAlpha          1;
     }
 
     p_rgh
     {
         solver          GAMG;
         tolerance       1e-08;
-        relTol          0.05;
-        smoother        GaussSeidel;
+        relTol          0.01;
+        smoother        DIC;
         nPreSweeps      0;
         nPostSweeps     2;
         nFinestSweeps   2;
@@ -57,26 +41,14 @@ solvers
 
     p_rghFinal
     {
-        solver          PCG;
-        preconditioner
-        {
-            preconditioner  GAMG;
-            tolerance       1e-08;
-            relTol          0;
-            nVcycles        2;
-            smoother        GaussSeidel;
-            nPreSweeps      0;
-            nPostSweeps     2;
-            nFinestSweeps   2;
-            cacheAgglomeration false;
-            nCellsInCoarsestLevel 10;
-            agglomerator    faceAreaPair;
-            mergeLevels     1;
-        }
-
-        tolerance       1e-08;
+        $p_rgh;
         relTol          0;
-        maxIter         20;
+    }
+
+    "pcorr.*"
+    {
+        $p_rghFinal;
+        tolerance       0.0001;
     }
 
     U
@@ -90,8 +62,8 @@ solvers
 
     "(k|B|nuTilda)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-08;
         relTol          0;
     }
@@ -102,9 +74,6 @@ PIMPLE
     momentumPredictor no;
     nCorrectors     3;
     nNonOrthogonalCorrectors 0;
-    nAlphaCorr      1;
-    nAlphaSubCycles 3;
-    cAlpha          1;
 
     pRefPoint      (0.51 0.51 0.51);
     pRefValue      0;

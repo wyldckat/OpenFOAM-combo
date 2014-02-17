@@ -1,6 +1,8 @@
 rho = thermo.rho();
 
 volScalarField rAU(1.0/UEqn.A());
+surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+
 volVectorField HbyA("HbyA", U);
 HbyA = rAU*UEqn.H();
 
@@ -11,12 +13,12 @@ if (pimple.transonic())
         "phid",
         fvc::interpolate(psi)
        *(
-            (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
-        )
+            (fvc::interpolate(rho*HbyA) & mesh.Sf())
+          + rhorAUf*fvc::ddtCorr(rho, U, phi)
+        )/fvc::interpolate(rho)
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(psi), phid);
+    fvOptions.makeRelative(fvc::interpolate(psi), phid);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -24,7 +26,7 @@ if (pimple.transonic())
         (
             fvm::ddt(psi, p)
           + fvm::div(phid, p)
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(rhorAUf, p)
          ==
             coalParcels.Srho()
           + fvOptions(psi, p, rho.name())
@@ -45,14 +47,13 @@ else
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::interpolate(rho)
-       *(
-            (fvc::interpolate(HbyA) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAU, rho, U, phi)
+        (
+            (fvc::interpolate(rho*HbyA) & mesh.Sf())
+          + rhorAUf*fvc::ddtCorr(rho, U, phi)
         )
     );
 
-    fvOptions.relativeFlux(fvc::interpolate(rho), phiHbyA);
+    fvOptions.makeRelative(fvc::interpolate(rho), phiHbyA);
 
     while (pimple.correctNonOrthogonal())
     {
@@ -60,7 +61,7 @@ else
         (
             fvm::ddt(psi, p)
           + fvc::div(phiHbyA)
-          - fvm::laplacian(rho*rAU, p)
+          - fvm::laplacian(rhorAUf, p)
          ==
             coalParcels.Srho()
           + fvOptions(psi, p, rho.name())

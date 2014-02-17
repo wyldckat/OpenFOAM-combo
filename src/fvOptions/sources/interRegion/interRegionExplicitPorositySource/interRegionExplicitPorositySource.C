@@ -173,12 +173,6 @@ void Foam::fv::interRegionExplicitPorositySource::addSup
 
     if (eqn.dimensions() == dimForce)
     {
-        const volScalarField& rho =
-            mesh_.lookupObject<volScalarField>(rhoName_);
-
-        const volScalarField& mu =
-            mesh_.lookupObject<volScalarField>(muName_);
-
         volScalarField rhoNbr
         (
             IOobject
@@ -204,8 +198,14 @@ void Foam::fv::interRegionExplicitPorositySource::addSup
                 IOobject::NO_WRITE
             ),
             nbrMesh,
-            dimensionedScalar("zero", mu.dimensions(), 0.0)
+            dimensionedScalar("zero", dimViscosity, 0.0)
         );
+
+        const volScalarField& rho =
+            mesh_.lookupObject<volScalarField>(rhoName_);
+
+        const volScalarField& mu =
+            mesh_.lookupObject<volScalarField>(muName_);
 
         // map local rho onto neighbour region
         meshInterp().mapSrcToTgt

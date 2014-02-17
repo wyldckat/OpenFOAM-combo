@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -39,7 +39,7 @@ Description
     order but only for groups of edges belonging to each point. An example
     is given below:
     \verbatim
-        owner     eighbour
+        owner     neighbour
         0         1
         0         20
         1         2
@@ -98,6 +98,7 @@ SourceFiles
 
 #include "labelList.H"
 #include "lduSchedule.H"
+#include "Tuple2.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -196,6 +197,9 @@ public:
 
         //- Return off-diagonal index given owner and neighbour label
         label triIndex(const label a, const label b) const;
+
+        //- Calculate bandwidth and profile of addressing
+        Tuple2<label, scalar> band() const;
 };
 
 

@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
         }
     }
 
+
     // - All patches which are not agglomarated are identity for finalAgglom
     forAll(boundary, patchId)
     {

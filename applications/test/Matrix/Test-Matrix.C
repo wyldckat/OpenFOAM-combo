@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,6 +25,7 @@ License
 
 #include "scalarMatrices.H"
 #include "vector.H"
+#include "IFstream.H"
 
 using namespace Foam;
 
@@ -115,17 +116,19 @@ int main(int argc, char *argv[])
         squareMatrix[2][1] = -43;
         squareMatrix[2][2] = 98;
 
+        const scalarSquareMatrix squareMatrixCopy = squareMatrix;
         Info<< nl << "Square Matrix = " << squareMatrix << endl;
 
-        scalarDiagonalMatrix rhs(3, 0);
-        rhs[0] = 1;
-        rhs[1] = 2;
-        rhs[2] = 3;
+        Info<< "det = " << det(squareMatrixCopy) << endl;
 
-        LUsolve(squareMatrix, rhs);
+        labelList rhs(3, 0);
+        label sign;
+        LUDecompose(squareMatrix, rhs, sign);
 
         Info<< "Decomposition = " << squareMatrix << endl;
-        Info<< "Solution = " << rhs << endl;
+        Info<< "Pivots = " << rhs << endl;
+        Info<< "Sign = " << sign << endl;
+        Info<< "det = " << detDecomposed(squareMatrix, sign) << endl;
     }
 
     Info<< "\nEnd\n" << endl;

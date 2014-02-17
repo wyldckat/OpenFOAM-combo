@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -223,11 +223,7 @@ inline Foam::UList<T> Foam::CompactListList<T, Container>::operator[]
 )
 {
     label start = offsets_[i];
-    return UList<T>
-    (
-        (m_.size() ? m_.begin() + start : NULL),
-        offsets_[i+1] - start
-    );
+    return UList<T>(m_.begin() + start, offsets_[i+1] - start);
 }
 
 
@@ -241,7 +237,7 @@ Foam::CompactListList<T, Container>::operator[]
     label start = offsets_[i];
     return UList<T>
     (
-        (m_.size() ? const_cast<T*>(m_.begin() + start) : NULL),
+        const_cast<T*>(m_.begin() + start),
         offsets_[i+1] - start
     );
 }

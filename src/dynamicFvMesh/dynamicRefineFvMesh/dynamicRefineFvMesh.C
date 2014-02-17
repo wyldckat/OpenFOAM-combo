@@ -31,6 +31,7 @@ License
 #include "surfaceFields.H"
 #include "syncTools.H"
 #include "pointFields.H"
+#include "sigFpe.H"
 #include "cellSet.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -327,6 +328,18 @@ Foam::dynamicRefineFvMesh::refine
 
             if (UName == "none")
             {
+                continue;
+            }
+
+            if (UName == "NaN")
+            {
+                Pout<< "Setting surfaceScalarField " << iter.key()
+                    << " to NaN" << endl;
+
+                surfaceScalarField& phi = *iter();
+
+                sigFpe::fillSignallingNan(phi.internalField());
+
                 continue;
             }
 
@@ -987,7 +1000,7 @@ void Foam::dynamicRefineFvMesh::checkEightAnchorPoints
 Foam::dynamicRefineFvMesh::dynamicRefineFvMesh(const IOobject& io)
 :
     dynamicFvMesh(io),
-    meshCutter_(*this, true),
+    meshCutter_(*this),
     dumpLevel_(false),
     nRefinementIterations_(0),
     protectedCell_(nCells(), 0)
@@ -1199,7 +1212,7 @@ bool Foam::dynamicRefineFvMesh::update()
 
     if (refineInterval == 0)
     {
-        changing(hasChanged);
+        topoChanging(hasChanged);
 
         return false;
     }
@@ -1368,7 +1381,13 @@ bool Foam::dynamicRefineFvMesh::update()
         nRefinementIterations_++;
     }
 
-    changing(hasChanged);
+    topoChanging(hasChanged);
+    if (hasChanged)
+    {
+        // Reset moving flag (if any). If not using inflation we'll not move,
+        // if are using inflation any follow on movePoints will set it.
+        moving(false);
+    }
 
     return hasChanged;
 }

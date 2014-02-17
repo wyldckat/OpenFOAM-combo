@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -21,6 +21,7 @@ solution
     transient       yes;
     coupled         true;
     cellValueSourceCorrection on;
+    maxCo           0.3;
 
     sourceTerms
     {
@@ -58,16 +59,10 @@ constantProperties
     rho0            1000;
     T0              300;
     Cp0             4187;
-
-    youngsModulus   2e9;
-    poissonsRatio   0.35;
-
     epsilon0        1;
     f0              0.5;
 
-    Pr              0.7;
-    Tvap            400;
-    Tbp             400;
+    TDevol          400;
     LDevol          0;
     hRetentionCoeff 1;
 
@@ -117,6 +112,8 @@ subModels
     phaseChangeModel liquidEvaporation;
 
     devolatilisationModel constantRateDevolatilisation;
+
+    stochasticCollisionModel none;
 
     surfaceReactionModel COxidationKineticDiffusionLimitedRate;
 

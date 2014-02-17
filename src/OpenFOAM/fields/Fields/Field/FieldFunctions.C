@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -358,6 +358,59 @@ Type sum(const UList<Type>& f)
 
 TMP_UNARY_FUNCTION(Type, sum)
 
+template<class Type>
+Type maxMagSqr(const UList<Type>& f)
+{
+    if (f.size())
+    {
+        Type Max(f[0]);
+        TFOR_ALL_S_OP_FUNC_F_S
+        (
+            Type,
+            Max,
+            =,
+            maxMagSqrOp<Type>(),
+            Type,
+            f,
+            Type,
+            Max
+        )
+        return Max;
+    }
+    else
+    {
+        return pTraits<Type>::zero;
+    }
+}
+
+TMP_UNARY_FUNCTION(Type, maxMagSqr)
+
+template<class Type>
+Type minMagSqr(const UList<Type>& f)
+{
+    if (f.size())
+    {
+        Type Min(f[0]);
+        TFOR_ALL_S_OP_FUNC_F_S
+        (
+            Type,
+            Min,
+            =,
+            minMagSqrOp<Type>(),
+            Type,
+            f,
+            Type,
+            Min
+        )
+        return Min;
+    }
+    else
+    {
+        return pTraits<Type>::rootMax;
+    }
+}
+
+TMP_UNARY_FUNCTION(Type, minMagSqr)
 
 template<class Type>
 scalar sumProd(const UList<Type>& f1, const UList<Type>& f2)
@@ -477,10 +530,10 @@ TMP_UNARY_FUNCTION(Type, average)
 #define G_UNARY_FUNCTION(ReturnType, gFunc, Func, rFunc)                      \
                                                                               \
 template<class Type>                                                          \
-ReturnType gFunc(const UList<Type>& f)                                        \
+ReturnType gFunc(const UList<Type>& f, const int comm)                        \
 {                                                                             \
     ReturnType res = Func(f);                                                 \
-    reduce(res, rFunc##Op<Type>());                                           \
+    reduce(res, rFunc##Op<Type>(), Pstream::msgType(), comm);                 \
     return res;                                                               \
 }                                                                             \
 TMP_UNARY_FUNCTION(ReturnType, gFunc)
@@ -488,6 +541,8 @@ TMP_UNARY_FUNCTION(ReturnType, gFunc)
 G_UNARY_FUNCTION(Type, gMax, max, max)
 G_UNARY_FUNCTION(Type, gMin, min, min)
 G_UNARY_FUNCTION(Type, gSum, sum, sum)
+G_UNARY_FUNCTION(Type, gMaxMagSqr, maxMagSqr, maxMagSqr)
+G_UNARY_FUNCTION(Type, gMinMagSqr, minMagSqr, minMagSqr)
 G_UNARY_FUNCTION(scalar, gSumSqr, sumSqr, sum)
 G_UNARY_FUNCTION(scalar, gSumMag, sumMag, sum)
 G_UNARY_FUNCTION(Type, gSumCmptMag, sumCmptMag, sum)
@@ -495,27 +550,41 @@ G_UNARY_FUNCTION(Type, gSumCmptMag, sumCmptMag, sum)
 #undef G_UNARY_FUNCTION
 
 template<class Type>
-scalar gSumProd(const UList<Type>& f1, const UList<Type>& f2)
+scalar gSumProd
+(
+    const UList<Type>& f1,
+    const UList<Type>& f2,
+    const int comm
+)
 {
     scalar SumProd = sumProd(f1, f2);
-    reduce(SumProd, sumOp<scalar>());
+    reduce(SumProd, sumOp<scalar>(), Pstream::msgType(), comm);
     return SumProd;
 }
 
 template<class Type>
-Type gSumCmptProd(const UList<Type>& f1, const UList<Type>& f2)
+Type gSumCmptProd
+(
+    const UList<Type>& f1,
+    const UList<Type>& f2,
+    const int comm
+)
 {
     Type SumProd = sumCmptProd(f1, f2);
-    reduce(SumProd, sumOp<Type>());
+    reduce(SumProd, sumOp<Type>(), Pstream::msgType(), comm);
     return SumProd;
 }
 
 template<class Type>
-Type gAverage(const UList<Type>& f)
+Type gAverage
+(
+    const UList<Type>& f,
+    const int comm
+)
 {
     label n = f.size();
     Type s = sum(f);
-    sumReduce(s, n);
+    sumReduce(s, n, Pstream::msgType(), comm);
 
     if (n > 0)
     {

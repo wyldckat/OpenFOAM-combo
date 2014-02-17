@@ -37,7 +37,7 @@ inline bool Foam::porosityModel::active() const
 
 inline const Foam::labelList& Foam::porosityModel::cellZoneIDs() const
 {
-    return cellZoneIds_;
+    return cellZoneIDs_;
 }
 
 

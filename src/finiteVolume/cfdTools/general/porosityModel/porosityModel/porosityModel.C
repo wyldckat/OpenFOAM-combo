@@ -66,6 +66,17 @@ void Foam::porosityModel::adjustNegativeResistance(dimensionedVector& resist)
 }
 
 
+Foam::label Foam::porosityModel::fieldIndex(const label i) const
+{
+    label index = 0;
+    if (!coordSys_.R().uniform())
+    {
+        index = i;
+    }
+    return index;
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::porosityModel::porosityModel
@@ -94,7 +105,8 @@ Foam::porosityModel::porosityModel
     coeffs_(dict.subDict(modelType + "Coeffs")),
     active_(true),
     zoneName_(cellZoneName),
-    cellZoneIds_()
+    cellZoneIDs_(),
+    coordSys_(coordinateSystem::New(mesh, coeffs_))
 {
     if (zoneName_ == word::null)
     {
@@ -102,11 +114,11 @@ Foam::porosityModel::porosityModel
         dict_.lookup("cellZone") >> zoneName_;
     }
 
-    cellZoneIds_ = mesh_.cellZones().findIndices(zoneName_);
+    cellZoneIDs_ = mesh_.cellZones().findIndices(zoneName_);
 
     Info<< "    creating porous zone: " << zoneName_ << endl;
 
-    bool foundZone = !cellZoneIds_.empty();
+    bool foundZone = !cellZoneIDs_.empty();
     reduce(foundZone, orOp<bool>());
 
     if (!foundZone && Pstream::master())
@@ -135,7 +147,7 @@ Foam::porosityModel::~porosityModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::vectorField> Foam::porosityModel::force
+Foam::tmp<Foam::vectorField> Foam::porosityModel::porosityModel::force
 (
     const volVectorField& U,
     const volScalarField& rho,
@@ -144,7 +156,7 @@ Foam::tmp<Foam::vectorField> Foam::porosityModel::force
 {
     tmp<vectorField> tforce(new vectorField(U.size(), vector::zero));
 
-    if (!cellZoneIds_.empty())
+    if (!cellZoneIDs_.empty())
     {
         this->calcForce(U, rho, mu, tforce());
     }
@@ -158,7 +170,7 @@ void Foam::porosityModel::addResistance
     fvVectorMatrix& UEqn
 ) const
 {
-    if (cellZoneIds_.empty())
+    if (cellZoneIDs_.empty())
     {
         return;
     }
@@ -174,7 +186,7 @@ void Foam::porosityModel::addResistance
     const volScalarField& mu
 ) const
 {
-    if (cellZoneIds_.empty())
+    if (cellZoneIDs_.empty())
     {
         return;
     }
@@ -187,10 +199,10 @@ void Foam::porosityModel::addResistance
 (
     const fvVectorMatrix& UEqn,
     volTensorField& AU,
-    bool correctAUprocBC         
+    bool correctAUprocBC
 ) const
 {
-    if (cellZoneIds_.empty())
+    if (cellZoneIDs_.empty())
     {
         return;
     }
@@ -225,13 +237,12 @@ bool Foam::porosityModel::writeData(Ostream& os) const
     return true;
 }
 
-
 bool Foam::porosityModel::read(const dictionary& dict)
 {
     active_ = readBool(dict.lookup("active"));
     coeffs_ = dict.subDict(type() + "Coeffs");
     dict.lookup("cellZone") >> zoneName_;
-    cellZoneIds_ = mesh_.cellZones().findIndices(zoneName_);
+    cellZoneIDs_ = mesh_.cellZones().findIndices(zoneName_);
 
     return true;
 }

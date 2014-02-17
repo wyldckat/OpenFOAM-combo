@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,40 @@ License
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class ParcelType>
+inline Foam::CollidingParcel<ParcelType>::constantProperties::
+constantProperties()
+:
+    ParcelType::constantProperties(),
+    youngsModulus_(this->dict_, 0.0),
+    poissonsRatio_(this->dict_, 0.0)
+{}
+
+
+template<class ParcelType>
+inline Foam::CollidingParcel<ParcelType>::constantProperties::constantProperties
+(
+    const constantProperties& cp
+)
+:
+    ParcelType::constantProperties(cp),
+    youngsModulus_(cp.youngsModulus_),
+    poissonsRatio_(cp.poissonsRatio_)
+{}
+
+
+template<class ParcelType>
+inline Foam::CollidingParcel<ParcelType>::constantProperties::constantProperties
+(
+    const dictionary& parentDict
+)
+:
+    ParcelType::constantProperties(parentDict),
+    youngsModulus_(this->dict_, "youngsModulus"),
+    poissonsRatio_(this->dict_, "poissonsRatio")
+{}
+
+
+template<class ParcelType>
 inline Foam::CollidingParcel<ParcelType>::CollidingParcel
 (
     const polyMesh& owner,
@@ -36,6 +70,9 @@ inline Foam::CollidingParcel<ParcelType>::CollidingParcel
 )
 :
     ParcelType(owner, position, cellI, tetFaceI, tetPtI),
+    f_(vector::zero),
+    angularMomentum_(vector::zero),
+    torque_(vector::zero),
     collisionRecords_()
 {}
 
@@ -70,17 +107,56 @@ inline Foam::CollidingParcel<ParcelType>::CollidingParcel
         nParticle0,
         d0,
         dTarget0,
-        U0,
-        f0,
-        angularMomentum0,
         torque0,
         constProps
     ),
+    f_(f0),
+    angularMomentum_(angularMomentum0),
+    torque_(torque0),
     collisionRecords_()
 {}
 
 
-// * * * * * * * CollidingParcel Member Functions  * * * * * * * //
+// * * * * * * * * * constantProperties Member Functions * * * * * * * * * * //
+
+template<class ParcelType>
+inline Foam::scalar
+Foam::CollidingParcel<ParcelType>::constantProperties::youngsModulus() const
+{
+    return youngsModulus_.value();
+}
+
+
+template<class ParcelType>
+inline Foam::scalar
+Foam::CollidingParcel<ParcelType>::constantProperties::poissonsRatio() const
+{
+    return poissonsRatio_.value();
+}
+
+
+// * * * * * * * * * * CollidingParcel Member Functions  * * * * * * * * * * //
+
+template<class ParcelType>
+inline const Foam::vector& Foam::CollidingParcel<ParcelType>::f() const
+{
+    return f_;
+}
+
+
+template<class ParcelType>
+inline const Foam::vector&
+Foam::CollidingParcel<ParcelType>::angularMomentum() const
+{
+    return angularMomentum_;
+}
+
+
+template<class ParcelType>
+inline const Foam::vector& Foam::CollidingParcel<ParcelType>::torque() const
+{
+    return torque_;
+}
 
 
 template<class ParcelType>
@@ -92,10 +168,38 @@ Foam::CollidingParcel<ParcelType>::collisionRecords() const
 
 
 template<class ParcelType>
+inline Foam::vector& Foam::CollidingParcel<ParcelType>::f()
+{
+    return f_;
+}
+
+
+template<class ParcelType>
+inline Foam::vector& Foam::CollidingParcel<ParcelType>::angularMomentum()
+{
+    return angularMomentum_;
+}
+
+
+template<class ParcelType>
+inline Foam::vector& Foam::CollidingParcel<ParcelType>::torque()
+{
+    return torque_;
+}
+
+
+template<class ParcelType>
 inline Foam::collisionRecordList&
 Foam::CollidingParcel<ParcelType>::collisionRecords()
 {
     return collisionRecords_;
+}
+
+
+template<class ParcelType>
+inline Foam::vector Foam::CollidingParcel<ParcelType>::omega() const
+{
+    return angularMomentum_/this->momentOfInertia();
 }
 
 

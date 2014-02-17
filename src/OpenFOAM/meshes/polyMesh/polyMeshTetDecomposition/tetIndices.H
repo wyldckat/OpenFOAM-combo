@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -85,12 +85,12 @@ class tetIndices
     label faceBasePtI_;
 
     //- point on the face such that the right-hand circulation
-    //      {faceBasePtI_, facePtIA_, facePtBI_}
+    //      {faceBasePtI_, facePtAI_, facePtBI_}
     //  forms a triangle that points out of the tet
     label facePtAI_;
 
     //- point on the face such that the right-hand circulation
-    //      {faceBasePtI_, facePtIA_, facePtBI_}
+    //      {faceBasePtI_, facePtAI_, facePtBI_}
     //  forms a triangle that points out of the tet
     label facePtBI_;
 

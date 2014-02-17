@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,9 +60,6 @@ class uniform
         //- Distribution maximum
         scalar maxValue_;
 
-        //- Distribution range
-        scalar range_;
-
 
 public:
 
@@ -99,6 +96,9 @@ public:
 
         //- Return the maximum value
         virtual scalar maxValue() const;
+
+        //- Return the mean value
+        virtual scalar meanValue() const;
 };
 
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,12 +35,12 @@ Description
 #include "phaseModel.H"
 #include "dragModel.H"
 #include "heatTransferModel.H"
-#include "pimpleControl.H"
-
 #include "singlePhaseTransportModel.H"
 #include "LESModel.H"
-
+#include "pimpleControl.H"
 #include "IOMRFZoneList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
     #include "createMRFZones.H"
     #include "initContinuityErrs.H"
     #include "readTimeControls.H"
+    #include "createPcorrTypes.H"
     #include "correctPhi.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"

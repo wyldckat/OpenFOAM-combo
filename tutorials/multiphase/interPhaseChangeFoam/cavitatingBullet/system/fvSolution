@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -16,24 +16,26 @@ FoamFile
 
 solvers
 {
-    alpha1
+    "alpha.water.*"
     {
-        maxUnboundedness 1e-5;
-        CoCoeff          0;
-        maxIter          5;
-        nLimiterIter     2;
+        cAlpha          0;
+        nAlphaCorr      2;
+        nAlphaSubCycles 1;
 
-        solver           PBiCG;
-        preconditioner   DILU;
-        tolerance        1e-12;
-        relTol           0.1;
+        MULESCorr       yes;
+        nLimiterIter    5;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
     };
 
-    U
+    "U.*"
     {
-        solver           PBiCG;
-        preconditioner   DILU;
-        tolerance        1e-06;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance        1e-6;
         relTol           0;
     };
 
@@ -79,7 +81,7 @@ solvers
             nPostSweeps      2;
             nFinestSweeps    2;
 
-            cacheAgglomeration false;
+            cacheAgglomeration true;
             nCellsInCoarsestLevel 10;
             agglomerator     faceAreaPair;
             mergeLevels      1;
@@ -96,10 +98,6 @@ PIMPLE
     nOuterCorrectors           1;
     nCorrectors                3;
     nNonOrthogonalCorrectors   0;
-
-    cAlpha                     0;
-    nAlphaCorr                 1;
-    nAlphaSubCycles            1;
 }
 
 

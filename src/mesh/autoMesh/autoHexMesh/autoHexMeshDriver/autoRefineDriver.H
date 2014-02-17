@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,6 +43,8 @@ namespace Foam
 
 // Forward declaration of classes
 class refinementParameters;
+class snapParameters;
+
 class meshRefinement;
 class decompositionMethod;
 class fvMeshDistribute;
@@ -88,6 +90,21 @@ class autoRefineDriver
             const label maxIter
         );
 
+        //- Refine all cells in small gaps
+        label gapOnlyRefine
+        (
+            const refinementParameters& refineParams,
+            const label maxIter
+        );
+
+        //- Refine cells with almost all sides refined
+        label danglingCellRefine
+        (
+            const refinementParameters& refineParams,
+            const label nFaces,
+            const label maxIter
+        );
+
         //- Remove all cells within intersected region
         void removeInsideCells
         (
@@ -106,6 +123,7 @@ class autoRefineDriver
         void baffleAndSplitMesh
         (
             const refinementParameters& refineParams,
+            const snapParameters& snapParams,
             const bool handleSnapProblems,
             const dictionary& motionDict
         );
@@ -116,6 +134,7 @@ class autoRefineDriver
         void splitAndMergeBaffles
         (
             const refinementParameters& refineParams,
+            const snapParameters& snapParams,
             const bool handleSnapProblems,
             const dictionary& motionDict
         );
@@ -161,6 +180,7 @@ public:
         (
             const dictionary& refineDict,
             const refinementParameters& refineParams,
+            const snapParameters& snapParams,
             const bool prepareForSnapping,
             const dictionary& motionDict
         );

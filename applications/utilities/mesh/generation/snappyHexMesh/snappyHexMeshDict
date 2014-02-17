@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -18,6 +18,13 @@ FoamFile
 castellatedMesh true;
 snap            true;
 addLayers       false;
+
+
+//Optional: single region surfaces get patch names according to
+//          surface only. Multi-region surfaces get patch name
+//          surface "_ "region. Default is true
+//singleRegionName false;
+
 
 // Geometry. Definition of all surfaces. All surfaces are of class
 // searchableSurface.
@@ -156,6 +163,10 @@ castellatedMeshControls
                 inGroups (meshedPatches);
             }
 
+
+            //- Optional increment (on top of max level) in small gaps
+            //gapLevelIncrement 2;
+
             //- Optional angle to detect small-large cell situation
             //  perpendicular to the surface. Is the angle of face w.r.t.
             //  the local surface normal. Use on flat(ish) surfaces only.
@@ -187,6 +198,23 @@ castellatedMeshControls
     // - used if min and max refinement level of a surface differ
     // - used if feature snapping (see snapControls below) is used
     resolveFeatureAngle 30;
+
+    //- Optional increment (on top of max level) in small gaps
+    //gapLevelIncrement 2;
+
+
+    // Planar angle:
+    // - used to determine if surface normals
+    //   are roughly the same or opposite. Used
+    //      - in proximity refinement
+    //      - to decide when to merge free-standing baffles
+    //        (if e.g. running in surfaceSimplify mode set this to 180 to
+    //         merge all baffles)
+    //      - in snapping to avoid snapping to nearest on 'wrong' side
+    //        of thin gap
+    //
+    // If not specified same as resolveFeatureAngle
+    planarAngle 30;
 
 
     // Region-wise refinement
@@ -230,6 +258,14 @@ castellatedMeshControls
     // are only on the boundary of corresponding cellZones or also allow
     // free-standing zone faces. Not used if there are no faceZones.
     allowFreeStandingZoneFaces true;
+
+
+    // Optional: do not remove cells likely to give snapping problems
+    // handleSnapProblems false;
+
+    // Optional: switch off topological test for cells to-be-squashed
+    //           and use geometric test instead
+    //useTopologicalSnapDetection false;
 }
 
 // Settings for the snapping.
@@ -267,6 +303,10 @@ snapControls
         // Detect features between multiple surfaces
         // (only for explicitFeatureSnap, default = false)
         multiRegionFeatureSnap false;
+
+
+    // wip: disable snapping to opposite near surfaces (revert to 22x behaviour)
+    // detectNearSurfacesSnap false;
 }
 
 // Settings for the layer addition.
@@ -276,11 +316,13 @@ addLayersControls
     // size of the refined cell outside layer (true) or absolute sizes (false).
     relativeSizes true;
 
-    // Layer thickness specification. This can be specified in one of four ways
+    // Layer thickness specification. This can be specified in one of following
+    // ways:
     // - expansionRatio and finalLayerThickness (cell nearest internal mesh)
     // - expansionRatio and firstLayerThickness (cell on surface)
     // - overall thickness and firstLayerThickness
     // - overall thickness and finalLayerThickness
+    // - overall thickness and expansionRatio
 
         // Expansion factor for layer mesh
         expansionRatio 1.0;
@@ -345,140 +387,132 @@ addLayersControls
 
     // Advanced settings
 
-    // When not to extrude surface. 0 is flat surface, 90 is when two faces
-    // are perpendicular
-    featureAngle 60;
 
-    // At non-patched sides allow mesh to slip if extrusion direction makes
-    // angle larger than slipFeatureAngle.
-    slipFeatureAngle 30;
+    // Static analysis of starting mesh
 
-    // Maximum number of snapping relaxation iterations. Should stop
-    // before upon reaching a correct mesh.
-    nRelaxIter 5;
+        // When not to extrude surface. 0 is flat surface, 90 is when two faces
+        // are perpendicular
+        featureAngle 130;
 
-    // Number of smoothing iterations of surface normals
-    nSmoothSurfaceNormals 1;
+        // Stop layer growth on highly warped cells
+        maxFaceThicknessRatio 0.5;
 
-    // Number of smoothing iterations of interior mesh movement direction
-    nSmoothNormals 3;
 
-    // Smooth layer thickness over surface patches
-    nSmoothThickness 10;
+    // Patch displacement
 
-    // Stop layer growth on highly warped cells
-    maxFaceThicknessRatio 0.5;
+        // Number of smoothing iterations of surface normals
+        nSmoothSurfaceNormals 1;
 
-    // Reduce layer growth where ratio thickness to medial
-    // distance is large
-    maxThicknessToMedialRatio 0.3;
+        // Smooth layer thickness over surface patches
+        nSmoothThickness 10;
 
-    // Angle used to pick up medial axis points
-    // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
-    minMedianAxisAngle 90;
 
-    // Create buffer region for new layer terminations
-    nBufferCellsNoExtrude 0;
 
-    // Overall max number of layer addition iterations. The mesher will exit
-    // if it reaches this number of iterations; possibly with an illegal
-    // mesh.
-    nLayerIter 50;
+    // Medial axis analysis
 
-    // Max number of iterations after which relaxed meshQuality controls
-    // get used. Up to nRelaxedIter it uses the settings in
-    // meshQualityControls,
-    // after nRelaxedIter it uses the values in
-    // meshQualityControls::relaxed.
-    nRelaxedIter 20;
+        // Angle used to pick up medial axis points
+        // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130
+        // in 17x.
+        minMedialAxisAngle 90;
 
-    // Additional reporting: if there are just a few faces where there
-    // are mesh errors (after adding the layers) print their face centres.
-    // This helps in tracking down problematic mesh areas.
-    //additionalReporting true;
+        // Reduce layer growth where ratio thickness to medial
+        // distance is large
+        maxThicknessToMedialRatio 0.3;
+
+        // Number of smoothing iterations of interior mesh movement direction
+        nSmoothNormals 3;
+
+        // Optional: limit the number of steps walking away from the surface.
+        // Default is unlimited.
+        //nMedialAxisIter 10;
+
+        // Optional: smooth displacement after medial axis determination.
+        // default is 0.
+        //nSmoothDisplacement 90;
+
+        // (wip)Optional: do not extrude a point if none of the surrounding points is
+        // not extruded. Default is false.
+        //detectExtrusionIsland true;
+
+
+    // Mesh shrinking
+
+        // Optional: at non-patched sides allow mesh to slip if extrusion
+        // direction makes angle larger than slipFeatureAngle. Default is
+        // 0.5*featureAngle.
+        slipFeatureAngle 30;
+
+        // Maximum number of snapping relaxation iterations. Should stop
+        // before upon reaching a correct mesh.
+        nRelaxIter 5;
+
+        // Create buffer region for new layer terminations
+        nBufferCellsNoExtrude 0;
+
+        // Overall max number of layer addition iterations. The mesher will
+        // exit if it reaches this number of iterations; possibly with an
+        // illegal mesh.
+        nLayerIter 50;
+
+        // Max number of iterations after which relaxed meshQuality controls
+        // get used. Up to nRelaxedIter it uses the settings in
+        // meshQualityControls,
+        // after nRelaxedIter it uses the values in
+        // meshQualityControls::relaxed.
+        nRelaxedIter 20;
+
+        // Additional reporting: if there are just a few faces where there
+        // are mesh errors (after adding the layers) print their face centres.
+        // This helps in tracking down problematic mesh areas.
+        //additionalReporting true;
 }
 
 // Generic mesh quality settings. At any undoable phase these determine
 // where to undo.
 meshQualityControls
 {
-    // Maximum non-orthogonality allowed. Set to 180 to disable.
-    maxNonOrtho 65;
+    // Specify mesh quality constraints in separate dictionary so can
+    // be reused (e.g. checkMesh -meshQuality)
+    #include "meshQualityDict"
 
-    // Max skewness allowed. Set to <0 to disable.
-    maxBoundarySkewness 20;
-    maxInternalSkewness 4;
-
-    // Max concaveness allowed. Is angle (in degrees) below which concavity
-    // is allowed. 0 is straight face, <0 would be convex face.
-    // Set to 180 to disable.
-    maxConcave 80;
-
-    // Minimum pyramid volume. Is absolute volume of cell pyramid.
-    // Set to a sensible fraction of the smallest cell volume expected.
-    // Set to very negative number (e.g. -1E30) to disable.
-    minVol 1e-13;
-
-    // Minimum quality of the tet formed by the face-centre
-    // and variable base point minimum decomposition triangles and
-    // the cell centre. This has to be a positive number for tracking
-    // to work. Set to very negative number (e.g. -1E30) to
-    // disable.
-    //    <0 = inside out tet,
-    //     0 = flat tet
-    //     1 = regular tet
-    minTetQuality 1e-9;
-
-    // Minimum face area. Set to <0 to disable.
-    minArea -1;
-
-    // Minimum face twist. Set to <-1 to disable. dot product of face normal
-    // and face centre triangles normal
-    minTwist 0.05;
-
-    // minimum normalised cell determinant
-    // 1 = hex, <= 0 = folded or flattened illegal cell
-    minDeterminant 0.001;
-
-    // minFaceWeight (0 -> 0.5)
-    minFaceWeight 0.05;
-
-    // minVolRatio (0 -> 1)
-    minVolRatio 0.01;
-
-    // must be >0 for Fluent compatibility
-    minTriangleTwist -1;
-
-    //- if >0 : preserve single cells with all points on the surface if the
-    //  resulting volume after snapping (by approximation) is larger than
-    //  minVolCollapseRatio times old volume (i.e. not collapsed to flat cell).
-    //  If <0 : delete always.
-    //minVolCollapseRatio 0.5;
-
-    // Advanced
-
-    // Number of error distribution iterations
-    nSmoothScale 4;
-    // amount to scale back displacement at error points
-    errorReduction 0.75;
 
     // Optional : some meshing phases allow usage of relaxed rules.
     // See e.g. addLayersControls::nRelaxedIter.
     relaxed
     {
-        //- Maximum non-orthogonality allowed. Set to 180 to disable.
+        // Maximum non-orthogonality allowed. Set to 180 to disable.
         maxNonOrtho 75;
     }
+
+
+    // Advanced
+
+        // Number of error distribution iterations
+        nSmoothScale 4;
+        // amount to scale back displacement at error points
+        errorReduction 0.75;
 }
 
 // Advanced
 
-// Flags for optional output
-// 0 : only write final meshes
-// 1 : write intermediate meshes
-// 2 : write volScalarField with cellLevel for postprocessing
-// 4 : write current intersections as .obj files
-debug 0;
+//// Debug flags
+//debugFlags
+//(
+//    mesh            // write intermediate meshes
+//    intersections   // write current mesh intersections as .obj files
+//    featureSeeds    // write information about explicit feature edge
+//                    // refinement
+//    attraction      // write attraction as .obj files
+//    layerInfo       // write information about layers
+//);
+//
+//// Write flags
+//writeFlags
+//(
+//    scalarLevels    // write volScalarField with cellLevel for postprocessing
+//    layerSets       // write cellSets, faceSets of faces in layer
+//    layerFields     // write volScalarField for layer coverage
+//);
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.

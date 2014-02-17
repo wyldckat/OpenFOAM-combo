@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,6 +63,7 @@ SourceFiles
 #define CoBlended_H
 
 #include "surfaceInterpolationScheme.H"
+#include "blendedSchemeBase.H"
 #include "surfaceInterpolate.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -77,7 +78,8 @@ namespace Foam
 template<class Type>
 class CoBlended
 :
-    public surfaceInterpolationScheme<Type>
+    public surfaceInterpolationScheme<Type>,
+    public blendedSchemeBase<Type>
 {
     // Private data
 
@@ -136,10 +138,7 @@ public:
             ),
             faceFlux_
             (
-                mesh.lookupObject<surfaceScalarField>
-                (
-                    word(is)
-                )
+                mesh.lookupObject<surfaceScalarField>(word(is))
             )
         {
             if (Co1_ < 0 || Co2_ < 0 || Co1_ >= Co2_)
@@ -171,7 +170,7 @@ public:
             (
                 surfaceInterpolationScheme<Type>::New(mesh, faceFlux, is)
             ),
-             faceFlux_(faceFlux)
+            faceFlux_(faceFlux)
         {
             if (Co1_ < 0 || Co2_ < 0 || Co1_ >= Co2_)
             {
@@ -185,10 +184,13 @@ public:
 
     // Member Functions
 
-        //- Return the face-based Courant number blending factor
-        tmp<surfaceScalarField> blendingFactor() const
+        //- Return the face-based blending factor
+        virtual tmp<surfaceScalarField> blendingFactor
+        (
+             const GeometricField<Type, fvPatchField, volMesh>& vf
+        ) const
         {
-            const fvMesh& mesh = faceFlux_.mesh();
+            const fvMesh& mesh = this->mesh();
             tmp<surfaceScalarField> tUflux = faceFlux_;
 
             if (faceFlux_.dimensions() == dimDensity*dimVelocity*dimArea)
@@ -210,21 +212,25 @@ public:
                     << exit(FatalError);
             }
 
-            return
+            return tmp<surfaceScalarField>
             (
-                scalar(1) -
-                max
+                new surfaceScalarField
                 (
-                    min
+                    vf.name() + "BlendingFactor",
+                    scalar(1)
+                  - max
                     (
+                        min
                         (
-                            mesh.time().deltaT()*mesh.deltaCoeffs()
-                           *mag(tUflux)/mesh.magSf()
-                          - Co1_
-                        )/(Co2_ - Co1_),
-                        scalar(1)
-                    ),
-                    scalar(0)
+                            (
+                                mesh.time().deltaT()*mesh.deltaCoeffs()
+                               *mag(tUflux)/mesh.magSf()
+                              - Co1_
+                            )/(Co2_ - Co1_),
+                            scalar(1)
+                        ),
+                        scalar(0)
+                    )
                 )
             );
         }
@@ -237,7 +243,7 @@ public:
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const
         {
-            surfaceScalarField bf(blendingFactor());
+            surfaceScalarField bf(blendingFactor(vf));
 
             return
                 bf*tScheme1_().weights(vf)
@@ -253,7 +259,7 @@ public:
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const
         {
-            surfaceScalarField bf(blendingFactor());
+            surfaceScalarField bf(blendingFactor(vf));
 
             return
                 bf*tScheme1_().interpolate(vf)
@@ -276,7 +282,7 @@ public:
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const
         {
-            surfaceScalarField bf(blendingFactor());
+            surfaceScalarField bf(blendingFactor(vf));
 
             if (tScheme1_().corrected())
             {

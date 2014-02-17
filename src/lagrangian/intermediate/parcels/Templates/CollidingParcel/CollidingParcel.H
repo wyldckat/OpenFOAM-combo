@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,7 +66,7 @@ Ostream& operator<<
 );
 
 /*---------------------------------------------------------------------------*\
-                        Class CollidingParcel Declaration
+                       Class CollidingParcel Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class ParcelType>
@@ -74,9 +74,60 @@ class CollidingParcel
 :
     public ParcelType
 {
+public:
+
+    //- Class to hold thermo particle constant properties
+    class constantProperties
+    :
+        public ParcelType::constantProperties
+    {
+
+        // Private data
+
+            //- Young's modulus [N/m2]
+            demandDrivenEntry<scalar> youngsModulus_;
+
+            //- Poisson's ratio
+            demandDrivenEntry<scalar> poissonsRatio_;
+
+
+    public:
+
+        // Constructors
+
+            //- Null constructor
+            constantProperties();
+
+            //- Copy constructor
+            constantProperties(const constantProperties& cp);
+
+            //- Construct from dictionary
+            constantProperties(const dictionary& parentDict);
+
+
+        // Member functions
+
+            //- Return const access to Young's Modulus
+            inline scalar youngsModulus() const;
+
+            //- Return const access to Poisson's ratio
+            inline scalar poissonsRatio() const;
+    };
+
+
 protected:
 
     // Protected data
+
+        //- Force on particle due to collisions [N]
+        vector f_;
+
+        //- Angular momentum of Parcel in global reference frame [kg m2/s]
+        vector angularMomentum_;
+
+        //- Torque on particle due to collisions in global
+        //  reference frame [Nm]
+        vector torque_;
 
         //- Particle collision records
         collisionRecordList collisionRecords_;
@@ -93,7 +144,10 @@ public:
         AddToPropertyList
         (
             ParcelType,
-            " collisionRecordsPairAccessed"
+            " (fx fy fz)"
+          + " (angularMomentumx angularMomentumy angularMomentumz)"
+          + " (torquex torquey torquez)"
+          + " collisionRecordsPairAccessed"
           + " collisionRecordsPairOrigProcOfOther"
           + " collisionRecordsPairOrigIdOfOther"
           + " (collisionRecordsPairData)"
@@ -188,11 +242,32 @@ public:
 
         // Access
 
+            //- Return const access to force
+            inline const vector& f() const;
+
+            //- Return const access to angular momentum
+            inline const vector& angularMomentum() const;
+
+            //- Return const access to torque
+            inline const vector& torque() const;
+
             //- Return const access to the collision records
             inline const collisionRecordList& collisionRecords() const;
 
+            //- Return access to force
+            inline vector& f();
+
+            //- Return access to angular momentum
+            inline vector& angularMomentum();
+
+            //- Return access to torque
+            inline vector& torque();
+
             //- Return access to collision records
             inline collisionRecordList& collisionRecords();
+
+            //- Particle angular velocity
+            inline vector omega() const;
 
 
         // Tracking
@@ -200,6 +275,14 @@ public:
             //- Move the parcel
             template<class TrackData>
             bool move(TrackData& td, const scalar trackTime);
+
+            //- Transform the physical properties of the particle
+            //  according to the given transformation tensor
+            virtual void transformProperties(const tensor& T);
+
+            //- Transform the physical properties of the particle
+            //  according to the given separation vector
+            virtual void transformProperties(const vector& separation);
 
 
        // I-O

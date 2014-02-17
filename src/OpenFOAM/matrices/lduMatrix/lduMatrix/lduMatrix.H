@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -58,6 +58,7 @@ SourceFiles
 #include "autoPtr.H"
 #include "runTimeSelectionTables.H"
 #include "solverPerformance.H"
+#include "InfoProxy.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -105,6 +106,9 @@ public:
 
             //- Maximum number of iterations in the solver
             label maxIter_;
+
+            //- Minimum number of iterations in the solver
+            label minIter_;
 
             //- Final convergence tolerance
             scalar tolerance_;
@@ -562,6 +566,14 @@ public:
             scalarField& diag();
             scalarField& upper();
 
+            // Size with externally provided sizes (for constructing with 'fake'
+            // mesh in GAMG)
+
+                scalarField& lower(const label size);
+                scalarField& diag(const label nCoeffs);
+                scalarField& upper(const label nCoeffs);
+
+
             const scalarField& lower() const;
             const scalarField& diag() const;
             const scalarField& upper() const;
@@ -691,6 +703,16 @@ public:
             tmp<Field<Type> > faceH(const tmp<Field<Type> >&) const;
 
 
+        // Info
+
+            //- Return info proxy.
+            //  Used to print matrix information to a stream
+            InfoProxy<lduMatrix> info() const
+            {
+                return *this;
+            }
+
+
     // Member operators
 
         void operator=(const lduMatrix&);
@@ -707,6 +729,7 @@ public:
     // Ostream operator
 
         friend Ostream& operator<<(Ostream&, const lduMatrix&);
+        friend Ostream& operator<<(Ostream&, const InfoProxy<lduMatrix>&);
 };
 
 

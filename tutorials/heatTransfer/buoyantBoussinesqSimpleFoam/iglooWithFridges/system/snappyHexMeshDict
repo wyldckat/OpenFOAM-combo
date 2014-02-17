@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -54,10 +54,17 @@ geometry
             scale (1.0 1.0 2.1);
             transform
             {
-                type    cartesian;
-                origin  (2 2 0);
-                e1      (1 0 0);
-                e3      (0 0 1);
+                coordinateSystem
+                {
+                    type    cartesian;
+                    origin  (2 2 0);
+                    coordinateRotation
+                    {
+                        type    axesRotation;
+                        e1      (1 0 0);
+                        e3      (0 0 1);
+                    }
+                }
             }
         }
         herring
@@ -66,10 +73,17 @@ geometry
             scale (1.0 1.0 2.1);
             transform
             {
-                type    cartesian;
-                origin  (3.5 3 0);
-                e1      (1 0 0);
-                e3      (0 0 1);
+                coordinateSystem
+                {
+                    type    cartesian;
+                    origin  (3.5 3 0);
+                    coordinateRotation
+                    {
+                        type    axesRotation;
+                        e1      (1 0 0);
+                        e3      (0 0 1);
+                    }
+                }
             }
         }
     }
@@ -154,7 +168,6 @@ castellatedMeshControls
             patchInfo
             {
                 type        wall;
-                inGroups    (wall);
             }
         }
 
@@ -168,7 +181,6 @@ castellatedMeshControls
             patchInfo
             {
                 type        wall;
-                inGroups    (wall);
             }
         }
     }
@@ -350,14 +362,6 @@ meshQualityControls
 
 
 // Advanced
-
-// Flags for optional output
-// 0 : only write final meshes
-// 1 : write intermediate meshes
-// 2 : write volScalarField with cellLevel for postprocessing
-// 4 : write current intersections as .obj files
-debug 0;
-
 
 // Merge tolerance. Is fraction of overall bounding box of initial mesh.
 // Note: the write tolerance needs to be higher than this.

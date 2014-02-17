@@ -1542,7 +1542,7 @@ void Foam::faceCoupleInfo::perfectPointMatch
         )   << "Did not match all of the master faces to the slave faces"
             << endl
             << "This usually means that the slave patch and master patch"
-            << " do not align to within " << absTol << " meter."
+            << " do not align to within " << absTol << " metre."
             << abort(FatalError);
     }
 
@@ -1784,7 +1784,7 @@ void Foam::faceCoupleInfo::subDivisionMatch
                     << " points:" << masterPoints[masterEdge[0]]
                     << ' ' << masterPoints[masterEdge[1]]
                     << " corresponding cut edge: (" << cutPoint0
-                    << ' ' << cutPoint1
+                    << ") " << cutPoint1
                     << abort(FatalError);
             }
 

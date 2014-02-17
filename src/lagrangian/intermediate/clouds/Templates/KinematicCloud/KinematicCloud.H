@@ -39,6 +39,7 @@ Description
       - dispersion model
       - injection model
       - patch interaction model
+      - stochastic collision model
       - surface film model
 
 SourceFiles
@@ -83,6 +84,9 @@ class PatchInteractionModel;
 
 template<class CloudType>
 class SurfaceFilmModel;
+
+template<class CloudType>
+class StochasticCollisionModel;
 
 
 /*---------------------------------------------------------------------------*\
@@ -161,6 +165,9 @@ protected:
         //- Cell occupancy information for each parcel, (demand driven)
         autoPtr<List<DynamicList<parcelType*> > > cellOccupancyPtr_;
 
+        //- Cell length scale
+        scalarField cellLengthScale_;
+
 
         // References to the carrier gas fields
 
@@ -202,6 +209,10 @@ protected:
             //- Patch interaction model
             autoPtr<PatchInteractionModel<KinematicCloud<CloudType> > >
                 patchInteractionModel_;
+
+            //- Stochastic collision model
+            autoPtr<StochasticCollisionModel<KinematicCloud<CloudType> > >
+                stochasticCollisionModel_;
 
             //- Surface film model
             autoPtr<SurfaceFilmModel<KinematicCloud<CloudType> > >
@@ -360,6 +371,9 @@ public:
                 //  if particles are removed or created.
                 inline List<DynamicList<parcelType*> >& cellOccupancy();
 
+                //- Return the cell length scale
+                inline const scalarField& cellLengthScale() const;
+
 
             // References to the carrier gas fields
 
@@ -421,6 +435,15 @@ public:
                 //- Return reference to the patch interaction model
                 inline PatchInteractionModel<KinematicCloud<CloudType> >&
                     patchInteraction();
+
+                //- Return const-access to the stochastic collision model
+                inline const
+                    StochasticCollisionModel<KinematicCloud<CloudType> >&
+                    stochasticCollision() const;
+
+                //- Return reference to the stochastic collision model
+                inline StochasticCollisionModel<KinematicCloud<CloudType> >&
+                    stochasticCollision();
 
                 //- Return const-access to the surface film model
                 inline const SurfaceFilmModel<KinematicCloud<CloudType> >&
@@ -487,6 +510,9 @@ public:
 
 
             // Fields
+
+                //- Volume swept rate of parcels per cell
+                inline const tmp<volScalarField> vDotSweep() const;
 
                 //- Return the particle volume fraction field
                 //  Note: for particles belonging to this cloud only

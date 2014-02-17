@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,9 +35,11 @@ Description
 #include "triSurfaceSearch.H"
 #include "argList.H"
 #include "OFstream.H"
+#include "OBJstream.H"
 #include "surfaceIntersection.H"
 #include "SortableList.H"
 #include "PatchTools.H"
+#include "vtkSurfaceWriter.H"
 
 using namespace Foam;
 
@@ -183,6 +185,12 @@ int main(int argc, char *argv[])
     );
     argList::addBoolOption
     (
+        "splitNonManifold",
+        "split surface along non-manifold edges"
+        " (default split is fully disconnected)"
+    );
+    argList::addBoolOption
+    (
         "verbose",
         "verbose operation"
     );
@@ -197,6 +205,7 @@ int main(int argc, char *argv[])
     const fileName surfFileName = args[1];
     const bool checkSelfIntersect = args.optionFound("checkSelfIntersection");
     const bool verbose = args.optionFound("verbose");
+    const bool splitNonManifold = args.optionFound("splitNonManifold");
 
     Info<< "Reading surface from " << surfFileName << " ..." << nl << endl;
 
@@ -435,7 +444,7 @@ int main(int argc, char *argv[])
         scalar smallDim = 1e-6 * bb.mag();
 
         Info<< "Checking for points less than 1e-6 of bounding box ("
-            << bb.span() << " meter) apart."
+            << bb.span() << " metre) apart."
             << endl;
 
         // Sort points
@@ -564,59 +573,109 @@ int main(int argc, char *argv[])
     // Check singly connected domain
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    labelList faceZone;
-    label numZones = surf.markZones(boolList(surf.nEdges(), false), faceZone);
-
-    Info<< "Number of unconnected parts : " << numZones << endl;
-
-    if (numZones > 1)
     {
-        Info<< "Splitting surface into parts ..." << endl << endl;
-
-        fileName surfFileNameBase(surfFileName.name());
-        const word fileType = surfFileNameBase.ext();
-        // Strip extension
-        surfFileNameBase = surfFileNameBase.lessExt();
-        // If extension was .gz strip original extension
-        if (fileType == "gz")
+        boolList borderEdge(surf.nEdges(), false);
+        if (splitNonManifold)
         {
-            surfFileNameBase = surfFileNameBase.lessExt();
-        }
-
-        for (label zone = 0; zone < numZones; zone++)
-        {
-            boolList includeMap(surf.size(), false);
-
-            forAll(faceZone, faceI)
+            const labelListList& eFaces = surf.edgeFaces();
+            forAll(eFaces, edgeI)
             {
-                if (faceZone[faceI] == zone)
+                if (eFaces[edgeI].size() > 2)
                 {
-                    includeMap[faceI] = true;
+                    borderEdge[edgeI] = true;
                 }
             }
-
-            labelList pointMap;
-            labelList faceMap;
-
-            triSurface subSurf
-            (
-                surf.subsetMesh
-                (
-                    includeMap,
-                    pointMap,
-                    faceMap
-                )
-            );
-
-            fileName subFileName(surfFileNameBase + "_" + name(zone) + ".obj");
-
-            Info<< "writing part " << zone << " size " << subSurf.size()
-                << " to " << subFileName << endl;
-
-            subSurf.write(subFileName);
         }
 
-        return 0;
+        labelList faceZone;
+        label numZones = surf.markZones(borderEdge, faceZone);
+
+        Info<< "Number of unconnected parts : " << numZones << endl;
+
+        if (numZones > 1)
+        {
+            Info<< "Splitting surface into parts ..." << endl << endl;
+
+            fileName surfFileNameBase(surfFileName.name());
+            const word fileType = surfFileNameBase.ext();
+            // Strip extension
+            surfFileNameBase = surfFileNameBase.lessExt();
+            // If extension was .gz strip original extension
+            if (fileType == "gz")
+            {
+                surfFileNameBase = surfFileNameBase.lessExt();
+            }
+
+
+            {
+                Info<< "Writing zoning to "
+                    <<  fileName
+                        (
+                            "zone_"
+                          + surfFileNameBase
+                          + '.'
+                          + vtkSurfaceWriter::typeName
+                        )
+                    << "..." << endl << endl;
+
+                // Convert data
+                scalarField scalarFaceZone(faceZone.size());
+                forAll(faceZone, i)
+                {
+                    scalarFaceZone[i] = faceZone[i];
+                }
+                faceList faces(surf.size());
+                forAll(surf, i)
+                {
+                    faces[i] = surf[i].triFaceFace();
+                }
+
+                vtkSurfaceWriter().write
+                (
+                    surfFileName.path(),
+                    surfFileNameBase,
+                    surf.points(),
+                    faces,
+                    "zone",
+                    scalarFaceZone,
+                    true
+                );
+            }
+
+
+            for (label zone = 0; zone < numZones; zone++)
+            {
+                boolList includeMap(surf.size(), false);
+
+                forAll(faceZone, faceI)
+                {
+                    if (faceZone[faceI] == zone)
+                    {
+                        includeMap[faceI] = true;
+                    }
+                }
+
+                labelList pointMap;
+                labelList faceMap;
+
+                triSurface subSurf
+                (
+                    surf.subsetMesh
+                    (
+                        includeMap,
+                        pointMap,
+                        faceMap
+                    )
+                );
+
+                fileName subName(surfFileNameBase + "_" + name(zone) + ".obj");
+
+                Info<< "writing part " << zone << " size " << subSurf.size()
+                    << " to " << subName << endl;
+
+                subSurf.write(subName);
+            }
+        }
     }
 
 
@@ -653,32 +712,76 @@ int main(int argc, char *argv[])
         Info<< "Checking self-intersection." << endl;
 
         triSurfaceSearch querySurf(surf);
-        surfaceIntersection inter(querySurf);
 
-        if (inter.cutEdges().empty() && inter.cutPoints().empty())
+        const indexedOctree<treeDataTriSurface>& tree = querySurf.tree();
+
+        OBJstream intStream("selfInterPoints.obj");
+
+        label nInt = 0;
+
+        forAll(surf.edges(), edgeI)
+        {
+            const edge& e = surf.edges()[edgeI];
+
+            pointIndexHit hitInfo
+            (
+                tree.findLine
+                (
+                    surf.points()[surf.meshPoints()[e[0]]],
+                    surf.points()[surf.meshPoints()[e[1]]],
+                    treeDataTriSurface::findSelfIntersectOp
+                    (
+                        tree,
+                        edgeI
+                    )
+                )
+            );
+
+            if (hitInfo.hit())
+            {
+                intStream.write(hitInfo.hitPoint());
+                nInt++;
+            }
+        }
+
+        if (nInt == 0)
         {
             Info<< "Surface is not self-intersecting" << endl;
         }
         else
         {
-            Info<< "Surface is self-intersecting" << endl;
-            Info<< "Writing edges of intersection to selfInter.obj" << endl;
-
-            OFstream intStream("selfInter.obj");
-            forAll(inter.cutPoints(), cutPointI)
-            {
-                const point& pt = inter.cutPoints()[cutPointI];
-
-                intStream << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z()
-                    << endl;
-            }
-            forAll(inter.cutEdges(), cutEdgeI)
-            {
-                const edge& e = inter.cutEdges()[cutEdgeI];
-
-                intStream << "l " << e.start()+1 << ' ' << e.end()+1 << endl;
-            }
+            Info<< "Surface is self-intersecting at " << nInt
+                << " locations." << endl;
+            Info<< "Writing intersection points to " << intStream.name()
+                << endl;
         }
+
+        //surfaceIntersection inter(querySurf);
+        //
+        //if (inter.cutEdges().empty() && inter.cutPoints().empty())
+        //{
+        //    Info<< "Surface is not self-intersecting" << endl;
+        //}
+        //else
+        //{
+        //    Info<< "Surface is self-intersecting" << endl;
+        //    Info<< "Writing edges of intersection to selfInter.obj" << endl;
+        //
+        //    OFstream intStream("selfInter.obj");
+        //    forAll(inter.cutPoints(), cutPointI)
+        //    {
+        //        const point& pt = inter.cutPoints()[cutPointI];
+        //
+        //        intStream << "v " << pt.x() << ' ' << pt.y() << ' ' << pt.z()
+        //            << endl;
+        //    }
+        //    forAll(inter.cutEdges(), cutEdgeI)
+        //    {
+        //        const edge& e = inter.cutEdges()[cutEdgeI];
+        //
+        //        intStream << "l " << e.start()+1 << ' ' << e.end()+1 << endl;
+        //    }
+        //}
         Info<< endl;
     }
 

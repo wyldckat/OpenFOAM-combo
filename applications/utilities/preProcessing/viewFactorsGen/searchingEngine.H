@@ -33,6 +33,19 @@ forAll(patches, patchI)
     }
 }
 
+labelList triSurfaceToAgglom(5*nFineFaces);
+
+const triSurface localSurface = triangulate
+(
+    patches,
+    includePatches,
+    finalAgglom,
+    triSurfaceToAgglom,
+    globalNumbering,
+    coarsePatches
+);
+
+
 distributedTriSurfaceMesh surfacesMesh
 (
     IOobject
@@ -44,12 +57,13 @@ distributedTriSurfaceMesh surfacesMesh
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    triSurfaceTools::triangulate
-    (
-        patches,
-        includePatches
-    ),
+    localSurface,
     dict
 );
 
+
+triSurfaceToAgglom.resize(surfacesMesh.size());
+
 //surfacesMesh.searchableSurface::write();
+
+surfacesMesh.setField(triSurfaceToAgglom);

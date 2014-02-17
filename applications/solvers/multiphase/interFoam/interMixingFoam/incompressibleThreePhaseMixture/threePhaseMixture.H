@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,7 @@ SourceFiles
 #define threePhaseMixture_H
 
 #include "incompressible/transportModel/transportModel.H"
+#include "IOdictionary.H"
 #include "incompressible/viscosityModels/viscosityModel/viscosityModel.H"
 #include "dimensionedScalar.H"
 #include "volFields.H"
@@ -50,6 +51,7 @@ namespace Foam
 
 class threePhaseMixture
 :
+    public IOdictionary,
     public transportModel
 {
     // Private data
@@ -58,6 +60,15 @@ class threePhaseMixture
         word phase2Name_;
         word phase3Name_;
 
+        volScalarField alpha1_;
+        volScalarField alpha2_;
+        volScalarField alpha3_;
+
+        const volVectorField& U_;
+        const surfaceScalarField& phi_;
+
+        volScalarField nu_;
+
         autoPtr<viscosityModel> nuModel1_;
         autoPtr<viscosityModel> nuModel2_;
         autoPtr<viscosityModel> nuModel3_;
@@ -65,15 +76,6 @@ class threePhaseMixture
         dimensionedScalar rho1_;
         dimensionedScalar rho2_;
         dimensionedScalar rho3_;
-
-        const volVectorField& U_;
-        const surfaceScalarField& phi_;
-
-        const volScalarField& alpha1_;
-        const volScalarField& alpha2_;
-        const volScalarField& alpha3_;
-
-        volScalarField nu_;
 
 
     // Private Member Functions
@@ -101,22 +103,49 @@ public:
 
     // Member Functions
 
-        //- Return const-access to phase1 viscosityModel
-        const viscosityModel& nuModel1() const
+        const word phase1Name() const
         {
-            return nuModel1_();
+            return phase1Name_;
         }
 
-        //- Return const-access to phase2 viscosityModel
-        const viscosityModel& nuModel2() const
+        const word phase2Name() const
         {
-            return nuModel2_();
+            return phase2Name_;
         }
 
-        //- Return const-access to phase3 viscosityModel
-        const viscosityModel& nuModel3() const
+        const word phase3Name() const
         {
-            return nuModel3_();
+            return phase3Name_;
+        }
+
+        const volScalarField& alpha1() const
+        {
+            return alpha1_;
+        }
+
+        volScalarField& alpha1()
+        {
+            return alpha1_;
+        }
+
+        const volScalarField& alpha2() const
+        {
+            return alpha2_;
+        }
+
+        volScalarField& alpha2()
+        {
+            return alpha2_;
+        }
+
+        const volScalarField& alpha3() const
+        {
+            return alpha3_;
+        }
+
+        volScalarField& alpha3()
+        {
+            return alpha3_;
         }
 
         //- Return const-access to phase1 density
@@ -137,25 +166,34 @@ public:
             return rho3_;
         };
 
-        const volScalarField& alpha1() const
-        {
-            return alpha1_;
-        }
-
-        const volScalarField& alpha2() const
-        {
-            return alpha2_;
-        }
-
-        const volScalarField& alpha3() const
-        {
-            return alpha3_;
-        }
-
         //- Return the velocity
         const volVectorField& U() const
         {
             return U_;
+        }
+
+        //- Return the flux
+        const surfaceScalarField& phi() const
+        {
+            return phi_;
+        }
+
+        //- Return const-access to phase1 viscosityModel
+        const viscosityModel& nuModel1() const
+        {
+            return nuModel1_();
+        }
+
+        //- Return const-access to phase2 viscosityModel
+        const viscosityModel& nuModel2() const
+        {
+            return nuModel2_();
+        }
+
+        //- Return const-access to phase3 viscosityModel
+        const viscosityModel& nuModel3() const
+        {
+            return nuModel3_();
         }
 
         //- Return the dynamic laminar viscosity
@@ -168,6 +206,12 @@ public:
         tmp<volScalarField> nu() const
         {
             return nu_;
+        }
+
+        //- Return the laminar viscosity for patch
+        tmp<scalarField> nu(const label patchi) const
+        {
+            return nu_.boundaryField()[patchi];
         }
 
         //- Return the face-interpolated dynamic laminar viscosity

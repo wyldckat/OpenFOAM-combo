@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -35,6 +35,8 @@ License
 #include "shellSurfaces.H"
 #include "mapDistributePolyMesh.H"
 #include "unitConversion.H"
+#include "snapParameters.H"
+#include "localPointRegion.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -44,9 +46,6 @@ namespace Foam
 defineTypeNameAndDebug(autoRefineDriver, 0);
 
 } // End namespace Foam
-
-
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -95,14 +94,16 @@ Foam::label Foam::autoRefineDriver::featureEdgeRefine
             (
                 meshRefiner_.refineCandidates
                 (
-                    refineParams.keepPoints()[0],    // For now only use one.
+                    refineParams.keepPoints(),
                     refineParams.curvature(),
+                    refineParams.planarAngle(),
 
                     true,               // featureRefinement
                     false,              // featureDistanceRefinement
                     false,              // internalRefinement
                     false,              // surfaceRefinement
                     false,              // curvatureRefinement
+                    false,              // gapRefinement
                     refineParams.maxGlobalCells(),
                     refineParams.maxLocalCells()
                 )
@@ -206,14 +207,16 @@ Foam::label Foam::autoRefineDriver::surfaceOnlyRefine
         (
             meshRefiner_.refineCandidates
             (
-                refineParams.keepPoints()[0],
+                refineParams.keepPoints(),
                 refineParams.curvature(),
+                refineParams.planarAngle(),
 
                 false,              // featureRefinement
                 false,              // featureDistanceRefinement
                 false,              // internalRefinement
                 true,               // surfaceRefinement
                 true,               // curvatureRefinement
+                false,              // gapRefinement
                 refineParams.maxGlobalCells(),
                 refineParams.maxLocalCells()
             )
@@ -294,6 +297,378 @@ Foam::label Foam::autoRefineDriver::surfaceOnlyRefine
 }
 
 
+Foam::label Foam::autoRefineDriver::gapOnlyRefine
+(
+    const refinementParameters& refineParams,
+    const label maxIter
+)
+{
+    const fvMesh& mesh = meshRefiner_.mesh();
+
+    // Determine the maximum refinement level over all surfaces. This
+    // determines the minumum number of surface refinement iterations.
+
+    label maxIncrement = 0;
+    const labelList& maxLevel = meshRefiner_.surfaces().maxLevel();
+    const labelList& gapLevel = meshRefiner_.surfaces().gapLevel();
+
+    forAll(maxLevel, i)
+    {
+        maxIncrement = max(maxIncrement, gapLevel[i]-maxLevel[i]);
+    }
+
+    label iter = 0;
+
+    if (maxIncrement == 0)
+    {
+        return iter;
+    }
+
+    for (iter = 0; iter < maxIter; iter++)
+    {
+        Info<< nl
+            << "Gap refinement iteration " << iter << nl
+            << "--------------------------" << nl
+            << endl;
+
+
+        // Determine cells to refine
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~
+        // Only look at surface intersections (minLevel and surface curvature),
+        // do not do internal refinement (refinementShells)
+
+        labelList candidateCells
+        (
+            meshRefiner_.refineCandidates
+            (
+                refineParams.keepPoints(),
+                refineParams.curvature(),
+                refineParams.planarAngle(),
+
+                false,              // featureRefinement
+                false,              // featureDistanceRefinement
+                false,              // internalRefinement
+                false,              // surfaceRefinement
+                false,              // curvatureRefinement
+                true,               // gapRefinement
+                refineParams.maxGlobalCells(),
+                refineParams.maxLocalCells()
+            )
+        );
+
+        if (debug&meshRefinement::MESH)
+        {
+            Pout<< "Dumping " << candidateCells.size()
+                << " cells to cellSet candidateCellsFromGap." << endl;
+            cellSet c(mesh, "candidateCellsFromGap", candidateCells);
+            c.instance() = meshRefiner_.timeName();
+            c.write();
+        }
+
+        // Grow by one layer to make sure we're covering the gap
+        {
+            boolList isCandidateCell(mesh.nCells(), false);
+            forAll(candidateCells, i)
+            {
+                isCandidateCell[candidateCells[i]] = true;
+            }
+
+            for (label i=0; i<1; i++)
+            {
+                boolList newIsCandidateCell(isCandidateCell);
+
+                // Internal faces
+                for (label faceI = 0; faceI < mesh.nInternalFaces(); faceI++)
+                {
+                    label own = mesh.faceOwner()[faceI];
+                    label nei = mesh.faceNeighbour()[faceI];
+
+                    if (isCandidateCell[own] != isCandidateCell[nei])
+                    {
+                        newIsCandidateCell[own] = true;
+                        newIsCandidateCell[nei] = true;
+                    }
+                }
+
+                // Get coupled boundary condition values
+                boolList neiIsCandidateCell;
+                syncTools::swapBoundaryCellList
+                (
+                    mesh,
+                    isCandidateCell,
+                    neiIsCandidateCell
+                );
+
+                // Boundary faces
+                for
+                (
+                    label faceI = mesh.nInternalFaces();
+                    faceI < mesh.nFaces();
+                    faceI++
+                )
+                {
+                    label own = mesh.faceOwner()[faceI];
+                    label bFaceI = faceI-mesh.nInternalFaces();
+
+                    if (isCandidateCell[own] != neiIsCandidateCell[bFaceI])
+                    {
+                        newIsCandidateCell[own] = true;
+                    }
+                }
+
+                isCandidateCell.transfer(newIsCandidateCell);
+            }
+
+            label n = 0;
+            forAll(isCandidateCell, cellI)
+            {
+                if (isCandidateCell[cellI])
+                {
+                    n++;
+                }
+            }
+            candidateCells.setSize(n);
+            n = 0;
+            forAll(isCandidateCell, cellI)
+            {
+                if (isCandidateCell[cellI])
+                {
+                    candidateCells[n++] = cellI;
+                }
+            }
+        }
+
+
+        if (debug&meshRefinement::MESH)
+        {
+            Pout<< "Dumping " << candidateCells.size()
+                << " cells to cellSet candidateCellsFromGapPlusBuffer." << endl;
+            cellSet c(mesh, "candidateCellsFromGapPlusBuffer", candidateCells);
+            c.instance() = meshRefiner_.timeName();
+            c.write();
+        }
+
+
+        labelList cellsToRefine
+        (
+            meshRefiner_.meshCutter().consistentRefinement
+            (
+                candidateCells,
+                true
+            )
+        );
+        Info<< "Determined cells to refine in = "
+            << mesh.time().cpuTimeIncrement() << " s" << endl;
+
+
+        label nCellsToRefine = cellsToRefine.size();
+        reduce(nCellsToRefine, sumOp<label>());
+
+        Info<< "Selected for refinement : " << nCellsToRefine
+            << " cells (out of " << mesh.globalData().nTotalCells()
+            << ')' << endl;
+
+        // Stop when no cells to refine or have done minimum necessary
+        // iterations and not enough cells to refine.
+        if
+        (
+            nCellsToRefine == 0
+         || (
+                iter >= maxIncrement
+             && nCellsToRefine <= refineParams.minRefineCells()
+            )
+        )
+        {
+            Info<< "Stopping refining since too few cells selected."
+                << nl << endl;
+            break;
+        }
+
+
+        if (debug)
+        {
+            const_cast<Time&>(mesh.time())++;
+        }
+
+
+        if
+        (
+            returnReduce
+            (
+                (mesh.nCells() >= refineParams.maxLocalCells()),
+                orOp<bool>()
+            )
+        )
+        {
+            meshRefiner_.balanceAndRefine
+            (
+                "gap refinement iteration " + name(iter),
+                decomposer_,
+                distributor_,
+                cellsToRefine,
+                refineParams.maxLoadUnbalance()
+            );
+        }
+        else
+        {
+            meshRefiner_.refineAndBalance
+            (
+                "gap refinement iteration " + name(iter),
+                decomposer_,
+                distributor_,
+                cellsToRefine,
+                refineParams.maxLoadUnbalance()
+            );
+        }
+    }
+    return iter;
+}
+
+
+Foam::label Foam::autoRefineDriver::danglingCellRefine
+(
+    const refinementParameters& refineParams,
+    const label nFaces,
+    const label maxIter
+)
+{
+    const fvMesh& mesh = meshRefiner_.mesh();
+
+    label iter;
+    for (iter = 0; iter < maxIter; iter++)
+    {
+        Info<< nl
+            << "Dangling coarse cells refinement iteration " << iter << nl
+            << "--------------------------------------------" << nl
+            << endl;
+
+
+        // Determine cells to refine
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        const cellList& cells = mesh.cells();
+        const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+
+        labelList candidateCells;
+        {
+            cellSet candidateCellSet(mesh, "candidateCells", cells.size()/1000);
+
+            forAll(cells, cellI)
+            {
+                const cell& cFaces = cells[cellI];
+
+                label nIntFaces = 0;
+                forAll(cFaces, i)
+                {
+                    label bFaceI = cFaces[i]-mesh.nInternalFaces();
+                    if (bFaceI < 0)
+                    {
+                        nIntFaces++;
+                    }
+                    else
+                    {
+                        label patchI = pbm.patchID()[bFaceI];
+                        if (pbm[patchI].coupled())
+                        {
+                            nIntFaces++;
+                        }
+                    }
+                }
+
+                if (nIntFaces == nFaces)
+                {
+                    candidateCellSet.insert(cellI);
+                }
+            }
+
+            if (debug&meshRefinement::MESH)
+            {
+                Pout<< "Dumping " << candidateCellSet.size()
+                    << " cells to cellSet candidateCellSet." << endl;
+                candidateCellSet.instance() = meshRefiner_.timeName();
+                candidateCellSet.write();
+            }
+            candidateCells = candidateCellSet.toc();
+        }
+
+
+
+        labelList cellsToRefine
+        (
+            meshRefiner_.meshCutter().consistentRefinement
+            (
+                candidateCells,
+                true
+            )
+        );
+        Info<< "Determined cells to refine in = "
+            << mesh.time().cpuTimeIncrement() << " s" << endl;
+
+
+        label nCellsToRefine = cellsToRefine.size();
+        reduce(nCellsToRefine, sumOp<label>());
+
+        Info<< "Selected for refinement : " << nCellsToRefine
+            << " cells (out of " << mesh.globalData().nTotalCells()
+            << ')' << endl;
+
+        // Stop when no cells to refine. After a few iterations check if too
+        // few cells
+        if
+        (
+            nCellsToRefine == 0
+         || (
+                iter >= 1
+             && nCellsToRefine <= refineParams.minRefineCells()
+            )
+        )
+        {
+            Info<< "Stopping refining since too few cells selected."
+                << nl << endl;
+            break;
+        }
+
+
+        if (debug)
+        {
+            const_cast<Time&>(mesh.time())++;
+        }
+
+
+        if
+        (
+            returnReduce
+            (
+                (mesh.nCells() >= refineParams.maxLocalCells()),
+                orOp<bool>()
+            )
+        )
+        {
+            meshRefiner_.balanceAndRefine
+            (
+                "coarse cell refinement iteration " + name(iter),
+                decomposer_,
+                distributor_,
+                cellsToRefine,
+                refineParams.maxLoadUnbalance()
+            );
+        }
+        else
+        {
+            meshRefiner_.refineAndBalance
+            (
+                "coarse cell refinement iteration " + name(iter),
+                decomposer_,
+                distributor_,
+                cellsToRefine,
+                refineParams.maxLoadUnbalance()
+            );
+        }
+    }
+    return iter;
+}
+
+
 void Foam::autoRefineDriver::removeInsideCells
 (
     const refinementParameters& refineParams,
@@ -324,7 +699,16 @@ void Foam::autoRefineDriver::removeInsideCells
     {
         Pout<< "Writing subsetted mesh to time "
             << meshRefiner_.timeName() << '.' << endl;
-        meshRefiner_.write(debug, mesh.time().path()/meshRefiner_.timeName());
+        meshRefiner_.write
+        (
+            meshRefinement::debugType(debug),
+            meshRefinement::writeType
+            (
+                meshRefinement::writeLevel()
+              | meshRefinement::WRITEMESH
+            ),
+            mesh.time().path()/meshRefiner_.timeName()
+        );
         Pout<< "Dumped mesh in = "
             << mesh.time().cpuTimeIncrement() << " s\n" << nl << endl;
     }
@@ -369,14 +753,16 @@ Foam::label Foam::autoRefineDriver::shellRefine
         (
             meshRefiner_.refineCandidates
             (
-                refineParams.keepPoints()[0],
+                refineParams.keepPoints(),
                 refineParams.curvature(),
+                refineParams.planarAngle(),
 
                 false,              // featureRefinement
                 true,               // featureDistanceRefinement
                 true,               // internalRefinement
                 false,              // surfaceRefinement
                 false,              // curvatureRefinement
+                false,              // gapRefinement
                 refineParams.maxGlobalCells(),
                 refineParams.maxLocalCells()
             )
@@ -502,6 +888,7 @@ Foam::label Foam::autoRefineDriver::shellRefine
 void Foam::autoRefineDriver::baffleAndSplitMesh
 (
     const refinementParameters& refineParams,
+    const snapParameters& snapParams,
     const bool handleSnapProblems,
     const dictionary& motionDict
 )
@@ -519,9 +906,17 @@ void Foam::autoRefineDriver::baffleAndSplitMesh
     meshRefiner_.baffleAndSplitMesh
     (
         handleSnapProblems,             // detect&remove potential snap problem
+
+        // Snap problem cell detection
+        snapParams,
+        refineParams.useTopologicalSnapDetection(),
         false,                          // perpendicular edge connected cells
         scalarField(0),                 // per region perpendicular angle
+
+        // Free standing baffles
         !handleSnapProblems,            // merge free standing baffles?
+        refineParams.planarAngle(),
+
         motionDict,
         const_cast<Time&>(mesh.time()),
         globalToMasterPatch_,
@@ -542,7 +937,10 @@ void Foam::autoRefineDriver::zonify
     // into that surface's faceZone. All cells inside faceZone get given the
     // same cellZone.
 
-    if (meshRefiner_.surfaces().getNamedSurfaces().size())
+    const labelList namedSurfaces =
+        surfaceZonesInfo::getNamedSurfaces(meshRefiner_.surfaces().surfZones());
+
+    if (namedSurfaces.size())
     {
         Info<< nl
             << "Introducing zones for interfaces" << nl
@@ -568,7 +966,12 @@ void Foam::autoRefineDriver::zonify
                 << meshRefiner_.timeName() << '.' << endl;
             meshRefiner_.write
             (
-                debug,
+                meshRefinement::debugType(debug),
+                meshRefinement::writeType
+                (
+                    meshRefinement::writeLevel()
+                  | meshRefinement::WRITEMESH
+                ),
                 mesh.time().path()/meshRefiner_.timeName()
             );
         }
@@ -582,6 +985,7 @@ void Foam::autoRefineDriver::zonify
 void Foam::autoRefineDriver::splitAndMergeBaffles
 (
     const refinementParameters& refineParams,
+    const snapParameters& snapParams,
     const bool handleSnapProblems,
     const dictionary& motionDict
 )
@@ -604,10 +1008,17 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
     meshRefiner_.baffleAndSplitMesh
     (
         handleSnapProblems,
+
+        // Snap problem cell detection
+        snapParams,
+        refineParams.useTopologicalSnapDetection(),
         handleSnapProblems,                 // remove perp edge connected cells
         perpAngle,                          // perp angle
-        false,                              // merge free standing baffles?
-        //true,                               // merge free standing baffles?
+
+        // Free standing baffles
+        true,                               // merge free standing baffles?
+        refineParams.planarAngle(),         // planar angle
+
         motionDict,
         const_cast<Time&>(mesh.time()),
         globalToMasterPatch_,
@@ -626,19 +1037,11 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
 
 
     // Merge all baffles that are still remaining after duplicating points.
-    List<labelPair> couples
-    (
-        meshRefiner_.getDuplicateFaces   // get all baffles
-        (
-            identity(mesh.nFaces()-mesh.nInternalFaces())
-          + mesh.nInternalFaces()
-        )
-    );
+    List<labelPair> couples(localPointRegion::findDuplicateFacePairs(mesh));
 
     label nCouples = returnReduce(couples.size(), sumOp<label>());
 
-    Info<< "Detected unsplittable baffles : "
-        << nCouples << endl;
+    Info<< "Detected unsplittable baffles : " << nCouples << endl;
 
     if (nCouples > 0)
     {
@@ -652,6 +1055,21 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
             // Debug:test all is still synced across proc patches
             meshRefiner_.checkData();
         }
+
+        // Remove any now dangling parts
+        meshRefiner_.splitMeshRegions
+        (
+            globalToMasterPatch_,
+            globalToSlavePatch_,
+            refineParams.keepPoints()[0]
+        );
+
+        if (debug)
+        {
+            // Debug:test all is still synced across proc patches
+            meshRefiner_.checkData();
+        }
+
         Info<< "Merged free-standing baffles in = "
             << mesh.time().cpuTimeIncrement() << " s." << endl;
     }
@@ -660,7 +1078,16 @@ void Foam::autoRefineDriver::splitAndMergeBaffles
     {
         Pout<< "Writing handleProblemCells mesh to time "
             << meshRefiner_.timeName() << '.' << endl;
-        meshRefiner_.write(debug, mesh.time().path()/meshRefiner_.timeName());
+        meshRefiner_.write
+        (
+            meshRefinement::debugType(debug),
+            meshRefinement::writeType
+            (
+                meshRefinement::writeLevel()
+              | meshRefinement::WRITEMESH
+            ),
+            mesh.time().path()/meshRefiner_.timeName()
+        );
     }
 }
 
@@ -705,6 +1132,7 @@ void Foam::autoRefineDriver::doRefine
 (
     const dictionary& refineDict,
     const refinementParameters& refineParams,
+    const snapParameters& snapParams,
     const bool prepareForSnapping,
     const dictionary& motionDict
 )
@@ -734,6 +1162,12 @@ void Foam::autoRefineDriver::doRefine
         100     // maxIter
     );
 
+    gapOnlyRefine
+    (
+        refineParams,
+        100     // maxIter
+    );
+
     // Remove cells (a certain distance) beyond surface intersections
     removeInsideCells
     (
@@ -748,15 +1182,41 @@ void Foam::autoRefineDriver::doRefine
         100    // maxIter
     );
 
+    // Refine any hexes with 5 or 6 faces refined to make smooth edges
+    danglingCellRefine
+    (
+        refineParams,
+        21,     // 1 coarse face + 5 refined faces
+        100     // maxIter
+    );
+    danglingCellRefine
+    (
+        refineParams,
+        24,     // 0 coarse faces + 6 refined faces
+        100     // maxIter
+    );
+
     // Introduce baffles at surface intersections. Remove sections unreachable
     // from keepPoint.
-    baffleAndSplitMesh(refineParams, prepareForSnapping, motionDict);
+    baffleAndSplitMesh
+    (
+        refineParams,
+        snapParams,
+        prepareForSnapping,
+        motionDict
+    );
 
     // Mesh is at its finest. Do optional zoning.
     zonify(refineParams);
 
     // Pull baffles apart
-    splitAndMergeBaffles(refineParams, prepareForSnapping, motionDict);
+    splitAndMergeBaffles
+    (
+        refineParams,
+        snapParams,
+        prepareForSnapping,
+        motionDict
+    );
 
     // Do something about cells with refined faces on the boundary
     if (prepareForSnapping)

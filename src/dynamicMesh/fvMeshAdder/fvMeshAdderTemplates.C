@@ -23,10 +23,10 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-
 #include "volFields.H"
 #include "surfaceFields.H"
 #include "emptyFvPatchField.H"
+#include "directFvPatchFieldMapper.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 

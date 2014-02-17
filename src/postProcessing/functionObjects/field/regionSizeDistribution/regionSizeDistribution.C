@@ -378,7 +378,7 @@ void Foam::regionSizeDistribution::read(const dictionary& dict)
 
         if (dict.found("coordinateSystem"))
         {
-            coordSysPtr_.reset(new coordinateSystem(dict, obr_));
+            coordSysPtr_.reset(new coordinateSystem(obr_, dict));
 
             Info<< "Transforming all vectorFields with coordinate system "
                 << coordSysPtr_().name() << endl;
@@ -821,7 +821,7 @@ void Foam::regionSizeDistribution::write()
 
                     if (coordSysPtr_.valid())
                     {
-                        Info<< "    Transforming vector field " << fldName
+                        Info<< "Transforming vector field " << fldName
                             << " with coordinate system "
                             << coordSysPtr_().name()
                             << endl;

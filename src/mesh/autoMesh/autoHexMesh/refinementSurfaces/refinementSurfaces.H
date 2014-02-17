@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,6 +41,7 @@ SourceFiles
 #include "triSurfaceFields.H"
 #include "vectorList.H"
 #include "pointIndexHit.H"
+#include "surfaceZonesInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,37 +52,14 @@ class searchableSurfaces;
 class shellSurfaces;
 class triSurfaceMesh;
 
+typedef List<point> pointList;
+
 /*---------------------------------------------------------------------------*\
                            Class refinementSurfaces Declaration
 \*---------------------------------------------------------------------------*/
 
 class refinementSurfaces
 {
-public:
-
-    //- Types of selection of area
-    enum areaSelectionAlgo
-    {
-        INSIDE,
-        OUTSIDE,
-        INSIDEPOINT,
-        NONE
-    };
-
-    static const NamedEnum<areaSelectionAlgo, 4> areaSelectionAlgoNames;
-
-    //- What to do with faceZone faces
-    enum faceZoneType
-    {
-        INTERNAL,
-        BAFFLE,
-        BOUNDARY
-    };
-
-    static const NamedEnum<faceZoneType, 3> faceZoneTypeNames;
-
-private:
-
     // Private data
 
         //- Reference to all geometry.
@@ -93,23 +71,8 @@ private:
         //- Surface name (word)
         wordList names_;
 
-        //- Per 'interface' surface : name of faceZone to put faces into
-        wordList faceZoneNames_;
-
-        //- Per 'interface' surface : name of cellZone to put cells into
-        wordList cellZoneNames_;
-
-        //- Per 'interface' surface : (only used if surface is closed)
-        //  How to select zone cells : surface inside or outside or given
-        //  inside location.
-        List<areaSelectionAlgo> zoneInside_;
-
-        //- If zoneInside=location gives the corresponding inside point
-        pointField zoneInsidePoints_;
-
-        //- Per 'interface' surface :
-        //  Waht to do with outside
-        List<faceZoneType> faceType_;
+        //- List of surface zone (face and cell zone) information
+        PtrList<surfaceZonesInfo> surfZones_;
 
         //- From local region number to global region number
         labelList regionOffset_;
@@ -119,6 +82,9 @@ private:
 
         //- From global region number to refinement level
         labelList maxLevel_;
+
+        //- From global region number to small-gap level
+        labelList gapLevel_;
 
         //- From global region number to perpendicular angle
         scalarField perpendicularAngle_;
@@ -144,7 +110,23 @@ public:
         refinementSurfaces
         (
             const searchableSurfaces& allGeometry,
-            const dictionary&
+            const dictionary&,
+            const label gapLevelIncrement
+        );
+
+        //- Construct from components
+        refinementSurfaces
+        (
+            const searchableSurfaces& allGeometry,
+            const labelList& surfaces,
+            const wordList& names,
+            const PtrList<surfaceZonesInfo>& surfZones,
+            const labelList& regionOffset,
+            const labelList& minLevel,
+            const labelList& maxLevel,
+            const labelList& gapLevel,
+            const scalarField& perpendicularAngle,
+            PtrList<dictionary>& patchInfo
         );
 
 
@@ -168,44 +150,9 @@ public:
                 return names_;
             }
 
-            //- Per 'interface' surface : empty or name of faceZone to put
-            //  faces into
-            const wordList& faceZoneNames() const
+            const PtrList<surfaceZonesInfo>& surfZones() const
             {
-                return faceZoneNames_;
-            }
-
-            //- Per 'interface' surface : empty or name of cellZone to put
-            //  cells into
-            const wordList& cellZoneNames() const
-            {
-                return cellZoneNames_;
-            }
-
-            //- Get indices of unnamed surfaces (surfaces without faceZoneName)
-            labelList getUnnamedSurfaces() const;
-
-            //- Get indices of named surfaces (surfaces with faceZoneName)
-            labelList getNamedSurfaces() const;
-
-            //- Get indices of surfaces with a cellZone that are closed and
-            //  have 'inside' or 'outside' selection.
-            labelList getClosedNamedSurfaces() const;
-
-            //- Get indices of surfaces with a cellZone that have 'insidePoint'
-            //  section.
-            labelList getInsidePointNamedSurfaces() const;
-
-            //- Get specified inside locations for surfaces with a cellZone
-            const pointField& zoneInsidePoints() const
-            {
-                return zoneInsidePoints_;
-            }
-
-            //- How to handle face of surfaces with a faceZone
-            const List<faceZoneType>& faceType() const
-            {
-                return faceType_;
+                return surfZones_;
             }
 
             //- From local region number to global region number
@@ -224,6 +171,12 @@ public:
             const labelList& maxLevel() const
             {
                 return maxLevel_;
+            }
+
+            //- From global region number to small gap refinement level
+            const labelList& gapLevel() const
+            {
+                return gapLevel_;
             }
 
             //- From global region number to perpendicular angle
@@ -295,7 +248,21 @@ public:
                 const pointField& start,
                 const pointField& end,
                 const labelList& currentLevel,  // current cell refinement level
+                const labelList& globalRegionLevel, // level per surfregion
 
+                List<vectorList>& surfaceNormal,
+                labelListList& surfaceLevel
+            ) const;
+
+            //- Find all intersections of edge. Unsorted order.
+            void findAllHigherIntersections
+            (
+                const pointField& start,
+                const pointField& end,
+                const labelList& currentLevel,  // current cell refinement level
+                const labelList& globalRegionLevel, // level per surfregion
+
+                List<pointList>& surfaceLocation,
                 List<vectorList>& surfaceNormal,
                 labelListList& surfaceLevel
             ) const;

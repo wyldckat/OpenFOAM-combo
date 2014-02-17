@@ -73,7 +73,7 @@ turbulentIntensityKineticEnergyInletFvPatchScalarField
     intensity_(readScalar(dict.lookup("intensity"))),
     UName_(dict.lookupOrDefault<word>("U", "U"))
 {
-    this->phiName_ = dict.lookupOrDefault<word>("phi","phi");
+    this->phiName_ = dict.lookupOrDefault<word>("phi", "phi");
 
     if (intensity_ < 0 || intensity_ > 1)
     {

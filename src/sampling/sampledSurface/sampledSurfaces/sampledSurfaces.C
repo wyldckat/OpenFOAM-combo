@@ -230,9 +230,7 @@ void Foam::sampledSurfaces::read(const dictionary& dict)
 
         if (this->size())
         {
-            Info<< type() << " " << name_ << ": "
-                << "Reading surface description:" << nl;
-
+            Info<< "Reading surface description:" << nl;
             forAll(*this, surfI)
             {
                 Info<< "    " << operator[](surfI).name() << nl;

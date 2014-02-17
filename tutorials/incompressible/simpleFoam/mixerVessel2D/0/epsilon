@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -24,13 +24,13 @@ boundaryField
     rotor
     {
         type            epsilonWallFunction;
-        value           uniform 0;
+        value           $internalField;
     }
 
     stator
     {
         type            epsilonWallFunction;
-        value           uniform 0;
+        value           $internalField;
     }
 
     front

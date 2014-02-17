@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -95,6 +95,8 @@ class PstreamBuffers
 
         const int tag_;
 
+        const label comm_;
+
         const IOstream::streamFormat format_;
 
         const IOstream::versionNumber version_;
@@ -109,8 +111,6 @@ class PstreamBuffers
         labelList recvBufPos_;
 
         bool finishedSendsCalled_;
-
-    // Private Member Functions
 
 public:
 
@@ -127,6 +127,7 @@ public:
         (
             const UPstream::commsTypes commsType,
             const int tag = UPstream::msgType(),
+            const label comm = UPstream::worldComm,
             IOstream::streamFormat format=IOstream::BINARY,
             IOstream::versionNumber version=IOstream::currentVersion
         );
@@ -151,6 +152,9 @@ public:
         //  sizes (bytes) transferred. Note:currently only valid for
         //  non-blocking.
         void finishedSends(labelListList& sizes, const bool block = true);
+
+        //- Clear storage and reset
+        void clear();
 
 };
 

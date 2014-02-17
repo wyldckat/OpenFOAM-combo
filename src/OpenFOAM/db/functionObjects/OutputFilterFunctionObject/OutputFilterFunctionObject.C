@@ -110,8 +110,8 @@ Foam::OutputFilterFunctionObject<OutputFilter>::OutputFilterFunctionObject
     storeFilter_(true),
     timeStart_(-VGREAT),
     timeEnd_(VGREAT),
-    nStepsToStartTimeChange_(3),
-    outputControl_(t, dict)
+    outputControl_(t, dict, "output"),
+    evaluateControl_(t, dict, "evaluate")
 {
     readDict();
 }
@@ -160,7 +160,10 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::execute
             allocateFilter();
         }
 
-        ptr_->execute();
+        if (evaluateControl_.output())
+        {
+            ptr_->execute();
+        }
 
         if (forceWrite || outputControl_.output())
         {
@@ -180,8 +183,6 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::execute
 template<class OutputFilter>
 bool Foam::OutputFilterFunctionObject<OutputFilter>::end()
 {
-    // note: use enabled_ here instead of active() since end should be called
-    // even if out of time bounds
     if (enabled_)
     {
         if (!storeFilter_)
@@ -211,17 +212,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::timeSet()
 {
     if (active())
     {
-        if (!storeFilter_)
-        {
-            allocateFilter();
-        }
-
         ptr_->timeSet();
-
-        if (!storeFilter_)
-        {
-            destroyFilter();
-        }
     }
 
     return true;
@@ -253,7 +244,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::adjustTimeStep()
         scalar nSteps = timeToNextWrite/deltaT - SMALL;
 
         // function objects modify deltaT inside nStepsToStartTimeChange range
-        // note: Potential problem if two function objects dump inside the same
+        // NOTE: Potential problem if two function objects dump inside the same
         // interval
         if (nSteps < nStepsToStartTimeChange_)
         {
@@ -261,7 +252,7 @@ bool Foam::OutputFilterFunctionObject<OutputFilter>::adjustTimeStep()
 
             scalar newDeltaT = timeToNextWrite/nStepsToNextWrite;
 
-            // adjust time step
+            // Adjust time step
             if (newDeltaT < deltaT)
             {
                 deltaT = max(newDeltaT, 0.2*deltaT);

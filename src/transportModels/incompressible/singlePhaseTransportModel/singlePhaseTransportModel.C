@@ -36,7 +36,17 @@ Foam::singlePhaseTransportModel::singlePhaseTransportModel
     const surfaceScalarField& phi
 )
 :
-    transportModel(U, phi),
+    IOdictionary
+    (
+        IOobject
+        (
+            "transportProperties",
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_WRITE
+        )
+    ),
     viscosityModelPtr_(viscosityModel::New("nu", *this, U, phi))
 {}
 
@@ -49,9 +59,17 @@ Foam::singlePhaseTransportModel::~singlePhaseTransportModel()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField> Foam::singlePhaseTransportModel::nu() const
+Foam::tmp<Foam::volScalarField>
+Foam::singlePhaseTransportModel::nu() const
 {
     return viscosityModelPtr_->nu();
+}
+
+
+Foam::tmp<Foam::scalarField>
+Foam::singlePhaseTransportModel::nu(const label patchi) const
+{
+    return viscosityModelPtr_->nu(patchi);
 }
 
 

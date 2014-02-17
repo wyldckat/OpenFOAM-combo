@@ -840,7 +840,6 @@ void addCouplingPatches
                 << '\t' << newPatches[interRegionBottomPatch[zoneI]]->type()
                 << nl;
         }
-
     }
     Pout<< "Added " << newPatches.size()-nOldPatches
         << " inter-region patches." << nl
@@ -2408,6 +2407,7 @@ int main(int argc, char *argv[])
         localRegionPoints
     );
 
+
     autoPtr<mapPolyMesh> shellMap;
     fvMesh regionMesh
     (
@@ -2426,6 +2426,7 @@ int main(int argc, char *argv[])
         xferCopy(labelList()),
         false
     );
+
     // Add the new patches
     forAll(regionPatches, patchI)
     {

@@ -1,6 +1,6 @@
 {
     volScalarField rAU("rAU", 1.0/UEqn.A());
-    surfaceScalarField rAUf("Dp", fvc::interpolate(rAU));
+    surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
 
     volVectorField HbyA("HbyA", U);
     HbyA = rAU*UEqn.H();
@@ -8,10 +8,9 @@
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        (fvc::interpolate(HbyA) & mesh.Sf()) - fvc::meshPhi(U)
-      + fvc::ddtPhiCorr(rAU, rho, U, phiAbs)
+        (fvc::interpolate(HbyA) & mesh.Sf())
+      + fvc::interpolate(rho*rAU)*fvc::ddtCorr(U, Uf)
     );
-    phi = phiHbyA;
 
     surfaceScalarField phig
     (
@@ -22,6 +21,19 @@
     );
 
     phiHbyA += phig;
+
+    // Update the fixedFluxPressure BCs to ensure flux consistency
+    setSnGrad<fixedFluxPressureFvPatchScalarField>
+    (
+        p_rgh.boundaryField(),
+        (
+            phiHbyA.boundaryField()
+          - (mesh.Sf().boundaryField() & U.boundaryField())
+        )/(mesh.magSf().boundaryField()*rAUf.boundaryField())
+    );
+
+    // Make the fluxes relative to the mesh motion
+    fvc::makeRelative(phiHbyA, U);
 
     tmp<fvScalarMatrix> p_rghEqnComp1;
     tmp<fvScalarMatrix> p_rghEqnComp2;
@@ -85,8 +97,8 @@
 
         if (pimple.finalNonOrthogonalIter())
         {
-            //p = max(p_rgh + (alpha1*rho1 + alpha2*rho2)*gh, pMin);
-            //p_rgh = p - (alpha1*rho1 + alpha2*rho2)*gh;
+            p = max(p_rgh + (alpha1*rho1 + alpha2*rho2)*gh, pMin);
+            p_rgh = p - (alpha1*rho1 + alpha2*rho2)*gh;
 
             dgdt =
             (
@@ -102,7 +114,11 @@
         }
     }
 
-    p = max(p_rgh + (alpha1*rho1 + alpha2*rho2)*gh, pMin);
+    {
+        Uf = fvc::interpolate(U);
+        surfaceVectorField n(mesh.Sf()/mesh.magSf());
+        Uf += n*(fvc::absolute(phi, U)/mesh.magSf() - (n & Uf));
+    }
 
     // Update densities from change in p_rgh
     rho1 += psi1*(p_rgh - p_rgh_0);

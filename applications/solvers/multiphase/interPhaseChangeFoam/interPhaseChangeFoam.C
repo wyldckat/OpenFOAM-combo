@@ -41,13 +41,14 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "MULES.H"
+#include "CMULES.H"
 #include "subCycle.H"
 #include "interfaceProperties.H"
 #include "phaseChangeTwoPhaseMixture.H"
 #include "turbulenceModel.H"
 #include "pimpleControl.H"
 #include "fvIOoptionList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
 
     pimpleControl pimple(mesh);
 
+    #include "createPrghCorrTypes.H"
     #include "../interFoam/correctPhi.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
@@ -81,14 +83,31 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        twoPhaseProperties->correct();
-
-        #include "alphaEqnSubCycle.H"
-        interface.correct();
-
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
+            #include "alphaControls.H"
+
+            surfaceScalarField rhoPhi
+            (
+                IOobject
+                (
+                    "rhoPhi",
+                    runTime.timeName(),
+                    mesh
+                ),
+                mesh,
+                dimensionedScalar("0", dimMass/dimTime, 0)
+            );
+
+            if (pimple.firstIter() || alphaOuterCorrectors)
+            {
+                twoPhaseProperties->correct();
+
+                #include "alphaEqnSubCycle.H"
+                interface.correct();
+            }
+
             #include "UEqn.H"
 
             // --- Pressure corrector loop

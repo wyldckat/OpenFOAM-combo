@@ -36,6 +36,7 @@ Description
 #include "multiphaseMixture.H"
 #include "turbulenceModel.H"
 #include "pimpleControl.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
 
     pimpleControl pimple(mesh);
 
+    #include "createPrghCorrTypes.H"
     #include "correctPhi.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"

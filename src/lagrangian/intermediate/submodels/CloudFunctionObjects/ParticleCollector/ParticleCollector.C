@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2012-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -51,15 +51,13 @@ void Foam::ParticleCollector<CloudType>::makeLogFile
 
         if (Pstream::master())
         {
-            const fileName logDir = outputDir_/this->owner().time().timeName();
-
             // Create directory if does not exist
-            mkDir(logDir);
+            mkDir(this->outputTimeDir());
 
             // Open new file at start up
             outputFilePtr_.reset
             (
-                new OFstream(logDir/(type() + ".dat"))
+                new OFstream(this->outputTimeDir()/(type() + ".dat"))
             );
 
             outputFilePtr_()
@@ -288,7 +286,7 @@ void Foam::ParticleCollector<CloudType>::initConcentricCircles()
 
 
 template<class CloudType>
-Foam::label Foam::ParticleCollector<CloudType>::collectParcelPolygon
+void Foam::ParticleCollector<CloudType>::collectParcelPolygon
 (
     const point& p1,
     const point& p2
@@ -330,17 +328,15 @@ Foam::label Foam::ParticleCollector<CloudType>::collectParcelPolygon
 
             if (t.classify(pIntersect, dummyNearType, dummyNearLabel))
             {
-                return faceI;
+                hitFaceIDs_.append(faceI);
             }
         }
     }
-
-    return -1;
 }
 
 
 template<class CloudType>
-Foam::label Foam::ParticleCollector<CloudType>::collectParcelConcentricCircles
+void Foam::ParticleCollector<CloudType>::collectParcelConcentricCircles
 (
     const point& p1,
     const point& p2
@@ -354,7 +350,7 @@ Foam::label Foam::ParticleCollector<CloudType>::collectParcelConcentricCircles
     if (sign(d1) == sign(d2))
     {
         // did not cross plane
-        return secI;
+        return;
     }
 
     // intersection point in cylindrical co-ordinate system
@@ -387,7 +383,7 @@ Foam::label Foam::ParticleCollector<CloudType>::collectParcelConcentricCircles
         }
     }
 
-    return secI;
+    hitFaceIDs_.append(secI);
 }
 
 
@@ -463,7 +459,7 @@ void Foam::ParticleCollector<CloudType>::write()
 
             writer->write
             (
-                outputDir_/time.timeName(),
+                this->outputTimeDir(),
                 "collector",
                 points_,
                 faces_,
@@ -474,7 +470,7 @@ void Foam::ParticleCollector<CloudType>::write()
 
             writer->write
             (
-                outputDir_/time.timeName(),
+                this->outputTimeDir(),
                 "collector",
                 points_,
                 faces_,
@@ -516,10 +512,11 @@ template<class CloudType>
 Foam::ParticleCollector<CloudType>::ParticleCollector
 (
     const dictionary& dict,
-    CloudType& owner
+    CloudType& owner,
+    const word& modelName
 )
 :
-    CloudFunctionObject<CloudType>(dict, owner, typeName),
+    CloudFunctionObject<CloudType>(dict, owner, modelName, typeName),
     mode_(mtUnknown),
     parcelType_(this->coeffDict().lookupOrDefault("parcelType", -1)),
     removeCollected_(this->coeffDict().lookup("removeCollected")),
@@ -542,22 +539,9 @@ Foam::ParticleCollector<CloudType>::ParticleCollector
     massFlowRate_(),
     log_(this->coeffDict().lookup("log")),
     outputFilePtr_(),
-    outputDir_(owner.mesh().time().path()),
-    timeOld_(owner.mesh().time().value())
+    timeOld_(owner.mesh().time().value()),
+    hitFaceIDs_()
 {
-    if (Pstream::parRun())
-    {
-        // Put in undecomposed case (Note: gives problems for
-        // distributed data running)
-        outputDir_ =
-            outputDir_/".."/"postProcessing"/cloud::prefix/owner.name();
-    }
-    else
-    {
-        outputDir_ =
-            outputDir_/"postProcessing"/cloud::prefix/owner.name();
-    }
-
     normal_ /= mag(normal_);
 
     word mode(this->coeffDict().lookup("mode"));
@@ -618,8 +602,8 @@ Foam::ParticleCollector<CloudType>::ParticleCollector
     massFlowRate_(pc.massFlowRate_),
     log_(pc.log_),
     outputFilePtr_(),
-    outputDir_(pc.outputDir_),
-    timeOld_(0.0)
+    timeOld_(0.0),
+    hitFaceIDs_()
 {}
 
 
@@ -647,21 +631,21 @@ void Foam::ParticleCollector<CloudType>::postMove
         return;
     }
 
-    label faceI = -1;
-
     // slightly extend end position to avoid falling within tracking tolerances
     const point position1 = position0 + 1.0001*(p.position() - position0);
+
+    hitFaceIDs_.clear();
 
     switch (mode_)
     {
         case mtPolygon:
         {
-            faceI = collectParcelPolygon(position0, position1);
+            collectParcelPolygon(position0, position1);
             break;
         }
         case mtConcentricCircle:
         {
-            faceI = collectParcelConcentricCircles(position0, position1);
+            collectParcelConcentricCircles(position0, position1);
             break;
         }
         default:
@@ -669,8 +653,10 @@ void Foam::ParticleCollector<CloudType>::postMove
         }
     }
 
-    if (faceI != -1)
+
+    forAll(hitFaceIDs_, i)
     {
+        label faceI = hitFaceIDs_[i];
         scalar m = p.nParticle()*p.mass();
 
         if (negateParcelsOppositeNormal_)

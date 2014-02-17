@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -239,6 +239,25 @@ inline Point Foam::triangle<Point, PointRef>::randomPoint(Random& rndGen) const
     scalar s = rndGen.scalar01();
 
     scalar t = sqrt(rndGen.scalar01());
+
+    return (1 - t)*a_ + (1 - s)*t*b_ + s*t*c_;
+}
+
+
+template<class Point, class PointRef>
+inline Point Foam::triangle<Point, PointRef>::randomPoint
+(
+    cachedRandom& rndGen
+) const
+{
+    // Generating Random Points in Triangles
+    // by Greg Turk
+    // from "Graphics Gems", Academic Press, 1990
+    // http://tog.acm.org/GraphicsGems/gems/TriPoints.c
+
+    scalar s = rndGen.sample01<scalar>();
+
+    scalar t = sqrt(rndGen.sample01<scalar>());
 
     return (1 - t)*a_ + (1 - s)*t*b_ + s*t*c_;
 }
@@ -656,6 +675,132 @@ inline bool Foam::triangle<Point, PointRef>::classify
 ) const
 {
     return nearestPointClassify(p, nearType, nearLabel).hit();
+}
+
+
+template<class Point, class PointRef>
+inline Foam::pointHit Foam::triangle<Point, PointRef>::nearestPoint
+(
+    const linePointRef& ln,
+    pointHit& lnInfo
+) const
+{
+    vector q = ln.vec();
+    pointHit triInfo
+    (
+        triangle<Point, PointRef>::intersection
+        (
+            ln.start(),
+            q,
+            intersection::FULL_RAY
+        )
+    );
+
+    if (triInfo.hit())
+    {
+        // Line hits triangle. Find point on line.
+        if (triInfo.distance() > 1)
+        {
+            // Hit beyond endpoint
+            lnInfo.setMiss(true);
+            lnInfo.setPoint(ln.end());
+            scalar dist = Foam::mag(triInfo.hitPoint()-lnInfo.missPoint());
+            lnInfo.setDistance(dist);
+            triInfo.setMiss(true);
+            triInfo.setDistance(dist);
+        }
+        else if (triInfo.distance() < 0)
+        {
+            // Hit beyond startpoint
+            lnInfo.setMiss(true);
+            lnInfo.setPoint(ln.start());
+            scalar dist = Foam::mag(triInfo.hitPoint()-lnInfo.missPoint());
+            lnInfo.setDistance(dist);
+            triInfo.setMiss(true);
+            triInfo.setDistance(dist);
+        }
+        else
+        {
+            // Hit on line
+            lnInfo.setHit();
+            lnInfo.setPoint(triInfo.hitPoint());
+            lnInfo.setDistance(0.0);
+            triInfo.setDistance(0.0);
+        }
+    }
+    else
+    {
+        // Line skips triangle. See which triangle edge it gets closest to
+
+        point nearestEdgePoint;
+        point nearestLinePoint;
+        //label minEdgeIndex = 0;
+        scalar minDist = ln.nearestDist
+        (
+            linePointRef(a_, b_),
+            nearestLinePoint,
+            nearestEdgePoint
+        );
+
+        {
+            point linePoint;
+            point triEdgePoint;
+            scalar dist = ln.nearestDist
+            (
+                linePointRef(b_, c_),
+                linePoint,
+                triEdgePoint
+            );
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestEdgePoint = triEdgePoint;
+                nearestLinePoint = linePoint;
+                //minEdgeIndex = 1;
+            }
+        }
+
+        {
+            point linePoint;
+            point triEdgePoint;
+            scalar dist = ln.nearestDist
+            (
+                linePointRef(c_, a_),
+                linePoint,
+                triEdgePoint
+            );
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestEdgePoint = triEdgePoint;
+                nearestLinePoint = linePoint;
+                //minEdgeIndex = 2;
+            }
+        }
+
+        lnInfo.setDistance(minDist);
+        triInfo.setDistance(minDist);
+        triInfo.setMiss(false);
+        triInfo.setPoint(nearestEdgePoint);
+
+        // Convert point on line to pointHit
+        if (Foam::mag(nearestLinePoint-ln.start()) < SMALL)
+        {
+            lnInfo.setMiss(true);
+            lnInfo.setPoint(ln.start());
+        }
+        else if (Foam::mag(nearestLinePoint-ln.end()) < SMALL)
+        {
+            lnInfo.setMiss(true);
+            lnInfo.setPoint(ln.end());
+        }
+        else
+        {
+            lnInfo.setHit();
+            lnInfo.setPoint(nearestLinePoint);
+        }
+    }
+    return triInfo;
 }
 
 

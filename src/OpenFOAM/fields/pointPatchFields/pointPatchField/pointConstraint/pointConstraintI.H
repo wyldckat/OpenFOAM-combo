@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -28,6 +28,12 @@ License
 inline Foam::pointConstraint::pointConstraint()
 :
     Tuple2<label, vector>(0, vector::zero)
+{}
+
+
+inline Foam::pointConstraint::pointConstraint(const Tuple2<label, vector>& pc)
+:
+    Tuple2<label, vector>(pc)
 {}
 
 
@@ -127,6 +133,72 @@ Foam::tensor Foam::pointConstraint::constraintTransformation() const
     {
         return tensor::zero;
     }
+}
+
+
+void Foam::pointConstraint::unconstrainedDirections(label& n, tensor& tt)
+const
+{
+    n = 3-first();
+
+    FixedList<vector, 3> vecs;
+
+    if (first() == 0)
+    {
+        vecs[0] = vector(1, 0, 0);
+        vecs[1] = vector(0, 1, 0);
+        vecs[2] = vector(0, 0, 1);
+    }
+    else if (first() == 1)
+    {
+        const vector& planeDir = second();
+
+        vecs[0] = vector(1, 0, 0) - planeDir.x()*planeDir;
+
+        if (mag(vecs[0].x()) < 1e-3)
+        {
+            vecs[0] = vector(0, 1, 0) - planeDir.y()*planeDir;
+        }
+
+        vecs[0] /= mag(vecs[0]);
+        vecs[1] = vecs[0] ^ planeDir;
+        vecs[1] /= mag(vecs[1]);
+    }
+    else if (first() == 2)
+    {
+        vecs[0] = second();
+    }
+
+    // Knock out remaining vectors
+    for (direction dir = n; dir < vecs.size(); dir++)
+    {
+        vecs[dir] = vector::zero;
+    }
+
+    tt = tensor(vecs[0], vecs[1], vecs[2]);
+}
+
+
+void Foam::combineConstraintsEqOp::operator()
+(
+    pointConstraint& x,
+    const pointConstraint& y
+) const
+{
+    x.combine(y);
+}
+
+
+Foam::pointConstraint Foam::transform
+(
+    const tensor& tt,
+    const pointConstraint& v
+)
+{
+    return pointConstraint
+    (
+        Tuple2<label, vector>(v.first(), transform(tt, v.second()))
+    );
 }
 
 

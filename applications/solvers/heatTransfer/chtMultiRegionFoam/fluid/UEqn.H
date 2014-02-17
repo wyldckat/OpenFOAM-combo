@@ -4,7 +4,7 @@
         fvm::ddt(rho, U)
       + fvm::div(phi, U)
       + turb.divDevRhoReff(U)
-      ==
+       ==
         fvOptions(rho, U)
     );
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -106,7 +106,7 @@ bool Foam::GeometricField<Type, PatchField, GeoMesh>::readIfPresent()
         (
             "GeometricField<Type, PatchField, GeoMesh>::readIfPresent()"
         )   << "read option IOobject::MUST_READ or MUST_READ_IF_MODIFIED"
-            << "suggests that a read constructor for field " << this->name()
+            << " suggests that a read constructor for field " << this->name()
             << " would be more appropriate." << endl;
     }
     else if (this->readOpt() == IOobject::READ_IF_PRESENT && this->headerOk())
@@ -924,6 +924,19 @@ Foam::word Foam::GeometricField<Type, PatchField, GeoMesh>::select
     {
         return this->name();
     }
+}
+
+
+template<class Type, template<class> class PatchField, class GeoMesh>
+void Foam::GeometricField<Type, PatchField, GeoMesh>::writeMinMax
+(
+    Ostream& os
+) const
+{
+    os  << "min/max(" << this->name() << ") = "
+        << Foam::min(*this).value() << ", "
+        << Foam::max(*this).value()
+        << endl;
 }
 
 

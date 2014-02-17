@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,28 +25,17 @@ Application
     twoPhaseEulerFoam
 
 Description
-    Solver for a system of 2 incompressible fluid phases with one phase
-    dispersed, e.g. gas bubbles in a liquid or solid particles in a gas.
+    Solver for a system of 2 compressible fluid phases with one phase
+    dispersed, e.g. gas bubbles in a liquid including heat-transfer.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "MULES.H"
-#include "subCycle.H"
-#include "nearWallDist.H"
-#include "wallFvPatch.H"
-#include "fixedValueFvsPatchFields.H"
-#include "Switch.H"
-
-#include "IFstream.H"
-#include "OFstream.H"
-
-#include "dragModel.H"
-#include "phaseModel.H"
-#include "kineticTheoryModel.H"
-
+#include "twoPhaseSystem.H"
+#include "PhaseIncompressibleTurbulenceModel.H"
 #include "pimpleControl.H"
 #include "IOMRFZoneList.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,11 +47,10 @@ int main(int argc, char *argv[])
     #include "createMesh.H"
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
-    #include "readPPProperties.H"
-    #include "initContinuityErrs.H"
     #include "createMRFZones.H"
+    #include "initContinuityErrs.H"
     #include "readTimeControls.H"
-    #include "CourantNo.H"
+    #include "CourantNos.H"
     #include "setInitialDeltaT.H"
 
     pimpleControl pimple(mesh);
@@ -73,7 +61,7 @@ int main(int argc, char *argv[])
 
     while (runTime.run())
     {
-        #include "readTwoPhaseEulerFoamControls.H"
+        #include "readTimeControls.H"
         #include "CourantNos.H"
         #include "setDeltaT.H"
 
@@ -83,34 +71,32 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-            #include "alphaEqn.H"
-            #include "liftDragCoeffs.H"
+            fluid.solve();
+            rho = fluid.rho();
+            fluid.correct();
+
+            #include "EEqns.H"
             #include "UEqns.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())
             {
                 #include "pEqn.H"
-
-                if (correctAlpha && !pimple.finalIter())
-                {
-                    #include "alphaEqn.H"
-                }
             }
 
             #include "DDtU.H"
 
             if (pimple.turbCorr())
             {
-                #include "kEpsilon.H"
+                fluid.correctTurbulence();
             }
         }
 
         #include "write.H"
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        Info<< "ExecutionTime = "
+            << runTime.elapsedCpuTime()
+            << " s\n\n" << endl;
     }
 
     Info<< "End\n" << endl;

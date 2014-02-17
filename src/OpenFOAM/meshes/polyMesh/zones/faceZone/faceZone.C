@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -170,6 +170,23 @@ void Foam::faceZone::checkAddressing() const
             << "Size of addressing: " << size()
             << " size of flip map: " << flipMap_.size()
             << abort(FatalError);
+    }
+
+    const labelList& mf = *this;
+
+    // Note: nFaces, nCells might not be set yet on mesh so use owner size
+    const label nFaces = zoneMesh().mesh().faceOwner().size();
+
+    bool hasWarned = false;
+    forAll(mf, i)
+    {
+        if (!hasWarned && (mf[i] < 0 || mf[i] >= nFaces))
+        {
+            WarningIn("void Foam::faceZone::checkAddressing() const")
+                << "Illegal face index " << mf[i] << " outside range 0.."
+                << nFaces-1 << endl;
+            hasWarned = true;
+        }
     }
 }
 

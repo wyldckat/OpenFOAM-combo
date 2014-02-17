@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -19,15 +19,15 @@ solvers
 {
     "(Uf|hf|deltaf\*rhof)"
     {
-        solver          PBiCG;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-10;
         relTol          0;
     }
     deltaf
     {
-        solver          PBiCG; // PCG;
-        preconditioner  DILU; // DIC;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-10;
         relTol          0;
     }

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -843,8 +843,9 @@ bool Foam::primitiveMesh::checkFaceFlatness
     {
         if (nSummed > 0)
         {
-            Info<< "    Face flatness (1 = flat, 0 = butterfly) : average = "
-                << sumFlatness / nSummed << "  min = " << minFlatness << endl;
+            Info<< "    Face flatness (1 = flat, 0 = butterfly) : min = "
+                << minFlatness << "  average = " << sumFlatness / nSummed
+                << endl;
         }
     }
 

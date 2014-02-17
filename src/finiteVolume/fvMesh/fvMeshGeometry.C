@@ -202,8 +202,8 @@ const volScalarField::DimensionedInternalField& fvMesh::V() const
     {
         if (debug)
         {
-            Info<< "void fvMesh::V() : "
-                << "slicing cellVolumes"
+            Info<< "fvMesh::V() const: "
+                << "constructing from primitiveMesh::cellVolumes()"
                 << endl;
         }
 
@@ -260,8 +260,8 @@ const volScalarField::DimensionedInternalField& fvMesh::V00() const
     {
         if (debug)
         {
-            Info<< "void fvMesh::V00() : "
-                << "constructing V00 from V0"
+            Info<< "fvMesh::V00() const: "
+                << "constructing from V0"
                 << endl;
         }
 

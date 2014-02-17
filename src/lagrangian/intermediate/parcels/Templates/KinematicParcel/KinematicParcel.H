@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -48,6 +48,7 @@ SourceFiles
 #include "IOstream.H"
 #include "autoPtr.H"
 #include "interpolation.H"
+#include "demandDrivenEntry.H"
 
 // #include "ParticleForceList.H" // TODO
 
@@ -82,29 +83,30 @@ public:
     //- Class to hold kinematic particle constant properties
     class constantProperties
     {
-        // Private data
+    protected:
+
+        // Protected data
 
             //- Constant properties dictionary
             const dictionary dict_;
 
+
+    private:
+
+        // Private data
+
             //- Parcel type id - used for post-processing to flag the type
             //  of parcels issued by this cloud
-            label parcelTypeId_;
+            demandDrivenEntry<label> parcelTypeId_;
 
             //- Minimum density [kg/m3]
-            scalar rhoMin_;
+            demandDrivenEntry<scalar> rhoMin_;
 
             //- Particle density [kg/m3] (constant)
-            scalar rho0_;
+            demandDrivenEntry<scalar> rho0_;
 
             //- Minimum particle mass [kg]
-            scalar minParticleMass_;
-
-            //- Young's modulus [N/m2]
-            scalar youngsModulus_;
-
-            //- Poisson's ratio
-            scalar poissonsRatio_;
+            demandDrivenEntry<scalar> minParticleMass_;
 
 
     public:
@@ -117,23 +119,8 @@ public:
             //- Copy constructor
             constantProperties(const constantProperties& cp);
 
-            //- Constructor from dictionary
-            constantProperties
-            (
-                const dictionary& parentDict,
-                const bool readFields = true
-            );
-
-            //- Construct from components
-            constantProperties
-            (
-                const label parcelTypeId,
-                const scalar rhoMin,
-                const scalar rho0,
-                const scalar minParticleMass,
-                const scalar youngsModulus,
-                const scalar poissonsRatio
-            );
+            //- Construct from dictionary
+            constantProperties(const dictionary& parentDict);
 
 
         // Member functions
@@ -152,12 +139,6 @@ public:
 
             //- Return const access to the minimum particle mass
             inline scalar minParticleMass() const;
-
-            //- Return const access to Young's Modulus
-            inline scalar youngsModulus() const;
-
-            //- Return const access to Poisson's ratio
-            inline scalar poissonsRatio() const;
     };
 
 
@@ -261,17 +242,6 @@ protected:
             //- Velocity of Parcel [m/s]
             vector U_;
 
-            //- Force on particle due to collisions [N]
-            vector f_;
-
-            //- Angular momentum of Parcel in global reference frame
-            // [kg m2/s]
-            vector angularMomentum_;
-
-            //- Torque on particle due to collisions in global
-            //  reference frame [Nm]
-            vector torque_;
-
             //- Density [kg/m3]
             scalar rho_;
 
@@ -332,9 +302,6 @@ public:
           + " d"
           + " dTarget "
           + " (Ux Uy Uz)"
-          + " (fx fy fz)"
-          + " (angularMomentumx angularMomentumy angularMomentumz)"
-          + " (torquex torquey torquez)"
           + " rho"
           + " age"
           + " tTurb"
@@ -367,9 +334,6 @@ public:
             const scalar nParticle0,
             const scalar d0,
             const scalar dTarget0,
-            const vector& U0,
-            const vector& f0,
-            const vector& angularMomentum0,
             const vector& torque0,
             const constantProperties& constProps
         );
@@ -445,15 +409,6 @@ public:
             //- Return const access to velocity
             inline const vector& U() const;
 
-            //- Return const access to force
-            inline const vector& f() const;
-
-            //- Return const access to angular momentum
-            inline const vector& angularMomentum() const;
-
-            //- Return const access to torque
-            inline const vector& torque() const;
-
             //- Return const access to density
             inline scalar rho() const;
 
@@ -496,15 +451,6 @@ public:
             //- Return access to velocity
             inline vector& U();
 
-            //- Return access to force
-            inline vector& f();
-
-            //- Return access to angular momentum
-            inline vector& angularMomentum();
-
-            //- Return access to torque
-            inline vector& torque();
-
             //- Return access to density
             inline scalar& rho();
 
@@ -520,8 +466,7 @@ public:
 
         // Helper functions
 
-            //- Return the index of the face to be used in the interpolation
-            //  routine
+            //- Return the index of the face used in the interpolation routine
             inline label faceInterpolation() const;
 
             //- Cell owner mass
@@ -532,9 +477,6 @@ public:
 
             //- Particle moment of inertia around diameter axis
             inline scalar momentOfInertia() const;
-
-            //- Particle angular velocity
-            inline vector omega() const;
 
             //- Particle volume
             inline scalar volume() const;

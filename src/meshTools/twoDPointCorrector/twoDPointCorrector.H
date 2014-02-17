@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -31,7 +31,7 @@ Description
     and thus introduce a third dimension into a 2-D problem.
 
     The operation is performed by looping through all edges approximately
-    normal to the plane and enforcing their orthoginality onto the plane by
+    normal to the plane and enforcing their orthogonality onto the plane by
     adjusting points on their ends.
 
 SourceFiles
@@ -42,6 +42,7 @@ SourceFiles
 #ifndef twoDPointCorrector_H
 #define twoDPointCorrector_H
 
+#include "MeshObject.H"
 #include "pointField.H"
 #include "labelList.H"
 #include "vector.H"
@@ -59,11 +60,10 @@ class polyMesh;
 \*---------------------------------------------------------------------------*/
 
 class twoDPointCorrector
+:
+    public MeshObject<polyMesh, UpdateableMeshObject, twoDPointCorrector>
 {
     // Private data
-
-        //- Reference to moving mesh
-        const polyMesh& mesh_;
 
         //- Is 2D correction required, i.e. is the mesh
         bool required_;
@@ -129,8 +129,14 @@ public:
         //- Correct motion points
         void correctPoints(pointField& p) const;
 
+        //- Correct motion displacements
+        void correctDisplacement(const pointField& p, vectorField& disp) const;
+
         //- Update topology
-        void updateMesh();
+        void updateMesh(const mapPolyMesh&);
+
+        //- Correct weighting factors for moving mesh.
+        bool movePoints();
 };
 
 

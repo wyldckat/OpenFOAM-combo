@@ -74,8 +74,7 @@ void Foam::nearWallFields::createFields
 template<class Type>
 void Foam::nearWallFields::sampleBoundaryField
 (
-    const cachedInterpolationCellPoint<Type>& interpolator,
-    //const interpolationCellPoint<Type>& interpolator,
+    const interpolationCellPoint<Type>& interpolator,
     GeometricField<Type, fvPatchField, volMesh>& fld
 ) const
 {
@@ -136,8 +135,7 @@ void Foam::nearWallFields::sampleFields
         sflds[i] == fld;
 
         // Construct interpolation method
-        cachedInterpolationCellPoint<Type> interpolator(fld);
-        //interpolationCellPoint<Type> interpolator(fld);
+        interpolationCellPoint<Type> interpolator(fld);
 
         // Override sampled values
         sampleBoundaryField(interpolator, sflds[i]);

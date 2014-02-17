@@ -97,7 +97,6 @@ Foam::tmp<Foam::scalarField> Foam::polyMeshTools::faceSkewness
 {
     const labelList& own = mesh.faceOwner();
     const labelList& nei = mesh.faceNeighbour();
-    const faceList& fcs = mesh.faces();
     const polyBoundaryMesh& pbm = mesh.boundaryMesh();
 
     tmp<scalarField> tskew(new scalarField(mesh.nFaces()));
@@ -154,36 +153,129 @@ Foam::tmp<Foam::scalarField> Foam::polyMeshTools::faceSkewness
             {
                 label faceI = pp.start() + i;
 
-                vector Cpf = fCtrs[faceI] - cellCtrs[own[faceI]];
+                skew[faceI] = primitiveMeshTools::boundaryFaceSkewness
+                (
+                    mesh,
+                    p,
+                    fCtrs,
+                    fAreas,
 
-                vector normal = fAreas[faceI];
-                normal /= mag(normal) + VSMALL;
-                vector d = normal*(normal & Cpf);
-
-
-                // Skewness vector
-                vector sv =
-                    Cpf
-                  - ((fAreas[faceI] & Cpf)/((fAreas[faceI] & d) + VSMALL))*d;
-                vector svHat = sv/(mag(sv) + VSMALL);
-
-                // Normalisation distance calculated as the approximate distance
-                // from the face centre to the edge of the face in the direction
-                // of the skewness
-                scalar fd = 0.4*mag(d) + VSMALL;
-                const face& f = fcs[faceI];
-                forAll(f, pi)
-                {
-                    fd = max(fd, mag(svHat & (p[f[pi]] - fCtrs[faceI])));
-                }
-
-                // Normalised skewness
-                 skew[faceI] = mag(sv)/fd;
+                    faceI,
+                    cellCtrs[own[faceI]]
+                );
             }
         }
     }
 
     return tskew;
+}
+
+
+Foam::tmp<Foam::scalarField> Foam::polyMeshTools::faceWeights
+(
+    const polyMesh& mesh,
+    const vectorField& fCtrs,
+    const vectorField& fAreas,
+    const vectorField& cellCtrs
+)
+{
+    const labelList& own = mesh.faceOwner();
+    const labelList& nei = mesh.faceNeighbour();
+    const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+
+    tmp<scalarField> tweight(new scalarField(mesh.nFaces(), 1.0));
+    scalarField& weight = tweight();
+
+    // Internal faces
+    forAll(nei, faceI)
+    {
+        const point& fc = fCtrs[faceI];
+        const vector& fa = fAreas[faceI];
+
+        scalar dOwn = mag(fa & (fc-cellCtrs[own[faceI]]));
+        scalar dNei = mag(fa & (cellCtrs[nei[faceI]]-fc));
+
+        weight[faceI] = min(dNei,dOwn)/(dNei+dOwn+VSMALL);
+    }
+
+
+    // Coupled faces
+
+    pointField neiCc;
+    syncTools::swapBoundaryCellPositions(mesh, cellCtrs, neiCc);
+
+    forAll(pbm, patchI)
+    {
+        const polyPatch& pp = pbm[patchI];
+        if (pp.coupled())
+        {
+            forAll(pp, i)
+            {
+                label faceI = pp.start() + i;
+                label bFaceI = faceI - mesh.nInternalFaces();
+
+                const point& fc = fCtrs[faceI];
+                const vector& fa = fAreas[faceI];
+
+                scalar dOwn = mag(fa & (fc-cellCtrs[own[faceI]]));
+                scalar dNei = mag(fa & (neiCc[bFaceI]-fc));
+
+                weight[faceI] = min(dNei,dOwn)/(dNei+dOwn+VSMALL);
+            }
+        }
+    }
+
+    return tweight;
+}
+
+
+Foam::tmp<Foam::scalarField> Foam::polyMeshTools::volRatio
+(
+    const polyMesh& mesh,
+    const scalarField& vol
+)
+{
+    const labelList& own = mesh.faceOwner();
+    const labelList& nei = mesh.faceNeighbour();
+    const polyBoundaryMesh& pbm = mesh.boundaryMesh();
+
+    tmp<scalarField> tratio(new scalarField(mesh.nFaces(), 1.0));
+    scalarField& ratio = tratio();
+
+    // Internal faces
+    forAll(nei, faceI)
+    {
+        scalar volOwn = vol[own[faceI]];
+        scalar volNei = vol[nei[faceI]];
+
+        ratio[faceI] = min(volOwn,volNei)/(max(volOwn, volNei)+VSMALL);
+    }
+
+
+    // Coupled faces
+
+    scalarField neiVol;
+    syncTools::swapBoundaryCellList(mesh, vol, neiVol);
+
+    forAll(pbm, patchI)
+    {
+        const polyPatch& pp = pbm[patchI];
+        if (pp.coupled())
+        {
+            forAll(pp, i)
+            {
+                label faceI = pp.start() + i;
+                label bFaceI = faceI - mesh.nInternalFaces();
+
+                scalar volOwn = vol[own[faceI]];
+                scalar volNei = neiVol[bFaceI];
+
+                ratio[faceI] = min(volOwn,volNei)/(max(volOwn, volNei)+VSMALL);
+            }
+        }
+    }
+
+    return tratio;
 }
 
 

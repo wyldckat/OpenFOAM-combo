@@ -44,6 +44,7 @@ Description
 #include "twoPhaseMixtureThermo.H"
 #include "turbulenceModel.H"
 #include "pimpleControl.H"
+#include "fixedFluxPressureFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,7 +57,7 @@ int main(int argc, char *argv[])
 
     pimpleControl pimple(mesh);
 
-    #include "readControls.H"
+    #include "readTimeControls.H"
     #include "initContinuityErrs.H"
     #include "createFields.H"
     #include "CourantNo.H"
@@ -68,9 +69,8 @@ int main(int argc, char *argv[])
 
     while (runTime.run())
     {
-        #include "readControls.H"
+        #include "readTimeControls.H"
         #include "CourantNo.H"
-        #include "alphaCourantNo.H"
         #include "setDeltaT.H"
 
         runTime++;
@@ -107,9 +107,9 @@ int main(int argc, char *argv[])
 
         runTime.write();
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        Info<< "ExecutionTime = "
+            << runTime.elapsedCpuTime()
+            << " s\n\n" << endl;
     }
 
     Info<< "End\n" << endl;

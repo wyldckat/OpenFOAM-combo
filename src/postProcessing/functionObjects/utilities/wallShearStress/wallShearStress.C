@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2013-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -43,9 +43,11 @@ defineTypeNameAndDebug(wallShearStress, 0);
 void Foam::wallShearStress::writeFileHeader(const label i)
 {
     // Add headers to output data
-    file() << "# Wall shear stress" << nl
-        << "# time " << token::TAB << "patch" << token::TAB
-        << "min" << token::TAB << "max" << endl;
+    writeHeader(file(), "Wall shear stress");
+    writeCommented(file(), "Time");
+    writeTabbed(file(), "patch");
+    writeTabbed(file(), "min");
+    writeTabbed(file(), "max");
 }
 
 
@@ -73,16 +75,15 @@ void Foam::wallShearStress::calcShearStress
 
         if (Pstream::master())
         {
-            file() << mesh.time().timeName() << token::TAB
-                << pp.name() << token::TAB << minSsp
-                << token::TAB << maxSsp << endl;
+            file() << mesh.time().value()
+                << token::TAB << pp.name()
+                << token::TAB << minSsp
+                << token::TAB << maxSsp
+                << endl;
         }
 
-        if (log_)
-        {
-            Info<< "    min/max(" << pp.name() << ") = "
-                << minSsp << ", " << maxSsp << endl;
-        }
+        Info(log_)<< "    min/max(" << pp.name() << ") = "
+            << minSsp << ", " << maxSsp << endl;
     }
 }
 
@@ -221,24 +222,6 @@ void Foam::wallShearStress::read(const dictionary& dict)
 
 void Foam::wallShearStress::execute()
 {
-    // Do nothing - only valid on write
-}
-
-
-void Foam::wallShearStress::end()
-{
-    // Do nothing - only valid on write
-}
-
-
-void Foam::wallShearStress::timeSet()
-{
-    // Do nothing - only valid on write
-}
-
-
-void Foam::wallShearStress::write()
-{
     typedef compressible::turbulenceModel cmpModel;
     typedef incompressible::turbulenceModel icoModel;
 
@@ -254,10 +237,7 @@ void Foam::wallShearStress::write()
                 mesh.lookupObject<volVectorField>(type())
             );
 
-        if (log_)
-        {
-            Info<< type() << " " << name_ << " output:" << nl;
-        }
+        Info(log_)<< type() << " " << name_ << " output:" << nl;
 
 
         tmp<volSymmTensorField> Reff;
@@ -282,14 +262,38 @@ void Foam::wallShearStress::write()
                 << "database" << exit(FatalError);
         }
 
-
         calcShearStress(mesh, Reff(), wallShearStress);
+    }
+}
 
-        if (log_)
-        {
-            Info<< "    writing field " << wallShearStress.name() << nl
-                << endl;
-        }
+
+void Foam::wallShearStress::end()
+{
+    if (active_)
+    {
+        execute();
+    }
+}
+
+
+void Foam::wallShearStress::timeSet()
+{
+    // Do nothing
+}
+
+
+void Foam::wallShearStress::write()
+{
+    if (active_)
+    {
+        functionObjectFile::write();
+
+        const volVectorField& wallShearStress =
+            obr_.lookupObject<volVectorField>(type());
+
+        Info(log_)<< type() << " " << name_ << " output:" << nl
+            << "    writing field " << wallShearStress.name() << nl
+            << endl;
 
         wallShearStress.write();
     }

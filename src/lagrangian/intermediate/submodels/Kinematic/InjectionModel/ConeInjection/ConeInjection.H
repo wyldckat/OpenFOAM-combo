@@ -31,7 +31,7 @@ Description
       - list of injector positions and directions (along injection axes)
       - number of parcels to inject per injector
       - parcel velocities
-      - inner and outer cone angles
+      - inner and outer half-cone angles
     - Parcel diameters obtained by distribution model
 
 SourceFiles
@@ -87,10 +87,10 @@ class ConeInjection
         //- Parcel velocity magnitude relative to SOI [m/s]
         const TimeDataEntry<scalar> Umag_;
 
-        //- Inner half cone angle relative to SOI [deg]
+        //- Inner half-cone angle relative to SOI [deg]
         const TimeDataEntry<scalar> thetaInner_;
 
-        //- Outer half cone angle relative to SOI [deg]
+        //- Outer half-cone angle relative to SOI [deg]
         const TimeDataEntry<scalar> thetaOuter_;
 
         //- Parcel size distribution model

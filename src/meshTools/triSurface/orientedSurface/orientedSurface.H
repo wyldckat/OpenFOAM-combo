@@ -66,7 +66,6 @@ public:
             NOFLIP
         };
 
-
 private:
 
     // Private Member Functions
@@ -135,6 +134,8 @@ private:
         //- Make surface surface has consistent orientation across connected
         //  triangles.
         static bool orientConsistent(triSurface& s);
+
+
 public:
 
     ClassName("orientedSurface");

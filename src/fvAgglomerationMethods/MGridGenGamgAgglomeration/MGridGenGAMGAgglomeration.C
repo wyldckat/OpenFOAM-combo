@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,6 +26,7 @@ License
 #include "MGridGenGAMGAgglomeration.H"
 #include "fvMesh.H"
 #include "addToRunTimeSelectionTable.H"
+#include "processorLduInterface.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -39,6 +40,121 @@ namespace Foam
         MGridGenGAMGAgglomeration,
         lduMesh
     );
+}
+
+
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+void Foam::MGridGenGAMGAgglomeration::swap
+(
+    const lduInterfacePtrsList& interfaces,
+    const labelUList& cellValues,
+    PtrList<labelList>& nbrValues
+) const
+{
+    // Initialise transfer of restrict addressing on the interface
+    forAll(interfaces, inti)
+    {
+        if (interfaces.set(inti))
+        {
+            interfaces[inti].initInternalFieldTransfer
+            (
+                Pstream::nonBlocking,
+                cellValues
+            );
+        }
+    }
+
+    if (Pstream::parRun())
+    {
+        Pstream::waitRequests();
+    }
+
+    // Get the interface agglomeration
+    nbrValues.setSize(interfaces.size());
+    forAll(interfaces, inti)
+    {
+        if (interfaces.set(inti))
+        {
+            nbrValues.set
+            (
+                inti,
+                new labelList
+                (
+                    interfaces[inti].internalFieldTransfer
+                    (
+                        Pstream::nonBlocking,
+                        cellValues
+                    )
+                )
+            );
+        }
+    }
+}
+
+
+void Foam::MGridGenGAMGAgglomeration::getNbrAgglom
+(
+    const lduAddressing& addr,
+    const lduInterfacePtrsList& interfaces,
+    const PtrList<labelList>& nbrGlobalAgglom,
+    labelList& cellToNbrAgglom
+) const
+{
+    cellToNbrAgglom.setSize(addr.size());
+    cellToNbrAgglom = -1;
+
+    forAll(interfaces, inti)
+    {
+        if (interfaces.set(inti))
+        {
+            if (isA<processorLduInterface>(interfaces[inti]))
+            {
+                const processorLduInterface& pldui =
+                    refCast<const processorLduInterface>(interfaces[inti]);
+
+                if (pldui.myProcNo() > pldui.neighbProcNo())
+                {
+                    const labelUList& faceCells =
+                        interfaces[inti].faceCells();
+                    const labelList& nbrData = nbrGlobalAgglom[inti];
+
+                    forAll(faceCells, i)
+                    {
+                        cellToNbrAgglom[faceCells[i]] = nbrData[i];
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void Foam::MGridGenGAMGAgglomeration::detectSharedFaces
+(
+    const lduMesh& mesh,
+    const labelList& value,
+    labelHashSet& sharedFaces
+) const
+{
+    const lduAddressing& addr = mesh.lduAddr();
+    const labelUList& lower = addr.lowerAddr();
+    const labelUList& upper = addr.upperAddr();
+
+    sharedFaces.clear();
+    sharedFaces.resize(addr.lowerAddr().size()/100);
+
+    // Detect any faces inbetween same value
+    forAll(lower, faceI)
+    {
+        label lowerData = value[lower[faceI]];
+        label upperData = value[upper[faceI]];
+
+        if (lowerData != -1 && lowerData == upperData)
+        {
+            sharedFaces.insert(faceI);
+        }
+    }
 }
 
 
@@ -57,23 +173,29 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
     label minSize(readLabel(controlDict.lookup("minSize")));
     label maxSize(readLabel(controlDict.lookup("maxSize")));
 
-
-    // Get the finest-level interfaces from the mesh
-    interfaceLevels_.set
+    // Number of iterations applied to improve agglomeration consistency across
+    // processor boundaries
+    label nProcConsistencyIter
     (
-        0,
-        new lduInterfacePtrsList(fvMesh_.boundary().interfaces())
+        readLabel(controlDict.lookup("nProcConsistencyIter"))
     );
 
     // Start geometric agglomeration from the cell volumes and areas of the mesh
     scalarField* VPtr = const_cast<scalarField*>(&fvMesh_.cellVolumes());
-    vectorField* SfPtr = const_cast<vectorField*>(&fvMesh_.faceAreas());
+
+    scalarField magFaceAreas(sqrt(3.0)*mag(fvMesh_.faceAreas()));
+    SubField<scalar> magSf(magFaceAreas, fvMesh_.nInternalFaces());
+
+    scalarField* magSfPtr = const_cast<scalarField*>
+    (
+        &magSf.operator const scalarField&()
+    );
 
     // Create the boundary area cell field
-    scalarField* SbPtr(new scalarField(fvMesh_.nCells(), 0));
+    scalarField* magSbPtr(new scalarField(fvMesh_.nCells(), 0));
 
     {
-        scalarField& Sb = *SbPtr;
+        scalarField& magSb = *magSbPtr;
 
         const labelList& own = fvMesh_.faceOwner();
         const vectorField& Sf = fvMesh_.faceAreas();
@@ -82,11 +204,10 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
         {
             if (!fvMesh_.isInternalFace(facei))
             {
-                Sb[own[facei]] += mag(Sf[facei]);
+                magSb[own[facei]] += mag(Sf[facei]);
             }
         }
     }
-
 
     // Agglomerate until the required number of cells in the coarsest level
     // is reached
@@ -104,9 +225,66 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
             maxSize,
             meshLevel(nCreatedLevels).lduAddr(),
             *VPtr,
-            *SfPtr,
-            *SbPtr
+            *magSfPtr,
+            *magSbPtr
         );
+
+        // Adjust weights only
+        for (int i=0; i<nProcConsistencyIter; i++)
+        {
+            const lduMesh& mesh = meshLevel(nCreatedLevels);
+            const lduAddressing& addr = mesh.lduAddr();
+            const lduInterfacePtrsList interfaces = mesh.interfaces();
+
+            const labelField& agglom = finalAgglomPtr();
+
+            // Global nubmering
+            const globalIndex globalNumbering(nCoarseCells);
+
+            labelField globalAgglom(addr.size());
+            forAll(agglom, cellI)
+            {
+                globalAgglom[cellI] = globalNumbering.toGlobal(agglom[cellI]);
+            }
+
+            // Get the interface agglomeration
+            PtrList<labelList> nbrGlobalAgglom;
+            swap(interfaces, globalAgglom, nbrGlobalAgglom);
+
+
+            // Get the interface agglomeration on a cell basis (-1 for all
+            // other cells)
+            labelList cellToNbrAgglom;
+            getNbrAgglom(addr, interfaces, nbrGlobalAgglom, cellToNbrAgglom);
+
+
+            // Mark all faces inbetween cells with same nbragglomeration
+            labelHashSet sharedFaces(addr.size()/100);
+            detectSharedFaces(mesh, cellToNbrAgglom, sharedFaces);
+
+
+            //- Note: in-place update of weights is more effective it seems?
+            //        Should not be. fluke?
+            //scalarField weights(*faceWeightsPtr);
+            scalarField weights = *magSfPtr;
+            forAllConstIter(labelHashSet, sharedFaces, iter)
+            {
+                label faceI= iter.key();
+                weights[faceI] *= 2.0;
+            }
+
+            // Redo the agglomeration using the new weights
+            finalAgglomPtr = agglomerate
+            (
+                nCoarseCells,
+                minSize,
+                maxSize,
+                meshLevel(nCreatedLevels).lduAddr(),
+                *VPtr,
+                weights,
+                *magSbPtr
+            );
+        }
 
         if (continueAgglomerating(nCoarseCells))
         {
@@ -127,7 +305,8 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
                 new scalarField(meshLevels_[nCreatedLevels].size())
             );
 
-            restrictField(*aggVPtr, *VPtr, nCreatedLevels);
+            // Restrict but no parallel agglomeration (not supported)
+            restrictField(*aggVPtr, *VPtr, nCreatedLevels, false);
 
             if (nCreatedLevels)
             {
@@ -139,36 +318,37 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
 
         // Agglomerate the face areas field for the next level
         {
-            vectorField* aggSfPtr
+            scalarField* aggMagSfPtr
             (
-                new vectorField
+                new scalarField
                 (
                     meshLevels_[nCreatedLevels].upperAddr().size(),
-                    vector::zero
+                    0
                 )
             );
 
-            restrictFaceField(*aggSfPtr, *SfPtr, nCreatedLevels);
+            restrictFaceField(*aggMagSfPtr, *magSfPtr, nCreatedLevels);
 
             if (nCreatedLevels)
             {
-                delete SfPtr;
+                delete magSfPtr;
             }
 
-            SfPtr = aggSfPtr;
+            magSfPtr = aggMagSfPtr;
         }
 
         // Agglomerate the cell boundary areas field for the next level
         {
-            scalarField* aggSbPtr
+            scalarField* aggMagSbPtr
             (
                 new scalarField(meshLevels_[nCreatedLevels].size())
             );
 
-            restrictField(*aggSbPtr, *SbPtr, nCreatedLevels);
+            // Restrict but no parallel agglomeration (not supported)
+            restrictField(*aggMagSbPtr, *magSbPtr, nCreatedLevels, false);
 
-            delete SbPtr;
-            SbPtr = aggSbPtr;
+            delete magSbPtr;
+            magSbPtr = aggMagSbPtr;
         }
 
         nCreatedLevels++;
@@ -181,9 +361,9 @@ Foam::MGridGenGAMGAgglomeration::MGridGenGAMGAgglomeration
     if (nCreatedLevels)
     {
         delete VPtr;
-        delete SfPtr;
+        delete magSfPtr;
     }
-    delete SbPtr;
+    delete magSbPtr;
 }
 
 

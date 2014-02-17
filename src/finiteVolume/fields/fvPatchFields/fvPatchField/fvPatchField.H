@@ -93,6 +93,10 @@ class fvPatchField
         //  the construction of the matrix
         bool updated_;
 
+        //- Update index used so that manipulateMatrix is called only once
+        //  during the construction of the matrix
+        bool manipulatedMatrix_;
+
         //- Optional patch type, used to allow specified boundary conditions
         //  to be applied to constraint patches by providing the constraint
         //  patch type as 'patchType'
@@ -160,6 +164,14 @@ public:
         (
             const fvPatch&,
             const DimensionedField<Type, volMesh>&
+        );
+
+        //- Construct from patch and internal field and patch type
+        fvPatchField
+        (
+            const fvPatch&,
+            const DimensionedField<Type, volMesh>&,
+            const word& patchType
         );
 
         //- Construct from patch and internal field and patch field
@@ -304,6 +316,18 @@ public:
                 return internalField_;
             }
 
+            //- Optional patch type
+            const word& patchType() const
+            {
+                return patchType_;
+            }
+
+            //- Optional patch type
+            word& patchType()
+            {
+                return patchType_;
+            }
+
             //- Return the type of the calculated for of fvPatchField
             static const word& calculatedType();
 
@@ -325,6 +349,12 @@ public:
             bool updated() const
             {
                 return updated_;
+            }
+
+            //- Return true if the matrix has already been manipulated
+            bool manipulatedMatrix() const
+            {
+                return manipulatedMatrix_;
             }
 
 
@@ -365,10 +395,12 @@ public:
 
             //- Update the coefficients associated with the patch field
             //  Sets Updated to true
-            virtual void updateCoeffs()
-            {
-                updated_ = true;
-            }
+            virtual void updateCoeffs();
+
+            //- Update the coefficients associated with the patch field
+            //  and apply weight field
+            //  Sets Updated to true
+            virtual void updateCoeffs(const scalarField& weights);
 
             //- Return internal field next to patch as patch field
             virtual tmp<Field<Type> > patchInternalField() const;
@@ -478,6 +510,13 @@ public:
 
             //- Manipulate matrix
             virtual void manipulateMatrix(fvMatrix<Type>& matrix);
+
+            //- Manipulate matrix with given weights
+            virtual void manipulateMatrix
+            (
+                fvMatrix<Type>& matrix,
+                const scalarField& weights
+            );
 
 
         // I-O

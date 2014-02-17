@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -188,7 +188,11 @@ void Foam::fieldValues::faceSource::setPatchFaces()
     const polyPatch& pp = mesh().boundaryMesh()[patchId];
 
     label nFaces = pp.size();
-    if (isA<emptyPolyPatch>(pp))
+    if (isA<cyclicPolyPatch>(pp))
+    {
+        nFaces /= 2;
+    }
+    else if (isA<emptyPolyPatch>(pp))
     {
         nFaces = 0;
     }
@@ -659,10 +663,7 @@ void Foam::fieldValues::faceSource::write()
             file()<< endl;
         }
 
-        if (log_)
-        {
-            Info<< endl;
-        }
+        Info(log_)<< endl;
     }
 }
 

@@ -31,6 +31,7 @@ License
 #include "InjectionModelList.H"
 #include "DispersionModel.H"
 #include "PatchInteractionModel.H"
+#include "StochasticCollisionModel.H"
 #include "SurfaceFilmModel.H"
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
@@ -50,6 +51,15 @@ void Foam::KinematicCloud<CloudType>::setModels()
     patchInteractionModel_.reset
     (
         PatchInteractionModel<KinematicCloud<CloudType> >::New
+        (
+            subModelProperties_,
+            *this
+        ).ptr()
+    );
+
+    stochasticCollisionModel_.reset
+    (
+        StochasticCollisionModel<KinematicCloud<CloudType> >::New
         (
             subModelProperties_,
             *this
@@ -181,7 +191,6 @@ void Foam::KinematicCloud<CloudType>::evolveCloud(TrackData& td)
         if (preInjectionSize != this->size())
         {
             updateCellOccupancy();
-
             preInjectionSize = this->size();
         }
 
@@ -191,6 +200,8 @@ void Foam::KinematicCloud<CloudType>::evolveCloud(TrackData& td)
         // Assume that motion will update the cellOccupancy as necessary
         // before it is required.
         td.cloud().motion(td);
+
+        stochasticCollision().update(solution_.trackTime());
     }
     else
     {
@@ -249,6 +260,7 @@ void Foam::KinematicCloud<CloudType>::cloudReset(KinematicCloud<CloudType>& c)
 
     dispersionModel_.reset(c.dispersionModel_.ptr());
     patchInteractionModel_.reset(c.patchInteractionModel_.ptr());
+    stochasticCollisionModel_.reset(c.stochasticCollisionModel_.ptr());
     surfaceFilmModel_.reset(c.surfaceFilmModel_.ptr());
 
     UIntegrator_.reset(c.UIntegrator_.ptr());
@@ -296,7 +308,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
         )
     ),
     solution_(mesh_, particleProperties_.subDict("solution")),
-    constProps_(particleProperties_, solution_.active()),
+    constProps_(particleProperties_),
     subModelProperties_
     (
         particleProperties_.subOrEmptyDict("subModels", solution_.active())
@@ -309,6 +321,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
       : -1
     ),
     cellOccupancyPtr_(),
+    cellLengthScale_(cbrt(mesh_.V())),
     rho_(rho),
     U_(U),
     mu_(mu),
@@ -338,6 +351,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     ),
     dispersionModel_(NULL),
     patchInteractionModel_(NULL),
+    stochasticCollisionModel_(NULL),
     surfaceFilmModel_(NULL),
     UIntegrator_(NULL),
     UTrans_
@@ -408,6 +422,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     subModelProperties_(c.subModelProperties_),
     rndGen_(c.rndGen_, true),
     cellOccupancyPtr_(NULL),
+    cellLengthScale_(c.cellLengthScale_),
     rho_(c.rho_),
     U_(c.U_),
     mu_(c.mu_),
@@ -418,6 +433,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     injectors_(c.injectors_),
     dispersionModel_(c.dispersionModel_->clone()),
     patchInteractionModel_(c.patchInteractionModel_->clone()),
+    stochasticCollisionModel_(c.stochasticCollisionModel_->clone()),
     surfaceFilmModel_(c.surfaceFilmModel_->clone()),
     UIntegrator_(c.UIntegrator_->clone()),
     UTrans_
@@ -497,6 +513,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     subModelProperties_(dictionary::null),
     rndGen_(0, 0),
     cellOccupancyPtr_(NULL),
+    cellLengthScale_(c.cellLengthScale_),
     rho_(c.rho_),
     U_(c.U_),
     mu_(c.mu_),
@@ -507,6 +524,7 @@ Foam::KinematicCloud<CloudType>::KinematicCloud
     injectors_(*this),
     dispersionModel_(NULL),
     patchInteractionModel_(NULL),
+    stochasticCollisionModel_(NULL),
     surfaceFilmModel_(NULL),
     UIntegrator_(NULL),
     UTrans_(NULL),
@@ -827,7 +845,9 @@ void Foam::KinematicCloud<CloudType>::patchData
 template<class CloudType>
 void Foam::KinematicCloud<CloudType>::updateMesh()
 {
+    updateCellOccupancy();
     injectors_.updateMesh();
+    cellLengthScale_ = cbrt(mesh_.V());
 }
 
 
@@ -853,9 +873,6 @@ void Foam::KinematicCloud<CloudType>::info()
     scalar linearKineticEnergy = linearKineticEnergyOfSystem();
     reduce(linearKineticEnergy, sumOp<scalar>());
 
-    scalar rotationalKineticEnergy = rotationalKineticEnergyOfSystem();
-    reduce(rotationalKineticEnergy, sumOp<scalar>());
-
     Info<< "Cloud: " << this->name() << nl
         << "    Current number of parcels       = "
         << returnReduce(this->size(), sumOp<label>()) << nl
@@ -866,9 +883,7 @@ void Foam::KinematicCloud<CloudType>::info()
         << "   |Linear momentum|                = "
         << mag(linearMomentum) << nl
         << "    Linear kinetic energy           = "
-        << linearKineticEnergy << nl
-        << "    Rotational kinetic energy       = "
-        << rotationalKineticEnergy << nl;
+        << linearKineticEnergy << nl;
 
     injectors_.info(Info);
     this->surfaceFilm().info(Info);

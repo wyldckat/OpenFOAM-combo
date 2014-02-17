@@ -74,6 +74,7 @@ makeReactingSolidThermo
     specie
 );
 
+
 makeReactingSolidThermo
 (
     solidThermo,
@@ -85,8 +86,6 @@ makeReactingSolidThermo
     rhoConst,
     specie
 );
-
-
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

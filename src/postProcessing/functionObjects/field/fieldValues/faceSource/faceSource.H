@@ -242,7 +242,7 @@ protected:
         //- Weight field name - optional
         word weightFieldName_;
 
-        //- Scale factor
+        //- Scale factor - optional
         scalar scaleFactor_;
 
         //- Global number of faces

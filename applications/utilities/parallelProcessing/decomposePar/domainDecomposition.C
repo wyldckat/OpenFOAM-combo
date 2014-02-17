@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -34,6 +34,11 @@ License
 #include "globalMeshData.H"
 #include "DynamicList.H"
 #include "fvFieldDecomposer.H"
+#include "IOobjectList.H"
+#include "cellSet.H"
+#include "faceSet.H"
+#include "pointSet.H"
+#include "uniformDimensionedFields.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -123,7 +128,7 @@ Foam::domainDecomposition::~domainDecomposition()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::domainDecomposition::writeDecomposition()
+bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
 {
     Info<< "\nConstructing processor meshes" << endl;
 
@@ -158,6 +163,91 @@ bool Foam::domainDecomposition::writeDecomposition()
     {
         mark(cellZones()[zoneI], zoneI, cellToZone);
     }
+
+
+    PtrList<const cellSet> cellSets;
+    PtrList<const faceSet> faceSets;
+    PtrList<const pointSet> pointSets;
+    if (decomposeSets)
+    {
+        // Read sets
+        IOobjectList objects(*this, facesInstance(), "polyMesh/sets");
+        {
+            IOobjectList cSets(objects.lookupClass(cellSet::typeName));
+            forAllConstIter(IOobjectList, cSets, iter)
+            {
+                cellSets.append(new cellSet(*iter()));
+            }
+        }
+        {
+            IOobjectList fSets(objects.lookupClass(faceSet::typeName));
+            forAllConstIter(IOobjectList, fSets, iter)
+            {
+                faceSets.append(new faceSet(*iter()));
+            }
+        }
+        {
+            IOobjectList pSets(objects.lookupClass(pointSet::typeName));
+            forAllConstIter(IOobjectList, pSets, iter)
+            {
+                pointSets.append(new pointSet(*iter()));
+            }
+        }
+    }
+
+
+    autoPtr<labelIOList> cellLevelPtr;
+    {
+        IOobject io
+        (
+            "cellLevel",
+            facesInstance(),
+            polyMesh::meshSubDir,
+            *this,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        );
+        if (io.headerOk())
+        {
+            Info<< "Reading hexRef8 data : " << io.name() << endl;
+            cellLevelPtr.reset(new labelIOList(io));
+        }
+    }
+    autoPtr<labelIOList> pointLevelPtr;
+    {
+        IOobject io
+        (
+            "pointLevel",
+            facesInstance(),
+            polyMesh::meshSubDir,
+            *this,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        );
+        if (io.headerOk())
+        {
+            Info<< "Reading hexRef8 data : " << io.name() << endl;
+            pointLevelPtr.reset(new labelIOList(io));
+        }
+    }
+    autoPtr<uniformDimensionedScalarField> level0EdgePtr;
+    {
+        IOobject io
+        (
+            "level0Edge",
+            facesInstance(),
+            polyMesh::meshSubDir,
+            *this,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        );
+        if (io.headerOk())
+        {
+            Info<< "Reading hexRef8 data : " << io.name() << endl;
+            level0EdgePtr.reset(new uniformDimensionedScalarField(io));
+        }
+    }
+
 
 
     label maxProcCells = 0;
@@ -751,6 +841,114 @@ bool Foam::domainDecomposition::writeDecomposition()
             );
             pointsInstancePoints.write();
         }
+
+
+        // Decompose any sets
+        if (decomposeSets)
+        {
+            forAll(cellSets, i)
+            {
+                const cellSet& cs = cellSets[i];
+                cellSet set(procMesh, cs.name(), cs.size()/nProcs_);
+                forAll(curCellLabels, i)
+                {
+                    if (cs.found(curCellLabels[i]))
+                    {
+                        set.insert(i);
+                    }
+                }
+                set.write();
+            }
+            forAll(faceSets, i)
+            {
+                const faceSet& cs = faceSets[i];
+                faceSet set(procMesh, cs.name(), cs.size()/nProcs_);
+                forAll(curFaceLabels, i)
+                {
+                    if (cs.found(mag(curFaceLabels[i])-1))
+                    {
+                        set.insert(i);
+                    }
+                }
+                set.write();
+            }
+            forAll(pointSets, i)
+            {
+                const pointSet& cs = pointSets[i];
+                pointSet set(procMesh, cs.name(), cs.size()/nProcs_);
+                forAll(curPointLabels, i)
+                {
+                    if (cs.found(curPointLabels[i]))
+                    {
+                        set.insert(i);
+                    }
+                }
+                set.write();
+            }
+        }
+
+
+        // hexRef8 data
+        if (cellLevelPtr.valid())
+        {
+            labelIOList
+            (
+                IOobject
+                (
+                    cellLevelPtr().name(),
+                    facesInstance(),
+                    polyMesh::meshSubDir,
+                    procMesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                UIndirectList<label>
+                (
+                    cellLevelPtr(),
+                    procCellAddressing_[procI]
+                )()
+            ).write();
+        }
+        if (pointLevelPtr.valid())
+        {
+            labelIOList
+            (
+                IOobject
+                (
+                    pointLevelPtr().name(),
+                    facesInstance(),
+                    polyMesh::meshSubDir,
+                    procMesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                UIndirectList<label>
+                (
+                    pointLevelPtr(),
+                    procPointAddressing_[procI]
+                )()
+            ).write();
+        }
+        if (level0EdgePtr.valid())
+        {
+            uniformDimensionedScalarField
+            (
+                IOobject
+                (
+                    level0EdgePtr().name(),
+                    facesInstance(),
+                    polyMesh::meshSubDir,
+                    procMesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                level0EdgePtr()
+            ).write();
+        }
+
+
+
+        // Statistics
 
         Info<< endl
             << "Processor " << procI << nl

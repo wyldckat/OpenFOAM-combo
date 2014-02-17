@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2012-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -490,6 +490,12 @@ Foam::volScalarField& Foam::basicThermo::T()
 const Foam::volScalarField& Foam::basicThermo::alpha() const
 {
     return alpha_;
+}
+
+
+const Foam::scalarField& Foam::basicThermo::alpha(const label patchi) const
+{
+    return alpha_.boundaryField()[patchi];
 }
 
 

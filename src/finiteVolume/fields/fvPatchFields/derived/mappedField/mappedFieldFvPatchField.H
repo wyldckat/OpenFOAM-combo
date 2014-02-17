@@ -75,6 +75,7 @@ SourceFiles
 #define mappedFieldFvPatchField_H
 
 #include "mappedPatchBase.H"
+#include "mappedPatchFieldBase.H"
 #include "fixedValueFvPatchFields.H"
 #include "interpolation.H"
 
@@ -90,31 +91,10 @@ namespace Foam
 template<class Type>
 class mappedFieldFvPatchField
 :
+    public fixedValueFvPatchField<Type>,
     public mappedPatchBase,
-    public fixedValueFvPatchField<Type>
+    public mappedPatchFieldBase<Type>
 {
-    // Private data
-
-        //- Name of field to sample - defaults to field associated with this
-        //  patchField if not specified
-        word fieldName_;
-
-        //- If true adjust the mapped field to maintain average value average_
-        const bool setAverage_;
-
-        //- Average value the mapped field is adjusted to maintain if
-        //  setAverage_ is set true
-        const Type average_;
-
-        //- Interpolation scheme to use for nearestCell mode
-        word interpolationScheme_;
-
-
-    // Private Member Functions
-
-        //- Field to sample. Either on my or nbr mesh
-        const GeometricField<Type, fvPatchField, volMesh>& sampleField() const;
-
 
 public:
 

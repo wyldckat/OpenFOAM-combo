@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -32,7 +32,7 @@
 #------------------------------------------------------------------------------
 
 export WM_PROJECT=OpenFOAM
-export WM_PROJECT_VERSION=2.2.x
+export WM_PROJECT_VERSION=2.3.x
 
 ################################################################################
 # USER EDITABLE PART: Changes made here may be lost with the next upgrade
@@ -214,6 +214,7 @@ _foamSource $WM_PROJECT_DIR/etc/config/aliases.sh
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/paraview.sh`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/ensight.sh`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/gperftools.sh`
+_foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/CGAL.sh`
 
 
 # Clean environment paths again. Only remove duplicates

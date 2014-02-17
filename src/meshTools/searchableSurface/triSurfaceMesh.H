@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,8 +46,11 @@ SourceFiles
 #include "objectRegistry.H"
 #include "indexedOctree.H"
 #include "treeDataTriSurface.H"
+#include "treeDataPrimitivePatch.H"
 #include "treeDataEdge.H"
 #include "EdgeMap.H"
+#include "triSurface.H"
+#include "triSurfaceRegionSearch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -62,24 +65,16 @@ class triSurfaceMesh
 :
     public searchableSurface,
     public objectRegistry,      // so we can store fields
-    public triSurface
+    public triSurface,
+    public triSurfaceRegionSearch
 {
 private:
 
     // Private member data
 
-        //- Optional tolerance to use in searches
-        scalar tolerance_;
-
         //- Optional min triangle quality. Triangles below this get
         //  ignored for normal calculation
         scalar minQuality_;
-
-        //- Optional max tree depth of octree
-        label maxTreeDepth_;
-
-        //- Search tree (triangles)
-        mutable autoPtr<indexedOctree<treeDataTriSurface> > tree_;
 
         //- Search tree for boundary edges.
         mutable autoPtr<indexedOctree<treeDataEdge> > edgeTree_;
@@ -89,6 +84,7 @@ private:
 
         //- Is surface closed
         mutable label surfaceClosed_;
+
 
     // Private Member Functions
 
@@ -136,11 +132,6 @@ private:
         void operator=(const triSurfaceMesh&);
 
 
-protected:
-
-        //- Calculate (number of)used points and their bounding box
-        void calcBounds(boundBox& bb, label& nPoints) const;
-
 public:
 
     //- Runtime type information
@@ -176,13 +167,9 @@ public:
         //- Move points
         virtual void movePoints(const pointField&);
 
-        //- Demand driven contruction of octree
-        const indexedOctree<treeDataTriSurface>& tree() const;
-
-        //- Demand driven contruction of octree for boundary edges
+        //- Demand driven construction of octree for boundary edges
         const indexedOctree<treeDataEdge>& edgeTree() const;
 
-        scalar tolerance() const;
 
         // searchableSurface implementation
 
@@ -201,6 +188,14 @@ public:
             //  Usually the element centres (should be of length size()).
             virtual tmp<pointField> coordinates() const;
 
+            //- Get bounding spheres (centre and radius squared). Any point
+            //  on surface is guaranteed to be inside.
+            virtual void boundingSpheres
+            (
+                pointField& centres,
+                scalarField& radiusSqr
+            ) const;
+
             //- Get the points that define the surface.
             virtual tmp<pointField> points() const;
 
@@ -211,6 +206,14 @@ public:
             (
                 const pointField& sample,
                 const scalarField& nearestDistSqr,
+                List<pointIndexHit>&
+            ) const;
+
+            virtual void findNearest
+            (
+                const pointField& sample,
+                const scalarField& nearestDistSqr,
+                const labelList& regionIndices,
                 List<pointIndexHit>&
             ) const;
 
@@ -258,20 +261,8 @@ public:
                 List<volumeType>&
             ) const;
 
-        // Other
 
-            //- Set bounds of surface. Bounds currently set as list of
-            //  bounding boxes. The bounds are hints to the surface as for
-            //  the range of queries it can expect. faceMap/pointMap can be
-            //  set if the surface has done any redistribution.
-            virtual void distribute
-            (
-                const List<treeBoundBox>&,
-                const bool keepNonLocal,
-                autoPtr<mapDistribute>& faceMap,
-                autoPtr<mapDistribute>& pointMap
-            )
-            {}
+        // Other
 
             //- WIP. Store element-wise field.
             virtual void setField(const labelList& values);
@@ -296,7 +287,6 @@ public:
                 IOstream::versionNumber ver,
                 IOstream::compressionType cmp
             ) const;
-
 };
 
 

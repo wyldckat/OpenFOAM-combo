@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -29,7 +29,10 @@ License
 #include "Time.H"
 #include "subCycle.H"
 #include "MULES.H"
+#include "surfaceInterpolate.H"
+#include "fvcGrad.H"
 #include "fvcSnGrad.H"
+#include "fvcDiv.H"
 #include "fvcFlux.H"
 #include "fvcAverage.H"
 
@@ -74,6 +77,7 @@ void Foam::multiphaseSystem::solveAlphas()
             phasei,
             new surfaceScalarField
             (
+                "phi" + alpha1.name() + "Corr",
                 fvc::flux
                 (
                     phi_,
@@ -103,7 +107,7 @@ void Foam::multiphaseSystem::solveAlphas()
             {
                 surfaceScalarField phic
                 (
-                    (mag(phi_) + mag(phase1.phi() - phase2.phi()))/mesh_.magSf()
+                    (mag(phi_) + mag(phir))/mesh_.magSf()
                 );
 
                 phir += min(cAlpha()*phic, max(phic))*nHatf(phase1, phase2);
@@ -122,8 +126,30 @@ void Foam::multiphaseSystem::solveAlphas()
             );
         }
 
+        // Ensure that the flux at inflow BCs is preserved
+        forAll(phiAlphaCorr.boundaryField(), patchi)
+        {
+            fvsPatchScalarField& phiAlphaCorrp =
+                phiAlphaCorr.boundaryField()[patchi];
+
+            if (!phiAlphaCorrp.coupled())
+            {
+                const scalarField& phi1p = phase1.phi().boundaryField()[patchi];
+                const scalarField& alpha1p = alpha1.boundaryField()[patchi];
+
+                forAll(phiAlphaCorrp, facei)
+                {
+                    if (phi1p[facei] < 0)
+                    {
+                        phiAlphaCorrp[facei] = alpha1p[facei]*phi1p[facei];
+                    }
+                }
+            }
+        }
+
         MULES::limit
         (
+            1.0/mesh_.time().deltaT().value(),
             geometricOneField(),
             phase1,
             phi_,
@@ -368,7 +394,17 @@ Foam::multiphaseSystem::multiphaseSystem
     const surfaceScalarField& phi
 )
 :
-    transportModel(U, phi),
+    IOdictionary
+    (
+        IOobject
+        (
+            "transportProperties",
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ_IF_MODIFIED,
+            IOobject::NO_WRITE
+        )
+    ),
 
     phases_(lookup("phases"), phaseModel::iNew(U.mesh())),
 
@@ -479,18 +515,54 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseSystem::rho() const
 }
 
 
+Foam::tmp<Foam::scalarField>
+Foam::multiphaseSystem::rho(const label patchi) const
+{
+    PtrDictionary<phaseModel>::const_iterator iter = phases_.begin();
+
+    tmp<scalarField> trho = iter().boundaryField()[patchi]*iter().rho().value();
+
+    for (++iter; iter != phases_.end(); ++iter)
+    {
+        trho() += iter().boundaryField()[patchi]*iter().rho().value();
+    }
+
+    return trho;
+}
+
+
 Foam::tmp<Foam::volScalarField> Foam::multiphaseSystem::nu() const
 {
     PtrDictionary<phaseModel>::const_iterator iter = phases_.begin();
 
-    tmp<volScalarField> tnu = iter()*iter().nu();
+    tmp<volScalarField> tmu = iter()*(iter().rho()*iter().nu());
 
     for (++iter; iter != phases_.end(); ++iter)
     {
-        tnu() += iter()*iter().nu();
+        tmu() += iter()*(iter().rho()*iter().nu());
     }
 
-    return tnu;
+    return tmu/rho();
+}
+
+
+Foam::tmp<Foam::scalarField>
+Foam::multiphaseSystem::nu(const label patchi) const
+{
+    PtrDictionary<phaseModel>::const_iterator iter = phases_.begin();
+
+    tmp<scalarField> tmu =
+        iter().boundaryField()[patchi]
+       *(iter().rho().value()*iter().nu().value());
+
+    for (++iter; iter != phases_.end(); ++iter)
+    {
+        tmu() +=
+            iter().boundaryField()[patchi]
+           *(iter().rho().value()*iter().nu().value());
+    }
+
+    return tmu/rho(patchi);
 }
 
 
@@ -809,9 +881,8 @@ void Foam::multiphaseSystem::solve()
 
     const Time& runTime = mesh_.time();
 
-    const dictionary& pimpleDict = mesh_.solutionDict().subDict("PIMPLE");
-
-    label nAlphaSubCycles(readLabel(pimpleDict.lookup("nAlphaSubCycles")));
+    const dictionary& alphaControls = mesh_.solverDict("alpha");
+    label nAlphaSubCycles(readLabel(alphaControls.lookup("nAlphaSubCycles")));
 
     if (nAlphaSubCycles > 1)
     {

@@ -84,7 +84,6 @@ turbulentMixingLengthDissipationRateInletFvPatchScalarField
     kName_(dict.lookupOrDefault<word>("k", "k"))
 {
     this->phiName_ = dict.lookupOrDefault<word>("phi", "phi");
-
     fvPatchScalarField::operator=(scalarField("value", dict, p.size()));
 
     this->refValue() = 0.0;

@@ -2,7 +2,7 @@
 # =========                 |
 # \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
 #  \\    /   O peration     |
-#   \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+#   \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
 #    \\/     M anipulation  |
 #------------------------------------------------------------------------------
 # License
@@ -31,7 +31,7 @@
 #------------------------------------------------------------------------------
 
 setenv WM_PROJECT OpenFOAM
-setenv WM_PROJECT_VERSION 2.2.x
+setenv WM_PROJECT_VERSION 2.3.x
 
 ################################################################################
 # USER EDITABLE PART: Changes made here may be lost with the next upgrade
@@ -203,6 +203,7 @@ _foamSource $WM_PROJECT_DIR/etc/config/aliases.csh
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/paraview.csh`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/ensight.csh`
+_foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config/CGAL.csh`
 
 
 # Clean environment paths again. Only remove duplicates

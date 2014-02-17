@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -25,12 +25,6 @@ chemistry       on;
 
 initialChemicalTimeStep 1e-07;
 
-sequentialCoeffs
-{
-    cTauChem        0.001;
-    equilibriumRateLimiter off;
-}
-
 EulerImplicitCoeffs
 {
     cTauChem        0.05;
@@ -39,7 +33,7 @@ EulerImplicitCoeffs
 
 odeCoeffs
 {
-    solver          SIBS;
+    solver          seulex;
     eps             0.05;
 }
 

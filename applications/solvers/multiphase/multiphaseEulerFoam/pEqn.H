@@ -35,8 +35,8 @@
     {
         phaseModel& phase = iter();
 
-        mrfZones.absoluteFlux(phase.phi().oldTime());
-        mrfZones.absoluteFlux(phase.phi());
+        mrfZones.makeAbsolute(phase.phi().oldTime());
+        mrfZones.makeAbsolute(phase.phi());
 
         HbyAs.set(phasei, new volVectorField(phase.U()));
         phiHbyAs.set(phasei, new surfaceScalarField(1.0*phase.phi()));
@@ -58,8 +58,6 @@
         dimensionedScalar("phiHbyA", dimArea*dimVelocity, 0)
     );
 
-    phi = dimensionedScalar("phi", phi.dimensions(), 0);
-
     phasei = 0;
     forAllIter(PtrDictionary<phaseModel>, fluid.phases(), iter)
     {
@@ -67,6 +65,7 @@
         const volScalarField& alpha = phase;
 
         alphafs.set(phasei, fvc::interpolate(alpha).ptr());
+        alphafs[phasei].rename("hmm" + alpha.name());
 
         volScalarField dragCoeffi
         (
@@ -96,11 +95,11 @@
         phiHbyAs[phasei] =
         (
             (fvc::interpolate(HbyAs[phasei]) & mesh.Sf())
-          + fvc::ddtPhiCorr(rAUs[phasei], alpha, phase.U(), phase.phi())
+          + rAlphaAUfs[phasei]*fvc::ddtCorr(phase.U(), phase.phi())
         );
-        mrfZones.relativeFlux(phiHbyAs[phasei]);
-
-        phi += alphafs[phasei]*phiHbyAs[phasei];
+        mrfZones.makeRelative(phiHbyAs[phasei]);
+        mrfZones.makeRelative(phase.phi().oldTime());
+        mrfZones.makeRelative(phase.phi());
 
         phiHbyAs[phasei] +=
             rAlphaAUfs[phasei]
@@ -161,36 +160,50 @@
         phasei++;
     }
 
-    phasei = 0;
-    forAllIter(PtrDictionary<phaseModel>, fluid.phases(), iter)
-    {
-        phaseModel& phase = iter();
-
-        mrfZones.relativeFlux(phase.phi().oldTime());
-        mrfZones.relativeFlux(phase.phi());
-
-        phasei++;
-    }
-
-    surfaceScalarField Dp
+    surfaceScalarField rAUf
     (
         IOobject
         (
-            "Dp",
+            "rAUf",
             runTime.timeName(),
             mesh
         ),
         mesh,
-        dimensionedScalar("Dp", dimensionSet(-1, 3, 1, 0, 0), 0)
+        dimensionedScalar("rAUf", dimensionSet(-1, 3, 1, 0, 0), 0)
     );
 
     phasei = 0;
     forAllIter(PtrDictionary<phaseModel>, fluid.phases(), iter)
     {
         phaseModel& phase = iter();
-        Dp += mag(alphafs[phasei]*rAlphaAUfs[phasei])/phase.rho();
+        rAUf += mag(alphafs[phasei]*rAlphaAUfs[phasei])/phase.rho();
 
         phasei++;
+    }
+
+    // Update the fixedFluxPressure BCs to ensure flux consistency
+    {
+        surfaceScalarField::GeometricBoundaryField phib(phi.boundaryField());
+        phib = 0;
+        phasei = 0;
+        forAllIter(PtrDictionary<phaseModel>, fluid.phases(), iter)
+        {
+            phaseModel& phase = iter();
+
+            phib +=
+                alphafs[phasei].boundaryField()
+               *(mesh.Sf().boundaryField() & phase.U().boundaryField());
+
+            phasei++;
+        }
+
+        setSnGrad<fixedFluxPressureFvPatchScalarField>
+        (
+            p.boundaryField(),
+            (
+                phiHbyA.boundaryField() - mrfZones.relative(phib)
+            )/(mesh.magSf().boundaryField()*rAUf.boundaryField())
+        );
     }
 
     while (pimple.correctNonOrthogonal())
@@ -198,7 +211,7 @@
         fvScalarMatrix pEqnIncomp
         (
             fvc::div(phiHbyA)
-          - fvm::laplacian(Dp, p)
+          - fvm::laplacian(rAUf, p)
         );
 
         pEqnIncomp.setReference(pRefCell, pRefValue);
@@ -215,7 +228,7 @@
 
         if (pimple.finalNonOrthogonalIter())
         {
-            surfaceScalarField mSfGradp(pEqnIncomp.flux()/Dp);
+            surfaceScalarField mSfGradp("mSfGradp", pEqnIncomp.flux()/rAUf);
 
             phasei = 0;
             phi = dimensionedScalar("phi", phi.dimensions(), 0);
@@ -242,7 +255,7 @@
             // );
 
             p.relax();
-            mSfGradp = pEqnIncomp.flux()/Dp;
+            mSfGradp = pEqnIncomp.flux()/rAUf;
 
             U = dimensionedVector("U", dimVelocity, vector::zero);
 

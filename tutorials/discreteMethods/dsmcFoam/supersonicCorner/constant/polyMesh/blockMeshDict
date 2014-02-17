@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.2.2                                 |
+|  \\    /   O peration     | Version:  2.3.0                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -56,12 +56,20 @@ boundary
         );
     }
 
-    entrance
+    entrance1
     {
         type symmetryPlane;
         faces
         (
             (0 1 5 4)
+        );
+    }
+
+    entrance2
+    {
+        type symmetryPlane;
+        faces
+        (
             (0 3 2 1)
         );
     }

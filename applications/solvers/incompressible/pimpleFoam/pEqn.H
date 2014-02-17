@@ -1,3 +1,5 @@
+surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
+
 volVectorField HbyA("HbyA", U);
 HbyA = rAU*UEqn().H();
 
@@ -10,10 +12,10 @@ surfaceScalarField phiHbyA
 (
     "phiHbyA",
     (fvc::interpolate(HbyA) & mesh.Sf())
-  + fvc::ddtPhiCorr(rAU, U, phi)
+  + rAUf*fvc::ddtCorr(U, phi)
 );
 
-fvOptions.relativeFlux(phiHbyA);
+fvOptions.makeRelative(phiHbyA);
 
 adjustPhi(phiHbyA, U, p);
 
@@ -23,7 +25,7 @@ while (pimple.correctNonOrthogonal())
     // Pressure corrector
     fvScalarMatrix pEqn
     (
-        fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
+        fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)
     );
 
     pEqn.setReference(pRefCell, pRefValue);

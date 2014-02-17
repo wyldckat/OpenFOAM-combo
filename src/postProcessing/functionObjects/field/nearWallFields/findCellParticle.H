@@ -61,6 +61,7 @@ class findCellParticle
         //- passive data
         label data_;
 
+
 public:
 
     friend class Cloud<findCellParticle>;
@@ -74,7 +75,6 @@ public:
         List<List<point> >& cellToEnd_;
 
     public:
-
 
         // Constructors
 
@@ -97,12 +97,12 @@ public:
             {
                 return cellToData_;
             }
+
             List<List<point> >& cellToEnd()
             {
                 return cellToEnd_;
             }
     };
-
 
 
     // Constructors
@@ -171,7 +171,6 @@ public:
         }
 
 
-
         // Tracking
 
             //- Track all particles to their end point
@@ -197,7 +196,15 @@ public:
             );
 
             //- Overridable function to handle the particle hitting a
-            //  symmetryPlane
+            //  symmetry plane
+            void hitSymmetryPlanePatch
+            (
+                const symmetryPlanePolyPatch&,
+                trackingData& td
+            );
+
+            //- Overridable function to handle the particle hitting a
+            //  symmetry patch
             void hitSymmetryPatch
             (
                 const symmetryPolyPatch&,

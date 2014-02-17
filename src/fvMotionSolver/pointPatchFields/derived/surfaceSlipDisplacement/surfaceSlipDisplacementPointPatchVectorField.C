@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -71,7 +71,7 @@ void surfaceSlipDisplacementPointPatchVectorField::calcProjection
     const scalar projectLen = mag(mesh.bounds().max()-mesh.bounds().min());
 
     // For case of fixed projection vector:
-    vector projectVec;
+    vector projectVec(0, 0, 0);
     if (projectMode_ == FIXEDNORMAL)
     {
         vector n = projectDir_/mag(projectDir_);
@@ -399,7 +399,8 @@ surfaceSlipDisplacementPointPatchVectorField::surfaces() const
                     IOobject::MUST_READ,
                     IOobject::NO_WRITE
                 ),
-                surfacesDict_
+                surfacesDict_,
+                true    // use single region naming shortcut
             )
         );
     }

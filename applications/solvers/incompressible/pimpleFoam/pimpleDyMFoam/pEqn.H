@@ -1,3 +1,5 @@
+surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
+
 volVectorField HbyA("HbyA", U);
 HbyA = rAU*UEqn().H();
 
@@ -10,12 +12,8 @@ surfaceScalarField phiHbyA
 (
     "phiHbyA",
     (fvc::interpolate(HbyA) & mesh.Sf())
+  + rAUf*fvc::ddtCorr(U, Uf)
 );
-
-if (ddtPhiCorr)
-{
-    phiHbyA += fvc::ddtPhiCorr(rAU, U, phi);
-}
 
 if (p.needReference())
 {
@@ -28,7 +26,7 @@ while (pimple.correctNonOrthogonal())
 {
     fvScalarMatrix pEqn
     (
-        fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
+        fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)
     );
 
     pEqn.setReference(pRefCell, pRefValue);
@@ -46,9 +44,15 @@ while (pimple.correctNonOrthogonal())
 // Explicitly relax pressure for momentum corrector
 p.relax();
 
-// Make the fluxes relative to the mesh motion
-fvc::makeRelative(phi, U);
-
 U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
 fvOptions.correct(U);
+
+{
+    Uf = fvc::interpolate(U);
+    surfaceVectorField n(mesh.Sf()/mesh.magSf());
+    Uf += n*(phi/mesh.magSf() - (n & Uf));
+}
+
+// Make the fluxes relative to the mesh motion
+fvc::makeRelative(phi, U);

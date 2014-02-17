@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -78,10 +78,78 @@ Description
 #include "booleanSurface.H"
 #include "edgeIntersections.H"
 #include "meshTools.H"
+#include "labelPair.H"
 
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+bool intersectSurfaces
+(
+    triSurface& surf,
+    edgeIntersections& edgeCuts
+)
+{
+    bool hasMoved = false;
+
+    for (label iter = 0; iter < 10; iter++)
+    {
+        Info<< "Determining intersections of surface edges with itself" << endl;
+
+        // Determine surface edge intersections. Allow surface to be moved.
+
+        // Number of iterations needed to resolve degenerates
+        label nIters = 0;
+        {
+            triSurfaceSearch querySurf(surf);
+
+            scalarField surfPointTol
+            (
+                1e-3*edgeIntersections::minEdgeLength(surf)
+            );
+
+            // Determine raw intersections
+            edgeCuts = edgeIntersections
+            (
+                surf,
+                querySurf,
+                surfPointTol
+            );
+
+            // Shuffle a bit to resolve degenerate edge-face hits
+            {
+                pointField points(surf.points());
+
+                nIters =
+                    edgeCuts.removeDegenerates
+                    (
+                        5,              // max iterations
+                        surf,
+                        querySurf,
+                        surfPointTol,
+                        points         // work array
+                    );
+
+                if (nIters != 0)
+                {
+                    // Update geometric quantities
+                    surf.movePoints(points);
+                    hasMoved = true;
+                }
+            }
+        }
+    }
+
+    if (hasMoved)
+    {
+        fileName newFile("surf.obj");
+        Info<< "Surface has been moved. Writing to " << newFile << endl;
+        surf.write(newFile);
+    }
+
+    return hasMoved;
+}
+
 
 // Keep on shuffling surface points until no more degenerate intersections.
 // Moves both surfaces and updates set of edge cuts.
@@ -215,73 +283,39 @@ bool intersectSurfaces
 }
 
 
-int main(int argc, char *argv[])
+label calcNormalDirection
+(
+    const vector& normal,
+    const vector& otherNormal,
+    const vector& edgeDir,
+    const vector& faceCentre,
+    const vector& pointOnEdge
+)
 {
-    argList::noParallel();
-    argList::validArgs.append("action");
-    argList::validArgs.append("surface file");
-    argList::validArgs.append("surface file");
+    vector cross = (normal ^ edgeDir);
+    cross /= mag(cross);
 
-    argList::addBoolOption
-    (
-        "perturb",
-        "Perturb surface points to escape degenerate intersections"
-    );
+    vector fC0tofE0 = faceCentre - pointOnEdge;
+    fC0tofE0 /= mag(fC0tofE0);
 
-    argList::addBoolOption
-    (
-        "invertedSpace",
-        "do the surfaces have inverted space orientation, "
-        "i.e. a point at infinity is considered inside. "
-        "This is only sensible for union and intersection."
-    );
+    label nDir = ((cross & fC0tofE0) > 0.0 ? 1 : -1);
 
-    #   include "setRootCase.H"
-    #   include "createTime.H"
+    nDir *= ((otherNormal & fC0tofE0) > 0.0 ? -1 : 1);
 
-    word action(args.args()[1]);
+    return nDir;
+}
 
-    HashTable<booleanSurface::booleanOpType> validActions;
-    validActions.insert("intersection", booleanSurface::INTERSECTION);
-    validActions.insert("union", booleanSurface::UNION);
-    validActions.insert("difference", booleanSurface::DIFFERENCE);
 
-    if (!validActions.found(action))
-    {
-        FatalErrorIn(args.executable())
-            << "Unsupported action " << action << endl
-            << "Supported actions:" << validActions.toc() << exit(FatalError);
-    }
-
-    fileName surf1Name(args[2]);
-    Info<< "Reading surface " << surf1Name << endl;
-    triSurface surf1(surf1Name);
-
-    Info<< surf1Name << " statistics:" << endl;
-    surf1.writeStats(Info);
-    Info<< endl;
-
-    fileName surf2Name(args[3]);
-    Info<< "Reading surface " << surf2Name << endl;
-    triSurface surf2(surf2Name);
-
-    Info<< surf2Name << " statistics:" << endl;
-    surf2.writeStats(Info);
-    Info<< endl;
-
-    edgeIntersections edge1Cuts;
-    edgeIntersections edge2Cuts;
-
-    bool invertedSpace = args.optionFound("invertedSpace");
-
-    if (invertedSpace && validActions[action] == booleanSurface::DIFFERENCE)
-    {
-        FatalErrorIn(args.executable())
-            << "Inverted space only makes sense for union or intersection."
-            << exit(FatalError);
-    }
-
-    if (args.optionFound("perturb"))
+void calcEdgeCuts
+(
+    triSurface& surf1,
+    triSurface& surf2,
+    const bool perturb,
+    edgeIntersections& edge1Cuts,
+    edgeIntersections& edge2Cuts
+)
+{
+    if (perturb)
     {
         intersectSurfaces
         (
@@ -317,67 +351,343 @@ int main(int argc, char *argv[])
             1e-3*edgeIntersections::minEdgeLength(surf2)
         );
     }
+}
 
-    // Determine intersection edges
-    surfaceIntersection inter(surf1, edge1Cuts, surf2, edge2Cuts);
 
-    fileName sFeatFileName =
+void calcFeaturePoints(const pointField& points, const edgeList& edges)
+{
+    edgeMesh eMesh(points, edges);
+
+    const labelListList& pointEdges = eMesh.pointEdges();
+
+
+    // Get total number of feature points
+    label nFeaturePoints = 0;
+    forAll(pointEdges, pI)
+    {
+        const labelList& pEdges = pointEdges[pI];
+
+        if (pEdges.size() == 1)
+        {
+            nFeaturePoints++;
+        }
+    }
+
+
+    // Calculate addressing from feature point to cut point and cut edge
+    labelList featurePointToCutPoint(nFeaturePoints);
+    labelList featurePointToCutEdge(nFeaturePoints);
+
+    label nFeatPts = 0;
+    forAll(pointEdges, pI)
+    {
+        const labelList& pEdges = pointEdges[pI];
+
+        if (pEdges.size() == 1)
+        {
+            featurePointToCutPoint[nFeatPts] = pI;
+            featurePointToCutEdge[nFeatPts] = pEdges[0];
+            nFeatPts++;
+        }
+    }
+
+
+
+    label concaveStart = 0;
+    label mixedStart = 0;
+    label nonFeatureStart = nFeaturePoints;
+
+
+    labelListList featurePointNormals(nFeaturePoints);
+    labelListList featurePointEdges(nFeaturePoints);
+    labelList regionEdges;
+
+
+}
+
+
+int main(int argc, char *argv[])
+{
+    argList::noParallel();
+    argList::validArgs.append("action");
+    argList::validArgs.append("surface file");
+    argList::validArgs.append("surface file");
+
+    argList::addBoolOption
+    (
+        "surf1Baffle",
+        "Mark surface 1 as a baffle"
+    );
+
+    argList::addBoolOption
+    (
+        "surf2Baffle",
+        "Mark surface 2 as a baffle"
+    );
+
+    argList::addBoolOption
+    (
+        "perturb",
+        "Perturb surface points to escape degenerate intersections"
+    );
+
+    argList::addBoolOption
+    (
+        "invertedSpace",
+        "do the surfaces have inverted space orientation, "
+        "i.e. a point at infinity is considered inside. "
+        "This is only sensible for union and intersection."
+    );
+
+    #   include "setRootCase.H"
+    #   include "createTime.H"
+
+    word action(args.args()[1]);
+
+    HashTable<booleanSurface::booleanOpType> validActions;
+    validActions.insert("intersection", booleanSurface::INTERSECTION);
+    validActions.insert("union", booleanSurface::UNION);
+    validActions.insert("difference", booleanSurface::DIFFERENCE);
+
+    if (!validActions.found(action))
+    {
+        FatalErrorIn(args.executable())
+            << "Unsupported action " << action << endl
+            << "Supported actions:" << validActions.toc() << abort(FatalError);
+    }
+
+    fileName surf1Name(args.args()[2]);
+    Info<< "Reading surface " << surf1Name << endl;
+    triSurface surf1(surf1Name);
+
+    Info<< surf1Name << " statistics:" << endl;
+    surf1.writeStats(Info);
+    Info<< endl;
+
+    fileName surf2Name(args[3]);
+    Info<< "Reading surface " << surf2Name << endl;
+    triSurface surf2(surf2Name);
+
+    Info<< surf2Name << " statistics:" << endl;
+    surf2.writeStats(Info);
+    Info<< endl;
+
+    const bool surf1Baffle = args.optionFound("surf1Baffle");
+    const bool surf2Baffle = args.optionFound("surf2Baffle");
+
+    edgeIntersections edge1Cuts;
+    edgeIntersections edge2Cuts;
+
+    bool invertedSpace = args.optionFound("invertedSpace");
+
+    if (invertedSpace && validActions[action] == booleanSurface::DIFFERENCE)
+    {
+        FatalErrorIn(args.executable())
+            << "Inverted space only makes sense for union or intersection."
+            << exit(FatalError);
+    }
+
+    // Calculate the points where the edges are cut by the other surface
+    calcEdgeCuts
+    (
+        surf1,
+        surf2,
+        args.optionFound("perturb"),
+        edge1Cuts,
+        edge2Cuts
+    );
+
+    // Determine intersection edges from the edge cuts
+    surfaceIntersection inter
+    (
+        surf1,
+        edge1Cuts,
+        surf2,
+        edge2Cuts
+    );
+
+    fileName sFeatFileName
+    (
         surf1Name.lessExt().name()
       + "_"
       + surf2Name.lessExt().name()
       + "_"
-      + action;
+      + action
+    );
 
     label nFeatEds = inter.cutEdges().size();
 
-    vectorField normals(2*nFeatEds, vector::zero);
+    DynamicList<vector> normals(2*nFeatEds);
     vectorField edgeDirections(nFeatEds, vector::zero);
-    labelListList edgeNormals(nFeatEds, labelList(2, label(-1)));
-
-    triSurfaceSearch querySurf1(surf1);
-    triSurfaceSearch querySurf2(surf2);
-
-    OFstream normalFile(sFeatFileName + "_normals.obj");
-
-    scalar scale = 0.05*min
+    DynamicList<extendedFeatureEdgeMesh::sideVolumeType> normalVolumeTypes
     (
-        querySurf1.tree().bb().mag(),
-        querySurf2.tree().bb().mag()
+        2*nFeatEds
     );
+    List<DynamicList<label> > edgeNormals(nFeatEds);
+    List<DynamicList<label> > normalDirections(nFeatEds);
 
-    forAll(inter.cutEdges(), i)
+    forAllConstIter(labelPairLookup, inter.facePairToEdge(), iter)
     {
-        const edge& fE(inter.cutEdges()[i]);
+        const label& cutEdgeI = iter();
+        const labelPair& facePair = iter.key();
 
-        point fEC = fE.centre(inter.cutPoints());
+        const edge& fE = inter.cutEdges()[cutEdgeI];
 
-        pointIndexHit nearest1 = querySurf1.tree().findNearest(fEC, sqr(GREAT));
-        pointIndexHit nearest2 = querySurf2.tree().findNearest(fEC, sqr(GREAT));
+        const vector& norm1 = surf1.faceNormals()[facePair.first()];
+        const vector& norm2 = surf2.faceNormals()[facePair.second()];
 
-        normals[2*i] = surf1.faceNormals()[nearest1.index()];
-        normals[2*i + 1] = surf2.faceNormals()[nearest2.index()];
+        DynamicList<label>& eNormals = edgeNormals[cutEdgeI];
+        DynamicList<label>& nDirections = normalDirections[cutEdgeI];
 
-        edgeNormals[i][0] = 2*i;
-        edgeNormals[i][1] = 2*i + 1;
+        edgeDirections[cutEdgeI] = fE.vec(inter.cutPoints());
 
-        edgeDirections[i] = fE.vec(inter.cutPoints());
+        normals.append(norm1);
+        eNormals.append(normals.size() - 1);
 
+        if (surf1Baffle)
         {
-            meshTools::writeOBJ(normalFile, inter.cutPoints()[fE.start()]);
-            meshTools::writeOBJ(normalFile, inter.cutPoints()[fE.end()]);
+            normalVolumeTypes.append(extendedFeatureEdgeMesh::BOTH);
 
-            normalFile<< "l " << (5*i) + 1 << " " << (5*i) + 2<< endl;
+            nDirections.append(1);
+        }
+        else
+        {
+            normalVolumeTypes.append(extendedFeatureEdgeMesh::INSIDE);
+            nDirections.append
+            (
+                calcNormalDirection
+                (
+                    norm1,
+                    norm2,
+                    edgeDirections[cutEdgeI],
+                    surf1[facePair.first()].centre(surf1.points()),
+                    inter.cutPoints()[fE.start()]
+                )
+            );
+        }
 
-            meshTools::writeOBJ(normalFile, fEC);
-            meshTools::writeOBJ(normalFile, fEC + scale*normals[2*i]);
-            meshTools::writeOBJ(normalFile, fEC + scale*normals[2*i + 1]);
+        normals.append(norm2);
+        eNormals.append(normals.size() - 1);
 
-            normalFile<< "l " << (5*i) + 3 << " " << (5*i) + 4 << endl;
-            normalFile<< "l " << (5*i) + 3 << " " << (5*i) + 5 << endl;
+        if (surf2Baffle)
+        {
+            normalVolumeTypes.append(extendedFeatureEdgeMesh::BOTH);
+
+            nDirections.append(1);
+        }
+        else
+        {
+            normalVolumeTypes.append(extendedFeatureEdgeMesh::INSIDE);
+
+            nDirections.append
+            (
+                calcNormalDirection
+                (
+                    norm2,
+                    norm1,
+                    edgeDirections[cutEdgeI],
+                    surf2[facePair.second()].centre(surf2.points()),
+                    inter.cutPoints()[fE.start()]
+                )
+            );
+        }
+
+
+        if (surf1Baffle)
+        {
+            normals.append(norm2);
+
+            if (surf2Baffle)
+            {
+                normalVolumeTypes.append(extendedFeatureEdgeMesh::BOTH);
+
+                nDirections.append(1);
+            }
+            else
+            {
+                normalVolumeTypes.append(extendedFeatureEdgeMesh::INSIDE);
+
+                nDirections.append
+                (
+                    calcNormalDirection
+                    (
+                        norm2,
+                        norm1,
+                        edgeDirections[cutEdgeI],
+                        surf2[facePair.second()].centre(surf2.points()),
+                        inter.cutPoints()[fE.start()]
+                    )
+                );
+            }
+
+            eNormals.append(normals.size() - 1);
+        }
+
+        if (surf2Baffle)
+        {
+            normals.append(norm1);
+
+            if (surf1Baffle)
+            {
+                normalVolumeTypes.append(extendedFeatureEdgeMesh::BOTH);
+
+                nDirections.append(1);
+            }
+            else
+            {
+                normalVolumeTypes.append(extendedFeatureEdgeMesh::INSIDE);
+
+                nDirections.append
+                (
+                    calcNormalDirection
+                    (
+                        norm1,
+                        norm2,
+                        edgeDirections[cutEdgeI],
+                        surf1[facePair.first()].centre(surf1.points()),
+                        inter.cutPoints()[fE.start()]
+                    )
+                );
+            }
+
+            eNormals.append(normals.size() - 1);
         }
     }
 
+
     label internalStart = -1;
+    label nIntOrExt = 0;
+    label nFlat = 0;
+    label nOpen = 0;
+    label nMultiple = 0;
+
+    forAll(edgeNormals, eI)
+    {
+        label nEdNorms = edgeNormals[eI].size();
+
+        if (nEdNorms == 1)
+        {
+            nOpen++;
+        }
+        else if (nEdNorms == 2)
+        {
+            const vector& n0(normals[edgeNormals[eI][0]]);
+            const vector& n1(normals[edgeNormals[eI][1]]);
+
+            if ((n0 & n1) > extendedFeatureEdgeMesh::cosNormalAngleTol_)
+            {
+                nFlat++;
+            }
+            else
+            {
+                nIntOrExt++;
+            }
+        }
+        else if (nEdNorms > 2)
+        {
+            nMultiple++;
+        }
+    }
 
     if (validActions[action] == booleanSurface::UNION)
     {
@@ -389,7 +699,7 @@ int main(int argc, char *argv[])
         else
         {
             // All edges are external
-            internalStart = nFeatEds;
+            internalStart = nIntOrExt;
         }
     }
     else if (validActions[action] == booleanSurface::INTERSECTION)
@@ -397,7 +707,7 @@ int main(int argc, char *argv[])
         if (!invertedSpace)
         {
             // All edges are external
-            internalStart = nFeatEds;
+            internalStart = nIntOrExt;
         }
         else
         {
@@ -408,7 +718,7 @@ int main(int argc, char *argv[])
     else if (validActions[action] == booleanSurface::DIFFERENCE)
     {
         // All edges are external
-        internalStart = nFeatEds;
+        internalStart = nIntOrExt;
     }
     else
     {
@@ -422,29 +732,53 @@ int main(int argc, char *argv[])
     // Flat, open or multiple edges are assumed to be impossible
     // Region edges are not explicitly supported by surfaceIntersection
 
+    vectorField normalsTmp(normals);
+    List<extendedFeatureEdgeMesh::sideVolumeType> normalVolumeTypesTmp
+    (
+        normalVolumeTypes
+    );
+    labelListList edgeNormalsTmp(edgeNormals.size());
+    forAll(edgeNormalsTmp, i)
+    {
+        edgeNormalsTmp[i] = edgeNormals[i];
+    }
+    labelListList normalDirectionsTmp(normalDirections.size());
+    forAll(normalDirectionsTmp, i)
+    {
+        normalDirectionsTmp[i] = normalDirections[i];
+    }
+
+    calcFeaturePoints(inter.cutPoints(), inter.cutEdges());
+
     extendedFeatureEdgeMesh feMesh
     (
         IOobject
         (
             sFeatFileName + ".extendedFeatureEdgeMesh",
             runTime.constant(),
-            "featureEdgeMesh",
+            "extendedFeatureEdgeMesh",
             runTime,
             IOobject::NO_READ,
             IOobject::NO_WRITE
         ),
         inter.cutPoints(),
         inter.cutEdges(),
+
         0,                  // concaveStart,
         0,                  // mixedStart,
         0,                  // nonFeatureStart,
+
         internalStart,      // internalStart,
-        nFeatEds,           // flatStart,
-        nFeatEds,           // openStart,
-        nFeatEds,           // multipleStart,
-        normals,
+        nIntOrExt,           // flatStart,
+        nIntOrExt + nFlat,   // openStart,
+        nIntOrExt + nFlat + nOpen,   // multipleStart,
+
+        normalsTmp,
+        normalVolumeTypesTmp,
         edgeDirections,
-        edgeNormals,
+        normalDirectionsTmp,
+        edgeNormalsTmp,
+
         labelListList(0),   // featurePointNormals,
         labelListList(0),   // featurePointEdges,
         labelList(0)        // regionEdges
@@ -452,7 +786,7 @@ int main(int argc, char *argv[])
 
     feMesh.write();
 
-    feMesh.writeObj(sFeatFileName);
+    feMesh.writeObj(feMesh.path()/sFeatFileName);
 
     {
         // Write a featureEdgeMesh for backwards compatibility

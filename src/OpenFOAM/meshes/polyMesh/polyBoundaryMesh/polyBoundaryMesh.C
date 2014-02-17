@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -38,19 +38,6 @@ License
 namespace Foam
 {
 defineTypeNameAndDebug(polyBoundaryMesh, 0);
-}
-
-
-// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
-
-Foam::labelList Foam::polyBoundaryMesh::ident(const label len)
-{
-    labelList elems(len);
-    forAll(elems, elemI)
-    {
-        elems[elemI] = elemI;
-    }
-    return elems;
 }
 
 
@@ -499,6 +486,57 @@ Foam::polyBoundaryMesh::groupPatchIDs() const
 }
 
 
+void Foam::polyBoundaryMesh::setGroup
+(
+    const word& groupName,
+    const labelList& patchIDs
+)
+{
+    groupPatchIDsPtr_.clear();
+
+    polyPatchList& patches = *this;
+
+    boolList donePatch(patches.size(), false);
+
+    // Add to specified patches
+    forAll(patchIDs, i)
+    {
+        label patchI = patchIDs[i];
+        polyPatch& pp = patches[patchI];
+
+        if (!pp.inGroup(groupName))
+        {
+            pp.inGroups().append(groupName);
+        }
+        donePatch[patchI] = true;
+    }
+
+    // Remove from other patches
+    forAll(patches, patchI)
+    {
+        if (!donePatch[patchI])
+        {
+            polyPatch& pp = patches[patchI];
+
+            label newI = 0;
+            if (pp.inGroup(groupName))
+            {
+                wordList& groups = pp.inGroups();
+
+                forAll(groups, i)
+                {
+                    if (groups[i] != groupName)
+                    {
+                        groups[newI++] = groups[i];
+                    }
+                }
+                groups.setSize(newI);
+            }
+        }
+    }
+}
+
+
 Foam::wordList Foam::polyBoundaryMesh::names() const
 {
     const polyPatchList& patches = *this;
@@ -737,7 +775,7 @@ Foam::labelHashSet Foam::polyBoundaryMesh::patchSet
 
     forAll(patchNames, i)
     {
-         const word& patchName = patchNames[i];
+        const wordRe& patchName = patchNames[i];
 
         // Treat the given patch names as wild-cards and search the set
         // of all patch names for matches

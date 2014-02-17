@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -63,6 +63,10 @@ public:
         virtual label size() const = 0;
 
         virtual bool direct() const = 0;
+
+        //- Are there unmapped values? I.e. do all size() elements get
+        //  get value
+        virtual bool hasUnmapped() const = 0;
 
         virtual const labelUList& directAddressing() const
         {

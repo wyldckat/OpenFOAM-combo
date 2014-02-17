@@ -89,6 +89,7 @@ class sampledSurfaces
         //- Tolerance for merging points (fraction of mesh bounding box)
         static scalar mergeTol_;
 
+
     // Private data
 
         //- Name of this set of surfaces,
@@ -112,6 +113,7 @@ class sampledSurfaces
 
             //- Interpolation scheme to use
             word interpolationScheme_;
+
 
         // surfaces
 
@@ -236,7 +238,6 @@ public:
 
         //- Update for changes of mesh due to readUpdate - expires the surfaces
         virtual void readUpdate(const polyMesh::readUpdateState state);
-
 };
 
 

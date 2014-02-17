@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -50,7 +50,7 @@ SourceFiles
 #include "volFieldsFwd.H"
 #include "cellSet.H"
 #include "autoPtr.H"
-#include "meshToMeshNew.H"
+#include "meshToMesh.H"
 
 #include "runTimeSelectionTables.H"
 
@@ -94,7 +94,10 @@ protected:
     // Protected data
 
         //- Source name
-        word name_;
+        const word name_;
+
+        //- Model type
+        const word modelType_;
 
         //- Reference to the mesh database
         const fvMesh& mesh_;
@@ -132,7 +135,7 @@ protected:
         // Data for smMapRegion only
 
             //- Mesh to mesh interpolation object
-            autoPtr<meshToMeshNew> meshInterpPtr_;
+            autoPtr<meshToMesh> meshInterpPtr_;
 
             //- Name of the neighbour region to map
             word nbrRegionName_;
@@ -290,7 +293,7 @@ public:
             inline const word& nbrRegionName() const;
 
             //- Return const access to the mapToMap pointer
-            inline const meshToMeshNew& meshInterp() const;
+            inline const meshToMesh& meshInterp() const;
 
             //- Return const access to the cell set
             inline const labelList& cells() const;
@@ -422,20 +425,26 @@ public:
             // Flux manipulations
 
                 //- Make the given absolute flux relative
-                virtual void relativeFlux(surfaceScalarField& phi) const;
+                virtual void makeRelative(surfaceScalarField& phi) const;
+
+                //- Make the given absolute boundary flux relative
+                virtual void makeRelative
+                (
+                    FieldField<fvsPatchField, scalar>& phi
+                ) const;
 
                 //- Make the given absolute mass-flux relative
-                virtual void relativeFlux
+                virtual void makeRelative
                 (
                     const surfaceScalarField& rho,
                     surfaceScalarField& phi
                 ) const;
 
                 //- Make the given relative flux absolute
-                virtual void absoluteFlux(surfaceScalarField& phi) const;
+                virtual void makeAbsolute(surfaceScalarField& phi) const;
 
                 //- Make the given relative mass-flux absolute
-                virtual void absoluteFlux
+                virtual void makeAbsolute
                 (
                     const surfaceScalarField& rho,
                     surfaceScalarField& phi
