@@ -206,10 +206,46 @@ As for tags, those have to be reconstructed manually, because this rebasing stra
 Updating the combo repository
 =============================
 
+WARNING: I've messed up the commit tree... might need to start over :(
+
 This example is for the transition between OpenFOAM 2.2.x to 2.3.x.
 First, use `gitk --all` to see where the `combo` branch stopped at.
 Then run:
 ```
 git checkout -b master22x of22x/master
+git pull
+gitk
+```
 
+Search for the commit that corresponds to the last commit on the combo branch and get the one next to it. In my case, it was `f427c14b50f589d1e5d698c893c23d75685cfe74`.
+Quit `gitk` and do the following:
+```
+git checkout combo
+git tag combo-end
+
+git checkout master22x
+git checkout f427c14b50f589d1e5d698c893c23d75685cfe74
+git checkout -b referencePoint
+git tag 22x-referencePoint
+git merge master22x
+
+git checkout combo
+git rm -rf * .gitignore
+rm -rf *
+git checkout 22x-referencePoint -- .
+git commit -c 22x-referencePoint
+
+git replace 22x-referencePoint HEAD
+git checkout referencePoint
+git rebase combo
+
+#needed to manually repair the merge a few times, by using:
+git mergetool
+git rebase --continue
+
+git checkout combo
+git merge master22x
+git tag -d 22x-referencePoint
+git branch -D master22x
+git gc
 ```
