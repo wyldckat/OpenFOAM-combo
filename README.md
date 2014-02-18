@@ -201,3 +201,15 @@ git branch -D master$versionB
 ```
 
 As for tags, those have to be reconstructed manually, because this rebasing strategy will redo all git commits!
+
+
+Updating the combo repository
+=============================
+
+This example is for the transition between OpenFOAM 2.2.x to 2.3.x.
+First, use `gitk --all` to see where the `combo` branch stopped at.
+Then run:
+```
+git checkout -b master22x of22x/master
+
+```
