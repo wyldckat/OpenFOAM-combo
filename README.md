@@ -275,8 +275,10 @@ git rebase combo
 #needed to manually repair the merge a few times, by using:
 git mergetool
 git rebase --continue
+#git rebase --skip
 
 git checkout combo
 git merge master$versionB
 git branch -D master$versionB
+git tag -d $versionB-start
 ```
