@@ -242,7 +242,41 @@ git checkout referencePoint
 git rev-list --reverse b6d5916abadc9d96544c409fbe0890c6cc9315ec..f9a78f7f7596e1fcac48e3a51c47e2091eda1b2a | xargs -n 1 git cherry-pick
 
 git checkout combo
+git tag of22x-end
 git tag -d 22x-referencePoint
 git branch -D master22x
 git gc
+```
+
+As for hooking up to 2.3.x:
+```
+git remote add of23x git://github.com/OpenFOAM/OpenFOAM-2.3.x.git
+git fetch of23x
+git checkout -b master23x of23x/master
+
+versionA=22x
+versionB=23x
+
+git checkout combo
+git tag $versionA-end
+git checkout master$versionB
+git checkout $(git rev-list --max-parents=0 HEAD)
+git tag $versionB-start
+git checkout combo
+git rm -rf * .gitignore
+rm -rf *
+git checkout $versionB-start -- .
+git commit -c $versionB-start
+
+git replace $versionB-start HEAD
+git checkout master$versionB
+git rebase combo
+
+#needed to manually repair the merge a few times, by using:
+git mergetool
+git rebase --continue
+
+git checkout combo
+git merge master$versionB
+git branch -D master$versionB
 ```
