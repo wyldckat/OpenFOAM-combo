@@ -236,12 +236,11 @@ git checkout 22x-referencePoint -- .
 git commit -c 22x-referencePoint
 
 git replace 22x-referencePoint HEAD
-git checkout referencePoint
+git checkout combo
 
 #probably will have to use cherry-pick via gitk, at least for a few commits until a common merge, but this is very roughly what I did
 git rev-list --reverse b6d5916abadc9d96544c409fbe0890c6cc9315ec..f9a78f7f7596e1fcac48e3a51c47e2091eda1b2a | xargs -n 1 git cherry-pick
 
-git checkout combo
 git tag of22x-end
 git tag -d 22x-referencePoint
 git branch -D master22x
