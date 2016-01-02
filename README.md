@@ -10,6 +10,8 @@ Nonetheless, further changes were needed to those instructions, since they did n
 
 *Disclaimer*: This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM®  and OpenCFD® trade marks.
 
+This [git repository](https://github.com/wyldckat/OpenFOAM-combo) was brought to you by Bruno Santos (wyldckat@github working at [blueCAPE Lda](www.bluecape.com.pt)).
+
 How to use
 ==========
 
@@ -227,7 +229,6 @@ git checkout master22x
 git checkout f427c14b50f589d1e5d698c893c23d75685cfe74
 git checkout -b referencePoint
 git tag 22x-referencePoint
-git merge master22x
 
 git checkout combo
 git rm -rf * .gitignore
@@ -236,7 +237,6 @@ git checkout 22x-referencePoint -- .
 git commit -c 22x-referencePoint
 
 git replace 22x-referencePoint HEAD
-git checkout combo
 
 #probably will have to use cherry-pick via gitk, at least for a few commits until a common merge, but this is very roughly what I did
 git rev-list --reverse b6d5916abadc9d96544c409fbe0890c6cc9315ec..f9a78f7f7596e1fcac48e3a51c47e2091eda1b2a | xargs -n 1 git cherry-pick
@@ -281,3 +281,21 @@ git merge master$versionB
 git branch -D master$versionB
 git tag -d $versionB-start
 ```
+
+
+Updating the combo repository - second example
+==============================================
+
+This example is for the transition between OpenFOAM 2.3.x to 2.4.x.
+First, use `gitk --all` to see where the `combo` branch stopped at.
+Then run:
+```
+git checkout -b master23x of23x/master
+git pull
+gitk
+```
+
+Now, here's where things get tricky, because it's easiest to use the automatic cherry-pick mechanism if we use a point in the original history line that is fully merged, instead of the situation we have to manually cherry-pick until we get a fully merged point in the history.
+Therefore, for practical reasons, the whole 2.3.x history was dropped and reconstructed again. This was done with `gitk`.
+
+After that, the standard hookup was done.
